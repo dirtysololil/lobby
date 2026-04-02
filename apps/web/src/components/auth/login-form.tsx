@@ -33,6 +33,7 @@ export function LoginForm() {
       });
 
       authSessionResponseSchema.parse(response);
+      await ensureSessionCookiePersisted();
 
       startTransition(() => {
         router.push("/app");
@@ -44,6 +45,18 @@ export function LoginForm() {
       setIsSubmitting(false);
     }
   });
+
+
+  async function ensureSessionCookiePersisted() {
+    try {
+      const me = await apiClientFetch("/v1/auth/me");
+      authSessionResponseSchema.parse(me);
+    } catch {
+      throw new Error(
+        "Signed in, but session cookie was not persisted. Check SESSION_COOKIE_DOMAIN/SESSION_COOKIE_SECURE and HTTPS proxy setup.",
+      );
+    }
+  }
 
   return (
     <form className="space-y-5" onSubmit={onSubmit}>
