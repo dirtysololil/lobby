@@ -1,37 +1,14 @@
 import Link from "next/link";
-import { Home, Layers3, MessageSquare, Users2 } from "lucide-react";
-import { hubListResponseSchema } from "@lobby/shared";
+import { LayoutDashboard, KeyRound, Layers3, MessageSquare, Settings2, ShieldCheck, Users2 } from "lucide-react";
+import { hubListResponseSchema, type PublicUser } from "@lobby/shared";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { fetchServerApi } from "@/lib/server-api";
 
-const sidebarItems = [
-  {
-    label: "Dashboard",
-    href: "/app",
-    icon: Home,
-  },
-  {
-    label: "Invites",
-    href: "/app",
-    icon: Layers3,
-  },
-  {
-    label: "Hubs",
-    href: "/app/hubs",
-    icon: Layers3,
-  },
-  {
-    label: "People",
-    href: "/app/people",
-    icon: Users2,
-  },
-  {
-    label: "Messages",
-    href: "/app/messages",
-    icon: MessageSquare,
-  },
-];
+interface AppSidebarProps {
+  viewer: PublicUser;
+}
 
-export async function AppSidebar() {
+export async function AppSidebar({ viewer }: AppSidebarProps) {
   let hubItems: Array<{ id: string; name: string; href: string; role: string | null }> = [];
 
   try {
@@ -46,24 +23,67 @@ export async function AppSidebar() {
     hubItems = [];
   }
 
+  const navigation = [
+    {
+      label: "Dashboard",
+      href: "/app",
+      icon: LayoutDashboard,
+    },
+    {
+      label: "People",
+      href: "/app/people",
+      icon: Users2,
+    },
+    {
+      label: "Messages",
+      href: "/app/messages",
+      icon: MessageSquare,
+    },
+    {
+      label: "Hubs",
+      href: "/app/hubs",
+      icon: Layers3,
+    },
+    {
+      label: "Settings",
+      href: "/app/settings/profile",
+      icon: Settings2,
+    },
+    ...(viewer.role === "OWNER" || viewer.role === "ADMIN"
+      ? [
+          {
+            label: "Admin",
+            href: "/app/admin",
+            icon: ShieldCheck,
+          },
+          {
+            label: "Invite keys",
+            href: "/app/admin/invites",
+            icon: KeyRound,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <aside className="flex h-full flex-col rounded-[28px] border border-white/10 bg-white/[0.04] p-4 shadow-[var(--shadow)] backdrop-blur-xl">
-      <div className="mb-6 flex items-center gap-3 rounded-3xl border border-sky-300/15 bg-sky-300/10 px-4 py-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950/60 text-sky-300">
-          <Layers3 className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="font-mono text-xs uppercase tracking-[0.28em] text-sky-200/70">
-            Lobby
-          </p>
-          <p className="text-sm text-slate-300">Stage 2 social foundation</p>
+    <aside className="flex h-full flex-col rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-4 shadow-[var(--shadow)] backdrop-blur-xl">
+      <div className="mb-6 rounded-[28px] border border-white/10 bg-slate-950/45 p-4">
+        <div className="flex items-center gap-4">
+          <UserAvatar user={viewer} />
+          <div className="min-w-0">
+            <p className="font-mono text-xs uppercase tracking-[0.28em] text-sky-200/70">Lobby</p>
+            <p className="mt-1 truncate text-base font-medium text-white">{viewer.profile.displayName}</p>
+            <p className="mt-1 truncate text-sm text-slate-400">
+              @{viewer.username} · {viewer.role}
+            </p>
+          </div>
         </div>
       </div>
 
       <nav className="space-y-2">
-        {sidebarItems.map((item) => (
+        {navigation.map((item) => (
           <Link
-            key={item.label}
+            key={item.href}
             href={item.href}
             className="flex items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-sm text-slate-300 transition hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
           >
@@ -73,7 +93,7 @@ export async function AppSidebar() {
         ))}
       </nav>
 
-      <div className="mt-6 rounded-3xl border border-white/10 bg-slate-950/35 p-4">
+      <div className="mt-6 rounded-[28px] border border-white/10 bg-slate-950/35 p-4">
         <p className="font-mono text-xs uppercase tracking-[0.24em] text-sky-200/70">Your hubs</p>
         <div className="mt-4 space-y-2">
           {hubItems.length === 0 ? (
@@ -95,12 +115,10 @@ export async function AppSidebar() {
         </div>
       </div>
 
-      <div className="mt-auto rounded-3xl border border-white/10 bg-slate-950/35 p-4">
-        <p className="font-mono text-xs uppercase tracking-[0.24em] text-sky-200/70">
-          Connected
-        </p>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
-          Invite-only auth, social graph, hubs and forum foundation are live in this shell.
+      <div className="mt-auto rounded-[28px] border border-white/10 bg-slate-950/35 p-4">
+        <p className="font-mono text-xs uppercase tracking-[0.24em] text-sky-200/70">Platform state</p>
+        <p className="mt-3 text-sm leading-7 text-slate-400">
+          Invite-only auth, social graph, hubs, forum, LiveKit calls, avatar presets and moderation tools are active in this shell.
         </p>
       </div>
     </aside>

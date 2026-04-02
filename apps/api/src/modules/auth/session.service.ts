@@ -81,7 +81,14 @@ export class SessionService {
         revokedAt: true,
         lastActiveAt: true,
         user: {
-          select: publicUserSelect,
+          select: {
+            ...publicUserSelect,
+            platformBlock: {
+              select: {
+                id: true,
+              },
+            },
+          },
         },
       },
     });
@@ -90,6 +97,20 @@ export class SessionService {
       if (session && !session.revokedAt) {
         await this.revokeExpiredSessionById(session.id);
       }
+
+      return null;
+    }
+
+    if (session.user.platformBlock) {
+      await this.prisma.session.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+      await this.usersService.setOfflineIfNoActiveSessions(session.userId);
 
       return null;
     }

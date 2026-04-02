@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   return (
     <RealtimeProvider viewer={viewer}>
       <main className="mx-auto grid min-h-screen w-full max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8">
-        <AppSidebar />
+        <AppSidebar viewer={viewer} />
         <div className="flex min-h-0 flex-col gap-6">
           <AppHeader viewer={viewer} />
           <IncomingCallBanner />

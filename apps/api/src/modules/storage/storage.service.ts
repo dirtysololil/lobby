@@ -1,0 +1,57 @@
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { EnvService } from '../env/env.service';
+
+@Injectable()
+export class StorageService {
+  public constructor(private readonly envService: EnvService) {}
+
+  public async writeAvatar(buffer: Buffer, extension: string): Promise<string> {
+    const env = this.envService.getValues();
+
+    if (env.UPLOAD_DRIVER !== 'local') {
+      throw new ServiceUnavailableException(
+        'Configured upload driver is not available in this deployment',
+      );
+    }
+
+    const now = new Date();
+    const fileKey = [
+      'avatars',
+      String(now.getUTCFullYear()),
+      String(now.getUTCMonth() + 1).padStart(2, '0'),
+      `${randomUUID()}.${extension}`,
+    ].join('/');
+    const absolutePath = this.resolveLocalPath(fileKey);
+
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, buffer);
+
+    return fileKey;
+  }
+
+  public async readObject(fileKey: string): Promise<Buffer> {
+    return readFile(this.resolveLocalPath(fileKey));
+  }
+
+  public async deleteObject(fileKey: string | null | undefined): Promise<void> {
+    if (!fileKey) {
+      return;
+    }
+
+    await rm(this.resolveLocalPath(fileKey), { force: true });
+  }
+
+  private resolveLocalPath(fileKey: string): string {
+    const root = resolve(this.envService.getValues().UPLOAD_LOCAL_ROOT);
+    const filePath = resolve(root, ...fileKey.split('/'));
+
+    if (!filePath.startsWith(root)) {
+      throw new ServiceUnavailableException('Resolved storage path is invalid');
+    }
+
+    return filePath;
+  }
+}

@@ -7,12 +7,16 @@ import {
   createHubMuteSchema,
   createLobbySchema,
   hubInviteResponseSchema,
+  hubNotificationSettingResponseSchema,
   hubListResponseSchema,
   hubShellResponseSchema,
   hubSummarySchema,
   lobbyResponseSchema,
+  lobbyNotificationSettingResponseSchema,
   updateHubMemberRoleSchema,
+  updateHubNotificationSettingSchema,
   updateLobbyAccessSchema,
+  updateLobbyNotificationSettingSchema,
   userTargetActionSchema,
   viewerHubInvitesResponseSchema,
   type CreateHubBanInput,
@@ -22,7 +26,9 @@ import {
   type CreateLobbyInput,
   type PublicUser,
   type UpdateHubMemberRoleInput,
+  type UpdateHubNotificationSettingInput,
   type UpdateLobbyAccessInput,
+  type UpdateLobbyNotificationSettingInput,
   type UserTargetActionInput,
 } from '@lobby/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -126,6 +132,46 @@ export class HubsController {
     return lobbyResponseSchema.parse({
       lobby,
     });
+  }
+
+  @RequireAuth()
+  @Patch(':hubId/notification-settings')
+  public async updateHubNotificationSetting(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('hubId') hubId: string,
+    @Body(new ZodValidationPipe(updateHubNotificationSettingSchema))
+    body: UpdateHubNotificationSettingInput,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return hubNotificationSettingResponseSchema.parse(
+      await this.hubsService.updateHubNotificationSetting(
+        currentUser,
+        hubId,
+        body,
+        getRequestMetadata(request),
+      ),
+    );
+  }
+
+  @RequireAuth()
+  @Patch(':hubId/lobbies/:lobbyId/notification-settings')
+  public async updateLobbyNotificationSetting(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('hubId') hubId: string,
+    @Param('lobbyId') lobbyId: string,
+    @Body(new ZodValidationPipe(updateLobbyNotificationSettingSchema))
+    body: UpdateLobbyNotificationSettingInput,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return lobbyNotificationSettingResponseSchema.parse(
+      await this.hubsService.updateLobbyNotificationSetting(
+        currentUser,
+        hubId,
+        lobbyId,
+        body,
+        getRequestMetadata(request),
+      ),
+    );
   }
 
   @RequireAuth()

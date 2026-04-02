@@ -485,7 +485,14 @@ export class RelationshipsService {
       where: {
         username: normalizedUsername,
       },
-      select: publicUserSelect,
+      select: {
+        ...publicUserSelect,
+        platformBlock: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
 
     if (!targetUser) {
@@ -494,6 +501,10 @@ export class RelationshipsService {
 
     if (targetUser.id === actorUserId) {
       throw new ConflictException('Action on self is not allowed');
+    }
+
+    if (targetUser.platformBlock) {
+      throw new NotFoundException('User not found');
     }
 
     return targetUser;

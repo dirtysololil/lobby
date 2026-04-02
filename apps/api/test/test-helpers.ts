@@ -31,6 +31,9 @@ export function ensureTestEnv() {
   process.env.UPLOAD_DRIVER ??= 'local';
   process.env.UPLOAD_LOCAL_ROOT ??= '/tmp/lobby-storage';
   process.env.MAX_AVATAR_MB ??= '10';
+  process.env.MAX_AVATAR_DIMENSION ??= '1024';
+  process.env.MAX_AVATAR_FRAMES ??= '180';
+  process.env.MAX_AVATAR_ANIMATION_MS ??= '10000';
   process.env.MAX_FILE_MB ??= '50';
   process.env.REALTIME_CORS_ORIGIN ??= 'http://localhost:3000';
 }
@@ -101,10 +104,12 @@ export async function resetDatabase(prisma: PrismaClient) {
   await prisma.session.deleteMany();
   await prisma.callParticipant.deleteMany();
   await prisma.callSession.deleteMany();
+  await prisma.platformBlock.deleteMany();
   await prisma.forumTopicTag.deleteMany();
   await prisma.forumReply.deleteMany();
   await prisma.forumTopic.deleteMany();
   await prisma.forumTag.deleteMany();
+  await prisma.lobbyNotificationOverride.deleteMany();
   await prisma.lobbyAccess.deleteMany();
   await prisma.lobby.deleteMany();
   await prisma.hubMute.deleteMany();

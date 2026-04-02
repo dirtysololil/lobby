@@ -87,6 +87,20 @@ export class DirectMessagesService {
       actor.id,
       targetUsername,
     );
+    const profileDefaults = await this.prisma.profile.findMany({
+      where: {
+        userId: {
+          in: [actor.id, targetUser.id],
+        },
+      },
+      select: {
+        userId: true,
+        dmNotificationDefault: true,
+      },
+    });
+    const notificationDefaults = new Map(
+      profileDefaults.map((item) => [item.userId, item.dmNotificationDefault]),
+    );
 
     await this.relationshipsService.assertInteractionAllowed(
       actor.id,
@@ -101,7 +115,17 @@ export class DirectMessagesService {
         pairKey: buildUserPairKey(actor.id, targetUser.id),
         createdByUserId: actor.id,
         participants: {
-          create: [{ userId: actor.id }, { userId: targetUser.id }],
+          create: [
+            {
+              userId: actor.id,
+              notificationSetting: notificationDefaults.get(actor.id) ?? 'ALL',
+            },
+            {
+              userId: targetUser.id,
+              notificationSetting:
+                notificationDefaults.get(targetUser.id) ?? 'ALL',
+            },
+          ],
         },
       },
       update: {},
@@ -534,7 +558,14 @@ export class DirectMessagesService {
       where: {
         username: targetUsername.trim().toLowerCase(),
       },
-      select: publicUserSelect,
+      select: {
+        ...publicUserSelect,
+        platformBlock: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
 
     if (!targetUser) {
@@ -543,6 +574,10 @@ export class DirectMessagesService {
 
     if (targetUser.id === actorUserId) {
       throw new ForbiddenException('Direct messages with self are not allowed');
+    }
+
+    if (targetUser.platformBlock) {
+      throw new NotFoundException('User not found');
     }
 
     return targetUser;

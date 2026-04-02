@@ -15,6 +15,8 @@ import type {
   LobbySummary,
   PublicUser,
   UpdateHubMemberRoleInput,
+  UpdateHubNotificationSettingInput,
+  UpdateLobbyNotificationSettingInput,
   UserTargetActionInput,
 } from '@lobby/shared';
 import { HubInviteStatus, HubMemberRole, Prisma } from '@prisma/client';
@@ -75,6 +77,14 @@ type AccessibleLobbyRecord = Prisma.LobbyGetPayload<{
     accessMembers: {
       select: {
         userId: true;
+      };
+    };
+    notificationOverrides: {
+      where: {
+        userId: string;
+      };
+      select: {
+        notificationSetting: true;
       };
     };
     hub: {
@@ -160,6 +170,14 @@ export class HubsService {
     requestMetadata: RequestMetadata,
   ): Promise<HubSummary> {
     const hub = await this.prisma.$transaction(async (transaction) => {
+      const actorProfile = await transaction.profile.findUniqueOrThrow({
+        where: {
+          userId: actor.id,
+        },
+        select: {
+          hubNotificationDefault: true,
+        },
+      });
       const createdHub = await transaction.hub.create({
         data: {
           name: input.name.trim(),
@@ -175,6 +193,7 @@ export class HubsService {
           hubId: createdHub.id,
           userId: actor.id,
           role: HubMemberRole.OWNER,
+          notificationSetting: actorProfile.hubNotificationDefault,
         },
       });
 
@@ -219,6 +238,14 @@ export class HubsService {
             accessMembers: {
               select: {
                 userId: true,
+              },
+            },
+            notificationOverrides: {
+              where: {
+                userId: viewerId,
+              },
+              select: {
+                notificationSetting: true,
               },
             },
           },
@@ -293,6 +320,9 @@ export class HubsService {
             lobby.isPrivate,
             lobby.accessMembers,
           ),
+          lobby.notificationOverrides[0]?.notificationSetting ??
+            viewerMembership?.notificationSetting ??
+            'ALL',
         ),
       )
       .filter((lobby) => lobby.canAccess);
@@ -334,6 +364,7 @@ export class HubsService {
         createdAt: hub.createdAt.toISOString(),
         membershipRole: viewerRole,
         isViewerMuted,
+        notificationSetting: viewerMembership?.notificationSetting ?? null,
         permissions,
         lobbies,
         members,
@@ -385,6 +416,14 @@ export class HubsService {
             userId: true,
           },
         },
+        notificationOverrides: {
+          where: {
+            userId: actor.id,
+          },
+          select: {
+            notificationSetting: true,
+          },
+        },
       },
     });
 
@@ -402,7 +441,12 @@ export class HubsService {
       },
     });
 
-    return toLobbySummary(lobby, true);
+    return toLobbySummary(
+      lobby,
+      true,
+      lobby.notificationOverrides[0]?.notificationSetting ??
+        membership.notificationSetting,
+    );
   }
 
   public async updatePrivateLobbyAccess(
@@ -429,6 +473,14 @@ export class HubsService {
         accessMembers: {
           select: {
             userId: true,
+          },
+        },
+        notificationOverrides: {
+          where: {
+            userId: actor.id,
+          },
+          select: {
+            notificationSetting: true,
           },
         },
       },
@@ -473,7 +525,7 @@ export class HubsService {
       },
     });
 
-    return toLobbySummary(lobby, true);
+    return toLobbySummary(lobby, true, membership.notificationSetting);
   }
 
   public async createHubInvite(
@@ -571,6 +623,14 @@ export class HubsService {
     await this.assertUserNotBanned(invite.hubId, actor.id);
 
     await this.prisma.$transaction(async (transaction) => {
+      const inviteeProfile = await transaction.profile.findUniqueOrThrow({
+        where: {
+          userId: actor.id,
+        },
+        select: {
+          hubNotificationDefault: true,
+        },
+      });
       await transaction.hubMember.upsert({
         where: {
           hubId_userId: {
@@ -582,6 +642,7 @@ export class HubsService {
           hubId: invite.hubId,
           userId: actor.id,
           role: HubMemberRole.MEMBER,
+          notificationSetting: inviteeProfile.hubNotificationDefault,
         },
         update: {},
       });
@@ -986,6 +1047,88 @@ export class HubsService {
     });
   }
 
+  public async updateHubNotificationSetting(
+    actor: PublicUser,
+    hubId: string,
+    input: UpdateHubNotificationSettingInput,
+    requestMetadata: RequestMetadata,
+  ) {
+    const membership = await this.assertHubMemberRole(actor.id, hubId);
+
+    await this.prisma.hubMember.update({
+      where: {
+        id: membership.id,
+      },
+      data: {
+        notificationSetting: input.notificationSetting,
+      },
+    });
+
+    await this.auditService.write({
+      action: 'hubs.notification.update',
+      entityType: 'HubMember',
+      entityId: membership.id,
+      actorUserId: actor.id,
+      ipAddress: requestMetadata.ipAddress,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        hubId,
+        notificationSetting: input.notificationSetting,
+      },
+    });
+
+    return {
+      hubId,
+      notificationSetting: input.notificationSetting,
+    };
+  }
+
+  public async updateLobbyNotificationSetting(
+    actor: PublicUser,
+    hubId: string,
+    lobbyId: string,
+    input: UpdateLobbyNotificationSettingInput,
+    requestMetadata: RequestMetadata,
+  ) {
+    await this.getAccessibleLobbyOrThrow(actor.id, hubId, lobbyId);
+
+    const override = await this.prisma.lobbyNotificationOverride.upsert({
+      where: {
+        lobbyId_userId: {
+          lobbyId,
+          userId: actor.id,
+        },
+      },
+      create: {
+        lobbyId,
+        userId: actor.id,
+        notificationSetting: input.notificationSetting,
+      },
+      update: {
+        notificationSetting: input.notificationSetting,
+      },
+    });
+
+    await this.auditService.write({
+      action: 'hubs.lobby.notification.update',
+      entityType: 'LobbyNotificationOverride',
+      entityId: override.id,
+      actorUserId: actor.id,
+      ipAddress: requestMetadata.ipAddress,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        hubId,
+        lobbyId,
+        notificationSetting: input.notificationSetting,
+      },
+    });
+
+    return {
+      lobbyId,
+      notificationSetting: input.notificationSetting,
+    };
+  }
+
   public async getAccessibleLobbyOrThrow(
     viewerId: string,
     hubId: string,
@@ -1000,6 +1143,14 @@ export class HubsService {
         accessMembers: {
           select: {
             userId: true,
+          },
+        },
+        notificationOverrides: {
+          where: {
+            userId: viewerId,
+          },
+          select: {
+            notificationSetting: true,
           },
         },
         hub: {
@@ -1108,10 +1259,21 @@ export class HubsService {
       where: {
         username: username.trim().toLowerCase(),
       },
-      select: publicUserSelect,
+      select: {
+        ...publicUserSelect,
+        platformBlock: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
 
     if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.platformBlock) {
       throw new NotFoundException('User not found');
     }
 
@@ -1199,6 +1361,14 @@ export class HubsService {
         },
       }),
       this.prisma.lobbyAccess.deleteMany({
+        where: {
+          userId,
+          lobby: {
+            hubId,
+          },
+        },
+      }),
+      this.prisma.lobbyNotificationOverride.deleteMany({
         where: {
           userId,
           lobby: {

@@ -29,3 +29,13 @@ export async function requireViewer(): Promise<PublicUser> {
 
   return viewer;
 }
+
+export async function requireAdminViewer(): Promise<PublicUser> {
+  const viewer = await requireViewer();
+
+  if (viewer.role !== "OWNER" && viewer.role !== "ADMIN") {
+    redirect("/app");
+  }
+
+  return viewer;
+}

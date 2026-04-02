@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -138,6 +139,11 @@ export class AuthService {
       select: {
         ...publicUserSelect,
         passwordHash: true,
+        platformBlock: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
 
@@ -152,6 +158,10 @@ export class AuthService {
 
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.platformBlock) {
+      throw new ForbiddenException('Account is blocked by moderation');
     }
 
     const session = await this.sessionService.createSessionRecord(
@@ -176,7 +186,11 @@ export class AuthService {
     return {
       session,
       user: toPublicUser({
-        ...user,
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
         profile: {
           ...user.profile!,
           presence: PresenceStatus.ONLINE,

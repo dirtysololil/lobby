@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { AdminModule } from './modules/admin/admin.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
@@ -14,6 +15,7 @@ import { InvitesModule } from './modules/invites/invites.module';
 import { CallsModule } from './modules/calls/calls.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { RelationshipsModule } from './modules/relationships/relationships.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -26,8 +28,10 @@ import { UsersModule } from './modules/users/users.module';
     ]),
     EnvModule,
     DatabaseModule,
+    StorageModule,
     QueueModule,
     AuditModule,
+    AdminModule,
     UsersModule,
     InvitesModule,
     HubsModule,

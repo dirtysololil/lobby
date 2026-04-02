@@ -4,11 +4,12 @@ import { apiErrorSchema } from "@lobby/shared";
 import { runtimeConfig } from "./runtime-config";
 
 export async function apiClientFetch<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const response = await fetch(`${runtimeConfig.apiPublicUrl}${path}`, {
     ...init,
     credentials: "include",
     headers: {
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(!isFormData && init?.body ? { "Content-Type": "application/json" } : {}),
       ...init?.headers,
     },
   });

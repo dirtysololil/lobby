@@ -127,12 +127,6 @@ export const userRelationshipSummarySchema = z.object({
 
 export type UserRelationshipSummary = z.infer<typeof userRelationshipSummarySchema>;
 
-export const actionMessageSchema = z.object({
-  ok: z.literal(true),
-});
-
-export type ActionMessage = z.infer<typeof actionMessageSchema>;
-
 export const apiErrorSchema = z.object({
   error: z.object({
     code: z.string(),

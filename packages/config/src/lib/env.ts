@@ -52,13 +52,13 @@ const seedEnvSchema = apiEnvSchema.extend({
 });
 
 const webEnvSchema = z.object({
-  APP_NAME: z.string().min(1),
-  NODE_ENV: nodeEnvSchema,
-  WEB_PUBLIC_URL: z.string().url(),
-  API_PUBLIC_URL: z.string().url(),
-  MEDIA_PUBLIC_URL: z.string().url(),
-  REALTIME_PUBLIC_URL: z.string().url(),
-  REALTIME_PATH: z.string().min(1),
+  APP_NAME: z.string().min(1).default("Lobby"),
+  NODE_ENV: nodeEnvSchema.default("development"),
+  WEB_PUBLIC_URL: z.string().url().default("http://127.0.0.1:3000"),
+  API_PUBLIC_URL: z.string().url().default("http://127.0.0.1:3001"),
+  MEDIA_PUBLIC_URL: z.string().url().default("wss://127.0.0.1:7880"),
+  REALTIME_PUBLIC_URL: z.string().url().default("http://127.0.0.1:3001"),
+  REALTIME_PATH: z.string().min(1).default("/socket.io"),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

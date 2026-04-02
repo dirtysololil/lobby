@@ -65,6 +65,7 @@ export function toLobbySummary(
     'id' | 'hubId' | 'name' | 'description' | 'type' | 'isPrivate' | 'createdAt'
   >,
   canAccess: boolean,
+  notificationSetting: string,
 ): LobbySummary {
   return lobbySummarySchema.parse({
     id: lobby.id,
@@ -75,6 +76,7 @@ export function toLobbySummary(
     isPrivate: lobby.isPrivate,
     createdAt: lobby.createdAt.toISOString(),
     canAccess,
+    notificationSetting,
   });
 }
 
@@ -87,6 +89,7 @@ export function toHubMember(
     id: member.id,
     role: member.role,
     joinedAt: member.createdAt.toISOString(),
+    notificationSetting: member.notificationSetting,
     user: toPublicUser(user),
     canManage:
       Boolean(viewerRole) &&
