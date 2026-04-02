@@ -63,7 +63,10 @@ function resolveApiBaseUrl(): string {
 }
 
 async function extractErrorMessage(response: Response): Promise<string> {
-  const fallbackMessage = response.statusText || `Request failed (${response.status})`;
+  const fallbackMessage =
+    response.status === 401
+      ? "Invalid login or password"
+      : response.statusText || `Request failed (${response.status})`;
   const contentType = response.headers.get("content-type") ?? "";
 
   if (!contentType.includes("application/json")) {
