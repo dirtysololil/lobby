@@ -4,14 +4,16 @@ import { apiErrorSchema } from "@lobby/shared";
 import { runtimeConfig } from "./runtime-config";
 
 export async function apiClientFetch<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
-  if (!runtimeConfig.apiPublicUrl) {
+  const apiBaseUrl = resolveApiBaseUrl();
+
+  if (!apiBaseUrl) {
     throw new Error("Service is temporarily unavailable. Please try again later.");
   }
 
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
 
   try {
-    const response = await fetch(`${runtimeConfig.apiPublicUrl}${path}`, {
+    const response = await fetch(`${apiBaseUrl}${path}`, {
       ...init,
       credentials: "include",
       headers: {
@@ -36,6 +38,28 @@ export async function apiClientFetch<TResponse>(path: string, init?: RequestInit
 
     throw new Error("Unable to reach API right now. Please try again.");
   }
+}
+
+function resolveApiBaseUrl(): string {
+  if (runtimeConfig.apiPublicUrl) {
+    return runtimeConfig.apiPublicUrl;
+  }
+
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const { protocol, hostname } = window.location;
+
+  if (hostname.startsWith("lobby.")) {
+    return `${protocol}//api.${hostname.slice("lobby.".length)}`;
+  }
+
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return `${protocol}//${hostname}:3001`;
+  }
+
+  return "";
 }
 
 async function extractErrorMessage(response: Response): Promise<string> {
