@@ -16,14 +16,16 @@ module.exports = {
     {
       name: "lobby-web",
       cwd: ".",
-      script: "node",
-      args: "apps/web/scripts/run-next.mjs start",
-      interpreter: "none",
+      script: "apps/web/scripts/run-next.mjs",
+      args: "start",
+      interpreter: "node",
       autorestart: true,
       watch: false,
       max_memory_restart: "512M",
       env: {
         NODE_ENV: "production",
+        WEB_HOST: "127.0.0.1",
+        WEB_PORT: "3000",
       },
     },
     {
