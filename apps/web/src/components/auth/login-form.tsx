@@ -25,7 +25,7 @@ export function LoginForm() {
   const onSubmit = form.handleSubmit(async (values) => {
     setIsSubmitting(true);
     setErrorMessage(null);
-    console.info("[auth/login] submit:start", { login: values.login });
+    console.info("[auth/login] submit:start");
 
     try {
       const response = await apiClientFetch("/v1/auth/login", {
@@ -42,7 +42,7 @@ export function LoginForm() {
         router.refresh();
       });
     } catch (error) {
-      console.warn("[auth/login] submit:error", error);
+      console.warn("[auth/login] submit:error");
       setErrorMessage(mapLoginError(error));
     } finally {
       setIsSubmitting(false);
