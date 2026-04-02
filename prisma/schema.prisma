@@ -1,0 +1,552 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum PresenceStatus {
+  ONLINE
+  IDLE
+  DND
+  OFFLINE
+}
+
+enum AvatarPreset {
+  NONE
+  GOLD_GLOW
+  NEON_BLUE
+  PREMIUM_PURPLE
+  ANIMATED_RING
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REMOVED
+}
+
+enum DmNotificationSetting {
+  ALL
+  MENTIONS_ONLY
+  MUTED
+  OFF
+}
+
+enum DmRetentionMode {
+  OFF
+  H24
+  D7
+  D30
+  CUSTOM
+}
+
+enum HubMemberRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum HubInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+}
+
+enum LobbyType {
+  TEXT
+  VOICE
+  FORUM
+}
+
+enum CallScope {
+  DM
+  HUB_LOBBY
+}
+
+enum CallMode {
+  AUDIO
+  VIDEO
+}
+
+enum CallStatus {
+  RINGING
+  ACCEPTED
+  DECLINED
+  ENDED
+  MISSED
+}
+
+enum CallParticipantState {
+  INVITED
+  ACCEPTED
+  JOINED
+  DECLINED
+  LEFT
+  MISSED
+}
+
+model User {
+  id                       String                        @id @default(cuid())
+  username                 String                        @unique
+  email                    String                        @unique
+  passwordHash             String
+  role                     UserRole                      @default(MEMBER)
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+  profile                  Profile?
+  sessions                 Session[]
+  usedInviteId             String?
+  usedInvite               InviteKey?                    @relation("InviteUsers", fields: [usedInviteId], references: [id], onDelete: SetNull)
+  createdInvites           InviteKey[]                   @relation("InviteCreators")
+  auditLogs                AuditLog[]
+  outgoingFriendships      Friendship[]                  @relation("FriendshipRequester")
+  incomingFriendships      Friendship[]                  @relation("FriendshipAddressee")
+  blocking                 Block[]                       @relation("UserBlocks")
+  blockedBy                Block[]                       @relation("UserBlockedBy")
+  conversationParticipants DirectConversationParticipant[]
+  createdConversations     DirectConversation[]          @relation("ConversationCreator")
+  sentMessages             DirectMessage[]               @relation("MessageAuthor")
+  deletedMessages          DirectMessage[]               @relation("MessageDeleter")
+  createdHubs              Hub[]                         @relation("HubCreator")
+  hubMemberships           HubMember[]
+  sentHubInvites           HubInvite[]                   @relation("HubInviteSender")
+  receivedHubInvites       HubInvite[]                   @relation("HubInviteRecipient")
+  issuedHubBans            HubBan[]                      @relation("HubBanActor")
+  receivedHubBans          HubBan[]                      @relation("HubBanTarget")
+  issuedHubMutes           HubMute[]                     @relation("HubMuteActor")
+  receivedHubMutes         HubMute[]                     @relation("HubMuteTarget")
+  createdLobbies           Lobby[]                       @relation("LobbyCreator")
+  grantedLobbyAccess       LobbyAccess[]                 @relation("LobbyAccessGrantor")
+  accessiblePrivateLobbies LobbyAccess[]                 @relation("LobbyAccessUser")
+  forumTopics              ForumTopic[]                  @relation("ForumTopicAuthor")
+  forumReplies             ForumReply[]                  @relation("ForumReplyAuthor")
+  initiatedCalls           CallSession[]                 @relation("CallInitiator")
+  endedCalls               CallSession[]                 @relation("CallEndedBy")
+  callParticipations       CallParticipant[]
+  platformBlock            PlatformBlock?                @relation("PlatformBlockTarget")
+  issuedPlatformBlocks     PlatformBlock[]               @relation("PlatformBlockActor")
+  lobbyNotificationOverrides LobbyNotificationOverride[]
+
+  @@index([createdAt])
+}
+
+model Profile {
+  userId                   String               @id
+  displayName              String
+  bio                      String?
+  avatarFileKey            String?
+  avatarOriginalName       String?
+  avatarMimeType           String?
+  avatarBytes              Int?
+  avatarWidth              Int?
+  avatarHeight             Int?
+  avatarFrameCount         Int?
+  avatarAnimationDurationMs Int?
+  avatarIsAnimated         Boolean              @default(false)
+  avatarPreset             AvatarPreset         @default(NONE)
+  dmNotificationDefault    DmNotificationSetting @default(ALL)
+  hubNotificationDefault   DmNotificationSetting @default(ALL)
+  lobbyNotificationDefault DmNotificationSetting @default(ALL)
+  presence                 PresenceStatus       @default(OFFLINE)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  user                     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([presence])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  tokenHash    String   @unique
+  userId       String
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  lastActiveAt DateTime @default(now())
+  revokedAt    DateTime?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model InviteKey {
+  id              String    @id @default(cuid())
+  codeHash        String    @unique
+  label           String?
+  role            UserRole  @default(MEMBER)
+  maxUses         Int       @default(1)
+  usedCount       Int       @default(0)
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  createdByUser   User?     @relation("InviteCreators", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  users           User[]    @relation("InviteUsers")
+
+  @@index([revokedAt, expiresAt])
+  @@index([createdAt])
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  pairKey     String           @unique
+  requesterId String
+  addresseeId String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  respondedAt DateTime?
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId, status])
+  @@index([addresseeId, status])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+  blocker   User     @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model DirectConversation {
+  id               String                        @id @default(cuid())
+  pairKey          String                        @unique
+  createdByUserId  String
+  lastMessageAt    DateTime?
+  retentionMode    DmRetentionMode              @default(OFF)
+  retentionSeconds Int?
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+  createdByUser    User                          @relation("ConversationCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  participants     DirectConversationParticipant[]
+  messages         DirectMessage[]
+  calls            CallSession[]
+
+  @@index([lastMessageAt])
+  @@index([retentionMode, updatedAt])
+}
+
+model DirectConversationParticipant {
+  id                  String                @id @default(cuid())
+  conversationId      String
+  userId              String
+  notificationSetting DmNotificationSetting @default(ALL)
+  lastReadMessageId   String?
+  lastReadAt          DateTime?
+  joinedAt            DateTime              @default(now())
+  conversation        DirectConversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadMessage     DirectMessage?        @relation("ParticipantLastReadMessage", fields: [lastReadMessageId], references: [id], onDelete: SetNull)
+
+  @@unique([conversationId, userId])
+  @@index([userId, lastReadAt])
+}
+
+model DirectMessage {
+  id                     String                         @id @default(cuid())
+  conversationId         String
+  authorId               String
+  content                String?
+  deletedAt              DateTime?
+  deletedByUserId        String?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  conversation           DirectConversation             @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author                 User                           @relation("MessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  deletedByUser          User?                          @relation("MessageDeleter", fields: [deletedByUserId], references: [id], onDelete: SetNull)
+  lastReadByParticipants DirectConversationParticipant[] @relation("ParticipantLastReadMessage")
+
+  @@index([conversationId, createdAt])
+  @@index([deletedAt])
+}
+
+model Hub {
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  name          String
+  description   String?
+  isPrivate     Boolean     @default(false)
+  createdByUserId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  createdByUser User        @relation("HubCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  members       HubMember[]
+  invites       HubInvite[]
+  bans          HubBan[]
+  mutes         HubMute[]
+  lobbies       Lobby[]
+  forumTags     ForumTag[]
+  forumTopics   ForumTopic[]
+  callSessions  CallSession[]
+
+  @@index([createdAt])
+}
+
+model HubMember {
+  id                  String                @id @default(cuid())
+  hubId               String
+  userId              String
+  role                HubMemberRole         @default(MEMBER)
+  notificationSetting DmNotificationSetting @default(ALL)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  hub                 Hub                   @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hubId, userId])
+  @@index([hubId, role])
+  @@index([userId])
+}
+
+model HubInvite {
+  id              String          @id @default(cuid())
+  hubId           String
+  inviteeUserId   String
+  invitedByUserId String
+  status          HubInviteStatus @default(PENDING)
+  expiresAt       DateTime?
+  respondedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  hub             Hub             @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  inviteeUser     User            @relation("HubInviteRecipient", fields: [inviteeUserId], references: [id], onDelete: Cascade)
+  invitedByUser   User            @relation("HubInviteSender", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([hubId, inviteeUserId])
+  @@index([inviteeUserId, status])
+}
+
+model HubBan {
+  id             String   @id @default(cuid())
+  hubId          String
+  userId         String
+  bannedByUserId String
+  reason         String?
+  createdAt      DateTime @default(now())
+  hub            Hub      @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  user           User     @relation("HubBanTarget", fields: [userId], references: [id], onDelete: Cascade)
+  bannedByUser   User     @relation("HubBanActor", fields: [bannedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([hubId, userId])
+  @@index([userId])
+}
+
+model HubMute {
+  id            String   @id @default(cuid())
+  hubId         String
+  userId        String
+  mutedByUserId String
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  hub           Hub      @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  user          User     @relation("HubMuteTarget", fields: [userId], references: [id], onDelete: Cascade)
+  mutedByUser   User     @relation("HubMuteActor", fields: [mutedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([hubId, userId])
+  @@index([userId, expiresAt])
+}
+
+model Lobby {
+  id              String        @id @default(cuid())
+  hubId           String
+  name            String
+  description     String?
+  type            LobbyType
+  isPrivate       Boolean       @default(false)
+  createdByUserId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  hub             Hub           @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  createdByUser   User          @relation("LobbyCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  accessMembers   LobbyAccess[]
+  notificationOverrides LobbyNotificationOverride[]
+  forumTopics     ForumTopic[]
+  callSessions    CallSession[]
+
+  @@unique([hubId, name])
+  @@index([hubId, type])
+}
+
+model LobbyAccess {
+  id              String   @id @default(cuid())
+  lobbyId         String
+  userId          String
+  grantedByUserId String
+  createdAt       DateTime @default(now())
+  lobby           Lobby    @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  user            User     @relation("LobbyAccessUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedByUser   User     @relation("LobbyAccessGrantor", fields: [grantedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([lobbyId, userId])
+  @@index([userId])
+}
+
+model LobbyNotificationOverride {
+  id                  String                @id @default(cuid())
+  lobbyId             String
+  userId              String
+  notificationSetting DmNotificationSetting @default(ALL)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  lobby               Lobby                 @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([lobbyId, userId])
+  @@index([userId])
+}
+
+model ForumTopic {
+  id             String         @id @default(cuid())
+  hubId          String
+  lobbyId        String
+  authorId       String
+  title          String
+  content        String
+  pinned         Boolean        @default(false)
+  locked         Boolean        @default(false)
+  archived       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  lastActivityAt DateTime       @default(now())
+  hub            Hub            @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  lobby          Lobby          @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  author         User           @relation("ForumTopicAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  replies        ForumReply[]
+  tags           ForumTopicTag[]
+
+  @@index([lobbyId, pinned, lastActivityAt])
+  @@index([hubId, lastActivityAt])
+}
+
+model ForumReply {
+  id        String     @id @default(cuid())
+  topicId    String
+  authorId   String
+  content    String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  topic      ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author     User      @relation("ForumReplyAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([topicId, createdAt])
+}
+
+model ForumTag {
+  id        String         @id @default(cuid())
+  hubId      String
+  name       String
+  slug       String
+  createdAt  DateTime       @default(now())
+  hub        Hub            @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  topics     ForumTopicTag[]
+
+  @@unique([hubId, slug])
+}
+
+model ForumTopicTag {
+  topicId String
+  tagId   String
+  topic   ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  tag     ForumTag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([topicId, tagId])
+  @@index([tagId])
+}
+
+model CallSession {
+  id               String       @id @default(cuid())
+  scope            CallScope
+  mode             CallMode
+  status           CallStatus   @default(RINGING)
+  dmConversationId String?
+  hubId            String?
+  lobbyId          String?
+  livekitRoomName  String       @unique
+  initiatedByUserId String
+  acceptedAt       DateTime?
+  endedAt          DateTime?
+  endedByUserId    String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  dmConversation   DirectConversation? @relation(fields: [dmConversationId], references: [id], onDelete: Cascade)
+  hub              Hub?         @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  lobby            Lobby?       @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  initiatedByUser  User         @relation("CallInitiator", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
+  endedByUser      User?        @relation("CallEndedBy", fields: [endedByUserId], references: [id], onDelete: SetNull)
+  participants     CallParticipant[]
+
+  @@index([dmConversationId, createdAt])
+  @@index([lobbyId, createdAt])
+  @@index([status, createdAt])
+}
+
+model CallParticipant {
+  id            String               @id @default(cuid())
+  callSessionId String
+  userId        String
+  state         CallParticipantState @default(INVITED)
+  invitedAt     DateTime             @default(now())
+  respondedAt   DateTime?
+  joinedAt      DateTime?
+  leftAt        DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  callSession   CallSession          @relation(fields: [callSessionId], references: [id], onDelete: Cascade)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([callSessionId, userId])
+  @@index([userId, state])
+  @@index([callSessionId, state])
+}
+
+model PlatformBlock {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  blockedByUserId String
+  reason          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation("PlatformBlockTarget", fields: [userId], references: [id], onDelete: Cascade)
+  blockedByUser   User     @relation("PlatformBlockActor", fields: [blockedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([blockedByUserId, createdAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  actorUser   User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

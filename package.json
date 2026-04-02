@@ -1,0 +1,27 @@
+{
+  "name": "lobby",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "corepack pnpm --filter @lobby/shared build && corepack pnpm --filter @lobby/config build && corepack pnpm --parallel --filter @lobby/shared --filter @lobby/config --filter @lobby/api --filter @lobby/web dev",
+    "dev:worker": "corepack pnpm --filter @lobby/api dev:worker",
+    "build": "corepack pnpm --filter @lobby/shared build && corepack pnpm --filter @lobby/config build && corepack pnpm --filter @lobby/api build && corepack pnpm --filter @lobby/web build",
+    "start:worker": "corepack pnpm --filter @lobby/api start:worker",
+    "lint": "corepack pnpm --filter @lobby/api lint && corepack pnpm --filter @lobby/web lint",
+    "typecheck": "corepack pnpm --filter @lobby/shared build && corepack pnpm --filter @lobby/config build && corepack pnpm --filter @lobby/api exec tsc --noEmit && corepack pnpm --filter @lobby/web exec tsc --noEmit",
+    "prisma:generate": "corepack pnpm --filter @lobby/api exec prisma generate --schema ../../prisma/schema.prisma",
+    "prisma:migrate:dev": "corepack pnpm --filter @lobby/api exec prisma migrate dev --schema ../../prisma/schema.prisma",
+    "prisma:migrate:deploy": "corepack pnpm --filter @lobby/api exec prisma migrate deploy --schema ../../prisma/schema.prisma",
+    "prisma:studio": "corepack pnpm --filter @lobby/api exec prisma studio --schema ../../prisma/schema.prisma",
+    "db:seed": "corepack pnpm exec tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.1",
+    "prisma": "^6.7.0",
+    "typescript": "^5.8.3"
+  }
+}
