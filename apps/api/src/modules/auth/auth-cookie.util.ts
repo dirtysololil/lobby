@@ -32,19 +32,28 @@ export function clearSessionCookie(response: Response, env: ApiEnv): void {
 }
 
 function resolveSessionCookieDomain(env: ApiEnv): string | undefined {
-  if (env.SESSION_COOKIE_DOMAIN) {
-    return env.SESSION_COOKIE_DOMAIN;
-  }
+  const rawDomain = env.SESSION_COOKIE_DOMAIN?.trim();
+  const hostname = parseDomainHostname(rawDomain) ?? parseDomainHostname(env.WEB_PUBLIC_URL);
 
-  try {
-    const hostname = new URL(env.WEB_PUBLIC_URL).hostname;
-
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return undefined;
-    }
-
-    return hostname;
-  } catch {
+  if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
     return undefined;
   }
+
+  return hostname.startsWith('.') ? hostname : `.${hostname}`;
+}
+
+function parseDomainHostname(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value.includes('://')) {
+    try {
+      return new URL(value).hostname;
+    } catch {
+      return undefined;
+    }
+  }
+
+  return value.split('/')[0].split(':')[0];
 }

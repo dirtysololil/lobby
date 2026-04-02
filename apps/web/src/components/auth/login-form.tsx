@@ -2,16 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authSessionResponseSchema, loginSchema, type LoginInput } from "@lobby/shared";
-import { startTransition, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiClientFetch, ApiClientError } from "@/lib/api-client";
 
 export function LoginForm() {
-  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<LoginInput>({
@@ -36,11 +34,7 @@ export function LoginForm() {
       authSessionResponseSchema.parse(response);
       console.info("[auth/login] submit:success");
       await ensureSessionCookiePersisted();
-
-      startTransition(() => {
-        router.push("/app");
-        router.refresh();
-      });
+      window.location.assign("/app");
     } catch (error) {
       console.warn("[auth/login] submit:error");
       setErrorMessage(mapLoginError(error));
