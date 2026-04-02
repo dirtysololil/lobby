@@ -2,16 +2,14 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authSessionResponseSchema, registerSchema, type RegisterInput } from "@lobby/shared";
-import { startTransition, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiClientFetch, ApiClientError } from "@/lib/api-client";
 
 export function RegisterForm() {
-  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<RegisterInput>({
@@ -39,11 +37,7 @@ export function RegisterForm() {
       authSessionResponseSchema.parse(response);
       console.info("[auth/register] submit:success");
       await ensureSessionCookiePersisted();
-
-      startTransition(() => {
-        router.push("/app");
-        router.refresh();
-      });
+      window.location.assign("/app");
     } catch (error) {
       console.warn("[auth/register] submit:error");
       setErrorMessage(mapRegisterError(error));
