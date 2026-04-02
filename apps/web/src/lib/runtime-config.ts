@@ -28,3 +28,41 @@ export const runtimeConfig = {
   ),
   realtimePath: readEnvValue("NEXT_PUBLIC_REALTIME_PATH", "REALTIME_PATH") ?? "/socket.io",
 };
+
+export function resolveApiBaseUrlForServer(): string {
+  if (runtimeConfig.apiPublicUrl) {
+    return runtimeConfig.apiPublicUrl;
+  }
+
+  if (runtimeConfig.webPublicUrl) {
+    return deriveApiUrlFromHostname(new URL(runtimeConfig.webPublicUrl));
+  }
+
+  return "";
+}
+
+export function resolveApiBaseUrlForBrowser(): string {
+  if (runtimeConfig.apiPublicUrl) {
+    return runtimeConfig.apiPublicUrl;
+  }
+
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return deriveApiUrlFromHostname(new URL(window.location.origin));
+}
+
+function deriveApiUrlFromHostname(origin: URL): string {
+  const { protocol, hostname } = origin;
+
+  if (hostname.startsWith("lobby.")) {
+    return `${protocol}//api.${hostname}`;
+  }
+
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return `${protocol}//${hostname}:3001`;
+  }
+
+  return "";
+}
