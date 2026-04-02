@@ -1,10 +1,12 @@
 import { authSessionResponseSchema, type PublicUser } from "@lobby/shared";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { runtimeConfig } from "./runtime-config";
+import { resolveApiBaseUrlForServer } from "./runtime-config";
 
 export async function fetchViewer(): Promise<PublicUser | null> {
-  if (!runtimeConfig.apiPublicUrl) {
+  const apiBaseUrl = resolveApiBaseUrlForServer();
+
+  if (!apiBaseUrl) {
     return null;
   }
 
@@ -12,7 +14,7 @@ export async function fetchViewer(): Promise<PublicUser | null> {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
 
-    const response = await fetch(`${runtimeConfig.apiPublicUrl}/v1/auth/me`, {
+    const response = await fetch(`${apiBaseUrl}/v1/auth/me`, {
       headers: cookieHeader ? { cookie: cookieHeader } : undefined,
       cache: "no-store",
     });
