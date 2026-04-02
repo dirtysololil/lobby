@@ -52,7 +52,7 @@ function resolveApiBaseUrl(): string {
   const { protocol, hostname } = window.location;
 
   if (hostname.startsWith("lobby.")) {
-    return `${protocol}//api.${hostname.slice("lobby.".length)}`;
+    return `${protocol}//api.${hostname}`;
   }
 
   if (hostname === "localhost" || hostname === "127.0.0.1") {
