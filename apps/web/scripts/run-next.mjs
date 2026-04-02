@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const command = process.argv[2] === "start" ? "start" : "dev";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(scriptDir, "..");
-const host = process.env.WEB_HOST ?? process.env.HOSTNAME ?? "0.0.0.0";
+const host = process.env.WEB_HOST ?? process.env.HOST ?? "0.0.0.0";
 const port = normalizePort(process.env.WEB_PORT ?? process.env.PORT ?? "3000");
 
 const child = command === "start" ? spawnStandaloneServer() : spawnNextDevServer();
@@ -34,12 +34,11 @@ function spawnNextDevServer() {
 }
 
 function spawnStandaloneServer() {
-  const standaloneRoot = join(appRoot, ".next", "standalone", "apps", "web");
-  const standaloneServerPath = join(standaloneRoot, "server.js");
+  const { standaloneRoot, standaloneServerPath } = resolveStandaloneServer();
 
   if (!existsSync(standaloneServerPath)) {
     throw new Error(
-      `Standalone build is missing: ${standaloneServerPath}. Run "corepack pnpm build" first.`,
+      `Standalone build is missing: ${standaloneServerPath}. Run "pnpm build" first.`,
     );
   }
 
@@ -55,6 +54,23 @@ function spawnStandaloneServer() {
     },
     stdio: "inherit",
   });
+}
+
+function resolveStandaloneServer() {
+  const candidateRoots = [join(appRoot, ".next", "standalone"), join(appRoot, ".next", "standalone", "apps", "web")];
+
+  for (const standaloneRoot of candidateRoots) {
+    const standaloneServerPath = join(standaloneRoot, "server.js");
+
+    if (existsSync(standaloneServerPath)) {
+      return { standaloneRoot, standaloneServerPath };
+    }
+  }
+
+  return {
+    standaloneRoot: candidateRoots[1],
+    standaloneServerPath: join(candidateRoots[1], "server.js"),
+  };
 }
 
 function syncStandaloneAsset(sourcePath, targetPath) {

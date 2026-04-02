@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiClientFetch } from "@/lib/api-client";
+import { apiClientFetch, ApiClientError } from "@/lib/api-client";
 
 export function LoginForm() {
   const router = useRouter();
@@ -25,6 +25,7 @@ export function LoginForm() {
   const onSubmit = form.handleSubmit(async (values) => {
     setIsSubmitting(true);
     setErrorMessage(null);
+    console.info("[auth/login] submit:start");
 
     try {
       const response = await apiClientFetch("/v1/auth/login", {
@@ -33,6 +34,7 @@ export function LoginForm() {
       });
 
       authSessionResponseSchema.parse(response);
+      console.info("[auth/login] submit:success");
       await ensureSessionCookiePersisted();
 
       startTransition(() => {
@@ -40,7 +42,8 @@ export function LoginForm() {
         router.refresh();
       });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to sign in");
+      console.warn("[auth/login] submit:error");
+      setErrorMessage(mapLoginError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -51,11 +54,29 @@ export function LoginForm() {
     try {
       const me = await apiClientFetch("/v1/auth/me");
       authSessionResponseSchema.parse(me);
+      console.info("[auth/login] session:verified");
     } catch {
+      console.warn("[auth/login] session:not-persisted");
       throw new Error(
         "Signed in, but session cookie was not persisted. Check SESSION_COOKIE_DOMAIN/SESSION_COOKIE_SECURE and HTTPS proxy setup.",
       );
     }
+  }
+
+  function mapLoginError(error: unknown): string {
+    if (error instanceof ApiClientError && error.code === "network_or_cors") {
+      return "Network/CORS error while contacting API. Check API URL, CORS and HTTPS/cookie settings.";
+    }
+
+    if (error instanceof ApiClientError && error.status === 401) {
+      return error.message;
+    }
+
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    return "Unable to sign in";
   }
 
   return (
