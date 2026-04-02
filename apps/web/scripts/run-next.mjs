@@ -37,9 +37,13 @@ function spawnStandaloneServer() {
   const { standaloneRoot, standaloneServerPath } = resolveStandaloneServer();
 
   if (!existsSync(standaloneServerPath)) {
-    throw new Error(
-      `Standalone build is missing: ${standaloneServerPath}. Run "pnpm build" first.`,
-    );
+    const buildIdPath = join(appRoot, ".next", "BUILD_ID");
+
+    if (existsSync(buildIdPath)) {
+      return spawnNextProdServer();
+    }
+
+    throw new Error(`Next build is missing. Run "pnpm build" first.`);
   }
 
   syncStandaloneAsset(join(appRoot, ".next", "static"), join(standaloneRoot, ".next", "static"));
@@ -52,6 +56,16 @@ function spawnStandaloneServer() {
       HOSTNAME: host,
       PORT: String(port),
     },
+    stdio: "inherit",
+  });
+}
+
+function spawnNextProdServer() {
+  const nextBin = require.resolve("next/dist/bin/next");
+
+  return spawn(process.execPath, [nextBin, "start", "--hostname", host, "--port", String(port)], {
+    cwd: appRoot,
+    env: process.env,
     stdio: "inherit",
   });
 }

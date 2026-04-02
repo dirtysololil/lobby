@@ -15,9 +15,9 @@ module.exports = {
     },
     {
       name: "lobby-web",
-      cwd: "apps/web",
+      cwd: ".",
       script: "node",
-      args: "./scripts/run-next.mjs start",
+      args: "apps/web/scripts/run-next.mjs start",
       interpreter: "none",
       autorestart: true,
       watch: false,
