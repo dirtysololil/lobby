@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "corepack pnpm --filter @lobby/shared build && corepack pnpm --filter @lobby/config build && corepack pnpm --parallel --filter @lobby/shared --filter @lobby/config --filter @lobby/api --filter @lobby/web dev",
     "dev:worker": "corepack pnpm --filter @lobby/api dev:worker",
-    "build": "corepack pnpm --filter @lobby/shared build && corepack pnpm --filter @lobby/config build && corepack pnpm --filter @lobby/api build && corepack pnpm --filter @lobby/web build",
+    "build": "corepack pnpm prisma:generate && corepack pnpm --filter @lobby/shared build && corepack pnpm --filter @lobby/config build && corepack pnpm --filter @lobby/api build && corepack pnpm --filter @lobby/web build",
+    "postinstall": "corepack pnpm prisma:generate",
     "start:web": "node apps/web/scripts/run-next.mjs start",
     "start:api": "corepack pnpm --filter @lobby/api start:prod",
     "start:worker": "corepack pnpm --filter @lobby/api start:worker",
