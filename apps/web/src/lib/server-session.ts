@@ -4,20 +4,28 @@ import { redirect } from "next/navigation";
 import { runtimeConfig } from "./runtime-config";
 
 export async function fetchViewer(): Promise<PublicUser | null> {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore.toString();
-
-  const response = await fetch(`${runtimeConfig.apiPublicUrl}/v1/auth/me`, {
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
+  if (!runtimeConfig.apiPublicUrl) {
     return null;
   }
 
-  const payload = authSessionResponseSchema.parse(await response.json());
-  return payload.user;
+  try {
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.toString();
+
+    const response = await fetch(`${runtimeConfig.apiPublicUrl}/v1/auth/me`, {
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = authSessionResponseSchema.parse(await response.json());
+    return payload.user;
+  } catch {
+    return null;
+  }
 }
 
 export async function requireViewer(): Promise<PublicUser> {
