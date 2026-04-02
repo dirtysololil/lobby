@@ -1,13 +1,27 @@
 "use client";
 
 import { apiErrorSchema } from "@lobby/shared";
-import { runtimeConfig } from "./runtime-config";
+import { resolveApiBaseUrlForBrowser } from "./runtime-config";
+
+export class ApiClientError extends Error {
+  public constructor(
+    message: string,
+    public readonly code: "network_or_cors" | "http_error",
+    public readonly status?: number,
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
 
 export async function apiClientFetch<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
-  const apiBaseUrl = resolveApiBaseUrl();
+  const apiBaseUrl = resolveApiBaseUrlForBrowser();
 
   if (!apiBaseUrl) {
-    throw new Error("Service is temporarily unavailable. Please try again later.");
+    throw new ApiClientError(
+      "API base URL is not configured. Set NEXT_PUBLIC_API_PUBLIC_URL/API_PUBLIC_URL.",
+      "network_or_cors",
+    );
   }
 
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
@@ -23,43 +37,28 @@ export async function apiClientFetch<TResponse>(path: string, init?: RequestInit
     });
 
     if (!response.ok) {
-      throw new Error(await extractErrorMessage(response));
+      throw new ApiClientError(await extractErrorMessage(response), "http_error", response.status);
     }
 
     return (await response.json()) as TResponse;
   } catch (error) {
     if (error instanceof TypeError) {
-      throw new Error("Unable to reach API right now. Please try again.");
+      throw new ApiClientError(
+        "Network/CORS error: request did not reach API. Check API URL, CORS origin and HTTPS.",
+        "network_or_cors",
+      );
     }
 
-    if (error instanceof Error) {
+    if (error instanceof ApiClientError) {
       throw error;
     }
 
-    throw new Error("Unable to reach API right now. Please try again.");
+    if (error instanceof Error) {
+      throw new ApiClientError(error.message, "http_error");
+    }
+
+    throw new ApiClientError("Unknown API client error", "http_error");
   }
-}
-
-function resolveApiBaseUrl(): string {
-  if (runtimeConfig.apiPublicUrl) {
-    return runtimeConfig.apiPublicUrl;
-  }
-
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  const { protocol, hostname } = window.location;
-
-  if (hostname.startsWith("lobby.")) {
-    return `${protocol}//api.${hostname}`;
-  }
-
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return `${protocol}//${hostname}:3001`;
-  }
-
-  return "";
 }
 
 async function extractErrorMessage(response: Response): Promise<string> {
