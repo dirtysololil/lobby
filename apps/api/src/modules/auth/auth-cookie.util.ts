@@ -55,5 +55,12 @@ function parseDomainHostname(value: string | undefined): string | undefined {
     }
   }
 
-  return value.split('/')[0].split(':')[0];
+  const withoutPath = value.split('/')[0];
+
+  if (!withoutPath) {
+    return undefined;
+  }
+
+  const withoutPort = withoutPath.split(':')[0];
+  return withoutPort || undefined;
 }
