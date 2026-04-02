@@ -5,17 +5,14 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { parseWebEnv } = require("@lobby/config");
 
-const env = parseWebEnv(process.env);
 const command = process.argv[2] === "start" ? "start" : "dev";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(scriptDir, "..");
+const host = process.env.WEB_HOST ?? process.env.HOSTNAME ?? "0.0.0.0";
+const port = normalizePort(process.env.WEB_PORT ?? process.env.PORT ?? "3000");
 
-const child =
-  command === "start"
-    ? spawnStandaloneServer()
-    : spawnNextDevServer();
+const child = command === "start" ? spawnStandaloneServer() : spawnNextDevServer();
 
 child.on("exit", (code, signal) => {
   if (signal) {
@@ -29,15 +26,11 @@ child.on("exit", (code, signal) => {
 function spawnNextDevServer() {
   const nextBin = require.resolve("next/dist/bin/next");
 
-  return spawn(
-    process.execPath,
-    [nextBin, "dev", "--hostname", env.WEB_HOST, "--port", String(env.WEB_PORT)],
-    {
-      cwd: appRoot,
-      env: process.env,
-      stdio: "inherit",
-    },
-  );
+  return spawn(process.execPath, [nextBin, "dev", "--hostname", host, "--port", String(port)], {
+    cwd: appRoot,
+    env: process.env,
+    stdio: "inherit",
+  });
 }
 
 function spawnStandaloneServer() {
@@ -57,8 +50,8 @@ function spawnStandaloneServer() {
     cwd: standaloneRoot,
     env: {
       ...process.env,
-      HOSTNAME: env.WEB_HOST,
-      PORT: String(env.WEB_PORT),
+      HOSTNAME: host,
+      PORT: String(port),
     },
     stdio: "inherit",
   });
@@ -71,4 +64,14 @@ function syncStandaloneAsset(sourcePath, targetPath) {
 
   mkdirSync(dirname(targetPath), { recursive: true });
   cpSync(sourcePath, targetPath, { force: true, recursive: true });
+}
+
+function normalizePort(value) {
+  const parsedPort = Number(value);
+
+  if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+    return 3000;
+  }
+
+  return parsedPort;
 }
