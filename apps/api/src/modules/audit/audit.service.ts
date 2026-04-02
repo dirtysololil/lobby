@@ -51,15 +51,13 @@ export class AuditService {
         ? {
             action: {
               contains: input.action,
-              mode: 'insensitive',
             },
           }
         : {}),
       ...(input.entityType
         ? {
             entityType: {
-              equals: input.entityType,
-              mode: 'insensitive',
+              contains: input.entityType,
             },
           }
         : {}),

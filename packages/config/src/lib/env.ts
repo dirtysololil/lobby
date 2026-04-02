@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { loadWorkspaceEnv } from "./load-env";
 
 const nodeEnvSchema = z.enum(["development", "test", "production"]);
 
@@ -8,10 +9,12 @@ const apiEnvSchema = z.object({
   WEB_PUBLIC_URL: z.string().url(),
   API_PUBLIC_URL: z.string().url(),
   MEDIA_PUBLIC_URL: z.string().url(),
-  REALTIME_PUBLIC_URL: z.string().url().default("http://127.0.0.1:3001"),
-  REALTIME_PATH: z.string().min(1).default("/socket.io"),
+  REALTIME_PUBLIC_URL: z.string().url(),
+  REALTIME_PATH: z.string().min(1),
   WEB_PORT: z.coerce.number().int().positive(),
+  WEB_HOST: z.string().min(1),
   API_PORT: z.coerce.number().int().positive(),
+  API_HOST: z.string().min(1),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
   BULLMQ_PREFIX: z.string().min(1).default("lobby"),
@@ -52,13 +55,18 @@ const seedEnvSchema = apiEnvSchema.extend({
 });
 
 const webEnvSchema = z.object({
-  APP_NAME: z.string().min(1).default("Lobby"),
+  APP_NAME: z.string().min(1),
   NODE_ENV: nodeEnvSchema.default("development"),
-  WEB_PUBLIC_URL: z.string().url().default("http://127.0.0.1:3000"),
-  API_PUBLIC_URL: z.string().url().default("http://127.0.0.1:3001"),
-  MEDIA_PUBLIC_URL: z.string().url().default("wss://127.0.0.1:7880"),
-  REALTIME_PUBLIC_URL: z.string().url().default("http://127.0.0.1:3001"),
-  REALTIME_PATH: z.string().min(1).default("/socket.io"),
+  WEB_PUBLIC_URL: z.string().url(),
+  API_PUBLIC_URL: z.string().url(),
+  MEDIA_PUBLIC_URL: z.string().url(),
+  REALTIME_PUBLIC_URL: z.string().url(),
+  REALTIME_PATH: z.string().min(1),
+  WEB_PORT: z.coerce.number().int().positive(),
+  WEB_HOST: z.string().min(1),
+  MAX_AVATAR_MB: z.coerce.number().positive(),
+  MAX_AVATAR_DIMENSION: z.coerce.number().int().positive(),
+  MAX_AVATAR_ANIMATION_MS: z.coerce.number().int().positive(),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;
@@ -66,13 +74,16 @@ export type SeedEnv = z.infer<typeof seedEnvSchema>;
 export type WebEnv = z.infer<typeof webEnvSchema>;
 
 export function parseApiEnv(env: NodeJS.ProcessEnv): ApiEnv {
+  loadWorkspaceEnv();
   return apiEnvSchema.parse(env);
 }
 
 export function parseWebEnv(env: NodeJS.ProcessEnv): WebEnv {
+  loadWorkspaceEnv();
   return webEnvSchema.parse(env);
 }
 
 export function parseSeedEnv(env: NodeJS.ProcessEnv): SeedEnv {
+  loadWorkspaceEnv();
   return seedEnvSchema.parse(env);
 }

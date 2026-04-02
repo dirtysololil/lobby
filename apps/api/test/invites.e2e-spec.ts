@@ -21,9 +21,10 @@ process.env.MEDIA_PUBLIC_URL ??= 'wss://media.localhost';
 process.env.REALTIME_PUBLIC_URL ??= 'http://localhost:3001';
 process.env.REALTIME_PATH ??= '/socket.io';
 process.env.WEB_PORT ??= '3000';
+process.env.WEB_HOST ??= '127.0.0.1';
 process.env.API_PORT ??= '3001';
-process.env.DATABASE_URL ??=
-  'postgresql://postgres:postgres@127.0.0.1:5432/lobby_test';
+process.env.API_HOST ??= '127.0.0.1';
+process.env.DATABASE_URL ??= 'mysql://root:root@127.0.0.1:3306/lobby_test';
 process.env.REDIS_URL ??= 'redis://127.0.0.1:6379';
 process.env.BULLMQ_PREFIX ??= 'lobby-test';
 process.env.SESSION_SECRET ??= 'test_session_secret_with_enough_length';

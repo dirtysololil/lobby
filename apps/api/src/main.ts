@@ -28,7 +28,7 @@ async function bootstrap() {
   });
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  await app.listen(env.API_PORT, '0.0.0.0');
+  await app.listen(env.API_PORT, env.API_HOST);
 }
 
 void bootstrap();

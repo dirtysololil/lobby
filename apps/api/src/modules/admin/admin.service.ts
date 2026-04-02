@@ -78,13 +78,11 @@ export class AdminService {
               {
                 username: {
                   contains: input.query.toLowerCase(),
-                  mode: 'insensitive',
                 },
               },
               {
                 email: {
                   contains: input.query.toLowerCase(),
-                  mode: 'insensitive',
                 },
               },
               {
@@ -92,7 +90,6 @@ export class AdminService {
                   is: {
                     displayName: {
                       contains: input.query,
-                      mode: 'insensitive',
                     },
                   },
                 },

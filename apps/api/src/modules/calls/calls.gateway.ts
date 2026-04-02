@@ -14,21 +14,21 @@ import {
   type SubscribeDmCallsInput,
   type SubscribeLobbyCallsInput,
 } from '@lobby/shared';
+import { loadWorkspaceEnv } from '@lobby/config';
 import { parse as parseCookieHeader } from 'cookie';
 import type { Server, Socket } from 'socket.io';
 import { SessionService } from '../auth/session.service';
 import { CallsRealtimeService } from './calls-realtime.service';
 import { CallsService } from './calls.service';
 
+loadWorkspaceEnv();
+
 @WebSocketGateway({
   cors: {
-    origin:
-      process.env.REALTIME_CORS_ORIGIN ??
-      process.env.WEB_PUBLIC_URL ??
-      'http://localhost:3000',
+    origin: process.env.REALTIME_CORS_ORIGIN ?? process.env.WEB_PUBLIC_URL,
     credentials: true,
   },
-  path: process.env.REALTIME_PATH ?? '/socket.io',
+  path: process.env.REALTIME_PATH,
 })
 export class CallsGateway implements OnGatewayInit, OnGatewayConnection {
   @WebSocketServer()
