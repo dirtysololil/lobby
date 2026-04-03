@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneCall, Video } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,11 @@ export function IncomingCallBanner() {
     return null;
   }
 
-  const incomingCall = incomingCalls[0];
-  if (!incomingCall) {
+  const call = incomingCalls[0];
+  if (!call) {
     return null;
   }
 
-  const call = incomingCall;
   const caller = call.initiatedBy;
 
   async function acceptCall() {
@@ -55,15 +55,24 @@ export function IncomingCallBanner() {
   }
 
   return (
-    <div className="surface-highlight rounded-[16px] px-3 py-2.5 text-sm text-white">
+    <div className="border-b border-white/5 bg-[linear-gradient(90deg,rgba(124,140,255,0.18),rgba(124,140,255,0.08))] px-4 py-3 text-white">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="section-kicker text-[var(--accent-strong)]">Входящий звонок</p>
-          <p className="mt-1 text-sm font-semibold text-white">
-            {caller.profile.displayName} запустил{" "}
-            {call.mode === "VIDEO" ? "видео" : "аудио"} call
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="eyebrow-pill">Incoming call</span>
+            <span className="status-pill">
+              {call.mode === "VIDEO" ? (
+                <Video size={18} strokeWidth={1.5} />
+              ) : (
+                <PhoneCall size={18} strokeWidth={1.5} />
+              )}
+              {call.mode === "VIDEO" ? "Video" : "Audio"}
+            </span>
+          </div>
+          <p className="mt-2 text-sm font-medium text-white">
+            {caller.profile.displayName} is calling you
           </p>
-          <p className="mt-0.5 text-xs text-[var(--text-dim)]">@{caller.username}</p>
+          <p className="mt-1 text-xs text-[var(--text-soft)]">@{caller.username}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -71,7 +80,7 @@ export function IncomingCallBanner() {
             onClick={() => void acceptCall()}
             disabled={pendingAction !== null}
           >
-            {pendingAction === "accept" ? "Принимаем..." : "Принять"}
+            {pendingAction === "accept" ? "Accepting..." : "Accept"}
           </Button>
           <Button
             size="sm"
@@ -79,7 +88,7 @@ export function IncomingCallBanner() {
             onClick={() => void declineCall()}
             disabled={pendingAction !== null}
           >
-            {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
+            {pendingAction === "decline" ? "Declining..." : "Decline"}
           </Button>
         </div>
       </div>

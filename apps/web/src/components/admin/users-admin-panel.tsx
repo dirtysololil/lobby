@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldBan, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { ShieldBan, ShieldCheck, UsersRound } from "lucide-react";
 import type { AdminUserListResponse } from "@lobby/shared";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiClientFetch } from "@/lib/api-client";
 
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
 const roleLabels: Record<string, string> = {
-  OWNER: "Владелец",
-  ADMIN: "Администратор",
-  MEMBER: "Участник",
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MEMBER: "Member",
 };
 
 interface UsersAdminPanelProps {
@@ -29,12 +31,16 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, startTransition] = useTransition();
 
+  const startIndex = response.total === 0 ? 0 : (response.page - 1) * response.pageSize + 1;
+  const endIndex = Math.min(response.page * response.pageSize, response.total);
+
   function pushFilters(nextPage = 1) {
     const params = new URLSearchParams();
     if (query) params.set("query", query);
     if (role) params.set("role", role);
     if (blocked) params.set("blocked", blocked);
     params.set("page", String(nextPage));
+
     startTransition(() => {
       router.push(`/app/admin/users?${params.toString()}`);
     });
@@ -42,6 +48,7 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
 
   async function handleModeration(userId: string, blockedState: boolean) {
     setError(null);
+
     try {
       await apiClientFetch(
         blockedState
@@ -52,7 +59,7 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
           body: blockedState
             ? undefined
             : JSON.stringify({
-                reason: "Заблокирован через административную консоль",
+                reason: "Blocked from the admin control surface.",
               }),
         },
       );
@@ -61,162 +68,162 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
       setError(
         moderationError instanceof Error
           ? moderationError.message
-          : "Не удалось выполнить модерацию",
+          : "Unable to update moderation status.",
       );
     }
   }
 
   return (
     <div className="grid gap-4">
-      <section className="social-shell rounded-[20px] p-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="premium-panel rounded-[24px] p-5">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="section-kicker">Control</p>
-            <h2 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
-              Модерация пользователей
-            </h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="eyebrow-pill">
-              <UsersRound className="h-3.5 w-3.5" /> Пользователи
-            </span>
-            <span className="status-pill">
-              <ShieldCheck className="h-3.5 w-3.5 text-[var(--success)]" />
-              Системный контроль активен
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="eyebrow-pill">
+                <UsersRound {...iconProps} />
+                User control
+              </span>
+              <span className="status-pill">
+                <ShieldCheck {...iconProps} />
+                {response.total} indexed
+              </span>
+            </div>
+            <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
+              Platform members
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
+              Search, review and moderate the people behind daily communication flows.
+            </p>
           </div>
         </div>
-        <div className="mt-3 grid gap-2.5 xl:grid-cols-[minmax(0,1fr)_156px_156px_auto]">
+
+        <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_160px_auto]">
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Поиск: username, email, имя"
+            placeholder="Search by username, email or display name"
           />
           <select
             className="field-select text-sm"
             value={role}
             onChange={(event) => setRole(event.target.value)}
           >
-            <option value="">Все роли</option>
-            <option value="OWNER">Владелец</option>
-            <option value="ADMIN">Администратор</option>
-            <option value="MEMBER">Участник</option>
+            <option value="">All roles</option>
+            <option value="OWNER">Owner</option>
+            <option value="ADMIN">Admin</option>
+            <option value="MEMBER">Member</option>
           </select>
           <select
             className="field-select text-sm"
             value={blocked}
             onChange={(event) => setBlocked(event.target.value)}
           >
-            <option value="all">Все</option>
-            <option value="blocked">Только блок</option>
-            <option value="active">Только активные</option>
+            <option value="all">All states</option>
+            <option value="blocked">Blocked only</option>
+            <option value="active">Active only</option>
           </select>
           <Button onClick={() => pushFilters()} disabled={pendingAction}>
-            {pendingAction ? "Применяем..." : "Применить"}
+            {pendingAction ? "Applying..." : "Apply"}
           </Button>
         </div>
-        {error ? <p className="mt-3 text-sm text-rose-200">{error}</p> : null}
+
+        {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
       </section>
 
-      <section className="social-shell rounded-[20px] p-3.5">
-        <p className="section-kicker">Пользователи платформы</p>
-        <div className="mt-3 grid gap-2">
+      <section className="premium-panel rounded-[24px] p-0">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-white">Moderation queue</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Showing {startIndex}-{endIndex} of {response.total}
+            </p>
+          </div>
+        </div>
+
+        <div className="min-h-0 overflow-y-auto">
           {response.items.length === 0 ? (
             <EmptyState
-              title="Ничего не найдено"
-              description="Измените фильтры или расширьте поисковый запрос."
+              className="py-10"
+              title="No matching members"
+              description="Adjust the filters or broaden the query to load more results."
             />
           ) : (
             response.items.map((item) => (
               <div
                 key={item.user.id}
-                className="list-row grid gap-3 rounded-[16px] p-3 xl:grid-cols-[minmax(0,1fr)_190px]"
+                className="group flex flex-col gap-3 border-b border-[var(--border-soft)] px-4 py-3 transition-colors hover:bg-[var(--bg-hover)] lg:flex-row lg:items-center lg:justify-between"
               >
-                <div className="flex items-start gap-3">
-                  <UserAvatar user={item.user} />
+                <div className="flex min-w-0 items-start gap-3">
+                  <UserAvatar user={item.user} size="sm" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium text-white">
+                      <p className="truncate text-sm font-medium text-white">
                         {item.user.profile.displayName}
                       </p>
                       <span className="glass-badge">
                         {roleLabels[item.user.role] ?? item.user.role}
                       </span>
                       {item.platformBlock ? (
-                        <span className="glass-badge">
-                          <ShieldBan className="h-3 w-3" />
-                          Блок
+                        <span className="status-pill text-rose-200">
+                          <ShieldBan {...iconProps} />
+                          Blocked
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-1 font-mono text-sm text-slate-300">
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
                       @{item.user.username}
                     </p>
-                    <p className="mt-1 text-sm text-[var(--text-dim)]">
-                      {item.user.email}
-                    </p>
-                    <p className="mt-1.5 text-sm text-[var(--text-dim)]">
-                      Сессии: {item.activeSessionCount} · Хабы:{" "}
-                      {item.hubMembershipCount} · Последняя активность:{" "}
+                    <p className="mt-1 text-sm text-[var(--text-dim)]">{item.user.email}</p>
+                    <p className="mt-2 text-xs text-[var(--text-dim)]">
+                      Sessions {item.activeSessionCount} / Hubs {item.hubMembershipCount} / Last seen{" "}
                       {item.lastSeenAt
                         ? new Date(item.lastSeenAt).toLocaleString()
-                        : "никогда"}
+                        : "Never"}
                     </p>
                     {item.platformBlock ? (
-                      <p className="mt-2 text-sm text-rose-200">
-                        {item.platformBlock.reason ?? "Причина не указана"}
+                      <p className="mt-2 text-xs text-rose-200">
+                        {item.platformBlock.reason ?? "No block reason provided."}
                       </p>
                     ) : null}
                   </div>
                 </div>
-                <div className="flex items-center justify-end">
+
+                <div className="flex flex-wrap gap-2 lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
                   <Button
+                    size="sm"
                     variant={item.platformBlock ? "secondary" : "destructive"}
                     onClick={() =>
-                      void handleModeration(
-                        item.user.id,
-                        Boolean(item.platformBlock),
-                      )
+                      void handleModeration(item.user.id, Boolean(item.platformBlock))
                     }
                   >
-                    {item.platformBlock ? "Снять блок" : "Заблокировать"}
+                    {item.platformBlock ? "Remove block" : "Block account"}
                   </Button>
                 </div>
               </div>
             ))
           )}
         </div>
-        <div className="mt-5 flex flex-col gap-3 text-sm text-[var(--text-dim)] sm:flex-row sm:items-center sm:justify-between">
-          <span>
-            Показано {(response.page - 1) * response.pageSize + 1} -{" "}
-            {Math.min(response.page * response.pageSize, response.total)} из{" "}
-            {response.total}
-          </span>
+
+        <div className="flex flex-col gap-3 px-4 py-3 text-sm text-[var(--text-dim)] sm:flex-row sm:items-center sm:justify-between">
+          <span>Move through the queue without leaving the current admin context.</span>
           <div className="flex gap-2">
             <Button
               variant="secondary"
               disabled={response.page <= 1 || pendingAction}
               onClick={() => pushFilters(response.page - 1)}
             >
-              Назад
+              Previous
             </Button>
             <Button
               variant="secondary"
               disabled={
-                response.page * response.pageSize >= response.total ||
-                pendingAction
+                response.page * response.pageSize >= response.total || pendingAction
               }
               onClick={() => pushFilters(response.page + 1)}
             >
-              Дальше
+              Next
             </Button>
           </div>
-        </div>
-        <div className="surface-subtle mt-4 rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-          <span className="inline-flex items-center gap-2 text-white">
-            <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-            Внутренний маршрут без лишнего UI.
-          </span>
         </div>
       </section>
     </div>

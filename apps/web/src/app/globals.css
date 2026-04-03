@@ -2,30 +2,30 @@
 
 :root {
   color-scheme: dark;
-  --bg-app: #09090b;
-  --bg-sidebar: #121214;
-  --bg-panel: #09090b;
-  --bg-panel-muted: #121214;
-  --bg-panel-soft: rgba(255, 255, 255, 0.06);
-  --bg-hover: rgba(255, 255, 255, 0.05);
-  --bg-active: rgba(255, 255, 255, 0.08);
-  --bg-accent-soft: rgba(244, 63, 94, 0.1);
-  --bg-accent-strong: rgba(244, 63, 94, 0.16);
-  --border: rgba(255, 255, 255, 0.05);
-  --border-strong: rgba(39, 39, 42, 0.5);
+  --bg-app: #0b0f14;
+  --bg-sidebar: #10151c;
+  --bg-panel: #121821;
+  --bg-panel-muted: #161d27;
+  --bg-panel-soft: rgba(148, 163, 184, 0.09);
+  --bg-hover: rgba(148, 163, 184, 0.08);
+  --bg-active: rgba(124, 140, 255, 0.16);
+  --bg-accent-soft: rgba(124, 140, 255, 0.12);
+  --bg-accent-strong: rgba(124, 140, 255, 0.2);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.14);
   --border-soft: rgba(255, 255, 255, 0.05);
-  --text: #f5f7fa;
-  --text-soft: #d7dde6;
-  --text-dim: #99a3af;
-  --text-muted: #6d7784;
-  --accent: #f43f5e;
-  --accent-strong: #fb7185;
-  --accent-secondary: #f43f5e;
-  --accent-warm: #fb7185;
-  --success: #4ac58c;
+  --text: #f3f7fb;
+  --text-soft: #d7e0ea;
+  --text-dim: #9da9b8;
+  --text-muted: #6f7c8f;
+  --accent: #7c8cff;
+  --accent-strong: #99a6ff;
+  --accent-secondary: #7c8cff;
+  --accent-warm: #9ea8ff;
+  --success: #55c08b;
   --warning: #f59e0b;
-  --danger: #ff6978;
-  --ring: rgba(244, 63, 94, 0.16);
+  --danger: #ff7a88;
+  --ring: rgba(124, 140, 255, 0.2);
   --radius-sm: 8px;
   --radius-md: 10px;
   --radius-lg: 12px;
@@ -49,11 +49,11 @@
   --surface-4: var(--bg-active);
   --surface-soft: var(--bg-accent-soft);
   --surface-strong: var(--bg-accent-strong);
-  --surface-warm: rgba(244, 63, 94, 0.1);
-  --shadow-lg: none;
-  --shadow-md: none;
-  --shadow-sm: none;
-  --shadow-inset: none;
+  --surface-warm: rgba(124, 140, 255, 0.1);
+  --shadow-lg: 0 24px 60px rgba(4, 8, 16, 0.36);
+  --shadow-md: 0 16px 34px rgba(4, 8, 16, 0.28);
+  --shadow-sm: 0 10px 22px rgba(4, 8, 16, 0.18);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 * {
@@ -69,7 +69,10 @@ body {
 }
 
 body {
-  background: var(--bg-app);
+  background:
+    radial-gradient(circle at top left, rgba(124, 140, 255, 0.12), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(94, 122, 169, 0.12), transparent 32%),
+    var(--bg-app);
   color: var(--text);
   font-family: var(--font-body), system-ui, sans-serif;
   line-height: 1.35;
@@ -93,7 +96,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(244, 63, 94, 0.22);
+  background: rgba(124, 140, 255, 0.24);
   color: white;
 }
 
@@ -120,7 +123,8 @@ textarea {
 .surface-card,
 .app-panel {
   border: 1px solid var(--border);
-  background: var(--bg-panel);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent), var(--bg-panel);
+  box-shadow: var(--shadow-sm);
 }
 
 .workspace-dock {
@@ -142,8 +146,8 @@ textarea {
 
 .surface-highlight,
 .app-panel-accent {
-  border: 1px solid rgba(244, 63, 94, 0.18);
-  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(124, 140, 255, 0.24);
+  background: rgba(124, 140, 255, 0.08);
 }
 
 .panel-title {
@@ -187,8 +191,8 @@ textarea {
 }
 
 .eyebrow-pill {
-  border-color: rgba(244, 63, 94, 0.2);
-  background: rgba(244, 63, 94, 0.1);
+  border-color: rgba(124, 140, 255, 0.22);
+  background: rgba(124, 140, 255, 0.12);
   color: var(--accent-strong);
 }
 
@@ -209,8 +213,8 @@ textarea {
 }
 
 .segment-chip-active {
-  border-color: rgba(244, 63, 94, 0.2);
-  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(124, 140, 255, 0.22);
+  background: rgba(124, 140, 255, 0.14);
   color: var(--text);
 }
 
@@ -261,7 +265,7 @@ textarea {
 
 .nav-link-active,
 .context-link-active {
-  border-color: rgba(244, 63, 94, 0.18);
+  border-color: rgba(124, 140, 255, 0.22);
   background: var(--bg-active);
   color: var(--text);
 }
@@ -307,9 +311,9 @@ textarea {
 .field-input:focus,
 .field-textarea:focus,
 .field-select:focus {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(124, 140, 255, 0.28);
   box-shadow: 0 0 0 3px var(--ring);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(148, 163, 184, 0.1);
 }
 
 .field-input,
@@ -356,8 +360,8 @@ textarea {
 }
 
 .message-bubble-own {
-  border-color: rgba(244, 63, 94, 0.16);
-  background: rgba(244, 63, 94, 0.14);
+  border-color: rgba(124, 140, 255, 0.24);
+  background: rgba(124, 140, 255, 0.18);
 }
 
 .empty-state-minimal {
@@ -425,8 +429,8 @@ textarea {
 
 .dock-icon-active,
 .circle-chip-active {
-  border-color: rgba(244, 63, 94, 0.16);
-  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(124, 140, 255, 0.22);
+  background: rgba(124, 140, 255, 0.14);
   color: var(--text);
 }
 

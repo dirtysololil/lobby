@@ -65,7 +65,7 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         placeholder={disabled ? "Messaging is unavailable in this chat." : "Message"}
         disabled={disabled || isSending}
         rows={1}
-        className="block min-h-10 max-h-32 flex-1 resize-none rounded-2xl border border-white/5 bg-[#121214] px-4 py-2 text-sm leading-tight text-white outline-none transition-colors placeholder:text-zinc-500 focus:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+        className="block min-h-10 max-h-32 flex-1 resize-none rounded-2xl border border-white/6 bg-[var(--bg-panel-muted)] px-4 py-2 text-sm leading-tight text-white outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[color:var(--accent)]/30 focus:bg-[var(--bg-panel-soft)] disabled:cursor-not-allowed disabled:opacity-60"
       />
 
       <Button

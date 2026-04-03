@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { ErrorState } from "@/components/ui/error-state";
 
-export default function AppError({
+export default function SettingsError({
   error,
   reset,
 }: Readonly<{
@@ -11,7 +11,7 @@ export default function AppError({
   reset: () => void;
 }>) {
   useEffect(() => {
-    console.error("app.route.error", {
+    console.error("settings.route.error", {
       message: error.message,
       digest: error.digest ?? null,
     });
@@ -19,11 +19,11 @@ export default function AppError({
 
   return (
     <ErrorState
-      title="Workspace unavailable"
+      title="Settings are temporarily unavailable"
       description={
         error.digest
-          ? `The selected workspace section could not be rendered. Reference: ${error.digest}`
-          : error.message || "The selected workspace section could not be rendered."
+          ? `The settings workspace could not be rendered. Reference: ${error.digest}`
+          : "The settings workspace could not be rendered right now."
       }
       onRetry={reset}
     />

@@ -7,6 +7,7 @@ import type {
   CreateDirectMessageInput,
   DirectConversationDetail,
   DirectConversationSummary,
+  DmSignal,
   PublicUser,
   UpdateDmSettingsInput,
 } from '@lobby/shared';
@@ -16,6 +17,7 @@ import { buildUserPairKey } from '../../common/utils/user-pair-key.util';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { publicUserSelect } from '../auth/auth.mapper';
+import { CallsRealtimeService } from '../calls/calls-realtime.service';
 import { QueueService } from '../queue/queue.service';
 import { RelationshipsService } from '../relationships/relationships.service';
 import {
@@ -31,6 +33,8 @@ const directMessageWithAuthorInclude = {
   },
 } satisfies Prisma.DirectMessageInclude;
 
+const DM_DELETE_WINDOW_MS = 60 * 60 * 1_000;
+
 const participantWithUserInclude = {
   user: {
     select: publicUserSelect,
@@ -42,6 +46,9 @@ const conversationSummaryInclude = {
     include: participantWithUserInclude,
   },
   messages: {
+    where: {
+      deletedAt: null,
+    },
     include: directMessageWithAuthorInclude,
     orderBy: {
       createdAt: 'desc',
@@ -71,6 +78,7 @@ export class DirectMessagesService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly relationshipsService: RelationshipsService,
+    private readonly realtimeService: CallsRealtimeService,
     private readonly queueService: QueueService,
   ) {}
 
@@ -194,6 +202,7 @@ export class DirectMessagesService {
 
     return toDirectConversationDetail({
       conversationId: conversation.id,
+      viewerId,
       retentionMode: conversation.retentionMode,
       retentionSeconds: conversation.retentionSeconds,
       isBlockedByViewer: relationship.isBlockedByViewer,
@@ -272,7 +281,18 @@ export class DirectMessagesService {
       },
     });
 
-    return toDirectMessage(message);
+    await this.emitConversationSignal({
+      event: 'MESSAGE_CREATED',
+      conversationId,
+      actorUserId: actor.id,
+      message,
+      clientNonce: input.clientNonce ?? null,
+    });
+
+    return toDirectMessage(message, {
+      viewerId: actor.id,
+      clientNonce: input.clientNonce ?? null,
+    });
   }
 
   public async deleteMessage(
@@ -299,16 +319,32 @@ export class DirectMessagesService {
       throw new ForbiddenException('Only the author can delete this message');
     }
 
-    const updatedMessage = await this.prisma.directMessage.update({
-      where: {
-        id: message.id,
-      },
-      data: {
-        content: null,
-        deletedAt: new Date(),
-        deletedByUserId: actor.id,
-      },
-      include: directMessageWithAuthorInclude,
+    const deleteExpiresAt = new Date(
+      message.createdAt.getTime() + DM_DELETE_WINDOW_MS,
+    );
+
+    if (deleteExpiresAt.getTime() <= Date.now()) {
+      throw new ForbiddenException(
+        'Messages can be deleted only within 1 hour after sending',
+      );
+    }
+
+    const updatedMessage = await this.prisma.$transaction(async (transaction) => {
+      const deletedMessage = await transaction.directMessage.update({
+        where: {
+          id: message.id,
+        },
+        data: {
+          content: null,
+          deletedAt: new Date(),
+          deletedByUserId: actor.id,
+        },
+        include: directMessageWithAuthorInclude,
+      });
+
+      await this.syncConversationLastMessageAt(transaction, conversationId);
+
+      return deletedMessage;
     });
 
     await this.auditService.write({
@@ -323,7 +359,16 @@ export class DirectMessagesService {
       },
     });
 
-    return toDirectMessage(updatedMessage);
+    await this.emitConversationSignal({
+      event: 'MESSAGE_DELETED',
+      conversationId,
+      actorUserId: actor.id,
+      messageId: updatedMessage.id,
+    });
+
+    return toDirectMessage(updatedMessage, {
+      viewerId: actor.id,
+    });
   }
 
   public async markConversationAsRead(
@@ -351,6 +396,13 @@ export class DirectMessagesService {
         lastReadMessageId: latestMessage?.id ?? null,
         lastReadAt: latestMessage?.createdAt ?? new Date(),
       },
+    });
+
+    await this.emitConversationSignal({
+      event: 'CONVERSATION_READ',
+      conversationId,
+      actorUserId: viewerId,
+      targetUserIds: [viewerId],
     });
   }
 
@@ -410,6 +462,12 @@ export class DirectMessagesService {
       },
     });
 
+    await this.emitConversationSignal({
+      event: 'CONVERSATION_UPDATED',
+      conversationId,
+      actorUserId: actor.id,
+    });
+
     return this.toConversationSummary(conversation, actor.id);
   }
 
@@ -456,6 +514,10 @@ export class DirectMessagesService {
       });
 
       cleanedMessagesCount += result.count;
+
+      if (result.count > 0) {
+        await this.syncConversationLastMessageAt(this.prisma, conversation.id);
+      }
     }
 
     return cleanedMessagesCount;
@@ -583,6 +645,106 @@ export class DirectMessagesService {
     return targetUser;
   }
 
+  private async syncConversationLastMessageAt(
+    client: Prisma.TransactionClient | PrismaService,
+    conversationId: string,
+  ): Promise<void> {
+    const latestMessage = await client.directMessage.findFirst({
+      where: {
+        conversationId,
+        deletedAt: null,
+      },
+      select: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    await client.directConversation.update({
+      where: {
+        id: conversationId,
+      },
+      data: {
+        lastMessageAt: latestMessage?.createdAt ?? null,
+      },
+    });
+  }
+
+  private async loadConversationSummaryForViewer(
+    conversationId: string,
+    viewerId: string,
+  ): Promise<DirectConversationSummary> {
+    const conversation = await this.prisma.directConversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: {
+            userId: viewerId,
+          },
+        },
+      },
+      include: conversationSummaryInclude,
+    });
+
+    if (!conversation) {
+      throw new NotFoundException('Direct conversation not found');
+    }
+
+    return this.toConversationSummary(conversation, viewerId);
+  }
+
+  private async emitConversationSignal(args: {
+    event: DmSignal['event'];
+    conversationId: string;
+    actorUserId: string | null;
+    message?: MessageWithAuthor | null;
+    messageId?: string | null;
+    clientNonce?: string | null;
+    targetUserIds?: string[];
+  }): Promise<void> {
+    const targetParticipants = await this.prisma.directConversationParticipant.findMany({
+      where: {
+        conversationId: args.conversationId,
+        ...(args.targetUserIds
+          ? {
+              userId: {
+                in: args.targetUserIds,
+              },
+            }
+          : {}),
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    for (const participant of targetParticipants) {
+      const summary = await this.loadConversationSummaryForViewer(
+        args.conversationId,
+        participant.userId,
+      );
+
+      this.realtimeService.emitDmSignalToUser(participant.userId, {
+        event: args.event,
+        conversationId: args.conversationId,
+        conversation: summary,
+        message: args.message
+          ? toDirectMessage(args.message, {
+              viewerId: participant.userId,
+              clientNonce:
+                participant.userId === args.actorUserId
+                  ? (args.clientNonce ?? null)
+                  : null,
+            })
+          : null,
+        messageId: args.messageId ?? null,
+        actorUserId: args.actorUserId,
+      });
+    }
+  }
+
   private async getConversationOrThrow(
     conversationId: string,
     viewerId: string,
@@ -601,6 +763,9 @@ export class DirectMessagesService {
           include: participantWithUserInclude,
         },
         messages: {
+          where: {
+            deletedAt: null,
+          },
           include: directMessageWithAuthorInclude,
         },
       },

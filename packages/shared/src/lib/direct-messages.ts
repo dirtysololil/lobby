@@ -21,6 +21,7 @@ export type OpenDirectConversationInput = z.infer<typeof openDirectConversationS
 
 export const createDirectMessageSchema = z.object({
   content: dmMessageContentSchema,
+  clientNonce: z.string().trim().min(1).max(120).optional(),
 });
 
 export type CreateDirectMessageInput = z.infer<typeof createDirectMessageSchema>;
@@ -63,6 +64,9 @@ export const directMessageSchema = z.object({
   author: publicUserSchema,
   content: z.string().nullable(),
   isDeleted: z.boolean(),
+  canDelete: z.boolean(),
+  deleteExpiresAt: isoDateSchema.nullable(),
+  clientNonce: z.string().nullable().optional(),
   createdAt: isoDateSchema,
   updatedAt: isoDateSchema,
 });
@@ -138,3 +142,19 @@ export const directMessageResponseSchema = z.object({
 });
 
 export type DirectMessageResponse = z.infer<typeof directMessageResponseSchema>;
+
+export const dmSignalSchema = z.object({
+  event: z.enum([
+    "MESSAGE_CREATED",
+    "MESSAGE_DELETED",
+    "CONVERSATION_READ",
+    "CONVERSATION_UPDATED",
+  ]),
+  conversationId: z.string().cuid(),
+  conversation: directConversationSummarySchema,
+  message: directMessageSchema.nullable(),
+  messageId: z.string().cuid().nullable(),
+  actorUserId: z.string().cuid().nullable(),
+});
+
+export type DmSignal = z.infer<typeof dmSignalSchema>;

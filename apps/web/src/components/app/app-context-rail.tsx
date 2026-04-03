@@ -28,6 +28,7 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { apiClientFetch } from "@/lib/api-client";
 import { matchesPath, parseAppPath } from "@/lib/app-shell";
+import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -100,7 +101,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   const safePathname = pathname ?? "";
   const searchParams = useSearchParams();
   const route = parseAppPath(safePathname);
-  const { incomingCalls, latestSignal } = useRealtime();
+  const { incomingCalls, latestDmSignal, latestSignal } = useRealtime();
   const [conversations, setConversations] = useState<DirectConversationSummary[]>(
     [],
   );
@@ -113,6 +114,16 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
     blocks: number;
   } | null>(null);
   const [loadingLabel, setLoadingLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!latestDmSignal) {
+      return;
+    }
+
+    setConversations((current) =>
+      applyDmSignalToConversationSummaries(current, latestDmSignal),
+    );
+  }, [latestDmSignal]);
 
   useEffect(() => {
     let active = true;
