@@ -13,14 +13,14 @@ export default async function AppPage() {
     <section className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
       <Card>
         <CardHeader>
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-cyan-200/70">Панель</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Панель</p>
           <CardTitle>Добро пожаловать в Lobby</CardTitle>
           <CardDescription>Единая рабочая зона для сообщений, хабов, форумов и звонков.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-3xl border border-[var(--border)] bg-slate-950/35 p-5"><ShieldCheck className="mb-3 h-5 w-5 text-cyan-200" /><p className="text-sm text-slate-400">Роль</p><p className="mt-1 text-lg font-medium text-white">{viewer.role}</p></div>
-          <div className="rounded-3xl border border-[var(--border)] bg-slate-950/35 p-5"><Sparkles className="mb-3 h-5 w-5 text-cyan-200" /><p className="text-sm text-slate-400">Пресет аватара</p><p className="mt-1 text-lg font-medium text-white">{viewer.profile.avatarPreset}</p></div>
-          <div className="rounded-3xl border border-[var(--border)] bg-slate-950/35 p-5"><MessageSquare className="mb-3 h-5 w-5 text-cyan-200" /><p className="text-sm text-slate-400">Статус</p><p className="mt-1 text-lg font-medium text-white">{viewer.profile.presence}</p></div>
+          <div className="rounded-3xl border border-[var(--border)] bg-[#0b1322]/70 p-5"><ShieldCheck className="mb-3 h-5 w-5 text-cyan-200" /><p className="text-sm text-[var(--text-dim)]">Роль</p><p className="mt-1 text-lg font-medium text-white">{viewer.role}</p></div>
+          <div className="rounded-3xl border border-[var(--border)] bg-[#0b1322]/70 p-5"><Sparkles className="mb-3 h-5 w-5 text-cyan-200" /><p className="text-sm text-[var(--text-dim)]">Пресет аватара</p><p className="mt-1 text-lg font-medium text-white">{viewer.profile.avatarPreset}</p></div>
+          <div className="rounded-3xl border border-[var(--border)] bg-[#0b1322]/70 p-5"><MessageSquare className="mb-3 h-5 w-5 text-cyan-200" /><p className="text-sm text-[var(--text-dim)]">Статус</p><p className="mt-1 text-lg font-medium text-white">{viewer.profile.presence}</p></div>
         </CardContent>
       </Card>
 
@@ -28,15 +28,15 @@ export default async function AppPage() {
         <Card>
           <CardHeader><CardTitle>Аккаунт</CardTitle><CardDescription>Ваш публичный профиль внутри Lobby.</CardDescription></CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 rounded-3xl border border-[var(--border)] bg-slate-950/35 p-5">
+            <div className="flex items-center gap-4 rounded-3xl border border-[var(--border)] bg-[#0b1322]/70 p-5">
               <UserAvatar user={viewer} size="lg" />
               <div>
                 <p className="text-lg font-medium text-white">{viewer.profile.displayName}</p>
                 <p className="mt-1 font-mono text-sm text-slate-300">@{viewer.username}</p>
-                <p className="mt-2 text-sm text-slate-400">{viewer.email}</p>
+                <p className="mt-2 text-sm text-[var(--text-dim)]">{viewer.email}</p>
               </div>
             </div>
-            <p className="rounded-3xl border border-[var(--border)] bg-slate-950/35 p-4 text-sm text-slate-300">{viewer.profile.bio ?? "Описание профиля пока не заполнено."}</p>
+            <p className="rounded-3xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-slate-300">{viewer.profile.bio ?? "Описание профиля пока не заполнено."}</p>
           </CardContent>
         </Card>
 

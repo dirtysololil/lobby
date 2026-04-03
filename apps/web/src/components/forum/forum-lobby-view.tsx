@@ -45,7 +45,7 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
   }
 
   if (errorMessage) return <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{errorMessage}</div>;
-  if (!hub) return <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 text-sm text-slate-400">Загружаем форум...</div>;
+  if (!hub) return <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-[var(--text-dim)]">Загружаем форум...</div>;
 
   const lobby = hub.lobbies.find((item) => item.id === lobbyId);
 
@@ -58,25 +58,25 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {hub.membershipRole && !hub.isViewerMuted ? (
-            <form className="space-y-3 rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4" onSubmit={handleCreateTopic}>
+            <form className="space-y-3 rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4" onSubmit={handleCreateTopic}>
               <p className="text-sm font-medium text-white">Новая тема</p>
               <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Заголовок темы" />
-              <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Текст темы" className="min-h-32 w-full rounded-2xl border border-[var(--border)] bg-slate-950/60 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500" />
+              <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Текст темы" className="min-h-32 w-full rounded-2xl border border-[var(--border)] bg-slate-950/60 px-4 py-3 text-sm text-white outline-none placeholder:text-[var(--text-muted)]" />
               <Input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="теги через запятую" />
               <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Публикуем..." : "Опубликовать тему"}</Button>
             </form>
           ) : (
-            <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 text-sm text-slate-400">{hub.isViewerMuted ? "Вы ограничены в этом хабе и не можете писать в форуме." : "Вступите в хаб, чтобы создавать темы."}</div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-[var(--text-dim)]">{hub.isViewerMuted ? "Вы ограничены в этом хабе и не можете писать в форуме." : "Вступите в хаб, чтобы создавать темы."}</div>
           )}
 
           <div className="space-y-2.5">
-            {topics.length === 0 ? <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 text-sm text-slate-500">Тем пока нет.</div> : topics.map((topic) => (
-              <Link key={topic.id} href={`/app/hubs/${hubId}/forum/${lobbyId}/topics/${topic.id}`} className="block rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 transition hover:border-cyan-300/35 hover:bg-white/[0.04]">
+            {topics.length === 0 ? <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-[var(--text-muted)]">Тем пока нет.</div> : topics.map((topic) => (
+              <Link key={topic.id} href={`/app/hubs/${hubId}/forum/${lobbyId}/topics/${topic.id}`} className="block rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 transition hover:border-[var(--border-strong)] hover:bg-white/[0.04]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-base font-medium text-white">{topic.title}</p>
-                    <p className="mt-1 text-sm text-slate-400 line-clamp-2">{topic.content}</p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs">{topic.tags.map((tag) => <span key={tag.id} className="rounded-full border border-[var(--border)] px-2.5 py-1 text-cyan-100/75">{tag.name}</span>)}</div>
+                    <p className="mt-1 text-sm text-[var(--text-dim)] line-clamp-2">{topic.content}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">{topic.tags.map((tag) => <span key={tag.id} className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[#aaccf5]">{tag.name}</span>)}</div>
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs">
                     {topic.pinned ? <span className="rounded-full border border-amber-300/20 px-2.5 py-1 text-amber-100/80">Закреп</span> : null}

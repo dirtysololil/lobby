@@ -46,7 +46,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
   }
 
   if (errorMessage) return <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{errorMessage}</div>;
-  if (!hub) return <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 text-sm text-slate-400">Загружаем хаб...</div>;
+  if (!hub) return <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-[var(--text-dim)]">Загружаем хаб...</div>;
 
   return (
     <div className="grid gap-5">
@@ -56,10 +56,10 @@ export function HubOverview({ hubId }: HubOverviewProps) {
           <CardDescription>{hub.description ?? "Описание хаба пока не заполнено."}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4"><p className="text-sm text-slate-400">Роль</p><p className="mt-1 text-lg font-medium text-white">{hub.membershipRole ?? "гость"}</p></div>
-          <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4"><p className="text-sm text-slate-400">Приватность</p><p className="mt-1 text-lg font-medium text-white">{hub.isPrivate ? "Приватный" : "Обычный"}</p></div>
-          <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4"><p className="text-sm text-slate-400">Участники</p><p className="mt-1 text-lg font-medium text-white">{hub.members.length}</p></div>
-          <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4"><p className="text-sm text-slate-400">Ограничение</p><p className="mt-1 text-lg font-medium text-white">{hub.isViewerMuted ? "Да" : "Нет"}</p></div>
+          <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4"><p className="text-sm text-[var(--text-dim)]">Роль</p><p className="mt-1 text-lg font-medium text-white">{hub.membershipRole ?? "гость"}</p></div>
+          <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4"><p className="text-sm text-[var(--text-dim)]">Приватность</p><p className="mt-1 text-lg font-medium text-white">{hub.isPrivate ? "Приватный" : "Обычный"}</p></div>
+          <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4"><p className="text-sm text-[var(--text-dim)]">Участники</p><p className="mt-1 text-lg font-medium text-white">{hub.members.length}</p></div>
+          <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4"><p className="text-sm text-[var(--text-dim)]">Ограничение</p><p className="mt-1 text-lg font-medium text-white">{hub.isViewerMuted ? "Да" : "Нет"}</p></div>
         </CardContent>
       </Card>
 
@@ -70,9 +70,9 @@ export function HubOverview({ hubId }: HubOverviewProps) {
             <CardDescription>Текстовые, голосовые и форумные пространства внутри хаба.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {hub.lobbies.length === 0 ? <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 text-sm text-slate-500">Пока нет доступных лобби.</div> : hub.lobbies.map((lobby) => (
-              <Link key={lobby.id} href={buildHubLobbyHref(hub.id, lobby.id, lobby.type)} className="block rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 transition hover:border-cyan-300/35 hover:bg-white/[0.04]">
-                <div className="flex items-center justify-between gap-3"><div><p className="text-base font-medium text-white">{lobby.name}</p><p className="mt-1 text-sm text-slate-400">{lobby.description ?? "Описание не задано"}</p></div><div className="flex flex-wrap gap-2 text-xs"><span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-cyan-100/75">{lobby.type}</span>{lobby.isPrivate ? <span className="rounded-full border border-amber-300/20 px-2.5 py-1 text-amber-100/80">Приватное</span> : null}</div></div>
+            {hub.lobbies.length === 0 ? <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-[var(--text-muted)]">Пока нет доступных лобби.</div> : hub.lobbies.map((lobby) => (
+              <Link key={lobby.id} href={buildHubLobbyHref(hub.id, lobby.id, lobby.type)} className="block rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 transition hover:border-[var(--border-strong)] hover:bg-white/[0.04]">
+                <div className="flex items-center justify-between gap-3"><div><p className="text-base font-medium text-white">{lobby.name}</p><p className="mt-1 text-sm text-[var(--text-dim)]">{lobby.description ?? "Описание не задано"}</p></div><div className="flex flex-wrap gap-2 text-xs"><span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[#aaccf5]">{lobby.type}</span>{lobby.isPrivate ? <span className="rounded-full border border-amber-300/20 px-2.5 py-1 text-amber-100/80">Приватное</span> : null}</div></div>
               </Link>
             ))}
 
@@ -99,7 +99,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   <Input value={inviteUsername} onChange={(event) => setInviteUsername(event.target.value)} placeholder="username" />
                   <Button type="submit" disabled={actionKey === "invite-member"}>Пригласить</Button>
                 </form>
-                {hub.pendingInvites.length === 0 ? <p className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-3 text-sm text-slate-500">Нет ожидающих приглашений.</p> : hub.pendingInvites.map((invite) => <div key={invite.id} className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-3"><p className="text-sm font-medium text-white">{invite.invitee.profile.displayName}</p><p className="font-mono text-xs text-cyan-100/75">@{invite.invitee.username}</p></div>)}
+                {hub.pendingInvites.length === 0 ? <p className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-3 text-sm text-[var(--text-muted)]">Нет ожидающих приглашений.</p> : hub.pendingInvites.map((invite) => <div key={invite.id} className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-3"><p className="text-sm font-medium text-white">{invite.invitee.profile.displayName}</p><p className="font-mono text-xs text-[#aaccf5]">@{invite.invitee.username}</p></div>)}
               </CardContent>
             </Card>
           ) : null}
@@ -110,11 +110,11 @@ export function HubOverview({ hubId }: HubOverviewProps) {
               {hub.members.map((member) => {
                 const roleDraft = roleDrafts[member.user.username] ?? member.role;
                 return (
-                  <div key={member.id} className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4">
+                  <div key={member.id} className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                      <div><p className="text-base font-medium text-white">{member.user.profile.displayName}</p><p className="font-mono text-xs text-cyan-100/75">@{member.user.username}</p></div>
+                      <div><p className="text-base font-medium text-white">{member.user.profile.displayName}</p><p className="font-mono text-xs text-[#aaccf5]">@{member.user.username}</p></div>
                       <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-cyan-100/75">{member.role}</span>
+                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[#aaccf5]">{member.role}</span>
                         {hub.permissions.canManageHub && member.canManage ? (
                           <>
                             <select value={roleDraft} onChange={(event) => setRoleDrafts((current) => ({ ...current, [member.user.username]: event.target.value as HubMemberRole }))} className="h-9 rounded-2xl border border-[var(--border)] bg-slate-950/65 px-3 text-xs text-white outline-none">{assignableRoles.map((role) => <option key={role} value={role}>{role}</option>)}</select>
@@ -140,8 +140,8 @@ export function HubOverview({ hubId }: HubOverviewProps) {
             <Card>
               <CardHeader><CardTitle>Ограничения</CardTitle><CardDescription>Активные мьюты и блокировки в текущем хабе.</CardDescription></CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2"><p className="text-sm font-medium text-white">Активные ограничения</p>{hub.activeMutes.length === 0 ? <p className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-3 text-sm text-slate-500">Нет ограничений.</p> : hub.activeMutes.map((mute) => <div key={mute.id} className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-3"><p className="text-sm font-medium text-white">{mute.user.profile.displayName}</p><p className="font-mono text-xs text-cyan-100/75">@{mute.user.username}</p><Button className="mt-2" size="sm" variant="secondary" onClick={() => void withAction(`unmute:${mute.user.username}`, async () => { await apiClientFetch(`/v1/hubs/${hub.id}/mutes/revoke`, { method: "POST", body: JSON.stringify({ username: mute.user.username }) }); })}>Снять ограничение</Button></div>)}</div>
-                <div className="space-y-2"><p className="text-sm font-medium text-white">Активные блокировки</p>{hub.activeBans.length === 0 ? <p className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-3 text-sm text-slate-500">Нет блокировок.</p> : hub.activeBans.map((ban) => <div key={ban.id} className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-3"><p className="text-sm font-medium text-white">{ban.user.profile.displayName}</p><p className="font-mono text-xs text-cyan-100/75">@{ban.user.username}</p><Button className="mt-2" size="sm" variant="secondary" onClick={() => void withAction(`unban:${ban.user.username}`, async () => { await apiClientFetch(`/v1/hubs/${hub.id}/bans/revoke`, { method: "POST", body: JSON.stringify({ username: ban.user.username }) }); })}>Разблокировать</Button></div>)}</div>
+                <div className="space-y-2"><p className="text-sm font-medium text-white">Активные ограничения</p>{hub.activeMutes.length === 0 ? <p className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-3 text-sm text-[var(--text-muted)]">Нет ограничений.</p> : hub.activeMutes.map((mute) => <div key={mute.id} className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-3"><p className="text-sm font-medium text-white">{mute.user.profile.displayName}</p><p className="font-mono text-xs text-[#aaccf5]">@{mute.user.username}</p><Button className="mt-2" size="sm" variant="secondary" onClick={() => void withAction(`unmute:${mute.user.username}`, async () => { await apiClientFetch(`/v1/hubs/${hub.id}/mutes/revoke`, { method: "POST", body: JSON.stringify({ username: mute.user.username }) }); })}>Снять ограничение</Button></div>)}</div>
+                <div className="space-y-2"><p className="text-sm font-medium text-white">Активные блокировки</p>{hub.activeBans.length === 0 ? <p className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-3 text-sm text-[var(--text-muted)]">Нет блокировок.</p> : hub.activeBans.map((ban) => <div key={ban.id} className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-3"><p className="text-sm font-medium text-white">{ban.user.profile.displayName}</p><p className="font-mono text-xs text-[#aaccf5]">@{ban.user.username}</p><Button className="mt-2" size="sm" variant="secondary" onClick={() => void withAction(`unban:${ban.user.username}`, async () => { await apiClientFetch(`/v1/hubs/${hub.id}/bans/revoke`, { method: "POST", body: JSON.stringify({ username: ban.user.username }) }); })}>Разблокировать</Button></div>)}</div>
               </CardContent>
             </Card>
           ) : null}
