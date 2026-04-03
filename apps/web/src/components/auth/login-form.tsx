@@ -108,8 +108,13 @@ export function LoginForm() {
         </p>
       </div>
 
+      <div className="surface-subtle rounded-[24px] px-4 py-4 text-sm leading-7 text-[var(--text-dim)]">
+        Используйте логин или рабочую почту. Сессия будет подтверждена сервером
+        до перехода в закрытую рабочую область.
+      </div>
+
       {errorMessage ? (
-        <div className="rounded-2xl border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+        <div className="rounded-[22px] border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
           {errorMessage}
         </div>
       ) : null}

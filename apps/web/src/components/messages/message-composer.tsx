@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 
 interface MessageComposerProps {
@@ -19,19 +19,50 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
     try {
       await onSend(content);
       setContent("");
-    } finally { setIsSending(false); }
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void handleSubmit(event as unknown as FormEvent<HTMLFormElement>);
+    }
   }
 
   return (
-    <form className="premium-tile space-y-3 rounded-3xl p-3" onSubmit={handleSubmit}>
+    <form
+      className="surface-highlight space-y-3 rounded-[28px] p-4"
+      onSubmit={handleSubmit}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="section-kicker">Composer</p>
+        <span className="status-pill">
+          {disabled ? "Публикация отключена" : "Канал активен"}
+        </span>
+      </div>
       <textarea
         value={content}
         onChange={(event) => setContent(event.target.value)}
-        placeholder={disabled ? "Отправка отключена для этого диалога" : "Напишите сообщение"}
+        onKeyDown={handleKeyDown}
+        placeholder={
+          disabled
+            ? "Отправка отключена для этого диалога"
+            : "Напишите сообщение. Enter — отправка, Shift+Enter — новая строка."
+        }
         disabled={disabled || isSending}
-        className="min-h-28 w-full rounded-2xl border border-[var(--border)] bg-[#0b1322]/80 px-4 py-4 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="field-textarea min-h-[148px] disabled:cursor-not-allowed disabled:opacity-60"
       />
-      <div className="flex items-center justify-between gap-3"><p className="text-xs text-[var(--text-muted)]">Enter — отправка, Shift+Enter — новая строка.</p><Button type="submit" disabled={disabled || isSending}>{isSending ? "Отправка..." : "Отправить"}</Button></div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs leading-6 text-[var(--text-muted)]">
+          Поток диалога поддерживает быстрый desktop-ритм: Enter отправляет,
+          Shift+Enter оставляет перенос строки.
+        </p>
+        <Button type="submit" disabled={disabled || isSending}>
+          {isSending ? "Отправка..." : "Отправить сообщение"}
+        </Button>
+      </div>
     </form>
   );
 }

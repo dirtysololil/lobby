@@ -8,16 +8,26 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({ title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  description,
+  action,
+  className,
+}: EmptyStateProps) {
   return (
     <div
       className={cn(
-        "rounded-3xl border border-dashed border-[var(--border)] bg-slate-950/45 px-6 py-9 text-center",
+        "rounded-[28px] border border-dashed border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-6 py-10 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
         className,
       )}
     >
-      <p className="text-lg font-medium text-white">{title}</p>
-      <p className="mt-3 text-sm leading-7 text-slate-400">{description}</p>
+      <p className="section-kicker">Пустое состояние</p>
+      <p className="mt-3 font-[var(--font-heading)] text-2xl font-semibold tracking-[-0.03em] text-white">
+        {title}
+      </p>
+      <p className="mt-3 text-sm leading-7 text-[var(--text-dim)]">
+        {description}
+      </p>
       {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   );
