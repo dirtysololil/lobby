@@ -14,15 +14,17 @@ export default async function DashboardLayout({
 
   return (
     <RealtimeProvider viewer={viewer}>
-      <main className="mx-auto grid min-h-screen w-full max-w-[1920px] grid-cols-1 gap-3 px-3 py-3 xl:grid-cols-[84px_320px_minmax(0,1fr)] 2xl:grid-cols-[84px_320px_minmax(0,1fr)_320px] 2xl:px-5">
+      <main className="mx-auto grid min-h-screen w-full max-w-[1800px] grid-cols-1 gap-3 px-3 py-3 lg:grid-cols-[72px_minmax(240px,286px)_minmax(0,1fr)] lg:px-4 lg:py-4">
         <AppSidebar viewer={viewer} />
         <AppContextRail viewer={viewer} />
-        <div className="flex min-h-0 flex-col gap-3">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3">
           <AppHeader viewer={viewer} />
           <IncomingCallBanner />
-          <div className="min-h-0 flex-1">{children}</div>
+          <div className="flex min-h-0 flex-1 gap-3">
+            <div className="min-h-0 min-w-0 flex-1">{children}</div>
+            <AppActivityRail viewer={viewer} />
+          </div>
         </div>
-        <AppActivityRail viewer={viewer} />
       </main>
     </RealtimeProvider>
   );

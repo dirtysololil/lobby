@@ -1,6 +1,7 @@
 "use client";
 
 import type { DirectConversationDetail } from "@lobby/shared";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
@@ -29,10 +30,12 @@ export function MessageThread({
         month: "long",
       });
       const group = accumulator[accumulator.length - 1];
+
       if (group && group.label === label) {
         group.items.push(message);
         return accumulator;
       }
+
       accumulator.push({ label, items: [message] });
       return accumulator;
     },
@@ -40,11 +43,10 @@ export function MessageThread({
   );
 
   return (
-    <div className="min-h-0 space-y-5 overflow-y-auto pr-1">
+    <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
       {conversation.messages.length === 0 ? (
-        <div className="surface-subtle rounded-[24px] p-6 text-sm leading-6 text-[var(--text-muted)]">
-          Сообщений пока нет. Здесь появится приватный поток переписки — без
-          публичной стены и без лишнего визуального шума.
+        <div className="surface-subtle rounded-[18px] p-5 text-sm text-[var(--text-muted)]">
+          Сообщений пока нет. Начните разговор с первого короткого сообщения.
         </div>
       ) : (
         groupedMessages.map((group) => (
@@ -57,19 +59,13 @@ export function MessageThread({
 
             {group.items.map((message) => {
               const isOwn = message.author.id === viewerId;
+
               return (
                 <div
                   key={message.id}
-                  className={cn(
-                    "flex gap-3",
-                    isOwn && "flex-row-reverse",
-                  )}
+                  className={cn("flex gap-3", isOwn && "flex-row-reverse")}
                 >
-                  <UserAvatar
-                    user={message.author}
-                    size="sm"
-                    className="mt-1 shrink-0"
-                  />
+                  <UserAvatar user={message.author} size="sm" className="mt-0.5 shrink-0" />
 
                   <div
                     className={cn(
@@ -79,36 +75,28 @@ export function MessageThread({
                   >
                     <div
                       className={cn(
-                        "mb-2 flex flex-wrap items-center gap-2",
+                        "mb-1 flex flex-wrap items-center gap-2",
                         isOwn && "justify-end",
                       )}
                     >
                       <p className="text-sm font-semibold text-white">
                         {message.author.profile.displayName}
                       </p>
-                      <span className="text-xs uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                        @{message.author.username}
-                      </span>
                       <span className="text-xs text-[var(--text-muted)]">
-                        {new Date(message.createdAt).toLocaleTimeString(
-                          "ru-RU",
-                          { hour: "2-digit", minute: "2-digit" },
-                        )}
+                        {new Date(message.createdAt).toLocaleTimeString("ru-RU", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                       {isOwn ? (
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => void onDelete(message.id)}
-                          disabled={
-                            isDeleting === message.id || message.isDeleted
-                          }
+                          disabled={isDeleting === message.id || message.isDeleted}
+                          className="px-2"
                         >
-                          {message.isDeleted
-                            ? "Удалено"
-                            : isDeleting === message.id
-                              ? "Удаляем..."
-                              : "Удалить"}
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       ) : null}
                     </div>
@@ -116,13 +104,11 @@ export function MessageThread({
                     <div
                       className={cn(
                         isOwn ? "message-bubble-own ml-auto" : "message-bubble",
-                        "rounded-[24px] px-4 py-3.5",
+                        "rounded-[16px] px-3 py-2.5",
                       )}
                     >
                       <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--text)]">
-                        {message.isDeleted
-                          ? "Сообщение удалено"
-                          : message.content}
+                        {message.isDeleted ? "Сообщение удалено" : message.content}
                       </p>
                     </div>
                   </div>

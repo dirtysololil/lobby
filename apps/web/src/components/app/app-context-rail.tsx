@@ -1,20 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  BellDot,
-  Hash,
-  Layers3,
-  LockKeyhole,
-  MessageSquareMore,
-  Mic,
-  Settings2,
-  ShieldCheck,
-  Sparkles,
-  UserRoundPlus,
-  Users2,
-} from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Hash, Layers3, LockKeyhole, MessageSquareMore, Mic, Settings2, ShieldCheck, UserRoundPlus, Users2 } from "lucide-react";
 import {
   blocksResponseSchema,
   directConversationListResponseSchema,
@@ -26,9 +14,9 @@ import {
   type HubSummary,
   type PublicUser,
 } from "@lobby/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiClientFetch } from "@/lib/api-client";
-import { parseAppPath, matchesPath } from "@/lib/app-shell";
+import { matchesPath, parseAppPath } from "@/lib/app-shell";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -39,39 +27,27 @@ interface AppContextRailProps {
 }
 
 const settingsLinks = [
-  {
-    href: "/app/settings/profile",
-    label: "Профиль",
-    description: "Идентичность и аватар",
-  },
-  {
-    href: "/app/settings/notifications",
-    label: "Уведомления",
-    description: "Сигналы по хабам и диалогам",
-  },
+  { href: "/app/settings/profile", label: "Profile" },
+  { href: "/app/settings/notifications", label: "Notifications" },
 ] as const;
 
 const adminLinks = [
-  { href: "/app/admin", label: "Обзор", description: "Сводка платформы" },
-  {
-    href: "/app/admin/users",
-    label: "Пользователи",
-    description: "Модерация и поиск",
-  },
-  {
-    href: "/app/admin/invites",
-    label: "Ключи доступа",
-    description: "Инвайты и маршруты входа",
-  },
-  {
-    href: "/app/admin/audit",
-    label: "Журнал аудита",
-    description: "Критичные действия",
-  },
+  { href: "/app/admin", label: "Overview" },
+  { href: "/app/admin/users", label: "Users" },
+  { href: "/app/admin/invites", label: "Invites" },
+  { href: "/app/admin/audit", label: "Audit log" },
+] as const;
+
+const peopleViews = [
+  { id: "friends", label: "Friends" },
+  { id: "requests", label: "Requests" },
+  { id: "discover", label: "Discover" },
+  { id: "blocked", label: "Blocked" },
 ] as const;
 
 export function AppContextRail({ viewer }: AppContextRailProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const route = parseAppPath(pathname);
   const { incomingCalls, latestSignal } = useRealtime();
   const [conversations, setConversations] = useState<DirectConversationSummary[]>(
@@ -82,6 +58,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   const [peopleSummary, setPeopleSummary] = useState<{
     friends: number;
     incoming: number;
+    outgoing: number;
     blocks: number;
   } | null>(null);
   const [loadingLabel, setLoadingLabel] = useState<string | null>(null);
@@ -95,32 +72,40 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
       try {
         if (route.section === "messages") {
           const payload = await apiClientFetch("/v1/direct-messages");
-          const items = directConversationListResponseSchema.parse(payload).items;
-          if (active) {
-            setConversations(items);
-            setHub(null);
-            setPeopleSummary(null);
+          if (!active) {
+            return;
           }
+
+          setConversations(directConversationListResponseSchema.parse(payload).items);
+          setHubs([]);
+          setHub(null);
+          setPeopleSummary(null);
           return;
         }
 
         if (route.section === "hubs") {
           if (route.hubId) {
             const payload = await apiClientFetch(`/v1/hubs/${route.hubId}`);
-            if (active) {
-              setHub(hubShellResponseSchema.parse(payload).hub);
-              setConversations([]);
-              setPeopleSummary(null);
+            if (!active) {
+              return;
             }
-          } else {
-            const payload = await apiClientFetch("/v1/hubs");
-            if (active) {
-              setHubs(hubListResponseSchema.parse(payload).items);
-              setHub(null);
-              setConversations([]);
-              setPeopleSummary(null);
-            }
+
+            setHub(hubShellResponseSchema.parse(payload).hub);
+            setHubs([]);
+            setConversations([]);
+            setPeopleSummary(null);
+            return;
           }
+
+          const payload = await apiClientFetch("/v1/hubs");
+          if (!active) {
+            return;
+          }
+
+          setHubs(hubListResponseSchema.parse(payload).items);
+          setHub(null);
+          setConversations([]);
+          setPeopleSummary(null);
           return;
         }
 
@@ -130,34 +115,34 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
             apiClientFetch("/v1/relationships/blocks"),
           ]);
 
-          const friendships =
-            friendshipsResponseSchema.parse(friendshipsPayload).items;
+          if (!active) {
+            return;
+          }
+
+          const friendships = friendshipsResponseSchema.parse(friendshipsPayload).items;
           const blocks = blocksResponseSchema.parse(blocksPayload).items;
 
-          if (active) {
-            setPeopleSummary({
-              friends: friendships.filter((item) => item.state === "ACCEPTED")
-                .length,
-              incoming: friendships.filter(
-                (item) => item.state === "INCOMING_REQUEST",
-              ).length,
-              blocks: blocks.length,
-            });
-            setConversations([]);
-            setHub(null);
-          }
+          setPeopleSummary({
+            friends: friendships.filter((item) => item.state === "ACCEPTED").length,
+            incoming: friendships.filter((item) => item.state === "INCOMING_REQUEST")
+              .length,
+            outgoing: friendships.filter((item) => item.state === "OUTGOING_REQUEST")
+              .length,
+            blocks: blocks.length,
+          });
+          setHubs([]);
+          setConversations([]);
+          setHub(null);
           return;
         }
 
-        const payload = await apiClientFetch("/v1/hubs");
-        if (active) {
-          setHubs(hubListResponseSchema.parse(payload).items);
-          setConversations([]);
-          setHub(null);
-          setPeopleSummary(null);
-        }
+        setHubs([]);
+        setConversations([]);
+        setHub(null);
+        setPeopleSummary(null);
       } catch {
         if (active) {
+          setHubs([]);
           setConversations([]);
           setHub(null);
           setPeopleSummary(null);
@@ -174,412 +159,313 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
     };
   }, [route.section, route.hubId]);
 
+  const rawPeopleView = searchParams.get("view");
+  const activePeopleView = peopleViews.some((item) => item.id === rawPeopleView)
+    ? rawPeopleView
+    : "friends";
+  const groupedLobbies = useMemo(() => {
+    if (!hub) {
+      return [];
+    }
+
+    return [
+      {
+        label: "Text",
+        items: hub.lobbies.filter((item) => item.type === "TEXT"),
+      },
+      {
+        label: "Voice",
+        items: hub.lobbies.filter((item) => item.type === "VOICE"),
+      },
+      {
+        label: "Forum",
+        items: hub.lobbies.filter((item) => item.type === "FORUM"),
+      },
+    ].filter((group) => group.items.length > 0);
+  }, [hub]);
+
   return (
-    <aside className="context-rail flex min-h-0 flex-col overflow-hidden rounded-[28px] p-4 xl:sticky xl:top-3 xl:h-[calc(100vh-1.5rem)]">
-      <div className="surface-highlight rounded-[24px] p-4">
-        <p className="section-kicker">Context Rail</p>
-        <div className="mt-3 flex items-start gap-3">
-          <UserAvatar user={viewer} size="sm" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">
-              {viewer.profile.displayName}
-            </p>
-            <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              @{viewer.username}
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="status-pill">
-            <BellDot className="h-3.5 w-3.5 text-[var(--accent)]" />
-            {incomingCalls.length} live
-          </span>
-          <span className="status-pill">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--accent-warm)]" />
-            {route.section}
-          </span>
+    <aside className="context-rail flex min-h-0 flex-col overflow-hidden rounded-[24px] p-3 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
+      <div className="flex items-center gap-3 border-b border-white/8 pb-3">
+        <UserAvatar user={viewer} size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-white">
+            {viewer.profile.displayName}
+          </p>
+          <p className="truncate text-xs text-[var(--text-muted)]">
+            @{viewer.username}
+          </p>
         </div>
       </div>
 
-      <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
         {route.section === "messages" ? (
-          <div className="grid gap-4">
-            <div>
-              <div className="mb-2 flex items-center justify-between px-1">
-                <p className="section-kicker">Direct Lines</p>
-                <Link href="/app/people" className="glass-badge">
-                  <UserRoundPlus className="h-3 w-3" />
-                  Новый контакт
-                </Link>
-              </div>
-              <div className="grid gap-2">
-                {loadingLabel === "messages" ? (
-                  <div className="surface-subtle rounded-[20px] px-4 py-4 text-sm text-[var(--text-muted)]">
-                    Загружаем диалоги...
-                  </div>
-                ) : conversations.length === 0 ? (
-                  <div className="surface-subtle rounded-[20px] px-4 py-4 text-sm text-[var(--text-muted)]">
-                    Здесь появятся личные каналы, как только вы откроете первый
-                    приватный диалог.
-                  </div>
-                ) : (
-                  conversations.map((conversation) => {
-                    const href = `/app/messages/${conversation.id}`;
-                    const active = pathname === href;
+          <div className="rail-group">
+            <div className="rail-heading">
+              <p className="section-kicker">Conversations</p>
+              <Link href="/app/people?view=discover" className="glass-badge">
+                <UserRoundPlus className="h-3 w-3" />
+                New
+              </Link>
+            </div>
+            <div className="mt-2 grid gap-1">
+              {loadingLabel === "messages" ? (
+                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
+                  Загружаем диалоги...
+                </div>
+              ) : conversations.length === 0 ? (
+                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
+                  Здесь появятся ваши DM.
+                </div>
+              ) : (
+                conversations.map((conversation) => {
+                  const href = `/app/messages/${conversation.id}`;
 
-                    return (
-                      <Link
-                        key={conversation.id}
-                        href={href}
-                        className={cn(
-                          "context-link rounded-[20px]",
-                          active && "context-link-active",
-                        )}
-                      >
-                        <UserAvatar user={conversation.counterpart} size="sm" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-white">
-                            {conversation.counterpart.profile.displayName}
-                          </span>
-                          <span className="mt-1 block truncate text-xs text-[var(--text-dim)]">
-                            {conversation.lastMessage?.content ??
-                              "Пустой канал"}
-                          </span>
+                  return (
+                    <Link
+                      key={conversation.id}
+                      href={href}
+                      className={cn(
+                        "context-link rounded-[14px]",
+                        pathname === href && "context-link-active",
+                      )}
+                    >
+                      <UserAvatar user={conversation.counterpart} size="sm" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-white">
+                          {conversation.counterpart.profile.displayName}
                         </span>
-                        {conversation.unreadCount > 0 ? (
-                          <span className="glass-badge">
-                            {conversation.unreadCount}
-                          </span>
-                        ) : null}
-                      </Link>
-                    );
-                  })
-                )}
-              </div>
+                        <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
+                          {conversation.lastMessage?.isDeleted
+                            ? "Сообщение удалено"
+                            : (conversation.lastMessage?.content ?? "Новый диалог")}
+                        </span>
+                      </span>
+                      {conversation.unreadCount > 0 ? (
+                        <span className="nav-link-meta">{conversation.unreadCount}</span>
+                      ) : null}
+                    </Link>
+                  );
+                })
+              )}
             </div>
           </div>
         ) : null}
 
         {route.section === "hubs" && !route.hubId ? (
-          <div className="grid gap-4">
-            <div>
-              <div className="mb-2 flex items-center justify-between px-1">
-                <p className="section-kicker">Spaces</p>
-                <Link href="/app/hubs" className="glass-badge">
-                  <Layers3 className="h-3 w-3" />
-                  Все хабы
-                </Link>
-              </div>
-              <div className="grid gap-2">
-                {loadingLabel === "hubs" ? (
-                  <div className="surface-subtle rounded-[20px] px-4 py-4 text-sm text-[var(--text-muted)]">
-                    Загружаем пространства...
-                  </div>
-                ) : (
-                  hubs.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={`/app/hubs/${item.id}`}
-                      className={cn(
-                        "context-link rounded-[20px]",
-                        pathname.startsWith(`/app/hubs/${item.id}`) &&
-                          "context-link-active",
-                      )}
-                    >
-                      <span className="dock-icon flex h-10 w-10 items-center justify-center rounded-[16px] text-xs font-semibold text-white">
-                        {item.name.slice(0, 2).toUpperCase()}
+          <div className="rail-group">
+            <div className="rail-heading">
+              <p className="section-kicker">Your hubs</p>
+              <Link href="/app/hubs" className="glass-badge">
+                <Layers3 className="h-3 w-3" />
+                All
+              </Link>
+            </div>
+            <div className="mt-2 grid gap-1">
+              {loadingLabel === "hubs" ? (
+                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
+                  Загружаем хабы...
+                </div>
+              ) : (
+                hubs.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/app/hubs/${item.id}`}
+                    className={cn(
+                      "context-link rounded-[14px]",
+                      pathname.startsWith(`/app/hubs/${item.id}`) && "context-link-active",
+                    )}
+                  >
+                    <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px] text-[11px] font-semibold text-white">
+                      {item.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-white">
+                        {item.name}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-white">
-                          {item.name}
-                        </span>
-                        <span className="mt-1 block truncate text-xs text-[var(--text-dim)]">
-                          {item.description ?? "Сообщество без описания"}
-                        </span>
+                      <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
+                        {item.membershipRole ?? "Гость"}
                       </span>
-                      {item.isPrivate ? (
-                        <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent-warm)]" />
-                      ) : null}
-                    </Link>
-                  ))
-                )}
-              </div>
+                    </span>
+                    {item.isPrivate ? (
+                      <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent)]" />
+                    ) : null}
+                  </Link>
+                ))
+              )}
             </div>
           </div>
         ) : null}
 
         {route.section === "hubs" && route.hubId ? (
           <div className="grid gap-4">
-            <div className="surface-subtle rounded-[22px] p-4">
-              <p className="section-kicker">Active Hub</p>
-              <p className="mt-3 text-lg font-semibold text-white">
-                {hub?.name ?? "Пространство"}
+            <div className="surface-subtle rounded-[18px] p-3">
+              <p className="truncate text-sm font-semibold text-white">
+                {hub?.name ?? "Хаб"}
               </p>
-              <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-                {hub?.description ?? "Контекст пространства загружается."}
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text-dim)]">
+                {hub?.description ?? "Загружаем структуру пространства."}
               </p>
             </div>
 
-            <div>
-              <div className="mb-2 px-1">
-                <p className="section-kicker">Navigation</p>
-              </div>
-              <div className="grid gap-2">
-                <Link
-                  href={`/app/hubs/${route.hubId}`}
-                  className={cn(
-                    "context-link rounded-[20px]",
-                    pathname === `/app/hubs/${route.hubId}` &&
-                      "context-link-active",
-                  )}
-                >
-                  <Layers3 className="h-4 w-4 text-[var(--accent)]" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-white">
-                      Обзор хаба
-                    </span>
-                    <span className="mt-1 block text-xs text-[var(--text-dim)]">
-                      Роли, участники и управление
-                    </span>
-                  </span>
-                </Link>
-                {hub?.lobbies.map((lobby) => {
-                  const href = buildHubLobbyHref(route.hubId!, lobby.id, lobby.type);
-                  const active = pathname === href || pathname.startsWith(`${href}/`);
+            <div className="grid gap-1">
+              <Link
+                href={`/app/hubs/${route.hubId}`}
+                className={cn(
+                  "context-link rounded-[14px]",
+                  pathname === `/app/hubs/${route.hubId}` && "context-link-active",
+                )}
+              >
+                <Layers3 className="h-4 w-4 text-[var(--accent)]" />
+                <span className="text-sm font-semibold text-white">Overview</span>
+              </Link>
+            </div>
 
-                  return (
-                    <Link
-                      key={lobby.id}
-                      href={href}
-                      className={cn(
-                        "context-link rounded-[20px]",
-                        active && "context-link-active",
-                      )}
-                    >
-                      <span className="dock-icon flex h-10 w-10 items-center justify-center rounded-[16px]">
-                        {lobby.type === "VOICE" ? (
-                          <Mic className="h-4 w-4" />
-                        ) : (
-                          <Hash className="h-4 w-4" />
+            {groupedLobbies.map((group) => (
+              <div key={group.label} className="rail-group">
+                <div className="rail-heading">
+                  <p className="section-kicker">{group.label}</p>
+                </div>
+                <div className="mt-2 grid gap-1">
+                  {group.items.map((lobby) => {
+                    const href = buildHubLobbyHref(route.hubId!, lobby.id, lobby.type);
+                    const active = pathname === href || pathname.startsWith(`${href}/`);
+
+                    return (
+                      <Link
+                        key={lobby.id}
+                        href={href}
+                        className={cn(
+                          "context-link rounded-[14px]",
+                          active && "context-link-active",
                         )}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-white">
-                          {lobby.name}
+                      >
+                        <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px]">
+                          {lobby.type === "VOICE" ? (
+                            <Mic className="h-4 w-4" />
+                          ) : (
+                            <Hash className="h-4 w-4" />
+                          )}
                         </span>
-                        <span className="mt-1 block truncate text-xs text-[var(--text-dim)]">
-                          {lobby.type === "FORUM"
-                            ? "Форумные треды"
-                            : lobby.type === "VOICE"
-                              ? "Голосовая сцена"
-                              : "Текстовая лента"}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-white">
+                            {lobby.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
+                            {lobby.description ?? lobby.type}
+                          </span>
                         </span>
-                      </span>
-                      {lobby.isPrivate ? (
-                        <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent-warm)]" />
-                      ) : null}
-                    </Link>
-                  );
-                })}
+                        {lobby.isPrivate ? (
+                          <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent)]" />
+                        ) : null}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         ) : null}
 
         {route.section === "people" ? (
-          <div className="grid gap-4">
-            <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
-              <div className="metric-tile rounded-[20px] p-4">
-                <p className="section-kicker">Друзья</p>
-                <p className="mt-2 text-2xl font-semibold text-white">
-                  {peopleSummary?.friends ?? 0}
-                </p>
-              </div>
-              <div className="metric-tile rounded-[20px] p-4">
-                <p className="section-kicker">Запросы</p>
-                <p className="mt-2 text-2xl font-semibold text-white">
-                  {peopleSummary?.incoming ?? 0}
-                </p>
-              </div>
-              <div className="metric-tile rounded-[20px] p-4">
-                <p className="section-kicker">Блоки</p>
-                <p className="mt-2 text-2xl font-semibold text-white">
-                  {peopleSummary?.blocks ?? 0}
-                </p>
-              </div>
+          <div className="rail-group">
+            <div className="rail-heading">
+              <p className="section-kicker">People</p>
+              <Link href="/app/messages" className="glass-badge">
+                <MessageSquareMore className="h-3 w-3" />
+                Inbox
+              </Link>
             </div>
+            <div className="mt-2 grid gap-1">
+              {peopleViews.map((item) => {
+                const href = `/app/people?view=${item.id}`;
+                const active = activePeopleView === item.id;
+                const count =
+                  item.id === "friends"
+                    ? peopleSummary?.friends
+                    : item.id === "requests"
+                      ? (peopleSummary?.incoming ?? 0) + (peopleSummary?.outgoing ?? 0)
+                      : item.id === "blocked"
+                        ? peopleSummary?.blocks
+                        : undefined;
 
-            <div className="grid gap-2">
-              {[
-                {
-                  href: "/app/people",
-                  label: "Найти человека",
-                  description: "Поиск по username и старт DM",
-                },
-                {
-                  href: "/app/messages",
-                  label: "Вернуться в inbox",
-                  description: "Открыть приватные линии связи",
-                },
-              ].map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={cn(
-                    "context-link rounded-[20px]",
-                    matchesPath(pathname, item.href) && "context-link-active",
-                  )}
-                >
-                  <Users2 className="h-4 w-4 text-[var(--accent)]" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-white">
+                return (
+                  <Link
+                    key={item.id}
+                    href={href}
+                    className={cn(
+                      "context-link rounded-[14px]",
+                      active && "context-link-active",
+                    )}
+                  >
+                    <Users2 className="h-4 w-4 text-[var(--accent)]" />
+                    <span className="min-w-0 flex-1 text-sm font-semibold text-white">
                       {item.label}
                     </span>
-                    <span className="mt-1 block text-xs text-[var(--text-dim)]">
-                      {item.description}
-                    </span>
-                  </span>
-                </Link>
-              ))}
+                    {count !== undefined ? (
+                      <span className="nav-link-meta">{count}</span>
+                    ) : null}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         ) : null}
 
         {route.section === "settings" ? (
-          <div className="grid gap-2">
-            {settingsLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "context-link rounded-[20px]",
-                  matchesPath(pathname, item.href) && "context-link-active",
-                )}
-              >
-                <Settings2 className="h-4 w-4 text-[var(--accent)]" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-white">
-                    {item.label}
-                  </span>
-                  <span className="mt-1 block text-xs text-[var(--text-dim)]">
-                    {item.description}
-                  </span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        ) : null}
-
-        {route.section === "admin" ? (
-          <div className="grid gap-2">
-            {adminLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "context-link rounded-[20px]",
-                  matchesPath(pathname, item.href) && "context-link-active",
-                )}
-              >
-                <ShieldCheck className="h-4 w-4 text-[var(--accent-warm)]" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-white">
-                    {item.label}
-                  </span>
-                  <span className="mt-1 block text-xs text-[var(--text-dim)]">
-                    {item.description}
-                  </span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        ) : null}
-
-        {route.section === "overview" ? (
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              {[
-                {
-                  href: "/app/messages",
-                  icon: MessageSquareMore,
-                  label: "Входящие линии",
-                  description: "Диалоги, unread и live calls",
-                },
-                {
-                  href: "/app/hubs",
-                  icon: Layers3,
-                  label: "Комьюнити-хабы",
-                  description: "Пространства, роли, лобби",
-                },
-                {
-                  href: "/app/people",
-                  icon: Users2,
-                  label: "Социальный граф",
-                  description: "Друзья, запросы, блокировки",
-                },
-              ].map((item) => (
+          <div className="rail-group">
+            <div className="rail-heading">
+              <p className="section-kicker">Settings</p>
+            </div>
+            <div className="mt-2 grid gap-1">
+              {settingsLinks.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "context-link rounded-[20px]",
+                    "context-link rounded-[14px]",
                     matchesPath(pathname, item.href) && "context-link-active",
                   )}
                 >
-                  <item.icon className="h-4 w-4 text-[var(--accent)]" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-white">
-                      {item.label}
-                    </span>
-                    <span className="mt-1 block text-xs text-[var(--text-dim)]">
-                      {item.description}
-                    </span>
-                  </span>
+                  <Settings2 className="h-4 w-4 text-[var(--accent)]" />
+                  <span className="text-sm font-semibold text-white">{item.label}</span>
                 </Link>
               ))}
             </div>
+          </div>
+        ) : null}
 
-            {hubs.length > 0 ? (
-              <div className="surface-subtle rounded-[22px] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="section-kicker">Recent Hubs</p>
-                  <span className="glass-badge">{hubs.length}</span>
-                </div>
-                <div className="mt-3 grid gap-2">
-                  {hubs.slice(0, 5).map((item) => (
-                    <Link
-                      key={item.id}
-                      href={`/app/hubs/${item.id}`}
-                      className="context-link rounded-[18px]"
-                    >
-                      <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[14px] text-xs font-semibold text-white">
-                        {item.name.slice(0, 2).toUpperCase()}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-white">
-                          {item.name}
-                        </span>
-                        <span className="mt-1 block truncate text-xs text-[var(--text-dim)]">
-                          {item.description ?? "Сообщество без описания"}
-                        </span>
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+        {route.section === "admin" ? (
+          <div className="rail-group">
+            <div className="rail-heading">
+              <p className="section-kicker">Control</p>
+            </div>
+            <div className="mt-2 grid gap-1">
+              {adminLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "context-link rounded-[14px]",
+                    matchesPath(pathname, item.href) && "context-link-active",
+                  )}
+                >
+                  <ShieldCheck className="h-4 w-4 text-[var(--accent)]" />
+                  <span className="text-sm font-semibold text-white">{item.label}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
 
-      <div className="surface-subtle mt-4 rounded-[22px] p-4">
-        <p className="section-kicker">Realtime Layer</p>
-        <p className="mt-2 text-sm font-semibold text-white">
-          {latestSignal ? latestSignal.call.status : "Сеть синхронизирована"}
-        </p>
-        <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-          Нижняя control-зона удерживает чувство присутствия: кто в сети, где
-          идет сигнал и какой раздел сейчас является контекстным центром.
+      <div className="surface-subtle mt-3 rounded-[16px] p-3">
+        <div className="flex items-center justify-between gap-3 text-xs text-[var(--text-dim)]">
+          <span>Realtime</span>
+          <span>{incomingCalls.length} calls</span>
+        </div>
+        <p className="mt-1 text-sm font-medium text-white">
+          {latestSignal ? latestSignal.call.status : "Connected"}
         </p>
       </div>
     </aside>

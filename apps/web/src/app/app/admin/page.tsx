@@ -1,12 +1,6 @@
 import { adminOverviewResponseSchema } from "@lobby/shared";
-import { ShieldCheck, Sparkles } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ShieldCheck } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchServerApi } from "@/lib/server-api";
 import { requireAdminViewer } from "@/lib/server-session";
 
@@ -22,40 +16,27 @@ export default async function AdminPage() {
   const overview = adminOverviewResponseSchema.parse(payload).overview;
 
   return (
-    <div className="grid gap-6">
-      <section className="premium-panel rounded-[28px] p-5 lg:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="section-kicker">Админ-панель</p>
-            <h1 className="mt-4 font-[var(--font-heading)] text-[2rem] font-semibold tracking-[-0.04em] text-white">
-              Управление платформой
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
-              Модерируйте пользователей, управляйте ключами и проверяйте события
-              аудита в одном интерфейсе.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="eyebrow-pill">
-              <ShieldCheck className="h-3.5 w-3.5" /> Приватный контроль
-            </span>
-            <span className="status-pill">
-              <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
-              Статусный внутренний центр
-            </span>
-          </div>
+    <div className="grid gap-4">
+      <section className="social-shell rounded-[24px] p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="eyebrow-pill">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Admin
+          </span>
+          <span className="status-pill">Internal control</span>
         </div>
+        <h1 className="mt-2 font-[var(--font-heading)] text-[1.4rem] font-semibold tracking-[-0.04em] text-white">
+          Операционный контур платформы
+        </h1>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.72fr_0.28fr]">
+      <section className="grid gap-4 xl:grid-cols-[0.72fr_0.28fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Состояние платформы</CardTitle>
-            <CardDescription>
-              Актуальные показатели модерации и онбординга.
-            </CardDescription>
+            <CardTitle>Показатели</CardTitle>
+            <CardDescription>Текущие цифры по платформе.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {[
               ["Пользователи", overview.counts.users],
               ["Заблокированные", overview.counts.blockedUsers],
@@ -63,11 +44,9 @@ export default async function AdminPage() {
               ["Хабы", overview.counts.hubs],
               ["События аудита", overview.counts.auditEvents],
             ].map(([label, value]) => (
-              <div key={label} className="metric-tile rounded-[26px] p-5">
+              <div key={label} className="metric-tile rounded-[18px] p-4">
                 <p className="text-sm text-[var(--text-dim)]">{label}</p>
-                <p className="mt-2 text-3xl font-semibold text-white">
-                  {value}
-                </p>
+                <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
               </div>
             ))}
           </CardContent>
@@ -76,20 +55,16 @@ export default async function AdminPage() {
         <Card>
           <CardHeader>
             <CardTitle>Последние ключи</CardTitle>
-            <CardDescription>Недавно созданные ключи доступа.</CardDescription>
+            <CardDescription>Недавно созданные приглашения.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
+          <CardContent className="grid gap-2">
             {overview.recentInvites.map((invite) => (
-              <div
-                key={invite.id}
-                className="surface-subtle rounded-[24px] p-4"
-              >
-                <p className="text-sm font-medium text-white">
+              <div key={invite.id} className="surface-subtle rounded-[18px] p-3">
+                <p className="text-sm font-semibold text-white">
                   {invite.label ?? "Ключ без названия"}
                 </p>
-                <p className="mt-2 text-sm text-[var(--text-dim)]">
-                  {roleLabels[invite.role] ?? invite.role} · {invite.usedCount}/
-                  {invite.maxUses}
+                <p className="mt-1 text-sm text-[var(--text-dim)]">
+                  {roleLabels[invite.role] ?? invite.role} · {invite.usedCount}/{invite.maxUses}
                 </p>
               </div>
             ))}

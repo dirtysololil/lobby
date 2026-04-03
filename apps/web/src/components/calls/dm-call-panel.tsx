@@ -6,16 +6,9 @@ import {
   callTokenResponseSchema,
   type CallStateResponse,
 } from "@lobby/shared";
-import { Phone, Video } from "lucide-react";
+import { Phone, PhoneCall, Video } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { apiClientFetch } from "@/lib/api-client";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
@@ -69,9 +62,7 @@ export function DmCallPanel({
     const currentSocket = socket;
 
     function subscribe() {
-      currentSocket.emit("calls.subscribe_dm", {
-        conversationId,
-      });
+      currentSocket.emit("calls.subscribe_dm", { conversationId });
     }
 
     subscribe();
@@ -122,12 +113,9 @@ export function DmCallPanel({
     setPendingAction("accept");
 
     try {
-      const payload = await apiClientFetch(
-        `/v1/calls/${state.activeCall.id}/accept`,
-        {
-          method: "POST",
-        },
-      );
+      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/accept`, {
+        method: "POST",
+      });
 
       callResponseSchema.parse(payload);
       clearIncomingCall(state.activeCall.id);
@@ -145,12 +133,9 @@ export function DmCallPanel({
     setPendingAction("decline");
 
     try {
-      const payload = await apiClientFetch(
-        `/v1/calls/${state.activeCall.id}/decline`,
-        {
-          method: "POST",
-        },
-      );
+      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/decline`, {
+        method: "POST",
+      });
 
       callResponseSchema.parse(payload);
       clearIncomingCall(state.activeCall.id);
@@ -169,12 +154,9 @@ export function DmCallPanel({
     setPendingAction("join");
 
     try {
-      const payload = await apiClientFetch(
-        `/v1/calls/${state.activeCall.id}/token`,
-        {
-          method: "POST",
-        },
-      );
+      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/token`, {
+        method: "POST",
+      });
 
       const parsed = callTokenResponseSchema.parse(payload);
       setConnection(parsed.connection);
@@ -192,12 +174,9 @@ export function DmCallPanel({
     setPendingAction("end");
 
     try {
-      const payload = await apiClientFetch(
-        `/v1/calls/${state.activeCall.id}/end`,
-        {
-          method: "POST",
-        },
-      );
+      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/end`, {
+        method: "POST",
+      });
 
       callResponseSchema.parse(payload);
       setConnection(null);
@@ -216,79 +195,83 @@ export function DmCallPanel({
     activeCall?.status === "RINGING" && activeCall.initiatedBy.id !== viewerId;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Звонок</CardTitle>
-          <CardDescription>
-            Голосовые и видеозвонки LiveKit внутри личного диалога.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {errorMessage ? (
-            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-              {errorMessage}
+    <div className="grid gap-3">
+      <div className="rounded-[18px] border border-[var(--border)] bg-white/[0.03] px-4 py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="eyebrow-pill">
+                <PhoneCall className="h-3.5 w-3.5" />
+                Call
+              </span>
+              {activeCall ? (
+                <span className="status-pill">{activeCall.status}</span>
+              ) : (
+                <span className="status-pill">Ready</span>
+              )}
+              {viewerParticipant ? (
+                <span className="status-pill">you: {viewerParticipant.state}</span>
+              ) : null}
             </div>
-          ) : null}
+            {errorMessage ? (
+              <p className="mt-2 text-sm text-rose-200">{errorMessage}</p>
+            ) : isBlocked ? (
+              <p className="mt-2 text-sm text-amber-100">
+                Звонки недоступны из-за блокировки.
+              </p>
+            ) : null}
+          </div>
 
-          {isBlocked ? (
-            <div className="rounded-3xl border border-amber-300/20 bg-amber-300/10 px-5 py-4 text-sm text-amber-50">
-              Звонки недоступны: один из пользователей заблокирован.
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             {!activeCall ? (
               <>
                 <Button
+                  size="sm"
                   onClick={() => void startCall("AUDIO")}
                   disabled={isBlocked || pendingAction !== null}
                 >
-                  <Phone className="mr-2 h-4 w-4" />
-                  {pendingAction === "start:AUDIO"
-                    ? "Запуск..."
-                    : "Аудиозвонок"}
+                  <Phone className="h-4 w-4" />
+                  {pendingAction === "start:AUDIO" ? "Запуск..." : "Audio"}
                 </Button>
                 <Button
+                  size="sm"
                   variant="secondary"
                   onClick={() => void startCall("VIDEO")}
                   disabled={isBlocked || pendingAction !== null}
                 >
-                  <Video className="mr-2 h-4 w-4" />
-                  {pendingAction === "start:VIDEO"
-                    ? "Запуск..."
-                    : "Видеозвонок"}
+                  <Video className="h-4 w-4" />
+                  {pendingAction === "start:VIDEO" ? "Запуск..." : "Video"}
+                </Button>
+              </>
+            ) : isIncomingCall ? (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => void acceptCall()}
+                  disabled={pendingAction !== null || isBlocked}
+                >
+                  {pendingAction === "accept" ? "Принимаем..." : "Принять"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void declineCall()}
+                  disabled={pendingAction !== null}
+                >
+                  {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
                 </Button>
               </>
             ) : (
               <>
-                {isIncomingCall ? (
-                  <>
-                    <Button
-                      onClick={() => void acceptCall()}
-                      disabled={pendingAction !== null || isBlocked}
-                    >
-                      {pendingAction === "accept" ? "Принимаем..." : "Принять"}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => void declineCall()}
-                      disabled={pendingAction !== null}
-                    >
-                      {pendingAction === "decline"
-                        ? "Отклоняем..."
-                        : "Отклонить"}
-                    </Button>
-                  </>
-                ) : null}
-
                 <Button
+                  size="sm"
                   onClick={() => void joinCall()}
                   disabled={pendingAction !== null || isBlocked}
                 >
                   {pendingAction === "join" ? "Подключаем..." : "Подключиться"}
                 </Button>
                 <Button
+                  size="sm"
                   variant="secondary"
                   onClick={() => void endCall()}
                   disabled={pendingAction !== null}
@@ -298,53 +281,24 @@ export function DmCallPanel({
               </>
             )}
           </div>
+        </div>
 
-          {activeCall ? (
-            <div className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5">
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full border border-white/10 px-3 py-1 text-[var(--text-soft)]">
-                  {activeCall.mode}
-                </span>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">
-                  {activeCall.status}
-                </span>
-                {viewerParticipant ? (
-                  <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">
-                    вы: {viewerParticipant.state}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          {state?.history.length ? (
-            <div className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5">
-              <p className="text-sm font-medium text-white">История звонков</p>
-              <div className="mt-3 space-y-2 text-sm text-slate-300">
-                {state.history.slice(0, 5).map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3"
-                  >
-                    <span>
-                      {item.mode} / {item.status}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {new Date(item.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+        {state?.history.length ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {state.history.slice(0, 4).map((item) => (
+              <span key={item.id} className="glass-badge">
+                {item.mode} · {item.status}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       <LiveKitCallRoom
         connection={connection}
         mode={activeCall?.mode ?? "AUDIO"}
-        title="Активный личный звонок"
-        description="Микрофон, камера и демонстрация экрана публикуются через LiveKit внутри приватного диалога."
+        title="Активный звонок"
+        description="Управление микрофоном, камерой и экраном без выхода из диалога."
         onLeave={async () => {
           await endCall();
         }}

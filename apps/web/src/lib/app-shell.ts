@@ -1,10 +1,4 @@
-export type AppSection =
-  | "overview"
-  | "people"
-  | "messages"
-  | "hubs"
-  | "settings"
-  | "admin";
+export type AppSection = "people" | "messages" | "hubs" | "settings" | "admin";
 
 export interface AppRouteState {
   section: AppSection;
@@ -18,7 +12,7 @@ export interface AppRouteState {
 
 export function parseAppPath(pathname: string): AppRouteState {
   const segments = pathname.split("/").filter(Boolean);
-  const section = (segments[1] ?? "overview") as AppSection;
+  const section = ((segments[1] ?? "messages") as AppSection) || "messages";
 
   if (section === "messages") {
     return {
@@ -75,7 +69,7 @@ export function parseAppPath(pathname: string): AppRouteState {
   }
 
   return {
-    section,
+    section: "messages",
     hubId: null,
     lobbyId: null,
     topicId: null,
@@ -87,65 +81,51 @@ export function parseAppPath(pathname: string): AppRouteState {
 
 export function getSectionMeta(route: AppRouteState) {
   switch (route.section) {
-    case "overview":
-      return {
-        label: "Workspace",
-        title: "Command center",
-        description: "Overview of conversations, communities and private control.",
-      };
     case "people":
       return {
-        label: "Network",
-        title: "People and relationships",
-        description: "Friends, direct connections, blocks and private social graph.",
+        label: "People",
+        title: "People",
+        description: "Friends, requests and discovery.",
       };
     case "messages":
       return route.conversationId
         ? {
-            label: "Messenger",
-            title: "Direct conversation",
-            description: "Live private thread with calls, unread state and retention rules.",
+            label: "Direct Message",
+            title: "Conversation",
+            description: "Private chat, call state and message history.",
           }
         : {
-            label: "Messenger",
-            title: "Inbox and direct messages",
-            description: "Unread flow, private channels and fast conversation launch.",
+            label: "Inbox",
+            title: "Messages",
+            description: "Recent conversations and direct lines.",
           };
     case "hubs":
       return route.hubId
         ? {
-            label: "Community",
-            title: "Hub space",
-            description:
-              "Channels, lobbies, live rooms and forum surfaces inside one community shell.",
+            label: "Hub",
+            title: "Hub",
+            description: "Channels, members and community flow.",
           }
         : {
-            label: "Community",
-            title: "Hubs and spaces",
-            description:
-              "Discover, join and build community structures with roles and invitations.",
+            label: "Hubs",
+            title: "Hubs",
+            description: "Spaces, invites and channel structure.",
           };
     case "settings":
       return {
-        label: "Preferences",
-        title: "Personal settings",
-        description:
-          "Profile identity, appearance of presence and notification control belong to the same product system.",
+        label: "Settings",
+        title: "Settings",
+        description: "Profile, presence and notification rules.",
       };
     case "admin":
       return {
-        label: "Control",
-        title: "Moderation and integrity",
-        description:
-          "Invites, audit and user control should feel like premium internal operations, not fallback admin pages.",
+        label: "Admin",
+        title: "Control",
+        description: "Internal moderation and platform operations.",
       };
   }
 }
 
 export function matchesPath(pathname: string, href: string) {
-  if (href === "/app") {
-    return pathname === "/app";
-  }
-
   return pathname === href || pathname.startsWith(`${href}/`);
 }

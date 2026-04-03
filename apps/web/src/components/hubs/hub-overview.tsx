@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Crown, LockKeyhole, Sparkles, UsersRound, Waves } from "lucide-react";
+import { LockKeyhole, UsersRound, Waves } from "lucide-react";
 import {
   hubShellResponseSchema,
   type HubMemberRole,
@@ -9,14 +9,9 @@ import {
 } from "@lobby/shared";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
 
@@ -28,14 +23,15 @@ const roleLabels: Record<string, string> = {
 };
 
 const lobbyTypeLabels: Record<string, string> = {
-  TEXT: "Текст",
-  VOICE: "Голос",
-  FORUM: "Форум",
+  TEXT: "Text",
+  VOICE: "Voice",
+  FORUM: "Forum",
 };
 
 interface HubOverviewProps {
   hubId: string;
 }
+
 const assignableRoles: HubMemberRole[] = ["ADMIN", "MODERATOR", "MEMBER"];
 
 export function HubOverview({ hubId }: HubOverviewProps) {
@@ -61,10 +57,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
       setHub(parsed.hub);
       setRoleDrafts(
         Object.fromEntries(
-          parsed.hub.members.map((member) => [
-            member.user.username,
-            member.role,
-          ]),
+          parsed.hub.members.map((member) => [member.user.username, member.role]),
         ),
       );
       setErrorMessage(null);
@@ -93,110 +86,118 @@ export function HubOverview({ hubId }: HubOverviewProps) {
     }
   }
 
-  if (errorMessage)
+  if (errorMessage) {
     return (
-      <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+      <div className="rounded-[16px] border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
         {errorMessage}
       </div>
     );
-  if (!hub)
+  }
+
+  if (!hub) {
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-[var(--text-dim)]">
+      <div className="rounded-[18px] border border-[var(--border)] bg-white/[0.03] p-4 text-sm text-[var(--text-dim)]">
         Загружаем хаб...
       </div>
     );
+  }
 
   return (
-    <div className="grid gap-5">
-      <Card>
-        <CardHeader>
-          <span className="eyebrow-pill">
-            <Sparkles className="h-3.5 w-3.5" /> Пространство хаба
-          </span>
-          <CardTitle>{hub.name}</CardTitle>
-          <CardDescription>
-            {hub.description ?? "Описание хаба пока не заполнено."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="metric-tile rounded-[24px] p-4">
-            <p className="section-kicker">Роль</p>
-            <p className="mt-2 flex items-center gap-2 text-lg font-medium text-white">
-              <Crown className="h-4 w-4 text-[var(--accent)]" />
-              {hub.membershipRole
-                ? (roleLabels[hub.membershipRole] ?? hub.membershipRole)
-                : "Гость"}
+    <div className="grid gap-4">
+      <div className="social-shell rounded-[24px] p-4">
+        <div className="compact-toolbar">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="eyebrow-pill">
+                <Waves className="h-3.5 w-3.5" />
+                Hub
+              </span>
+              <span className="status-pill">
+                {hub.membershipRole
+                  ? roleLabels[hub.membershipRole] ?? hub.membershipRole
+                  : "Гость"}
+              </span>
+              {hub.isPrivate ? (
+                <span className="status-pill">
+                  <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent)]" />
+                  Private
+                </span>
+              ) : null}
+              <span className="status-pill">
+                <UsersRound className="h-3.5 w-3.5 text-[var(--accent)]" />
+                {hub.members.length} members
+              </span>
+            </div>
+            <h1 className="mt-2 font-[var(--font-heading)] text-[1.55rem] font-semibold tracking-[-0.04em] text-white">
+              {hub.name}
+            </h1>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
+              {hub.description ?? "Описание хаба пока не задано."}
             </p>
           </div>
-          <div className="metric-tile rounded-[24px] p-4">
-            <p className="section-kicker">Приватность</p>
-            <p className="mt-2 flex items-center gap-2 text-lg font-medium text-white">
-              <LockKeyhole className="h-4 w-4 text-[var(--accent)]" />
-              {hub.isPrivate ? "Приватный" : "Обычный"}
-            </p>
-          </div>
-          <div className="metric-tile rounded-[24px] p-4">
-            <p className="section-kicker">Участники</p>
-            <p className="mt-2 flex items-center gap-2 text-lg font-medium text-white">
-              <UsersRound className="h-4 w-4 text-[var(--accent)]" />
-              {hub.members.length}
-            </p>
-          </div>
-          <div className="metric-tile rounded-[24px] p-4">
-            <p className="section-kicker">Ограничение</p>
-            <p className="mt-2 flex items-center gap-2 text-lg font-medium text-white">
-              <Waves className="h-4 w-4 text-[var(--accent)]" />
-              {hub.isViewerMuted ? "Да" : "Нет"}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_420px]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Лобби</CardTitle>
-            <CardDescription>
-              Текстовые, голосовые и форумные пространства внутри хаба.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {hub.lobbies.length === 0 ? (
-              <div className="surface-subtle rounded-[24px] p-4 text-sm text-[var(--text-muted)]">
-                Пока нет доступных лобби.
-              </div>
-            ) : (
-              hub.lobbies.map((lobby) => (
-                <Link
-                  key={lobby.id}
-                  href={buildHubLobbyHref(hub.id, lobby.id, lobby.type)}
-                  className="list-row block rounded-[26px] p-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-medium text-white">
-                        {lobby.name}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--text-dim)]">
-                        {lobby.description ?? "Описание не задано"}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="glass-badge">
-                        {lobbyTypeLabels[lobby.type] ?? lobby.type}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid gap-4">
+          <div className="premium-panel rounded-[24px] p-3">
+            <div className="compact-toolbar px-1">
+              <p className="section-kicker">Channels</p>
+              <span className="glass-badge">{hub.lobbies.length}</span>
+            </div>
+            <div className="mt-2 grid gap-2">
+              {hub.lobbies.length === 0 ? (
+                <EmptyState
+                  title="Нет доступных каналов"
+                  description="Создайте первое лобби, чтобы превратить хаб в рабочее пространство."
+                />
+              ) : (
+                hub.lobbies.map((lobby) => (
+                  <Link
+                    key={lobby.id}
+                    href={buildHubLobbyHref(hub.id, lobby.id, lobby.type)}
+                    className="list-row rounded-[18px] px-3 py-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="dock-icon flex h-10 w-10 items-center justify-center rounded-[12px] text-[11px] font-semibold text-white">
+                        {lobby.name.slice(0, 2).toUpperCase()}
                       </span>
-                      {lobby.isPrivate ? (
-                        <span className="glass-badge">Приватное</span>
-                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-white">
+                            {lobby.name}
+                          </p>
+                          <span className="glass-badge">
+                            {lobbyTypeLabels[lobby.type] ?? lobby.type}
+                          </span>
+                          {lobby.isPrivate ? (
+                            <span className="glass-badge">Private</span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--text-dim)]">
+                          {lobby.description ?? "Описание не задано."}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))
-            )}
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
 
-            {hub.permissions.canCreateLobby ? (
+          {hub.permissions.canCreateLobby ? (
+            <div className="premium-panel rounded-[24px] p-4">
+              <div className="compact-toolbar">
+                <div>
+                  <p className="section-kicker">Create lobby</p>
+                  <p className="mt-2 text-sm text-[var(--text-dim)]">
+                    Добавьте новый текстовый, голосовой или форумный канал.
+                  </p>
+                </div>
+              </div>
+
               <form
-                className="surface-subtle space-y-3 rounded-[26px] p-4"
+                className="mt-4 grid gap-3"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void withAction("create-lobby", async () => {
@@ -209,7 +210,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                         isPrivate: privateLobby,
                         allowedUsernames: allowedUsernames
                           .split(",")
-                          .map((v) => v.trim())
+                          .map((value) => value.trim())
                           .filter(Boolean),
                       }),
                     });
@@ -221,7 +222,6 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   });
                 }}
               >
-                <p className="text-sm font-medium text-white">Создать лобби</p>
                 <Input
                   value={lobbyName}
                   onChange={(event) => setLobbyName(event.target.value)}
@@ -230,14 +230,12 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 <Input
                   value={lobbyDescription}
                   onChange={(event) => setLobbyDescription(event.target.value)}
-                  placeholder="Описание лобби"
+                  placeholder="Описание"
                 />
                 <select
                   value={lobbyType}
                   onChange={(event) =>
-                    setLobbyType(
-                      event.target.value as "TEXT" | "VOICE" | "FORUM",
-                    )
+                    setLobbyType(event.target.value as "TEXT" | "VOICE" | "FORUM")
                   }
                   className="field-select text-sm"
                 >
@@ -245,128 +243,137 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   <option value="VOICE">Голосовое</option>
                   <option value="FORUM">Форум</option>
                 </select>
-                <label className="surface-card flex items-center gap-3 rounded-[22px] px-4 py-3 text-sm text-[var(--text-soft)]">
+                <label className="field-checkbox text-sm">
                   <input
                     type="checkbox"
                     checked={privateLobby}
                     onChange={(event) => setPrivateLobby(event.target.checked)}
                   />
-                  Приватное лобби
+                  Private lobby
                 </label>
                 {privateLobby ? (
                   <Input
                     value={allowedUsernames}
-                    onChange={(event) =>
-                      setAllowedUsernames(event.target.value)
-                    }
-                    placeholder="разрешённые username через запятую"
+                    onChange={(event) => setAllowedUsernames(event.target.value)}
+                    placeholder="разрешенные username через запятую"
                   />
                 ) : null}
-                <Button type="submit" disabled={actionKey === "create-lobby"}>
-                  {actionKey === "create-lobby" ? "Создаём..." : "Создать"}
+                <Button
+                  type="submit"
+                  disabled={actionKey === "create-lobby"}
+                  className="w-full"
+                >
+                  {actionKey === "create-lobby" ? "Создаем..." : "Создать лобби"}
                 </Button>
               </form>
-            ) : null}
-          </CardContent>
-        </Card>
+            </div>
+          ) : null}
+        </div>
 
-        <div className="grid gap-5">
+        <div className="grid gap-4">
           {hub.permissions.canInviteMembers ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Приглашения</CardTitle>
-                <CardDescription>
-                  Приглашайте участников с учётом правил блокировок.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <form
-                  className="flex flex-col gap-2 sm:flex-row"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void withAction("invite-member", async () => {
-                      await apiClientFetch(`/v1/hubs/${hub.id}/invites`, {
-                        method: "POST",
-                        body: JSON.stringify({
-                          username: inviteUsername,
-                          expiresAt: null,
-                        }),
-                      });
-                      setInviteUsername("");
-                    });
-                  }}
-                >
-                  <Input
-                    value={inviteUsername}
-                    onChange={(event) => setInviteUsername(event.target.value)}
-                    placeholder="username"
-                  />
-                  <Button
-                    type="submit"
-                    disabled={actionKey === "invite-member"}
-                  >
-                    Пригласить
-                  </Button>
-                </form>
-                {hub.pendingInvites.length === 0 ? (
-                  <p className="surface-subtle rounded-[22px] p-3 text-sm text-[var(--text-muted)]">
-                    Нет ожидающих приглашений.
+            <div className="premium-panel rounded-[24px] p-4">
+              <div className="compact-toolbar">
+                <div>
+                  <p className="section-kicker">Invite member</p>
+                  <p className="mt-2 text-sm text-[var(--text-dim)]">
+                    Добавьте нового участника в пространство.
                   </p>
+                </div>
+                <span className="glass-badge">{hub.pendingInvites.length} pending</span>
+              </div>
+
+              <form
+                className="mt-4 flex flex-col gap-2 sm:flex-row"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void withAction("invite-member", async () => {
+                    await apiClientFetch(`/v1/hubs/${hub.id}/invites`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        username: inviteUsername,
+                        expiresAt: null,
+                      }),
+                    });
+                    setInviteUsername("");
+                  });
+                }}
+              >
+                <Input
+                  value={inviteUsername}
+                  onChange={(event) => setInviteUsername(event.target.value)}
+                  placeholder="username"
+                />
+                <Button type="submit" disabled={actionKey === "invite-member"}>
+                  Invite
+                </Button>
+              </form>
+
+              <div className="mt-3 grid gap-2">
+                {hub.pendingInvites.length === 0 ? (
+                  <div className="surface-subtle rounded-[18px] px-4 py-4 text-sm text-[var(--text-muted)]">
+                    Нет ожидающих приглашений.
+                  </div>
                 ) : (
                   hub.pendingInvites.map((invite) => (
                     <div
                       key={invite.id}
-                      className="list-row rounded-[22px] p-3"
+                      className="list-row rounded-[16px] px-3 py-3 text-sm"
                     >
-                      <p className="text-sm font-medium text-white">
+                      <p className="font-semibold text-white">
                         {invite.invitee.profile.displayName}
                       </p>
-                      <p className="font-mono text-xs text-[var(--text-soft)]">
+                      <p className="mt-1 text-[var(--text-dim)]">
                         @{invite.invitee.username}
                       </p>
                     </div>
                   ))
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Участники</CardTitle>
-              <CardDescription>
-                Роли и действия модерации с проверками на backend.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2.5">
+          <div className="premium-panel rounded-[24px] p-3">
+            <div className="compact-toolbar px-1">
+              <p className="section-kicker">Members</p>
+              <span className="glass-badge">{hub.members.length}</span>
+            </div>
+
+            <div className="mt-2 grid gap-2">
               {hub.members.map((member) => {
-                const roleDraft =
-                  roleDrafts[member.user.username] ?? member.role;
+                const roleDraft = roleDrafts[member.user.username] ?? member.role;
+
                 return (
-                  <div key={member.id} className="list-row rounded-[24px] p-4">
-                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                      <div>
-                        <p className="text-base font-medium text-white">
-                          {member.user.profile.displayName}
-                        </p>
-                        <p className="font-mono text-xs text-[var(--text-soft)]">
+                  <div key={member.id} className="list-row rounded-[18px] px-3 py-3">
+                    <div className="flex items-start gap-3">
+                      <UserAvatar user={member.user} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-white">
+                            {member.user.profile.displayName}
+                          </p>
+                          <span className="glass-badge">{member.role}</span>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
                           @{member.user.username}
                         </p>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="glass-badge">{member.role}</span>
-                        {hub.permissions.canManageHub && member.canManage ? (
-                          <>
+                    </div>
+
+                    {(hub.permissions.canManageHub || hub.permissions.canManageMembers) &&
+                    member.canManage ? (
+                      <div className="mt-3 grid gap-2">
+                        {hub.permissions.canManageHub ? (
+                          <div className="flex flex-wrap gap-2">
                             <select
                               value={roleDraft}
                               onChange={(event) =>
                                 setRoleDrafts((current) => ({
                                   ...current,
-                                  [member.user.username]: event.target
-                                    .value as HubMemberRole,
+                                  [member.user.username]: event.target.value as HubMemberRole,
                                 }))
                               }
-                              className="field-select min-h-[38px] px-3 text-xs"
+                              className="field-select min-h-[34px] flex-1 text-xs"
                             >
                               {assignableRoles.map((role) => (
                                 <option key={role} value={role}>
@@ -378,214 +385,149 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                               size="sm"
                               variant="secondary"
                               onClick={() =>
-                                void withAction(
-                                  `role:${member.user.username}`,
-                                  async () => {
-                                    await apiClientFetch(
-                                      `/v1/hubs/${hub.id}/members/role`,
-                                      {
-                                        method: "PATCH",
-                                        body: JSON.stringify({
-                                          username: member.user.username,
-                                          role: roleDraft,
-                                        }),
-                                      },
-                                    );
-                                  },
-                                )
+                                void withAction(`role:${member.user.username}`, async () => {
+                                  await apiClientFetch(`/v1/hubs/${hub.id}/members/role`, {
+                                    method: "PATCH",
+                                    body: JSON.stringify({
+                                      username: member.user.username,
+                                      role: roleDraft,
+                                    }),
+                                  });
+                                })
                               }
-                              disabled={
-                                actionKey === `role:${member.user.username}`
-                              }
+                              disabled={actionKey === `role:${member.user.username}`}
                             >
-                              Сохранить роль
+                              Save role
                             </Button>
-                          </>
+                          </div>
                         ) : null}
-                        {hub.permissions.canManageMembers &&
-                        member.canManage ? (
-                          <>
+
+                        {hub.permissions.canManageMembers ? (
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               size="sm"
                               variant="secondary"
                               onClick={() =>
-                                void withAction(
-                                  `kick:${member.user.username}`,
-                                  async () => {
-                                    await apiClientFetch(
-                                      `/v1/hubs/${hub.id}/members/kick`,
-                                      {
-                                        method: "POST",
-                                        body: JSON.stringify({
-                                          username: member.user.username,
-                                        }),
-                                      },
-                                    );
-                                  },
-                                )
+                                void withAction(`kick:${member.user.username}`, async () => {
+                                  await apiClientFetch(`/v1/hubs/${hub.id}/members/kick`, {
+                                    method: "POST",
+                                    body: JSON.stringify({
+                                      username: member.user.username,
+                                    }),
+                                  });
+                                })
                               }
                             >
-                              Исключить
+                              Kick
                             </Button>
                             <Button
                               size="sm"
                               variant="secondary"
                               onClick={() =>
-                                void withAction(
-                                  `mute:${member.user.username}`,
-                                  async () => {
-                                    await apiClientFetch(
-                                      `/v1/hubs/${hub.id}/mutes`,
-                                      {
-                                        method: "POST",
-                                        body: JSON.stringify({
-                                          username: member.user.username,
-                                          expiresAt: null,
-                                        }),
-                                      },
-                                    );
-                                  },
-                                )
+                                void withAction(`mute:${member.user.username}`, async () => {
+                                  await apiClientFetch(`/v1/hubs/${hub.id}/mutes`, {
+                                    method: "POST",
+                                    body: JSON.stringify({
+                                      username: member.user.username,
+                                      expiresAt: null,
+                                    }),
+                                  });
+                                })
                               }
                             >
-                              Ограничить
+                              Mute
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
                               onClick={() =>
-                                void withAction(
-                                  `ban:${member.user.username}`,
-                                  async () => {
-                                    await apiClientFetch(
-                                      `/v1/hubs/${hub.id}/bans`,
-                                      {
-                                        method: "POST",
-                                        body: JSON.stringify({
-                                          username: member.user.username,
-                                          reason: null,
-                                        }),
-                                      },
-                                    );
-                                  },
-                                )
+                                void withAction(`ban:${member.user.username}`, async () => {
+                                  await apiClientFetch(`/v1/hubs/${hub.id}/bans`, {
+                                    method: "POST",
+                                    body: JSON.stringify({
+                                      username: member.user.username,
+                                      reason: null,
+                                    }),
+                                  });
+                                })
                               }
                             >
-                              Заблокировать
+                              Ban
                             </Button>
-                          </>
+                          </div>
                         ) : null}
                       </div>
-                    </div>
+                    ) : null}
                   </div>
                 );
               })}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {(hub.activeMutes.length > 0 || hub.activeBans.length > 0) &&
           hub.permissions.canManageMembers ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Ограничения</CardTitle>
-                <CardDescription>
-                  Активные мьюты и блокировки в текущем хабе.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-white">
-                    Активные ограничения
-                  </p>
-                  {hub.activeMutes.length === 0 ? (
-                    <p className="surface-subtle rounded-[22px] p-3 text-sm text-[var(--text-muted)]">
-                      Нет ограничений.
+            <div className="premium-panel rounded-[24px] p-3">
+              <div className="compact-toolbar px-1">
+                <p className="section-kicker">Restrictions</p>
+                <span className="glass-badge">
+                  {hub.activeMutes.length + hub.activeBans.length}
+                </span>
+              </div>
+
+              <div className="mt-2 grid gap-2">
+                {hub.activeMutes.map((mute) => (
+                  <div key={mute.id} className="list-row rounded-[16px] px-3 py-3">
+                    <p className="text-sm font-semibold text-white">
+                      {mute.user.profile.displayName}
                     </p>
-                  ) : (
-                    hub.activeMutes.map((mute) => (
-                      <div
-                        key={mute.id}
-                        className="list-row rounded-[22px] p-3"
-                      >
-                        <p className="text-sm font-medium text-white">
-                          {mute.user.profile.displayName}
-                        </p>
-                        <p className="font-mono text-xs text-[var(--text-soft)]">
-                          @{mute.user.username}
-                        </p>
-                        <Button
-                          className="mt-2"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            void withAction(
-                              `unmute:${mute.user.username}`,
-                              async () => {
-                                await apiClientFetch(
-                                  `/v1/hubs/${hub.id}/mutes/revoke`,
-                                  {
-                                    method: "POST",
-                                    body: JSON.stringify({
-                                      username: mute.user.username,
-                                    }),
-                                  },
-                                );
-                              },
-                            )
-                          }
-                        >
-                          Снять ограничение
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-white">
-                    Активные блокировки
-                  </p>
-                  {hub.activeBans.length === 0 ? (
-                    <p className="surface-subtle rounded-[22px] p-3 text-sm text-[var(--text-muted)]">
-                      Нет блокировок.
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      @{mute.user.username}
                     </p>
-                  ) : (
-                    hub.activeBans.map((ban) => (
-                      <div key={ban.id} className="list-row rounded-[22px] p-3">
-                        <p className="text-sm font-medium text-white">
-                          {ban.user.profile.displayName}
-                        </p>
-                        <p className="font-mono text-xs text-[var(--text-soft)]">
-                          @{ban.user.username}
-                        </p>
-                        <Button
-                          className="mt-2"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            void withAction(
-                              `unban:${ban.user.username}`,
-                              async () => {
-                                await apiClientFetch(
-                                  `/v1/hubs/${hub.id}/bans/revoke`,
-                                  {
-                                    method: "POST",
-                                    body: JSON.stringify({
-                                      username: ban.user.username,
-                                    }),
-                                  },
-                                );
-                              },
-                            )
-                          }
-                        >
-                          Разблокировать
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    <Button
+                      className="mt-3"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        void withAction(`unmute:${mute.user.username}`, async () => {
+                          await apiClientFetch(`/v1/hubs/${hub.id}/mutes/revoke`, {
+                            method: "POST",
+                            body: JSON.stringify({ username: mute.user.username }),
+                          });
+                        })
+                      }
+                    >
+                      Revoke mute
+                    </Button>
+                  </div>
+                ))}
+
+                {hub.activeBans.map((ban) => (
+                  <div key={ban.id} className="list-row rounded-[16px] px-3 py-3">
+                    <p className="text-sm font-semibold text-white">
+                      {ban.user.profile.displayName}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      @{ban.user.username}
+                    </p>
+                    <Button
+                      className="mt-3"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        void withAction(`unban:${ban.user.username}`, async () => {
+                          await apiClientFetch(`/v1/hubs/${hub.id}/bans/revoke`, {
+                            method: "POST",
+                            body: JSON.stringify({ username: ban.user.username }),
+                          });
+                        })
+                      }
+                    >
+                      Revoke ban
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       </div>

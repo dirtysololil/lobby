@@ -23,6 +23,7 @@ const notificationOptions: DmNotificationSetting[] = [
   "MUTED",
   "OFF",
 ];
+
 const retentionOptions: DmRetentionMode[] = [
   "OFF",
   "H24",
@@ -30,12 +31,14 @@ const retentionOptions: DmRetentionMode[] = [
   "D30",
   "CUSTOM",
 ];
+
 const notificationLabels: Record<DmNotificationSetting, string> = {
   ALL: "Все",
-  MENTIONS_ONLY: "Только упоминания",
+  MENTIONS_ONLY: "Упоминания",
   MUTED: "Без звука",
-  OFF: "Отключены",
+  OFF: "Отключено",
 };
+
 const retentionLabels: Record<DmRetentionMode, string> = {
   OFF: "Без автоудаления",
   H24: "24 часа",
@@ -89,64 +92,70 @@ export function ConversationSettings({
 
   return (
     <div className="grid gap-4">
-      <div className="surface-subtle rounded-[24px] p-4 text-sm leading-7 text-[var(--text-dim)]">
-        Отдельный DM-контур позволяет гибко управлять уровнем шума и жизненным
-        циклом переписки для конкретного человека.
+      <div className="surface-subtle rounded-[18px] p-3 text-sm text-[var(--text-dim)]">
+        Настройки применяются только к этому диалогу.
       </div>
-      <div className="grid gap-2">
-        <label className="section-kicker">Уведомления</label>
-        <select
-          value={localNotificationSetting}
-          onChange={(event) =>
-            setLocalNotificationSetting(
-              event.target.value as DmNotificationSetting,
-            )
-          }
-          className="field-select text-sm"
-          disabled={disabled || isSaving}
-        >
-          {notificationOptions.map((option) => (
-            <option key={option} value={option}>
-              {notificationLabels[option]}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="grid gap-2">
-        <label className="section-kicker">Хранение</label>
-        <select
-          value={localRetentionMode}
-          onChange={(event) =>
-            setLocalRetentionMode(event.target.value as DmRetentionMode)
-          }
-          className="field-select text-sm"
-          disabled={disabled || isSaving}
-        >
-          {retentionOptions.map((option) => (
-            <option key={option} value={option}>
-              {retentionLabels[option]}
-            </option>
-          ))}
-        </select>
-      </div>
-      {localRetentionMode === "CUSTOM" ? (
-        <div className="grid gap-2">
-          <label className="section-kicker">Период в часах</label>
-          <Input
-            value={customHours}
-            onChange={(event) => setCustomHours(event.target.value)}
-            inputMode="numeric"
-            placeholder="72"
+
+      <div className="grid gap-3">
+        <div className="grid gap-1.5">
+          <label className="section-kicker">Уведомления</label>
+          <select
+            value={localNotificationSetting}
+            onChange={(event) =>
+              setLocalNotificationSetting(
+                event.target.value as DmNotificationSetting,
+              )
+            }
+            className="field-select text-sm"
             disabled={disabled || isSaving}
-          />
+          >
+            {notificationOptions.map((option) => (
+              <option key={option} value={option}>
+                {notificationLabels[option]}
+              </option>
+            ))}
+          </select>
         </div>
-      ) : null}
+
+        <div className="grid gap-1.5">
+          <label className="section-kicker">История</label>
+          <select
+            value={localRetentionMode}
+            onChange={(event) =>
+              setLocalRetentionMode(event.target.value as DmRetentionMode)
+            }
+            className="field-select text-sm"
+            disabled={disabled || isSaving}
+          >
+            {retentionOptions.map((option) => (
+              <option key={option} value={option}>
+                {retentionLabels[option]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {localRetentionMode === "CUSTOM" ? (
+          <div className="grid gap-1.5">
+            <label className="section-kicker">Период в часах</label>
+            <Input
+              value={customHours}
+              onChange={(event) => setCustomHours(event.target.value)}
+              inputMode="numeric"
+              placeholder="72"
+              disabled={disabled || isSaving}
+            />
+          </div>
+        ) : null}
+      </div>
+
       <Button
+        size="sm"
         variant="secondary"
         onClick={() => void handleSave()}
         disabled={disabled || isSaving}
       >
-        {isSaving ? "Сохраняем параметры..." : "Сохранить настройки диалога"}
+        {isSaving ? "Сохраняем..." : "Сохранить"}
       </Button>
     </div>
   );

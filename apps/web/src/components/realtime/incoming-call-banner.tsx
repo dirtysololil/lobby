@@ -55,25 +55,30 @@ export function IncomingCallBanner() {
   }
 
   return (
-    <div className="surface-highlight rounded-[24px] p-4 text-sm text-white">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="surface-highlight rounded-[18px] px-4 py-3 text-sm text-white">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="section-kicker text-[var(--accent-strong)]">
-            Входящий звонок
-          </p>
-          <p className="mt-2 text-base font-medium text-white">
-            {caller.profile.displayName} начал{" "}
+          <p className="section-kicker text-[var(--accent-strong)]">Входящий звонок</p>
+          <p className="mt-1 text-sm font-semibold text-white">
+            {caller.profile.displayName} запустил{" "}
             {call.mode === "VIDEO" ? "видео" : "аудио"} call
           </p>
-          <p className="mt-1 text-sm text-[var(--text-dim)]">
-            @{caller.username}
-          </p>
+          <p className="mt-0.5 text-xs text-[var(--text-dim)]">@{caller.username}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => void acceptCall()} disabled={pendingAction !== null}>
+          <Button
+            size="sm"
+            onClick={() => void acceptCall()}
+            disabled={pendingAction !== null}
+          >
             {pendingAction === "accept" ? "Принимаем..." : "Принять"}
           </Button>
-          <Button variant="secondary" onClick={() => void declineCall()} disabled={pendingAction !== null}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => void declineCall()}
+            disabled={pendingAction !== null}
+          >
             {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
           </Button>
         </div>

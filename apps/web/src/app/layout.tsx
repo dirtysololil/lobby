@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { IBM_Plex_Mono, Manrope, Space_Grotesk } from "next/font/google";
+import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 
 const bodyFont = Manrope({
@@ -8,8 +8,8 @@ const bodyFont = Manrope({
   variable: "--font-body",
 });
 
-const headingFont = Space_Grotesk({
-  subsets: ["latin"],
+const headingFont = Manrope({
+  subsets: ["latin", "cyrillic"],
   variable: "--font-heading",
 });
 
@@ -20,9 +20,9 @@ const monoFont = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lobby — private communication ecosystem",
+  title: "Lobby - private communication ecosystem",
   description:
-    "Premium real-time communication platform for private conversations, hubs, live rooms, moderation and community control.",
+    "Compact real-time communication platform for private conversations, hubs, live rooms, moderation and community control.",
 };
 
 export default function RootLayout({
