@@ -9,7 +9,7 @@ const bodyFont = Inter({
 });
 
 const headingFont = Space_Grotesk({
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin"],
   variable: "--font-heading",
 });
 
