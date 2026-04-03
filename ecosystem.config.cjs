@@ -21,8 +21,12 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         HOSTNAME: "127.0.0.1",
-        PORT: "3000"
-      }
+        PORT: "3000",
+        WEB_PUBLIC_URL: process.env.WEB_PUBLIC_URL,
+        API_PUBLIC_URL: process.env.API_PUBLIC_URL,
+        NEXT_PUBLIC_WEB_PUBLIC_URL: process.env.WEB_PUBLIC_URL,
+        NEXT_PUBLIC_API_PUBLIC_URL: process.env.API_PUBLIC_URL,
+      },
     },
     {
       name: "lobby-worker",

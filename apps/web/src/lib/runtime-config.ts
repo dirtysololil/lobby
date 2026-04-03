@@ -20,13 +20,20 @@ function normalizeBaseUrl(value: string | undefined): string {
 
 export const runtimeConfig = {
   appName: readEnvValue("NEXT_PUBLIC_APP_NAME", "APP_NAME") ?? "Lobby",
-  apiPublicUrl: normalizeBaseUrl(readEnvValue("NEXT_PUBLIC_API_PUBLIC_URL", "API_PUBLIC_URL")),
-  webPublicUrl: normalizeBaseUrl(readEnvValue("NEXT_PUBLIC_WEB_PUBLIC_URL", "WEB_PUBLIC_URL")),
-  mediaPublicUrl: normalizeBaseUrl(readEnvValue("NEXT_PUBLIC_MEDIA_PUBLIC_URL", "MEDIA_PUBLIC_URL")),
+  apiPublicUrl: normalizeBaseUrl(
+    readEnvValue("NEXT_PUBLIC_API_PUBLIC_URL", "API_PUBLIC_URL"),
+  ),
+  webPublicUrl: normalizeBaseUrl(
+    readEnvValue("NEXT_PUBLIC_WEB_PUBLIC_URL", "WEB_PUBLIC_URL"),
+  ),
+  mediaPublicUrl: normalizeBaseUrl(
+    readEnvValue("NEXT_PUBLIC_MEDIA_PUBLIC_URL", "MEDIA_PUBLIC_URL"),
+  ),
   realtimePublicUrl: normalizeBaseUrl(
     readEnvValue("NEXT_PUBLIC_REALTIME_PUBLIC_URL", "REALTIME_PUBLIC_URL"),
   ),
-  realtimePath: readEnvValue("NEXT_PUBLIC_REALTIME_PATH", "REALTIME_PATH") ?? "/socket.io",
+  realtimePath:
+    readEnvValue("NEXT_PUBLIC_REALTIME_PATH", "REALTIME_PATH") ?? "/socket.io",
 };
 
 export function resolveApiBaseUrlForServer(): string {
@@ -39,6 +46,53 @@ export function resolveApiBaseUrlForServer(): string {
   }
 
   return "";
+}
+
+export async function resolveApiBaseUrlForServerRequest(): Promise<string> {
+  const configuredBaseUrl = resolveApiBaseUrlForServer();
+
+  if (configuredBaseUrl) {
+    return configuredBaseUrl;
+  }
+
+  const { headers } = await import("next/headers");
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+
+  if (!host) {
+    console.warn(
+      "[auth/runtime] server API base URL missing and request host is unavailable",
+    );
+    return "";
+  }
+
+  const normalizedHost = host.split(",")[0]?.trim();
+
+  if (!normalizedHost) {
+    console.warn(
+      "[auth/runtime] server API base URL missing and request host is empty",
+    );
+    return "";
+  }
+
+  const forwardedProto = headerStore
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim();
+  const protocol =
+    forwardedProto || (normalizedHost.includes("localhost") ? "http" : "https");
+
+  const derivedApiUrl = deriveApiUrlFromHostname(
+    new URL(`${protocol}://${normalizedHost}`),
+  );
+
+  if (!derivedApiUrl) {
+    console.warn(
+      `[auth/runtime] unable to derive API URL from host=${normalizedHost}`,
+    );
+  }
+
+  return derivedApiUrl;
 }
 
 export function resolveApiBaseUrlForBrowser(): string {

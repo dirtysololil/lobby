@@ -1,9 +1,11 @@
 import { apiErrorSchema } from "@lobby/shared";
 import { cookies } from "next/headers";
-import { resolveApiBaseUrlForServer } from "./runtime-config";
+import { resolveApiBaseUrlForServerRequest } from "./runtime-config";
 
-export async function fetchServerApi<TResponse>(path: string): Promise<TResponse> {
-  const apiBaseUrl = resolveApiBaseUrlForServer();
+export async function fetchServerApi<TResponse>(
+  path: string,
+): Promise<TResponse> {
+  const apiBaseUrl = await resolveApiBaseUrlForServerRequest();
 
   if (!apiBaseUrl) {
     throw new Error("API base URL is not configured for server runtime.");
