@@ -66,7 +66,7 @@ export function HubWorkspace() {
           <form className="space-y-3" onSubmit={handleCreateHub}>
             <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Название хаба" />
             <Input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="slug-хаба" />
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Короткое описание" className="min-h-28 w-full rounded-2xl border border-[var(--border)] bg-slate-950/60 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500" />
+            <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Короткое описание" className="min-h-28 w-full rounded-2xl border border-[var(--border)] bg-slate-950/60 px-4 py-3 text-sm text-white outline-none placeholder:text-[var(--text-muted)]" />
             <label className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-slate-950/45 px-4 py-3 text-sm text-slate-200">
               <input type="checkbox" checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} />
               Приватный хаб
@@ -85,10 +85,10 @@ export function HubWorkspace() {
             <CardDescription>Запросы на вступление в приватные и открытые пространства.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {invites.length === 0 ? <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 text-sm text-slate-500">Нет активных приглашений.</div> : invites.map((invite) => (
-              <div key={invite.id} className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4">
+            {invites.length === 0 ? <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-[var(--text-muted)]">Нет активных приглашений.</div> : invites.map((invite) => (
+              <div key={invite.id} className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4">
                 <p className="text-base font-medium text-white">{invite.hub.name}</p>
-                <p className="mt-1 text-sm text-slate-400">Пригласил: {invite.invitedBy.profile.displayName}</p>
+                <p className="mt-1 text-sm text-[var(--text-dim)]">Пригласил: {invite.invitedBy.profile.displayName}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button size="sm" onClick={() => void handleInviteAction(invite.id, "accept")}>Принять</Button>
                   <Button size="sm" variant="secondary" onClick={() => void handleInviteAction(invite.id, "decline")}>Отклонить</Button>
@@ -104,15 +104,15 @@ export function HubWorkspace() {
             <CardDescription>Рабочие пространства, к которым у вас есть доступ.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {hubs.length === 0 ? <div className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 text-sm text-slate-500">Вы пока не состоите ни в одном хабе.</div> : hubs.map((hub) => (
-              <Link key={hub.id} href={`/app/hubs/${hub.id}`} className="block rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 transition hover:border-cyan-300/35 hover:bg-white/[0.04]">
+            {hubs.length === 0 ? <div className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 text-sm text-[var(--text-muted)]">Вы пока не состоите ни в одном хабе.</div> : hubs.map((hub) => (
+              <Link key={hub.id} href={`/app/hubs/${hub.id}`} className="block rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4 transition hover:border-[var(--border-strong)] hover:bg-white/[0.04]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-base font-medium text-white">{hub.name}</p>
-                    <p className="mt-1 text-sm text-slate-400">{hub.description ?? "Описание не задано"}</p>
+                    <p className="mt-1 text-sm text-[var(--text-dim)]">{hub.description ?? "Описание не задано"}</p>
                   </div>
                   <div className="flex gap-2 text-xs">
-                    <span className="rounded-full border border-[var(--border)] px-3 py-1 text-cyan-100/75">{hub.membershipRole ?? "MEMBER"}</span>
+                    <span className="rounded-full border border-[var(--border)] px-3 py-1 text-[#aaccf5]">{hub.membershipRole ?? "MEMBER"}</span>
                     {hub.isPrivate ? <span className="rounded-full border border-amber-300/20 px-3 py-1 text-amber-100/80">Приватный</span> : null}
                   </div>
                 </div>

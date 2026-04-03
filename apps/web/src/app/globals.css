@@ -2,25 +2,31 @@
 
 :root {
   color-scheme: dark;
-  --bg-0: #06080f;
-  --bg-1: #0a0f1a;
-  --bg-2: #0f1726;
-  --surface: rgba(17, 24, 39, 0.72);
-  --surface-elevated: rgba(19, 28, 46, 0.8);
-  --surface-soft: rgba(255, 255, 255, 0.03);
-  --border: rgba(148, 163, 184, 0.2);
-  --border-strong: rgba(148, 163, 184, 0.35);
-  --text: #edf2ff;
-  --text-muted: #94a3b8;
-  --accent: #6ee7ff;
-  --accent-2: #8b5cf6;
-  --danger: #fb7185;
-  --shadow: 0 22px 65px rgba(2, 6, 23, 0.45);
+  --bg-0: #05070c;
+  --bg-1: #080b12;
+  --bg-2: #0d1320;
+  --surface-base: #0e1522;
+  --surface-1: rgba(16, 24, 38, 0.86);
+  --surface-2: rgba(20, 30, 48, 0.9);
+  --surface-3: rgba(26, 38, 61, 0.9);
+  --surface-soft: rgba(140, 163, 204, 0.12);
+  --border: rgba(146, 162, 189, 0.24);
+  --border-strong: rgba(176, 199, 236, 0.42);
+  --text: #edf3ff;
+  --text-dim: #b5c0d8;
+  --text-muted: #8f9db8;
+  --accent: #78c7ff;
+  --accent-strong: #5ee2ff;
+  --violet: #8b8cff;
+  --success: #33d7a0;
+  --warning: #f9cb5d;
+  --danger: #ff6f8f;
+  --shadow-lg: 0 28px 80px rgba(1, 6, 19, 0.55);
+  --shadow-md: 0 12px 32px rgba(1, 8, 24, 0.48);
+  --shadow: var(--shadow-lg);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html,
 body {
@@ -28,9 +34,9 @@ body {
   min-height: 100%;
   color: var(--text);
   background:
-    radial-gradient(circle at 8% 12%, rgba(110, 231, 255, 0.12), transparent 28%),
-    radial-gradient(circle at 84% 10%, rgba(139, 92, 246, 0.12), transparent 28%),
-    linear-gradient(180deg, #0a0f1a 0%, #06080f 60%, #05070d 100%);
+    radial-gradient(circle at 8% 8%, rgba(120, 199, 255, 0.16), transparent 25%),
+    radial-gradient(circle at 88% 6%, rgba(139, 140, 255, 0.16), transparent 28%),
+    linear-gradient(160deg, var(--bg-2) 0%, var(--bg-1) 48%, var(--bg-0) 100%);
 }
 
 body::before {
@@ -38,36 +44,50 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image:
+  background:
     linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
-  background-size: 36px 36px;
-  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 88%);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 85%);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+a { color: inherit; text-decoration: none; }
+button, input, textarea, select { font: inherit; }
 
 ::selection {
-  background: rgba(110, 231, 255, 0.34);
+  background: color-mix(in srgb, var(--accent) 42%, transparent);
   color: #fff;
 }
 
-@keyframes avatar-spin {
-  from {
-    transform: rotate(0deg);
-  }
+.social-shell {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(19, 28, 44, 0.82), rgba(11, 18, 31, 0.82));
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(18px);
+}
 
-  to {
-    transform: rotate(360deg);
-  }
+.premium-panel {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-md);
+}
+
+.premium-tile {
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: color-mix(in srgb, var(--surface-3) 82%, transparent);
+}
+
+.chat-bubble-own {
+  border: 1px solid rgba(94, 226, 255, 0.35);
+  background: linear-gradient(160deg, rgba(86, 178, 255, 0.28), rgba(113, 130, 255, 0.22));
+}
+
+.chat-bubble {
+  border: 1px solid rgba(171, 185, 211, 0.22);
+  background: rgba(14, 23, 36, 0.75);
+}
+
+@keyframes avatar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
