@@ -24,6 +24,8 @@ interface AppActivityRailProps {
   mode: "overlay" | "docked";
 }
 
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
 export function AppActivityRail({
   viewer,
   open,
@@ -143,7 +145,7 @@ export function AppActivityRail({
   const panel = (
     <aside
       className={cn(
-        "activity-rail flex w-64 min-w-64 flex-col border-l border-[var(--border)] bg-[var(--bg-panel)]",
+        "activity-rail flex w-64 min-w-64 flex-col border-l border-white/5 bg-[#121214]",
         mode === "overlay"
           ? "absolute inset-y-0 right-0 z-50 h-full"
           : "min-h-screen",
@@ -154,28 +156,28 @@ export function AppActivityRail({
         }
       }}
     >
-      <div className="flex h-12 items-center justify-between border-b border-[var(--border)] px-3">
+      <div className="flex h-12 items-center justify-between border-b border-white/5 px-3">
         <div>
-          <p className="section-kicker">
+          <p className="text-xs text-zinc-500">
             {route.section === "messages" ? "Conversation" : "Hub"}
           </p>
-          <p className="text-sm font-medium leading-tight text-white">
+          <p className="text-sm font-medium text-white">
             {route.section === "messages" ? "Details" : "Context"}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-white/5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
           aria-label="Close details"
         >
-          <X className="h-[18px] w-[18px]" />
+          <X {...iconProps} />
         </button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="px-3 py-8 text-center text-sm text-[var(--text-muted)]">
+          <div className="px-3 py-6 text-center text-sm text-zinc-500">
             Loading details...
           </div>
         ) : null}
@@ -192,32 +194,32 @@ export function AppActivityRail({
 
               return (
                 <>
-                  <div className="border-b border-[var(--border-soft)] px-3 py-3">
+                  <div className="border-b border-white/5 px-3 py-3">
                     <div className="flex items-center gap-3">
                       {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-white">
                           {counterpart?.profile.displayName ?? "Conversation"}
                         </p>
-                        <p className="truncate text-xs text-[var(--text-dim)]">
+                        <p className="truncate text-xs text-zinc-500">
                           {counterpart ? `@${counterpart.username}` : "Private thread"}
                         </p>
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       <span className="status-pill">
-                        <BellRing className="h-[18px] w-[18px] text-[var(--accent)]" />
+                        <BellRing {...iconProps} />
                         {viewerSettings?.notificationSetting ?? "ALL"}
                       </span>
                       <span className="status-pill">
-                        <PhoneCall className="h-[18px] w-[18px] text-[var(--accent)]" />
+                        <PhoneCall {...iconProps} />
                         {latestSignal?.call.dmConversationId === route.conversationId
                           ? latestSignal.call.status
                           : "Call ready"}
                       </span>
                       {conversation.retentionMode !== "OFF" ? (
                         <span className="status-pill">
-                          <LockKeyhole className="h-[18px] w-[18px] text-[var(--accent)]" />
+                          <LockKeyhole {...iconProps} />
                           {conversation.retentionMode}
                         </span>
                       ) : null}
@@ -243,14 +245,14 @@ export function AppActivityRail({
 
         {route.section === "hubs" && route.hubId && hubInfo ? (
           <div>
-            <div className="border-b border-[var(--border-soft)] px-3 py-3">
+            <div className="border-b border-white/5 px-3 py-3">
               <p className="truncate text-sm font-medium text-white">{hubInfo.name}</p>
-              <p className="mt-1 text-sm text-[var(--text-dim)]">
+              <p className="mt-1 text-sm text-zinc-400">
                 {hubInfo.description ?? "Shared space"}
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <span className="status-pill">
-                  <UsersRound className="h-[18px] w-[18px] text-[var(--accent)]" />
+                  <UsersRound {...iconProps} />
                   {hubInfo.members.length} members
                 </span>
                 <span className="status-pill">{hubInfo.membershipRole ?? "Guest"}</span>
@@ -261,15 +263,15 @@ export function AppActivityRail({
               {hubInfo.members.slice(0, 12).map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2.5 hover:bg-[var(--bg-hover)]"
+                  className="flex min-h-11 items-center gap-3 border-b border-white/5 px-3 text-zinc-400 transition-colors hover:bg-white/5"
                 >
                   <UserAvatar user={member.user} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">
+                    <p className="truncate text-sm text-white">
                       {member.user.profile.displayName}
                     </p>
-                    <p className="truncate text-xs text-[var(--text-dim)]">
-                      @{member.user.username} · {member.role}
+                    <p className="truncate text-xs text-zinc-500">
+                      @{member.user.username} - {member.role}
                     </p>
                   </div>
                 </div>
@@ -281,7 +283,7 @@ export function AppActivityRail({
         {!isLoading &&
         ((route.section === "messages" && !conversation) ||
           (route.section === "hubs" && !hubInfo)) ? (
-          <div className="px-3 py-8 text-center text-sm text-[var(--text-muted)]">
+          <div className="px-3 py-6 text-center text-sm text-zinc-500">
             Nothing to show here yet.
           </div>
         ) : null}

@@ -24,7 +24,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
   const [socket] = useState<Socket>(() =>
     io(runtimeConfig.realtimePublicUrl, {
       withCredentials: true,
-      transports: ["websocket"],
+      transports: ["polling", "websocket"],
       path: runtimeConfig.realtimePath,
     }),
   );

@@ -16,6 +16,8 @@ interface MessageThreadProps {
 type ThreadMessage = DirectConversationDetail["conversation"]["messages"][number];
 type ThreadGroup = { label: string; items: ThreadMessage[] };
 
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
 function isContinuation(
   previousMessage: ThreadMessage | undefined,
   currentMessage: ThreadMessage,
@@ -60,19 +62,19 @@ export function MessageThread({
   );
 
   return (
-    <div className="min-h-0 overflow-y-auto">
+    <div className="min-h-0 overflow-y-auto bg-[#09090b]">
       {conversation.messages.length === 0 ? (
-        <div className="empty-state-minimal">
-          <p className="text-sm text-[var(--text-muted)]">No messages yet.</p>
+        <div className="empty-state-minimal text-zinc-500">
+          <p className="text-sm">No messages yet.</p>
         </div>
       ) : (
-        <div className="space-y-4 px-3 py-3">
+        <div className="space-y-3 px-4 py-3">
           {groupedMessages.map((group) => (
-            <div key={group.label} className="space-y-1.5">
+            <div key={group.label} className="space-y-1">
               <div className="flex items-center gap-3 py-1">
-                <div className="thread-rule flex-1" />
-                <span className="text-[11px] text-[var(--text-muted)]">{group.label}</span>
-                <div className="thread-rule flex-1" />
+                <div className="h-px flex-1 bg-white/5" />
+                <span className="text-[11px] text-zinc-500">{group.label}</span>
+                <div className="h-px flex-1 bg-white/5" />
               </div>
 
               {group.items.map((message, index) => {
@@ -84,7 +86,7 @@ export function MessageThread({
                   <div
                     key={message.id}
                     className={cn(
-                      "group flex gap-2.5",
+                      "group flex gap-2 py-1",
                       continuation && "mt-[-2px]",
                       isOwn && "flex-row-reverse",
                     )}
@@ -101,7 +103,7 @@ export function MessageThread({
 
                     <div
                       className={cn(
-                        "min-w-0 max-w-[min(78ch,100%)] flex-1",
+                        "min-w-0 max-w-[min(76ch,100%)] flex-1",
                         isOwn && "text-right",
                       )}
                     >
@@ -112,10 +114,10 @@ export function MessageThread({
                             isOwn && "justify-end",
                           )}
                         >
-                          <p className="text-sm font-medium text-white">
+                          <p className="text-sm font-medium tracking-tight text-white">
                             {message.author.profile.displayName}
                           </p>
-                          <span className="text-[11px] text-[var(--text-muted)]">
+                          <span className="text-[11px] text-zinc-500">
                             {new Date(message.createdAt).toLocaleTimeString("en-US", {
                               hour: "numeric",
                               minute: "2-digit",
@@ -127,9 +129,9 @@ export function MessageThread({
                               variant="ghost"
                               onClick={() => void onDelete(message.id)}
                               disabled={isDeleting === message.id || message.isDeleted}
-                              className="h-7 w-7 px-0 text-[var(--text-muted)] opacity-0 group-hover:opacity-100"
+                              className="h-7 w-7 rounded-full px-0 text-zinc-500 opacity-0 group-hover:opacity-100"
                             >
-                              <Trash2 className="h-[18px] w-[18px]" />
+                              <Trash2 {...iconProps} />
                             </Button>
                           ) : null}
                         </div>
@@ -138,10 +140,10 @@ export function MessageThread({
                       <div
                         className={cn(
                           isOwn ? "message-bubble-own ml-auto" : "message-bubble",
-                          continuation ? "rounded-[18px] px-3 py-1.5" : "rounded-[18px] px-3 py-2",
+                          continuation ? "rounded-2xl px-3 py-1.5" : "rounded-2xl px-3 py-2",
                         )}
                       >
-                        <p className="whitespace-pre-wrap text-sm leading-5 text-[var(--text)]">
+                        <p className="whitespace-pre-wrap text-sm leading-tight text-white">
                           {message.isDeleted ? "Message deleted" : message.content}
                         </p>
                       </div>

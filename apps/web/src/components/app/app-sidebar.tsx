@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Layers3, MessageSquareMore, Plus, Settings2, ShieldCheck, Users2 } from "lucide-react";
+import {
+  Layers3,
+  MessageSquareMore,
+  Plus,
+  Settings2,
+  ShieldCheck,
+  Users2,
+} from "lucide-react";
 import { hubListResponseSchema, type HubSummary, type PublicUser } from "@lobby/shared";
 import { useEffect, useState } from "react";
 import { apiClientFetch } from "@/lib/api-client";
@@ -19,6 +26,8 @@ const coreLinks = [
   { href: "/app/people", icon: Users2, label: "People" },
   { href: "/app/hubs", icon: Layers3, label: "Hubs" },
 ] as const;
+
+const railIconProps = { size: 20, strokeWidth: 1.5 } as const;
 
 export function AppSidebar({ viewer }: AppSidebarProps) {
   const pathname = usePathname();
@@ -49,12 +58,12 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
   }, []);
 
   return (
-    <aside className="workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[rgba(9,9,11,0.98)] md:static md:inset-auto md:z-auto md:flex md:min-h-screen md:w-[72px] md:flex-col md:items-center md:justify-between md:border-r md:border-t-0">
-      <div className="flex items-center justify-between gap-2 px-2 py-2 md:h-full md:w-full md:flex-col md:px-0 md:py-2">
-        <div className="flex items-center gap-1 md:w-full md:flex-col">
+    <aside className="workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#121214] md:static md:inset-auto md:z-auto md:flex md:min-h-screen md:w-[72px] md:flex-col md:items-center md:justify-between md:border-r md:border-t-0">
+      <div className="flex items-center justify-between gap-2 px-2 py-2 md:h-full md:w-full md:flex-col md:px-0 md:py-3">
+        <div className="flex items-center gap-1 md:w-full md:flex-col md:gap-2">
           <Link
             href="/app/messages"
-            className="hidden h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--accent)] text-sm font-bold tracking-[-0.05em] text-white md:flex"
+            className="hidden h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent)] text-sm font-semibold tracking-tight text-white md:flex"
             aria-label="Lobby"
             title="Lobby"
           >
@@ -63,7 +72,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
 
           <nav className="flex items-center gap-1 md:w-full md:flex-col md:px-2">
             {coreLinks.map((item) => {
-              const active = matchesPath(pathname, item.href);
+              const active = matchesPath(safePathname, item.href);
 
               return (
                 <Link
@@ -72,11 +81,11 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
                   aria-label={item.label}
                   title={item.label}
                   className={cn(
-                    "dock-icon flex h-10 w-10 items-center justify-center rounded-[14px]",
-                    active && "dock-icon-active",
+                    "dock-icon flex h-10 w-10 items-center justify-center rounded-2xl text-zinc-400",
+                    active && "dock-icon-active text-white",
                   )}
                 >
-                  <item.icon className="h-[18px] w-[18px]" />
+                  <item.icon {...railIconProps} />
                 </Link>
               );
             })}
@@ -84,7 +93,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
         </div>
 
         <div className="hidden min-h-0 w-full flex-1 md:flex md:flex-col md:items-center md:py-2">
-          <div className="signal-line w-8" />
+          <div className="signal-line w-8 bg-white/5" />
           <div className="mt-2 flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2">
             {hubs.slice(0, 6).map((hub) => {
               const active = safePathname.startsWith(`/app/hubs/${hub.id}`);
@@ -103,8 +112,8 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
                   title={hub.name}
                   aria-label={hub.name}
                   className={cn(
-                    "circle-chip flex h-9 w-9 items-center justify-center rounded-[12px] text-[10px] font-semibold text-white",
-                    active && "circle-chip-active",
+                    "circle-chip flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-[10px] font-semibold text-zinc-300",
+                    active && "circle-chip-active bg-white/10 text-white",
                   )}
                 >
                   {initials}
@@ -116,24 +125,24 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
               href="/app/hubs"
               aria-label="Open hubs"
               title="Open hubs"
-              className="circle-chip mt-1 flex h-9 w-9 items-center justify-center rounded-[12px]"
+              className="circle-chip mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-zinc-400"
             >
-              <Plus className="h-[18px] w-[18px]" />
+              <Plus {...railIconProps} />
             </Link>
           </div>
         </div>
 
-        <div className="flex items-center gap-1 md:w-full md:flex-col md:px-2">
+        <div className="flex items-center gap-1 md:w-full md:flex-col md:px-2 md:gap-2">
           <Link
             href="/app/settings/profile"
             aria-label="Settings"
             title="Settings"
             className={cn(
-              "dock-icon flex h-10 w-10 items-center justify-center rounded-[14px]",
-              matchesPath(pathname, "/app/settings") && "dock-icon-active",
+              "dock-icon flex h-10 w-10 items-center justify-center rounded-2xl text-zinc-400",
+              matchesPath(safePathname, "/app/settings") && "dock-icon-active text-white",
             )}
           >
-              <Settings2 className="h-[18px] w-[18px]" />
+            <Settings2 {...railIconProps} />
           </Link>
           {viewer.role !== "MEMBER" ? (
             <Link
@@ -141,18 +150,18 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
               aria-label="Admin"
               title="Admin"
               className={cn(
-                "dock-icon flex h-10 w-10 items-center justify-center rounded-[14px]",
-                matchesPath(pathname, "/app/admin") && "dock-icon-active",
+                "dock-icon flex h-10 w-10 items-center justify-center rounded-2xl text-zinc-400",
+                matchesPath(safePathname, "/app/admin") && "dock-icon-active text-white",
               )}
             >
-              <ShieldCheck className="h-[18px] w-[18px]" />
+              <ShieldCheck {...railIconProps} />
             </Link>
           ) : null}
           <Link
             href="/app/settings/profile"
             title="Profile"
             aria-label="Profile"
-            className="ml-1 flex items-center justify-center md:ml-0 md:mt-1"
+            className="ml-1 flex items-center justify-center md:ml-0"
           >
             <UserAvatar user={viewer} size="sm" />
           </Link>

@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiClientFetch } from "@/lib/api-client";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { cn } from "@/lib/utils";
+
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
 function getUnreadTotal(items: DirectConversationSummary[]) {
   return items.reduce((sum, item) => sum + item.unreadCount, 0);
@@ -107,119 +110,123 @@ export function ConversationList() {
   }, [conversations]);
 
   return (
-    <section className="flex min-h-full flex-col">
-      <div className="border-b border-[var(--border)] px-3 py-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="eyebrow-pill">
-                <MessageSquareMore className="h-[18px] w-[18px]" />
-                Inbox
-              </span>
-              <span className="status-pill">{conversations.length} chats</span>
-              <span className="status-pill">{getUnreadTotal(conversations)} unread</span>
-            </div>
-            <h2 className="mt-1 text-base font-semibold tracking-[-0.03em] text-white">
-              Recent chats
-            </h2>
+    <section className="flex min-h-full flex-col bg-[#09090b]">
+      <div className="flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(9,9,11,0.82)] px-4 backdrop-blur-md">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium tracking-tight text-white">
+              Inbox
+            </span>
+            <span className="text-xs text-zinc-500">
+              {conversations.length} chats
+            </span>
+            <span className="text-xs text-zinc-500">
+              {getUnreadTotal(conversations)} unread
+            </span>
           </div>
-
-          <form
-            className="flex w-full max-w-[420px] gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleOpenConversation();
-            }}
-          >
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--text-muted)]" />
-              <Input
-                className="h-9 pl-9"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                placeholder="@username"
-                autoComplete="off"
-              />
-            </div>
-            <Button type="submit" disabled={isOpening} size="sm">
-              <UserRoundPlus className="h-[18px] w-[18px]" />
-              {isOpening ? "Opening..." : "New DM"}
-            </Button>
-          </form>
         </div>
+
+        <form
+          className="flex w-full max-w-[360px] gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleOpenConversation();
+          }}
+        >
+          <div className="relative min-w-0 flex-1">
+            <Search
+              {...iconProps}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+            />
+            <Input
+              className="h-9 border-white/5 bg-white/5 pl-9 text-sm text-white placeholder:text-zinc-500"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="@username"
+              autoComplete="off"
+            />
+          </div>
+          <Button type="submit" disabled={isOpening} size="sm" className="shrink-0">
+            <UserRoundPlus {...iconProps} />
+            {isOpening ? "Opening..." : "New DM"}
+          </Button>
+        </form>
       </div>
 
       {errorMessage ? (
-        <div className="border-b border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
+        <div className="border-b border-white/5 px-4 py-2 text-sm text-rose-200">
           {errorMessage}
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-dim)]">
-        <div className="flex flex-wrap items-center gap-2">
-          <span>{orderedConversations.length} threads</span>
-          <span>Sorted by unread</span>
-        </div>
-        <Link href="/app/people?view=discover" className="glass-badge">
-          <UserRoundPlus className="h-[18px] w-[18px]" />
+      <div className="flex items-center justify-between border-b border-white/5 px-4 py-2 text-xs text-zinc-500">
+        <span>{orderedConversations.length} threads</span>
+        <Link href="/app/people?view=discover" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
+          <UserRoundPlus {...iconProps} />
           Find people
         </Link>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="empty-state-minimal">
-            <p className="text-sm text-[var(--text-muted)]">Loading inbox...</p>
+          <div className="empty-state-minimal text-zinc-500">
+            <MessageSquareMore {...iconProps} />
+            <p className="text-sm">Loading inbox...</p>
           </div>
         ) : orderedConversations.length === 0 ? (
-          <div className="empty-state-minimal">
-            <MessageSquareMore className="h-5 w-5 text-[var(--text-muted)]" />
+          <div className="empty-state-minimal text-zinc-500">
+            <MessageSquareMore size={20} strokeWidth={1.5} />
             <div>
-              <p className="text-base font-semibold text-white">No chats yet</p>
-              <p className="mt-1 text-sm text-[var(--text-dim)]">
+              <p className="text-sm font-medium text-white">No chats yet</p>
+              <p className="mt-1 text-xs text-zinc-500">
                 Start a DM by username or open someone from People.
               </p>
             </div>
           </div>
         ) : (
-          <div>
-            {orderedConversations.map((conversation) => (
-              <Link
-                key={conversation.id}
-                href={`/app/messages/${conversation.id}`}
-                className="flex items-start gap-3 border-b border-[var(--border-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-panel-soft)]"
-              >
-                <UserAvatar user={conversation.counterpart} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-white">
-                      {conversation.counterpart.profile.displayName}
-                    </p>
-                    {conversation.unreadCount > 0 ? (
-                      <span className="nav-link-meta">{conversation.unreadCount}</span>
-                    ) : null}
-                    {conversation.retentionMode !== "OFF" ? (
-                      <span className="glass-badge">
-                        <Clock3 className="h-[18px] w-[18px]" />
-                        {conversation.retentionMode}
-                      </span>
-                    ) : null}
-                    <span className="ml-auto shrink-0 text-xs text-[var(--text-muted)]">
-                      {formatConversationTime(conversation.lastMessageAt)}
+          orderedConversations.map((conversation) => (
+            <Link
+              key={conversation.id}
+              href={`/app/messages/${conversation.id}`}
+              className="flex min-h-14 items-center gap-3 border-b border-white/5 px-4 py-2 transition-colors hover:bg-white/5"
+            >
+              <UserAvatar user={conversation.counterpart} size="sm" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-medium tracking-tight text-white">
+                    {conversation.counterpart.profile.displayName}
+                  </p>
+                  {conversation.unreadCount > 0 ? (
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[11px] text-white">
+                      {conversation.unreadCount}
                     </span>
-                  </div>
-                  <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
-                    @{conversation.counterpart.username}
-                  </p>
-                  <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
-                    {conversation.lastMessage?.isDeleted
-                      ? "Last message was deleted"
-                      : (conversation.lastMessage?.content ?? "Say hello")}
-                  </p>
+                  ) : null}
+                  {conversation.retentionMode !== "OFF" ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                      <Clock3 {...iconProps} />
+                      {conversation.retentionMode}
+                    </span>
+                  ) : null}
+                  <span className="ml-auto shrink-0 text-xs text-zinc-500">
+                    {formatConversationTime(conversation.lastMessageAt)}
+                  </span>
                 </div>
-              </Link>
-            ))}
-          </div>
+                <p className="mt-0.5 truncate text-xs text-zinc-500">
+                  @{conversation.counterpart.username}
+                </p>
+                <p
+                  className={cn(
+                    "mt-1 truncate text-sm leading-tight",
+                    conversation.unreadCount > 0 ? "text-zinc-200" : "text-zinc-400",
+                  )}
+                >
+                  {conversation.lastMessage?.isDeleted
+                    ? "Last message was deleted"
+                    : (conversation.lastMessage?.content ?? "Say hello")}
+                </p>
+              </div>
+            </Link>
+          ))
         )}
       </div>
     </section>

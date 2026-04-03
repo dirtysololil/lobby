@@ -16,6 +16,8 @@ interface AppShellFrameProps {
   viewer: PublicUser;
 }
 
+const panelIconProps = { size: 20, strokeWidth: 1.5 } as const;
+
 export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const pathname = usePathname();
   const safePathname = pathname ?? "";
@@ -58,44 +60,38 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const showDockedActivityRail = activityAvailable && activityOpen && isWideScreen;
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text)]">
+    <div className="relative min-h-screen bg-[#09090b] text-white">
       <div
         className={cn(
-          "grid min-h-screen grid-cols-1 md:grid-cols-[72px_16rem_minmax(0,1fr)]",
-          showDockedActivityRail && "2xl:grid-cols-[72px_16rem_minmax(0,1fr)_16rem]",
+          "grid min-h-screen grid-cols-1 md:grid-cols-[72px_15rem_minmax(0,1fr)]",
+          showDockedActivityRail && "2xl:grid-cols-[72px_15rem_minmax(0,1fr)_16rem]",
         )}
       >
         <AppSidebar viewer={viewer} />
         <AppContextRail viewer={viewer} />
 
-        <main className="relative flex min-h-screen min-w-0 flex-col bg-[var(--bg-app)]">
+        <main className="relative flex min-h-screen min-w-0 flex-col bg-[#09090b]">
           {activityAvailable ? (
             <button
               type="button"
               onClick={() => setActivityOpen((current) => !current)}
               className={cn(
-                "absolute right-3 top-3 z-30 inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors",
-                activityOpen
-                  ? "bg-[var(--bg-active)]"
-                  : "bg-[var(--bg-panel-soft)] hover:bg-[var(--bg-hover)]",
+                "absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-[#121214]/90 text-zinc-400 backdrop-blur-md transition-colors hover:bg-white/5 hover:text-white",
+                activityOpen && "bg-white/5 text-white",
               )}
               aria-label={activityOpen ? "Hide details" : "Show details"}
             >
               {activityOpen ? (
-                <PanelRightClose className="h-5 w-5" />
+                <PanelRightClose {...panelIconProps} />
               ) : (
-                <PanelRightOpen className="h-5 w-5" />
+                <PanelRightOpen {...panelIconProps} />
               )}
             </button>
           ) : null}
 
-          <div className="px-3 pt-3">
-            <IncomingCallBanner />
-          </div>
+          <IncomingCallBanner />
 
-          <div className="min-h-0 flex-1 overflow-hidden pb-20 md:pb-0">
-            {children}
-          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
         </main>
 
         {showDockedActivityRail ? (

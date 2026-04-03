@@ -19,6 +19,8 @@ interface DmCallPanelProps {
   isBlocked: boolean;
 }
 
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
 export function DmCallPanel({
   conversationId,
   viewerId,
@@ -195,7 +197,7 @@ export function DmCallPanel({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="status-pill">
-              <PhoneCall className="h-[18px] w-[18px] text-[var(--accent)]" />
+              <PhoneCall {...iconProps} />
               {activeCall ? activeCall.status : "Call ready"}
             </span>
             {viewerParticipant ? (
@@ -221,7 +223,7 @@ export function DmCallPanel({
                 onClick={() => void startCall("AUDIO")}
                 disabled={isBlocked || pendingAction !== null}
               >
-                <Phone className="h-[18px] w-[18px]" />
+                <Phone {...iconProps} />
                 {pendingAction === "start:AUDIO" ? "Starting..." : "Audio"}
               </Button>
               <Button
@@ -230,7 +232,7 @@ export function DmCallPanel({
                 onClick={() => void startCall("VIDEO")}
                 disabled={isBlocked || pendingAction !== null}
               >
-                <Video className="h-[18px] w-[18px]" />
+                <Video {...iconProps} />
                 {pendingAction === "start:VIDEO" ? "Starting..." : "Video"}
               </Button>
             </>
