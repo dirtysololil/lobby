@@ -2,7 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Hash, Layers3, LockKeyhole, MessageSquareMore, Mic, Settings2, ShieldCheck, UserRoundPlus, Users2 } from "lucide-react";
+import {
+  Hash,
+  House,
+  Layers3,
+  LockKeyhole,
+  MessageSquareMore,
+  Mic,
+  Settings2,
+  ShieldCheck,
+  UserRoundPlus,
+  Users2,
+} from "lucide-react";
 import {
   blocksResponseSchema,
   directConversationListResponseSchema,
@@ -32,10 +43,10 @@ const settingsLinks = [
 ] as const;
 
 const adminLinks = [
-  { href: "/app/admin", label: "Overview" },
+  { href: "/app/admin", label: "Control" },
   { href: "/app/admin/users", label: "Users" },
   { href: "/app/admin/invites", label: "Invites" },
-  { href: "/app/admin/audit", label: "Audit log" },
+  { href: "/app/admin/audit", label: "Audit Log" },
 ] as const;
 
 const peopleViews = [
@@ -163,6 +174,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   const activePeopleView = peopleViews.some((item) => item.id === rawPeopleView)
     ? rawPeopleView
     : "friends";
+
   const groupedLobbies = useMemo(() => {
     if (!hub) {
       return [];
@@ -185,10 +197,10 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   }, [hub]);
 
   return (
-    <aside className="context-rail flex min-h-0 flex-col overflow-hidden rounded-[20px] p-2.5 lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)]">
-      <div className="flex items-center gap-2.5 border-b border-white/8 pb-2.5">
+    <aside className="context-rail hidden min-h-screen border-r border-[var(--border)] md:flex md:flex-col">
+      <div className="flex h-14 items-center gap-2 border-b border-[var(--border)] px-3">
         <UserAvatar user={viewer} size="sm" />
-        <div className="min-w-0 flex-1">
+        <div className="flex-1">
           <p className="truncate text-sm font-semibold text-white">
             {viewer.profile.displayName}
           </p>
@@ -198,24 +210,24 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         </div>
       </div>
 
-      <div className="mt-2.5 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
         {route.section === "messages" ? (
           <div className="rail-group">
             <div className="rail-heading">
               <p className="section-kicker">Conversations</p>
               <Link href="/app/people?view=discover" className="glass-badge">
                 <UserRoundPlus className="h-3 w-3" />
-                New
+                New DM
               </Link>
             </div>
             <div className="mt-2 grid gap-1">
               {loadingLabel === "messages" ? (
-                <div className="surface-subtle rounded-[14px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
-                  Загружаем диалоги...
+                <div className="surface-subtle rounded-[10px] px-2.5 py-2 text-sm text-[var(--text-muted)]">
+                  Loading chats...
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="surface-subtle rounded-[14px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
-                  Здесь появятся ваши DM.
+                <div className="surface-subtle rounded-[10px] px-2.5 py-2 text-sm text-[var(--text-muted)]">
+                  Your direct messages will appear here.
                 </div>
               ) : (
                 conversations.map((conversation) => {
@@ -225,20 +237,17 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     <Link
                       key={conversation.id}
                       href={href}
-                      className={cn(
-                        "context-link rounded-[14px]",
-                        pathname === href && "context-link-active",
-                      )}
+                      className={cn("context-link", pathname === href && "context-link-active")}
                     >
                       <UserAvatar user={conversation.counterpart} size="sm" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-white">
                           {conversation.counterpart.profile.displayName}
                         </span>
-                        <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
+                        <span className="block truncate text-xs text-[var(--text-dim)]">
                           {conversation.lastMessage?.isDeleted
-                            ? "Сообщение удалено"
-                            : (conversation.lastMessage?.content ?? "Пустой диалог")}
+                            ? "Message deleted"
+                            : (conversation.lastMessage?.content ?? "No messages yet")}
                         </span>
                       </span>
                       {conversation.unreadCount > 0 ? (
@@ -255,16 +264,20 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "hubs" && !route.hubId ? (
           <div className="rail-group">
             <div className="rail-heading">
-              <p className="section-kicker">Your hubs</p>
+              <p className="section-kicker">Hubs</p>
               <Link href="/app/hubs" className="glass-badge">
                 <Layers3 className="h-3 w-3" />
-                All
+                Browse
               </Link>
             </div>
             <div className="mt-2 grid gap-1">
               {loadingLabel === "hubs" ? (
-                <div className="surface-subtle rounded-[14px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
-                  Загружаем хабы...
+                <div className="surface-subtle rounded-[10px] px-2.5 py-2 text-sm text-[var(--text-muted)]">
+                  Loading hubs...
+                </div>
+              ) : hubs.length === 0 ? (
+                <div className="surface-subtle rounded-[10px] px-2.5 py-2 text-sm text-[var(--text-muted)]">
+                  Join a hub or create a new one.
                 </div>
               ) : (
                 hubs.map((item) => (
@@ -272,19 +285,19 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     key={item.id}
                     href={`/app/hubs/${item.id}`}
                     className={cn(
-                      "context-link rounded-[14px]",
+                      "context-link",
                       pathname.startsWith(`/app/hubs/${item.id}`) && "context-link-active",
                     )}
                   >
-                    <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px] text-[11px] font-semibold text-white">
+                    <span className="dock-icon flex h-8 w-8 items-center justify-center rounded-[10px] text-[10px] font-semibold text-white">
                       {item.name.slice(0, 2).toUpperCase()}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-white">
                         {item.name}
                       </span>
-                      <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
-                        {item.membershipRole ?? "Гость"}
+                      <span className="block truncate text-xs text-[var(--text-dim)]">
+                        {item.membershipRole ?? "Guest"}
                       </span>
                     </span>
                     {item.isPrivate ? (
@@ -298,13 +311,13 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         ) : null}
 
         {route.section === "hubs" && route.hubId ? (
-          <div className="grid gap-4">
-            <div className="surface-subtle rounded-[16px] p-3">
+          <div className="grid gap-3">
+            <div className="border-b border-[var(--border)] px-1 pb-3">
               <p className="truncate text-sm font-semibold text-white">
-                {hub?.name ?? "Хаб"}
+                {hub?.name ?? "Hub"}
               </p>
-              <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
-                {hub?.membershipRole ?? "Структура пространства"}
+              <p className="mt-0.5 truncate text-xs text-[var(--text-dim)]">
+                {hub?.membershipRole ?? "Member"}
               </p>
             </div>
 
@@ -312,12 +325,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               <Link
                 href={`/app/hubs/${route.hubId}`}
                 className={cn(
-                  "context-link rounded-[14px]",
+                  "context-link",
                   pathname === `/app/hubs/${route.hubId}` && "context-link-active",
                 )}
               >
-                <Layers3 className="h-4 w-4 text-[var(--accent)]" />
-                <span className="text-sm font-semibold text-white">Overview</span>
+                <House className="h-4 w-4 text-[var(--accent)]" />
+                <span className="text-sm font-semibold text-white">Home</span>
               </Link>
             </div>
 
@@ -335,12 +348,9 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                       <Link
                         key={lobby.id}
                         href={href}
-                        className={cn(
-                          "context-link rounded-[14px]",
-                          active && "context-link-active",
-                        )}
+                        className={cn("context-link", active && "context-link-active")}
                       >
-                        <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px]">
+                        <span className="dock-icon flex h-8 w-8 items-center justify-center rounded-[10px]">
                           {lobby.type === "VOICE" ? (
                             <Mic className="h-4 w-4" />
                           ) : (
@@ -348,12 +358,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-white">
-                          {lobby.name}
-                        </span>
-                        <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
-                          {lobby.type}
-                        </span>
+                          <span className="block truncate text-sm font-semibold text-white">
+                            {lobby.name}
+                          </span>
+                          <span className="block truncate text-xs text-[var(--text-dim)]">
+                            {lobby.type}
+                          </span>
                         </span>
                         {lobby.isPrivate ? (
                           <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent)]" />
@@ -393,10 +403,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                   <Link
                     key={item.id}
                     href={href}
-                    className={cn(
-                      "context-link rounded-[14px]",
-                      active && "context-link-active",
-                    )}
+                    className={cn("context-link", active && "context-link-active")}
                   >
                     <Users2 className="h-4 w-4 text-[var(--accent)]" />
                     <span className="min-w-0 flex-1 text-sm font-semibold text-white">
@@ -423,7 +430,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "context-link rounded-[14px]",
+                    "context-link",
                     matchesPath(pathname, item.href) && "context-link-active",
                   )}
                 >
@@ -446,7 +453,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "context-link rounded-[14px]",
+                    "context-link",
                     matchesPath(pathname, item.href) && "context-link-active",
                   )}
                 >
@@ -459,12 +466,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         ) : null}
       </div>
 
-      <div className="surface-subtle mt-2.5 rounded-[14px] p-2.5">
+      <div className="border-t border-[var(--border)] px-3 py-2">
         <div className="flex items-center justify-between gap-3 text-xs text-[var(--text-dim)]">
           <span>Realtime</span>
-          <span>{incomingCalls.length} calls</span>
+          <span>{incomingCalls.length} active</span>
         </div>
-        <p className="mt-1 text-sm font-medium text-white">
+        <p className="mt-1 truncate text-sm font-medium text-white">
           {latestSignal ? latestSignal.call.status : "Connected"}
         </p>
       </div>

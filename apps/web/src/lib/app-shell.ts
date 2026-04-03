@@ -90,20 +90,20 @@ export function getSectionMeta(route: AppRouteState) {
     case "messages":
       return route.conversationId
         ? {
-            label: "Direct Message",
+            label: "Chat",
             title: "Conversation",
             description: "Private chat, call state and message history.",
           }
         : {
             label: "Inbox",
-            title: "Messages",
+            title: "Recent Chats",
             description: "Recent conversations and direct lines.",
           };
     case "hubs":
       return route.hubId
         ? {
             label: "Hub",
-            title: "Hub",
+            title: "Hub Space",
             description: "Channels, members and community flow.",
           }
         : {

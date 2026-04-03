@@ -29,11 +29,12 @@ export function LogoutButton() {
   return (
     <Button
       onClick={() => void handleLogout()}
+      size="sm"
       variant="secondary"
       disabled={isPending}
       className="w-full sm:w-auto"
     >
-      {isPending ? "Выходим..." : "Выйти"}
+      {isPending ? "Signing out..." : "Sign out"}
     </Button>
   );
 }
