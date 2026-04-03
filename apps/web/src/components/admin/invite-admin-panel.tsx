@@ -48,15 +48,15 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
 
   return (
     <div className="grid gap-5 2xl:grid-cols-[420px_minmax(0,1fr)]">
-      <form className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]" onSubmit={form.handleSubmit((values) => void createInvite(values))}>
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-cyan-200/70">Новый ключ</p>
+      <form className="social-shell rounded-[28px] p-6" onSubmit={form.handleSubmit((values) => void createInvite(values))}>
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Новый ключ</p>
         <div className="mt-5 grid gap-4">
           <div className="grid gap-2"><Label htmlFor="label">Название</Label><Input id="label" placeholder="Партнёрская волна" {...form.register("label")} /></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label htmlFor="role">Роль</Label><select id="role" className="h-11 rounded-2xl border border-[var(--border)] bg-slate-950/65 px-4 text-sm text-white outline-none" {...form.register("role")}>{roleOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></div>
             <div className="grid gap-2"><Label htmlFor="maxUses">Лимит использований</Label><Input id="maxUses" type="number" min={1} max={10000} {...form.register("maxUses", { valueAsNumber: true })} /></div>
           </div>
-          <div className="grid gap-2"><Label htmlFor="expiresAt">Срок действия</Label><Input id="expiresAt" type="datetime-local" {...form.register("expiresAt")} /><p className="text-xs text-slate-500">Оставьте пустым, чтобы ключ был бессрочным.</p></div>
+          <div className="grid gap-2"><Label htmlFor="expiresAt">Срок действия</Label><Input id="expiresAt" type="datetime-local" {...form.register("expiresAt")} /><p className="text-xs text-[var(--text-muted)]">Оставьте пустым, чтобы ключ был бессрочным.</p></div>
         </div>
 
         {latestRawCode ? <div className="mt-5 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.06] p-4"><p className="text-xs uppercase tracking-[0.2em] text-emerald-100/80">Сырой ключ</p><p className="mt-2 break-all font-mono text-sm text-white">{latestRawCode}</p></div> : null}
@@ -66,16 +66,16 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
         <div className="mt-5 flex gap-2"><Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Создаём..." : "Создать"}</Button><Button type="button" variant="secondary" onClick={() => router.refresh()}>Обновить</Button></div>
       </form>
 
-      <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-cyan-200/70">Последние ключи</p>
+      <section className="social-shell rounded-[28px] p-6">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Последние ключи</p>
         <div className="mt-5 grid gap-3">
           {invites.length === 0 ? <EmptyState title="Ключей пока нет" description="Создайте первый ключ для онбординга владельцев, админов или участников." /> : invites.map((invite) => (
-            <div key={invite.id} className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4">
+            <div key={invite.id} className="rounded-2xl border border-[var(--border)] bg-[#0b1322]/70 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-base font-medium text-white">{invite.label ?? "Ключ без названия"}</p>
-                  <p className="mt-1 text-sm text-slate-400">Роль {invite.role} · Использовано {invite.usedCount}/{invite.maxUses}</p>
-                  <p className="mt-2 text-xs text-slate-500">{invite.revokedAt ? `Отозван: ${new Date(invite.revokedAt).toLocaleString()}` : invite.expiresAt ? `Истекает: ${new Date(invite.expiresAt).toLocaleString()}` : "Без ограничения срока"}</p>
+                  <p className="mt-1 text-sm text-[var(--text-dim)]">Роль {invite.role} · Использовано {invite.usedCount}/{invite.maxUses}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{invite.revokedAt ? `Отозван: ${new Date(invite.revokedAt).toLocaleString()}` : invite.expiresAt ? `Истекает: ${new Date(invite.expiresAt).toLocaleString()}` : "Без ограничения срока"}</p>
                 </div>
                 <Button variant="secondary" onClick={() => void revokeInvite(invite.id)} disabled={Boolean(invite.revokedAt)}>{invite.revokedAt ? "Отозван" : "Отозвать"}</Button>
               </div>

@@ -14,33 +14,24 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!content.trim()) {
-      return;
-    }
-
+    if (!content.trim()) return;
     setIsSending(true);
-
     try {
       await onSend(content);
       setContent("");
-    } finally {
-      setIsSending(false);
-    }
+    } finally { setIsSending(false); }
   }
 
   return (
-    <form className="space-y-3" onSubmit={handleSubmit}>
+    <form className="premium-tile space-y-3 rounded-3xl p-3" onSubmit={handleSubmit}>
       <textarea
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder={disabled ? "Отправка отключена для этого диалога" : "Напишите сообщение"}
         disabled={disabled || isSending}
-        className="min-h-32 w-full rounded-3xl border border-white/10 bg-slate-950/50 px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-300/50 focus:bg-slate-950/70 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-28 w-full rounded-2xl border border-[var(--border)] bg-[#0b1322]/80 px-4 py-4 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] disabled:cursor-not-allowed disabled:opacity-60"
       />
-      <Button type="submit" disabled={disabled || isSending}>
-        {isSending ? "Отправка..." : "Отправить"}
-      </Button>
+      <div className="flex items-center justify-between gap-3"><p className="text-xs text-[var(--text-muted)]">Enter — отправка, Shift+Enter — новая строка.</p><Button type="submit" disabled={disabled || isSending}>{isSending ? "Отправка..." : "Отправить"}</Button></div>
     </form>
   );
 }

@@ -1,12 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  directConversationDetailSchema,
-  directConversationSummaryResponseSchema,
-  directMessageResponseSchema,
-  type DirectConversationDetail,
-} from "@lobby/shared";
+import { directConversationDetailSchema, directConversationSummaryResponseSchema, directMessageResponseSchema, type DirectConversationDetail } from "@lobby/shared";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,10 +11,7 @@ import { ConversationSettings } from "./conversation-settings";
 import { MessageComposer } from "./message-composer";
 import { MessageThread } from "./message-thread";
 
-interface ConversationViewProps {
-  conversationId: string;
-  viewerId: string;
-}
+interface ConversationViewProps { conversationId: string; viewerId: string; }
 
 export function ConversationView({ conversationId, viewerId }: ConversationViewProps) {
   const [conversation, setConversation] = useState<DirectConversationDetail["conversation"] | null>(null);
@@ -51,9 +43,7 @@ export function ConversationView({ conversationId, viewerId }: ConversationViewP
       const payload = await apiClientFetch(`/v1/direct-messages/${conversationId}/messages/${messageId}`, { method: "DELETE" });
       directMessageResponseSchema.parse(payload);
       await loadConversation();
-    } finally {
-      setIsDeleting(null);
-    }
+    } finally { setIsDeleting(null); }
   }
 
   async function saveSettings(payload: { notificationSetting: "ALL" | "MENTIONS_ONLY" | "MUTED" | "OFF"; retentionMode: "OFF" | "H24" | "D7" | "D30" | "CUSTOM"; customHours: number | null; }) {
@@ -62,26 +52,23 @@ export function ConversationView({ conversationId, viewerId }: ConversationViewP
     await loadConversation();
   }
 
-  if (errorMessage) return <div className="rounded-3xl border border-rose-400/20 bg-rose-400/10 px-5 py-4 text-sm text-rose-100">{errorMessage}</div>;
-  if (!conversation) return <div className="rounded-3xl border border-[var(--border)] bg-slate-950/35 p-5 text-sm text-slate-400">Загружаем чат...</div>;
+  if (errorMessage) return <div className="rounded-3xl border border-rose-400/30 bg-rose-400/10 px-5 py-4 text-sm text-rose-100">{errorMessage}</div>;
+  if (!conversation) return <div className="premium-tile rounded-3xl p-5 text-sm text-[var(--text-muted)]">Загружаем чат...</div>;
 
   const counterpart = conversation.participants.find((participant) => participant.user.id !== viewerId)?.user;
   const isBlocked = conversation.isBlockedByViewer || conversation.hasBlockedViewer;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>{counterpart?.profile.displayName ?? "Личный диалог"}</CardTitle>
-              <CardDescription>{counterpart ? `@${counterpart.username}` : "Собеседник не найден"}</CardDescription>
-            </div>
-            <Link href="/app/messages"><Button variant="secondary">К списку диалогов</Button></Link>
+            <div><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Диалог</p><CardTitle>{counterpart?.profile.displayName ?? "Личный диалог"}</CardTitle><CardDescription>{counterpart ? `@${counterpart.username}` : "Собеседник не найден"}</CardDescription></div>
+            <Link href="/app/messages"><Button variant="secondary">Все диалоги</Button></Link>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isBlocked ? <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">Обмен сообщениями недоступен: один из пользователей заблокирован.</div> : null}
+          {isBlocked ? <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">Обмен сообщениями ограничен: один из пользователей заблокирован.</div> : null}
           <DmCallPanel conversationId={conversationId} viewerId={viewerId} isBlocked={isBlocked} />
           <MessageThread viewerId={viewerId} conversation={conversation} isDeleting={isDeleting} onDelete={deleteMessage} />
           <MessageComposer disabled={isBlocked} onSend={sendMessage} />
@@ -89,10 +76,7 @@ export function ConversationView({ conversationId, viewerId }: ConversationViewP
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Параметры диалога</CardTitle>
-          <CardDescription>Уведомления и хранение сообщений настраиваются отдельно для каждого чата.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle>Контекст диалога</CardTitle><CardDescription>Точечные настройки уведомлений и жизненного цикла сообщений.</CardDescription></CardHeader>
         <CardContent>
           <ConversationSettings
             notificationSetting={conversation.participants.find((participant) => participant.user.id === viewerId)?.notificationSetting ?? "ALL"}
