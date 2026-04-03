@@ -302,7 +302,7 @@ export function DmCallPanel({
           {activeCall ? (
             <div className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5">
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full border border-white/10 px-3 py-1 text-sky-200/70">
+                <span className="rounded-full border border-white/10 px-3 py-1 text-[var(--text-soft)]">
                   {activeCall.mode}
                 </span>
                 <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">

@@ -154,7 +154,7 @@ export function ProfileSettingsForm({
           <p className="mt-5 text-xl font-semibold text-white">
             {viewer.profile.displayName}
           </p>
-          <p className="mt-2 font-mono text-sm text-sky-100/80">
+          <p className="mt-2 font-mono text-sm text-[var(--text-soft)]">
             @{viewer.username}
           </p>
           <p className="mt-4 max-w-sm text-sm leading-7 text-slate-400">
@@ -173,7 +173,7 @@ export function ProfileSettingsForm({
             </span>
           </div>
           <div className="mt-6 flex w-full flex-col gap-3">
-            <label className="surface-subtle cursor-pointer rounded-[22px] px-4 py-3 text-sm text-white transition hover:border-sky-300/35 hover:bg-white/[0.08]">
+            <label className="surface-subtle cursor-pointer rounded-[22px] px-4 py-3 text-sm text-white transition hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif"

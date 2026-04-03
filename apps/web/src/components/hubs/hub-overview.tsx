@@ -321,7 +321,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                       <p className="text-sm font-medium text-white">
                         {invite.invitee.profile.displayName}
                       </p>
-                      <p className="font-mono text-xs text-[#aaccf5]">
+                      <p className="font-mono text-xs text-[var(--text-soft)]">
                         @{invite.invitee.username}
                       </p>
                     </div>
@@ -349,7 +349,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                         <p className="text-base font-medium text-white">
                           {member.user.profile.displayName}
                         </p>
-                        <p className="font-mono text-xs text-[#aaccf5]">
+                        <p className="font-mono text-xs text-[var(--text-soft)]">
                           @{member.user.username}
                         </p>
                       </div>
@@ -510,7 +510,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                         <p className="text-sm font-medium text-white">
                           {mute.user.profile.displayName}
                         </p>
-                        <p className="font-mono text-xs text-[#aaccf5]">
+                        <p className="font-mono text-xs text-[var(--text-soft)]">
                           @{mute.user.username}
                         </p>
                         <Button
@@ -554,7 +554,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                         <p className="text-sm font-medium text-white">
                           {ban.user.profile.displayName}
                         </p>
-                        <p className="font-mono text-xs text-[#aaccf5]">
+                        <p className="font-mono text-xs text-[var(--text-soft)]">
                           @{ban.user.username}
                         </p>
                         <Button

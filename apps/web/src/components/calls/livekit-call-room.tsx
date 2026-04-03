@@ -97,7 +97,7 @@ function TrackTile({ item }: { item: TrackView }) {
           <p className="text-sm font-medium text-white">{item.participantName}</p>
           <p className="text-xs text-slate-400">{item.isLocal ? "локальный" : "удалённый"} / {item.source}</p>
         </div>
-        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] uppercase tracking-[0.15em] text-cyan-100/80">{item.kind}</span>
+        <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] uppercase tracking-[0.15em] text-[var(--text-soft)]">{item.kind}</span>
       </div>
       <div ref={containerRef} className="relative flex min-h-[170px] items-center justify-center overflow-hidden rounded-[16px] bg-slate-900/80">
         {item.kind === "audio" ? <span className="text-sm text-slate-400">Аудиопоток активен</span> : null}
@@ -230,7 +230,7 @@ export function LiveKitCallRoom({ connection, mode, title, description, onLeave 
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2 text-xs">
-          <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-cyan-100/75">{mode}</span>
+          <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[var(--text-soft)]">{mode}</span>
           <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-slate-300">{status}</span>
           {!connection.canPublishMedia ? <span className="rounded-full border border-amber-300/20 px-2.5 py-1 text-amber-100/80">только прослушивание</span> : null}
         </div>

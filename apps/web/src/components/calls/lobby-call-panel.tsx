@@ -98,7 +98,7 @@ export function LobbyCallPanel({ hubId, lobbyId, isViewerMuted }: LobbyCallPanel
             )}
           </div>
 
-          {state?.activeCall ? <div className="rounded-2xl border border-[var(--border)] bg-slate-950/45 p-4"><div className="flex flex-wrap gap-2 text-xs"><span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-cyan-100/75">{state.activeCall.mode}</span><span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-slate-300">{state.activeCall.status}</span></div></div> : null}
+          {state?.activeCall ? <div className="rounded-2xl border border-[var(--border)] bg-slate-950/45 p-4"><div className="flex flex-wrap gap-2 text-xs"><span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[var(--text-soft)]">{state.activeCall.mode}</span><span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-slate-300">{state.activeCall.status}</span></div></div> : null}
 
           {state?.history.length ? <div className="rounded-2xl border border-[var(--border)] bg-slate-950/45 p-4"><p className="text-sm font-medium text-white">Недавние сессии</p><div className="mt-2 space-y-2 text-sm text-slate-300">{state.history.slice(0, 5).map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] px-3 py-2"><span>{item.mode} / {item.status}</span><span className="text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</span></div>)}</div></div> : null}
         </CardContent>

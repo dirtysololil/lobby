@@ -1,170 +1,161 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Compass,
-  Crown,
-  KeyRound,
   Layers3,
-  MessageSquare,
-  Orbit,
+  MessageSquareMore,
+  Plus,
   Settings2,
   ShieldCheck,
   Users2,
+  Waves,
 } from "lucide-react";
-import { hubListResponseSchema, type PublicUser } from "@lobby/shared";
+import {
+  hubListResponseSchema,
+  type HubSummary,
+  type PublicUser,
+} from "@lobby/shared";
+import { useEffect, useState } from "react";
+import { apiClientFetch } from "@/lib/api-client";
+import { matchesPath } from "@/lib/app-shell";
+import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { fetchServerApi } from "@/lib/server-api";
 
 interface AppSidebarProps {
   viewer: PublicUser;
 }
 
-const roleLabels: Record<PublicUser["role"], string> = {
-  OWNER: "Владелец",
-  ADMIN: "Администратор",
-  MEMBER: "Участник",
-};
+const coreLinks = [
+  { href: "/app", icon: Compass, label: "Обзор" },
+  { href: "/app/people", icon: Users2, label: "Люди" },
+  { href: "/app/messages", icon: MessageSquareMore, label: "Диалоги" },
+  { href: "/app/hubs", icon: Layers3, label: "Хабы" },
+] as const;
 
-const presenceLabels: Record<PublicUser["profile"]["presence"], string> = {
-  ONLINE: "В сети",
-  IDLE: "Отошёл",
-  DND: "Не беспокоить",
-  OFFLINE: "Скрыт",
-};
+export function AppSidebar({ viewer }: AppSidebarProps) {
+  const pathname = usePathname();
+  const [hubs, setHubs] = useState<HubSummary[]>([]);
 
-export async function AppSidebar({ viewer }: AppSidebarProps) {
-  let hubItems: Array<{
-    id: string;
-    name: string;
-    href: string;
-    role: string | null;
-  }> = [];
+  useEffect(() => {
+    let active = true;
 
-  try {
-    const payload = await fetchServerApi("/v1/hubs");
-    hubItems = hubListResponseSchema.parse(payload).items.map((hub) => ({
-      id: hub.id,
-      name: hub.name,
-      href: `/app/hubs/${hub.id}`,
-      role: hub.membershipRole,
-    }));
-  } catch {
-    hubItems = [];
-  }
+    void (async () => {
+      try {
+        const payload = await apiClientFetch("/v1/hubs");
+        const nextHubs = hubListResponseSchema.parse(payload).items;
 
-  const navigation = [
-    {
-      label: "Обзор",
-      description: "Личный операционный центр",
-      href: "/app",
-      icon: Compass,
-    },
-    { label: "Люди", href: "/app/people", icon: Users2 },
-    { label: "Мессенджер", href: "/app/messages", icon: MessageSquare },
-    { label: "Хабы", href: "/app/hubs", icon: Layers3 },
-    { label: "Настройки", href: "/app/settings/profile", icon: Settings2 },
-    ...(viewer.role === "OWNER" || viewer.role === "ADMIN"
-      ? [
-          { label: "Контроль", href: "/app/admin", icon: ShieldCheck },
-          { label: "Инвайты", href: "/app/admin/invites", icon: KeyRound },
-        ]
-      : []),
-  ];
+        if (active) {
+          setHubs(nextHubs);
+        }
+      } catch {
+        if (active) {
+          setHubs([]);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
-    <aside className="social-shell flex h-full max-h-[calc(100vh-1.5rem)] flex-col overflow-hidden rounded-[34px] p-3 lg:p-4 xl:sticky xl:top-3">
-      <div className="surface-highlight rounded-[30px] px-4 py-5">
-        <div className="flex items-start gap-3">
-          <UserAvatar user={viewer} />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="eyebrow-pill">
-                <Orbit className="h-3.5 w-3.5" /> Lobby
-              </span>
-            </div>
-            <p className="mt-4 truncate text-lg font-semibold text-white">
-              {viewer.profile.displayName}
-            </p>
-            <p className="mt-1 truncate text-xs uppercase tracking-[0.14em] text-[var(--text-muted)]">
-              @{viewer.username} · {roleLabels[viewer.role]}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="status-pill">
-                <span className="status-dot text-[var(--success)]" />
-                {presenceLabels[viewer.profile.presence]}
-              </span>
-              <span className="status-pill">
-                <Crown className="h-3.5 w-3.5 text-[var(--accent)]" />
-                {roleLabels[viewer.role]}
-              </span>
-            </div>
-          </div>
-        </div>
+    <aside className="workspace-dock flex gap-3 rounded-[28px] p-3 xl:sticky xl:top-3 xl:h-[calc(100vh-1.5rem)] xl:flex-col xl:items-center xl:justify-between">
+      <div className="flex min-w-0 flex-1 items-center gap-3 xl:w-full xl:flex-none xl:flex-col">
+        <Link
+          href="/app"
+          className="dock-icon dock-icon-active flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px]"
+          aria-label="Lobby home"
+        >
+          <Waves className="h-5 w-5" />
+        </Link>
+
+        <nav className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto xl:w-full xl:flex-none xl:flex-col xl:overflow-visible">
+          {coreLinks.map((item) => {
+            const active = matchesPath(pathname, item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                title={item.label}
+                className={cn(
+                  "dock-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] xl:h-14 xl:w-14 xl:rounded-[20px]",
+                  active && "dock-icon-active",
+                )}
+              >
+                <item.icon className="h-[18px] w-[18px]" />
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
-      <div className="mt-5 px-2">
-        <p className="section-kicker">Навигация</p>
-      </div>
-      <nav className="nav-cluster mt-2">
-        {navigation.map((item) => (
-          <Link key={item.href} href={item.href} className="nav-link">
-            <span className="flex h-10 w-10 items-center justify-center rounded-[16px] bg-white/[0.04] text-[var(--accent)]">
-              <item.icon className="h-4 w-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-inherit">
-                {item.label}
-              </span>
-              {"description" in item && item.description ? (
-                <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                  {item.description}
-                </span>
-              ) : null}
-            </span>
-          </Link>
-        ))}
-      </nav>
+      <div className="hidden w-full flex-1 xl:flex xl:min-h-0 xl:flex-col xl:items-center">
+        <div className="signal-line w-10" />
+        <div className="mt-4 flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto">
+          {hubs.slice(0, 10).map((hub) => {
+            const active = pathname.startsWith(`/app/hubs/${hub.id}`);
+            const initials = hub.name.slice(0, 2).toUpperCase();
 
-      <div className="surface-subtle mt-5 min-h-0 flex-1 overflow-auto rounded-[28px] p-3">
-        <div className="flex items-center justify-between gap-3 px-2">
-          <p className="section-kicker">Активные хабы</p>
-          <span className="glass-badge">{hubItems.length}</span>
-        </div>
-        <div className="mt-3 space-y-2">
-          {hubItems.length === 0 ? (
-            <div className="rounded-[22px] border border-dashed border-[var(--border)] px-4 py-4 text-sm leading-6 text-[var(--text-muted)]">
-              Подключённых пространств пока нет. Создайте первый хаб или
-              дождитесь приглашения.
-            </div>
-          ) : (
-            hubItems.map((hub) => (
+            return (
               <Link
                 key={hub.id}
-                href={hub.href}
-                className="list-row block rounded-[24px] px-4 py-4"
+                href={`/app/hubs/${hub.id}`}
+                title={hub.name}
+                aria-label={hub.name}
+                className={cn(
+                  "circle-chip flex h-14 w-14 items-center justify-center rounded-[22px] text-sm font-semibold text-white",
+                  active && "circle-chip-active",
+                )}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white">
-                      {hub.name}
-                    </p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                      Приватная зона сообщества
-                    </p>
-                  </div>
-                  <span className="glass-badge">{hub.role ?? "гость"}</span>
-                </div>
+                {initials}
               </Link>
-            ))
-          )}
+            );
+          })}
+
+          <Link
+            href="/app/hubs"
+            aria-label="Все хабы"
+            title="Создать или открыть хаб"
+            className="circle-chip mt-1 flex h-12 w-12 items-center justify-center rounded-[18px]"
+          >
+            <Plus className="h-4 w-4" />
+          </Link>
         </div>
       </div>
 
-      <div className="surface-subtle mt-4 rounded-[24px] p-4 text-sm leading-6 text-[var(--text-dim)]">
-        <p className="section-kicker">Политика пространства</p>
-        <p className="mt-2">
-          Lobby не раскрывает публичный каталог пользователей, а доступ к новым
-          секциям управляется ролями, инвайтами и аудитом действий.
-        </p>
+      <div className="flex items-center gap-2 xl:w-full xl:flex-col">
+        <Link
+          href="/app/settings/profile"
+          aria-label="Настройки"
+          title="Настройки"
+          className={cn(
+            "dock-icon flex h-12 w-12 items-center justify-center rounded-[18px]",
+            matchesPath(pathname, "/app/settings") && "dock-icon-active",
+          )}
+        >
+          <Settings2 className="h-4 w-4" />
+        </Link>
+        {viewer.role !== "MEMBER" ? (
+          <Link
+            href="/app/admin"
+            aria-label="Контроль"
+            title="Контроль"
+            className={cn(
+              "dock-icon flex h-12 w-12 items-center justify-center rounded-[18px]",
+              matchesPath(pathname, "/app/admin") && "dock-icon-active",
+            )}
+          >
+            <ShieldCheck className="h-4 w-4" />
+          </Link>
+        ) : null}
+        <div className="ml-1 xl:ml-0 xl:mt-2">
+          <UserAvatar user={viewer} size="sm" />
+        </div>
       </div>
     </aside>
   );

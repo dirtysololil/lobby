@@ -90,7 +90,7 @@ export function FriendshipPanels({
                             <p className="text-sm font-medium text-white">
                               {item.otherUser.profile.displayName}
                             </p>
-                            <p className="font-mono text-xs text-cyan-100/75">
+                            <p className="font-mono text-xs text-[var(--text-soft)]">
                               @{item.otherUser.username}
                             </p>
                           </div>
@@ -177,7 +177,7 @@ export function FriendshipPanels({
                   <p className="text-sm font-medium text-white">
                     {block.blockedUser.profile.displayName}
                   </p>
-                  <p className="font-mono text-xs text-cyan-100/75">
+                  <p className="font-mono text-xs text-[var(--text-soft)]">
                     @{block.blockedUser.username}
                   </p>
                 </div>

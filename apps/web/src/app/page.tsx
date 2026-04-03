@@ -39,7 +39,7 @@ export default async function Home() {
           </Link>
           <Link
             href="/register"
-            className="inline-flex min-h-[44px] items-center rounded-full bg-[linear-gradient(135deg,#9bc7ff,#8aafff)] px-4 text-sm font-semibold text-[#04101f] shadow-[0_14px_32px_rgba(104,152,255,0.34)]"
+            className="inline-flex min-h-[44px] items-center rounded-full bg-[linear-gradient(135deg,#8ff0ea,#74d3cd,#8ea7ff)] px-4 text-sm font-semibold text-[#041014] shadow-[0_14px_32px_rgba(124,215,209,0.28)]"
           >
             Активация
           </Link>
@@ -114,7 +114,7 @@ export default async function Home() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/register"
-              className="inline-flex min-h-[52px] items-center gap-2 rounded-full bg-[linear-gradient(135deg,#9bc7ff,#86b4ff,#9f8dff)] px-6 font-semibold text-[#04101f] shadow-[0_18px_36px_rgba(95,141,255,0.34)]"
+              className="inline-flex min-h-[52px] items-center gap-2 rounded-full bg-[linear-gradient(135deg,#8ff0ea,#74d3cd,#8ea7ff)] px-6 font-semibold text-[#041014] shadow-[0_18px_36px_rgba(124,215,209,0.28)]"
             >
               Активировать доступ <ArrowRight className="h-4 w-4" />
             </Link>

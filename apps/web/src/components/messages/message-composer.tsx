@@ -33,7 +33,7 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
 
   return (
     <form
-      className="surface-highlight space-y-3 rounded-[28px] p-4"
+      className="surface-highlight space-y-3 rounded-[24px] p-4"
       onSubmit={handleSubmit}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -52,10 +52,10 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
             : "Напишите сообщение. Enter — отправка, Shift+Enter — новая строка."
         }
         disabled={disabled || isSending}
-        className="field-textarea min-h-[148px] disabled:cursor-not-allowed disabled:opacity-60"
+        className="field-textarea min-h-[92px] rounded-[18px] disabled:cursor-not-allowed disabled:opacity-60"
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs leading-6 text-[var(--text-muted)]">
+        <p className="text-xs leading-5 text-[var(--text-muted)]">
           Поток диалога поддерживает быстрый desktop-ритм: Enter отправляет,
           Shift+Enter оставляет перенос строки.
         </p>

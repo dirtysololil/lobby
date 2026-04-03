@@ -16,13 +16,6 @@ import {
 } from "@lobby/shared";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { apiClientFetch } from "@/lib/api-client";
 import { DmCallPanel } from "@/components/calls/dm-call-panel";
 import { ConversationSettings } from "./conversation-settings";
@@ -121,40 +114,44 @@ export function ConversationView({
     conversation.isBlockedByViewer || conversation.hasBlockedViewer;
 
   return (
-    <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="surface-highlight rounded-[28px] p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="section-kicker">Личный канал</p>
-                <CardTitle>
-                  {counterpart?.profile.displayName ?? "Личный диалог"}
-                </CardTitle>
-                <CardDescription>
-                  {counterpart
-                    ? `@${counterpart.username}`
-                    : "Собеседник не найден"}
-                </CardDescription>
-                <div className="mt-3 flex flex-wrap gap-2">
+    <div className="grid min-h-0 gap-4">
+      <section className="premium-panel flex min-h-[calc(100vh-16rem)] flex-col overflow-hidden rounded-[28px]">
+        <div className="surface-highlight rounded-b-[24px] rounded-t-[28px] px-5 py-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="section-kicker">Личный канал</p>
+              <h2 className="mt-2 font-[var(--font-heading)] text-[1.7rem] font-semibold tracking-[-0.05em] text-white">
+                {counterpart?.profile.displayName ?? "Личный диалог"}
+              </h2>
+              <p className="mt-1 text-sm text-[var(--text-dim)]">
+                {counterpart
+                  ? `@${counterpart.username}`
+                  : "Собеседник не найден"}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="status-pill">
+                  <UserRound className="h-3.5 w-3.5 text-[var(--accent)]" />
+                  Прямое общение
+                </span>
+                {conversation.retentionMode !== "OFF" ? (
                   <span className="status-pill">
-                    <UserRound className="h-3.5 w-3.5 text-[var(--accent)]" />
-                    Прямое общение
+                    <Clock3 className="h-3.5 w-3.5 text-[var(--accent)]" />
+                    Автоудаление
                   </span>
-                  {conversation.retentionMode !== "OFF" ? (
-                    <span className="status-pill">
-                      <Clock3 className="h-3.5 w-3.5 text-[var(--accent)]" />
-                      Автоудаление активно
-                    </span>
-                  ) : null}
-                  {isBlocked ? (
-                    <span className="status-pill">
-                      <ShieldAlert className="h-3.5 w-3.5 text-[var(--danger)]" />
-                      Есть ограничения
-                    </span>
-                  ) : null}
-                </div>
+                ) : null}
+                {isBlocked ? (
+                  <span className="status-pill">
+                    <ShieldAlert className="h-3.5 w-3.5 text-[var(--danger)]" />
+                    Ограничение
+                  </span>
+                ) : null}
               </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="glass-badge">
+                <Sparkles className="h-3 w-3" />
+                {conversation.messages.length} сообщений
+              </span>
               <Link href="/app/messages">
                 <Button variant="secondary">
                   <ArrowLeft className="h-4 w-4" />
@@ -163,72 +160,41 @@ export function ConversationView({
               </Link>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 lg:grid-cols-3">
-            <div className="metric-tile rounded-[22px] px-4 py-4">
-              <p className="section-kicker">Сообщений</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {conversation.messages.length}
-              </p>
-            </div>
-            <div className="metric-tile rounded-[22px] px-4 py-4">
-              <p className="section-kicker">Участников</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {conversation.participants.length}
-              </p>
-            </div>
-            <div className="metric-tile rounded-[22px] px-4 py-4">
-              <p className="section-kicker">Режим</p>
-              <p className="mt-2 text-base font-semibold text-white">
-                {conversation.retentionMode === "OFF"
-                  ? "Постоянный"
-                  : "С автоудалением"}
-              </p>
-            </div>
+        </div>
+
+        {isBlocked ? (
+          <div className="mx-5 mt-4 rounded-[18px] border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+            Обмен сообщениями ограничен: один из участников заблокирован.
+            История остаётся доступной, но новые сообщения и звонки могут быть
+            недоступны.
           </div>
-          {isBlocked ? (
-            <div className="rounded-[22px] border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-              Обмен сообщениями ограничен: один из участников заблокирован.
-              История остаётся видимой, но новые сообщения и звонки могут быть
-              недоступны.
-            </div>
-          ) : null}
-          <DmCallPanel
-            conversationId={conversationId}
-            viewerId={viewerId}
-            isBlocked={isBlocked}
-          />
+        ) : null}
+
+        <div className="min-h-0 flex-1 px-5 py-4">
           <MessageThread
             viewerId={viewerId}
             conversation={conversation}
             isDeleting={isDeleting}
             onDelete={deleteMessage}
           />
-          <MessageComposer disabled={isBlocked} onSend={sendMessage} />
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <p className="section-kicker">Правая панель</p>
-          <CardTitle>Контекст диалога</CardTitle>
-          <CardDescription>
-            Точечные настройки уведомлений, режим хранения и статус приватного
-            канала.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="surface-subtle mb-4 rounded-[24px] p-4 text-sm leading-7 text-[var(--text-dim)]">
-            <span className="inline-flex items-center gap-2 text-white">
-              <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-              Интеллект диалога
-            </span>
-            <p className="mt-2">
-              Правая панель фиксирует meta-слой: условия взаимодействия, срок
-              жизни истории и ограничения контента для конкретной пары
-              участников.
-            </p>
+        <div className="border-t border-[var(--border-soft)] px-5 py-4">
+          <MessageComposer disabled={isBlocked} onSend={sendMessage} />
+        </div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-1">
+        <DmCallPanel
+          conversationId={conversationId}
+          viewerId={viewerId}
+          isBlocked={isBlocked}
+        />
+
+        <div className="premium-panel rounded-[28px] p-5 2xl:hidden">
+          <div className="surface-subtle mb-4 rounded-[20px] p-4 text-sm leading-6 text-[var(--text-dim)]">
+            Правая панель на desktop держит meta-слой разговора. На tablet и
+            mobile настройки диалога остаются здесь, чтобы flow не терялся.
           </div>
           <ConversationSettings
             notificationSetting={
@@ -241,8 +207,8 @@ export function ConversationView({
             disabled={false}
             onSave={saveSettings}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

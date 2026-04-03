@@ -11,20 +11,30 @@ interface UserAvatarProps {
 
 const sizeClasses = {
   sm: "h-10 w-10 text-xs",
-  md: "h-14 w-14 text-sm",
-  lg: "h-20 w-20 text-lg",
+  md: "h-[52px] w-[52px] text-sm sm:h-14 sm:w-14",
+  lg: "h-[72px] w-[72px] text-lg sm:h-20 sm:w-20",
 } as const;
+
+const presenceDotClasses: Record<
+  PublicUser["profile"]["presence"],
+  string
+> = {
+  ONLINE: "bg-[var(--success)]",
+  IDLE: "bg-[var(--warning)]",
+  DND: "bg-[var(--danger)]",
+  OFFLINE: "bg-[var(--text-muted)]",
+};
 
 const presetClasses: Record<PublicUser["profile"]["avatarPreset"], string> = {
   NONE: "before:absolute before:inset-0 before:rounded-[inherit] before:border before:border-white/10",
   GOLD_GLOW:
-    "before:absolute before:inset-[-2px] before:rounded-[inherit] before:bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.44),transparent_68%)] before:blur-md after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-amber-200/40",
+    "before:absolute before:inset-[-2px] before:rounded-[inherit] before:bg-[radial-gradient(circle_at_center,rgba(255,189,107,0.44),transparent_68%)] before:blur-md after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-amber-200/40",
   NEON_BLUE:
-    "before:absolute before:inset-[-2px] before:rounded-[inherit] before:bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.42),transparent_70%)] before:blur-md after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-sky-300/45",
+    "before:absolute before:inset-[-2px] before:rounded-[inherit] before:bg-[radial-gradient(circle_at_center,rgba(124,215,209,0.42),transparent_70%)] before:blur-md after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-cyan-200/45",
   PREMIUM_PURPLE:
-    "before:absolute before:inset-[-2px] before:rounded-[inherit] before:bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.42),transparent_70%)] before:blur-md after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-fuchsia-300/40",
+    "before:absolute before:inset-[-2px] before:rounded-[inherit] before:bg-[radial-gradient(circle_at_center,rgba(142,167,255,0.42),transparent_70%)] before:blur-md after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-indigo-200/40",
   ANIMATED_RING:
-    "before:absolute before:inset-[-3px] before:rounded-[inherit] before:bg-[conic-gradient(from_0deg,rgba(56,189,248,0.9),rgba(250,204,21,0.6),rgba(168,85,247,0.85),rgba(56,189,248,0.9))] before:animate-[avatar-spin_3s_linear_infinite] before:blur-[1px] after:absolute after:inset-[2px] after:rounded-[inherit] after:border after:border-white/10 after:bg-slate-950/75",
+    "before:absolute before:inset-[-3px] before:rounded-[inherit] before:bg-[conic-gradient(from_0deg,rgba(124,215,209,0.9),rgba(255,189,107,0.58),rgba(142,167,255,0.85),rgba(124,215,209,0.9))] before:animate-[avatar-spin_3s_linear_infinite] before:blur-[1px] after:absolute after:inset-[2px] after:rounded-[inherit] after:border after:border-white/10 after:bg-slate-950/75",
 };
 
 export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
@@ -34,7 +44,7 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
   return (
     <div
       className={cn(
-        "relative isolate overflow-hidden rounded-[28px]",
+        "relative isolate overflow-hidden rounded-[26px]",
         sizeClasses[size],
         presetClasses[user.profile.avatarPreset],
         className,
@@ -51,6 +61,12 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
           <span>{initials}</span>
         )}
       </div>
+      <span
+        className={cn(
+          "absolute bottom-0.5 right-0.5 z-20 h-3.5 w-3.5 rounded-full border-2 border-[var(--surface-base)] shadow-[0_0_14px_rgba(0,0,0,0.35)]",
+          presenceDotClasses[user.profile.presence],
+        )}
+      />
     </div>
   );
 }
