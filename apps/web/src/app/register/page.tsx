@@ -20,7 +20,7 @@ export default async function RegisterPage() {
         <>
           Уже активировали аккаунт?{" "}
           <Link
-            className="text-sky-300 transition hover:text-sky-200"
+            className="text-[var(--accent)] transition hover:text-[var(--accent-strong)]"
             href="/login"
           >
             Войти

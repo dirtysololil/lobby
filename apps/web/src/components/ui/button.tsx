@@ -3,23 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-[20px] border text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 rounded-[18px] border text-sm font-semibold tracking-[-0.01em] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-[linear-gradient(135deg,#9bc7ff_0%,#83b5ff_52%,#a18dff_100%)] text-[#05101f] shadow-[0_16px_34px_rgba(95,141,255,0.35)] hover:-translate-y-[1px] hover:brightness-105",
+          "border-transparent bg-[linear-gradient(135deg,#8ff0ea_0%,#74d3cd_54%,#8ea7ff_100%)] text-[#041014] shadow-[0_16px_34px_rgba(124,215,209,0.24)] hover:-translate-y-[1px] hover:brightness-105",
         secondary:
           "border-[var(--border)] bg-white/[0.04] text-[var(--text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-[var(--border-strong)] hover:bg-white/[0.08]",
         ghost:
           "border-transparent bg-transparent text-[var(--text-dim)] hover:bg-white/[0.05] hover:text-[var(--text)]",
         destructive:
-          "border-transparent bg-[linear-gradient(135deg,#ff88a6,#ff6f8f)] text-[#240812] shadow-[0_12px_26px_rgba(255,111,143,0.28)] hover:-translate-y-[1px] hover:brightness-105",
+          "border-transparent bg-[linear-gradient(135deg,#ff9bb1,#ff798f)] text-[#230812] shadow-[0_12px_26px_rgba(255,122,147,0.26)] hover:-translate-y-[1px] hover:brightness-105",
       },
       size: {
-        default: "min-h-[48px] px-5",
-        sm: "min-h-[38px] px-3.5 text-xs",
-        lg: "min-h-[54px] px-6 text-base",
+        default: "min-h-[44px] px-[18px]",
+        sm: "min-h-[34px] px-3 text-xs",
+        lg: "min-h-[50px] px-[22px] text-base",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

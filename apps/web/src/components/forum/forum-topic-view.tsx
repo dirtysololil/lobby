@@ -249,7 +249,7 @@ export function ForumTopicView({
                 <p className="text-sm font-medium text-white">
                   {reply.author.profile.displayName}
                 </p>
-                <p className="font-mono text-xs text-cyan-100/75">
+                <p className="font-mono text-xs text-[var(--text-soft)]">
                   @{reply.author.username}
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">

@@ -1,5 +1,4 @@
 import { adminAuditLogListResponseSchema } from "@lobby/shared";
-import { AdminNav } from "@/components/admin/admin-nav";
 import { AuditLogPanel } from "@/components/admin/audit-log-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +31,7 @@ export default async function AdminAuditPage({
 
   return (
     <div className="grid gap-5">
-      <AdminNav />
-      <section className="premium-panel rounded-[32px] p-6">
+      <section className="premium-panel rounded-[28px] p-5">
         <form className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
           <Input
             name="action"

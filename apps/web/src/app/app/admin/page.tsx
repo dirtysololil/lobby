@@ -1,6 +1,5 @@
 import { adminOverviewResponseSchema } from "@lobby/shared";
 import { ShieldCheck, Sparkles } from "lucide-react";
-import { AdminNav } from "@/components/admin/admin-nav";
 import {
   Card,
   CardContent,
@@ -24,14 +23,14 @@ export default async function AdminPage() {
 
   return (
     <div className="grid gap-6">
-      <section className="premium-panel rounded-[32px] p-6 lg:p-8">
+      <section className="premium-panel rounded-[28px] p-5 lg:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="section-kicker">Админ-панель</p>
-            <h1 className="mt-4 font-[var(--font-heading)] text-3xl font-semibold tracking-[-0.04em] text-white">
+            <h1 className="mt-4 font-[var(--font-heading)] text-[2rem] font-semibold tracking-[-0.04em] text-white">
               Управление платформой
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--text-dim)]">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
               Модерируйте пользователей, управляйте ключами и проверяйте события
               аудита в одном интерфейсе.
             </p>
@@ -47,8 +46,6 @@ export default async function AdminPage() {
           </div>
         </div>
       </section>
-
-      <AdminNav />
 
       <section className="grid gap-6 xl:grid-cols-[0.72fr_0.28fr]">
         <Card>

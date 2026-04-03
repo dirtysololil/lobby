@@ -128,7 +128,7 @@ export function UserSearchPanel(props: UserSearchPanelProps) {
                           </span>
                         ) : null}
                       </div>
-                      <p className="font-mono text-xs text-cyan-100/75">
+                      <p className="font-mono text-xs text-[var(--text-soft)]">
                         @{item.user.username}
                       </p>
                       <p className="text-sm leading-6 text-slate-400">
@@ -223,7 +223,7 @@ export function UserSearchPanel(props: UserSearchPanelProps) {
                       Существующий диалог:{" "}
                       <Link
                         href={`/app/messages/${item.relationship.dmConversationId}`}
-                        className="text-cyan-300 hover:text-cyan-200"
+                        className="text-[var(--accent)] hover:text-[var(--accent-strong)]"
                       >
                         открыть
                       </Link>

@@ -2,6 +2,8 @@
 
 import type { DirectConversationDetail } from "@lobby/shared";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { cn } from "@/lib/utils";
 
 interface MessageThreadProps {
   viewerId: string;
@@ -38,9 +40,9 @@ export function MessageThread({
   );
 
   return (
-    <div className="space-y-5">
+    <div className="min-h-0 space-y-5 overflow-y-auto pr-1">
       {conversation.messages.length === 0 ? (
-        <div className="surface-subtle rounded-[26px] p-6 text-sm leading-7 text-[var(--text-muted)]">
+        <div className="surface-subtle rounded-[24px] p-6 text-sm leading-6 text-[var(--text-muted)]">
           Сообщений пока нет. Здесь появится приватный поток переписки — без
           публичной стены и без лишнего визуального шума.
         </div>
@@ -58,45 +60,72 @@ export function MessageThread({
               return (
                 <div
                   key={message.id}
-                  className={`${isOwn ? "message-bubble-own ml-auto" : "message-bubble"} max-w-[92%] rounded-[28px] p-4 lg:max-w-[78%]`}
+                  className={cn(
+                    "flex gap-3",
+                    isOwn && "flex-row-reverse",
+                  )}
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-white">
-                          {message.author.profile.displayName}
-                        </p>
-                        <span className="text-xs uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                          @{message.author.username}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  <UserAvatar
+                    user={message.author}
+                    size="sm"
+                    className="mt-1 shrink-0"
+                  />
+
+                  <div
+                    className={cn(
+                      "min-w-0 max-w-[min(78ch,100%)] flex-1",
+                      isOwn && "text-right",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "mb-2 flex flex-wrap items-center gap-2",
+                        isOwn && "justify-end",
+                      )}
+                    >
+                      <p className="text-sm font-semibold text-white">
+                        {message.author.profile.displayName}
+                      </p>
+                      <span className="text-xs uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                        @{message.author.username}
+                      </span>
+                      <span className="text-xs text-[var(--text-muted)]">
                         {new Date(message.createdAt).toLocaleTimeString(
                           "ru-RU",
                           { hour: "2-digit", minute: "2-digit" },
                         )}
+                      </span>
+                      {isOwn ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void onDelete(message.id)}
+                          disabled={
+                            isDeleting === message.id || message.isDeleted
+                          }
+                        >
+                          {message.isDeleted
+                            ? "Удалено"
+                            : isDeleting === message.id
+                              ? "Удаляем..."
+                              : "Удалить"}
+                        </Button>
+                      ) : null}
+                    </div>
+
+                    <div
+                      className={cn(
+                        isOwn ? "message-bubble-own ml-auto" : "message-bubble",
+                        "rounded-[24px] px-4 py-3.5",
+                      )}
+                    >
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--text)]">
+                        {message.isDeleted
+                          ? "Сообщение удалено"
+                          : message.content}
                       </p>
                     </div>
-                    {isOwn ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void onDelete(message.id)}
-                        disabled={
-                          isDeleting === message.id || message.isDeleted
-                        }
-                      >
-                        {message.isDeleted
-                          ? "Удалено"
-                          : isDeleting === message.id
-                            ? "Удаляем..."
-                            : "Удалить"}
-                      </Button>
-                    ) : null}
                   </div>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text)]">
-                    {message.isDeleted ? "Сообщение удалено" : message.content}
-                  </p>
                 </div>
               );
             })}
