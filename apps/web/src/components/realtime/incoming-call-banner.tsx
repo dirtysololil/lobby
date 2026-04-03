@@ -58,18 +58,18 @@ export function IncomingCallBanner() {
     <div className="rounded-[28px] border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-50 shadow-[var(--shadow)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-emerald-100/80">Incoming call</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-emerald-100/80">Входящий звонок</p>
           <p className="mt-2 text-base font-medium text-white">
-            {caller.profile.displayName} started a {call.mode === "VIDEO" ? "video" : "voice"} call
+            {caller.profile.displayName} начал {call.mode === "VIDEO" ? "видео" : "аудио"} call
           </p>
           <p className="mt-1 text-sm text-emerald-50/80">@{caller.username}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => void acceptCall()} disabled={pendingAction !== null}>
-            {pendingAction === "accept" ? "Accepting..." : "Accept"}
+            {pendingAction === "accept" ? "Принимаем..." : "Принять"}
           </Button>
           <Button variant="secondary" onClick={() => void declineCall()} disabled={pendingAction !== null}>
-            {pendingAction === "decline" ? "Declining..." : "Decline"}
+            {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
           </Button>
         </div>
       </div>

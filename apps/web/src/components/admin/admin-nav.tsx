@@ -4,26 +4,26 @@ import { KeyRound, ScrollText, ShieldCheck, Users2 } from "lucide-react";
 const items = [
   {
     href: "/app/admin",
-    label: "Overview",
-    description: "Counts and moderation snapshot",
+    label: "Обзор",
+    description: "Сводка платформы и модерации",
     icon: ShieldCheck,
   },
   {
     href: "/app/admin/invites",
-    label: "Invite keys",
-    description: "Create and revoke access keys",
+    label: "Ключи приглашений",
+    description: "Создание и отзыв ключей доступа",
     icon: KeyRound,
   },
   {
     href: "/app/admin/users",
-    label: "Users",
-    description: "Search, review and moderate users",
+    label: "Пользователи",
+    description: "Поиск, анализ и модерация пользователей",
     icon: Users2,
   },
   {
     href: "/app/admin/audit",
-    label: "Audit log",
-    description: "Critical actions across the platform",
+    label: "Журнал аудита",
+    description: "Критичные действия по всей платформе",
     icon: ScrollText,
   },
 ];

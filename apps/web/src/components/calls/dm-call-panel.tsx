@@ -39,7 +39,7 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
       setState(callStateResponseSchema.parse(payload));
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to load call state");
+      setErrorMessage(error instanceof Error ? error.message : "Не удалось загрузить состояние звонка");
     }
   }, [conversationId]);
 
@@ -186,8 +186,8 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Call</CardTitle>
-          <CardDescription>LiveKit-backed voice and video calls for this direct conversation.</CardDescription>
+          <CardTitle>Звонок</CardTitle>
+          <CardDescription>Голосовые и видеозвонки LiveKit внутри личного диалога.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {errorMessage ? (
@@ -198,7 +198,7 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
 
           {isBlocked ? (
             <div className="rounded-3xl border border-amber-300/20 bg-amber-300/10 px-5 py-4 text-sm text-amber-50">
-              Calls are disabled because one of the users blocked the other.
+              Звонки недоступны: один из пользователей заблокирован.
             </div>
           ) : null}
 
@@ -207,11 +207,11 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
               <>
                 <Button onClick={() => void startCall("AUDIO")} disabled={isBlocked || pendingAction !== null}>
                   <Phone className="mr-2 h-4 w-4" />
-                  {pendingAction === "start:AUDIO" ? "Starting..." : "Audio call"}
+                  {pendingAction === "start:AUDIO" ? "Запуск..." : "Аудиозвонок"}
                 </Button>
                 <Button variant="secondary" onClick={() => void startCall("VIDEO")} disabled={isBlocked || pendingAction !== null}>
                   <Video className="mr-2 h-4 w-4" />
-                  {pendingAction === "start:VIDEO" ? "Starting..." : "Video call"}
+                  {pendingAction === "start:VIDEO" ? "Запуск..." : "Видеозвонок"}
                 </Button>
               </>
             ) : (
@@ -219,19 +219,19 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
                 {isIncomingCall ? (
                   <>
                     <Button onClick={() => void acceptCall()} disabled={pendingAction !== null || isBlocked}>
-                      {pendingAction === "accept" ? "Accepting..." : "Accept"}
+                      {pendingAction === "accept" ? "Принимаем..." : "Принять"}
                     </Button>
                     <Button variant="secondary" onClick={() => void declineCall()} disabled={pendingAction !== null}>
-                      {pendingAction === "decline" ? "Declining..." : "Decline"}
+                      {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
                     </Button>
                   </>
                 ) : null}
 
                 <Button onClick={() => void joinCall()} disabled={pendingAction !== null || isBlocked}>
-                  {pendingAction === "join" ? "Joining..." : "Join"}
+                  {pendingAction === "join" ? "Подключаем..." : "Подключиться"}
                 </Button>
                 <Button variant="secondary" onClick={() => void endCall()} disabled={pendingAction !== null}>
-                  {pendingAction === "end" ? "Ending..." : "End call"}
+                  {pendingAction === "end" ? "Завершаем..." : "Завершить"}
                 </Button>
               </>
             )}
@@ -244,7 +244,7 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
                 <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">{activeCall.status}</span>
                 {viewerParticipant ? (
                   <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">
-                    you: {viewerParticipant.state}
+                    вы: {viewerParticipant.state}
                   </span>
                 ) : null}
               </div>
