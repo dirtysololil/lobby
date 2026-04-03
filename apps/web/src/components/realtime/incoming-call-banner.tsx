@@ -55,7 +55,7 @@ export function IncomingCallBanner() {
   }
 
   return (
-    <div className="surface-highlight rounded-[18px] px-4 py-3 text-sm text-white">
+    <div className="surface-highlight rounded-[16px] px-3 py-2.5 text-sm text-white">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="section-kicker text-[var(--accent-strong)]">Входящий звонок</p>

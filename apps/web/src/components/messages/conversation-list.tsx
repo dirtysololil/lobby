@@ -111,8 +111,8 @@ export function ConversationList() {
   }, [conversations]);
 
   return (
-    <section className="grid gap-4">
-      <div className="social-shell rounded-[24px] p-4">
+    <section className="grid gap-3">
+      <div className="social-shell rounded-[20px] p-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -123,8 +123,8 @@ export function ConversationList() {
               <span className="status-pill">{conversations.length} threads</span>
               <span className="status-pill">{getUnreadTotal(conversations)} unread</span>
             </div>
-            <h2 className="mt-2 font-[var(--font-heading)] text-[1.4rem] font-semibold tracking-[-0.04em] text-white">
-              Все активные диалоги в одном плотном списке
+            <h2 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
+              Inbox
             </h2>
           </div>
 
@@ -141,13 +141,13 @@ export function ConversationList() {
                 className="pl-9"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="username для нового DM"
+                placeholder="@username"
                 autoComplete="off"
               />
             </div>
             <Button type="submit" disabled={isOpening}>
               <UserRoundPlus className="h-4 w-4" />
-              {isOpening ? "Открываем..." : "Новый диалог"}
+              {isOpening ? "Открываем..." : "Новый DM"}
             </Button>
           </form>
         </div>
@@ -159,8 +159,8 @@ export function ConversationList() {
         </div>
       ) : null}
 
-      <div className="premium-panel overflow-hidden rounded-[24px]">
-        <div className="compact-toolbar border-b border-white/8 px-4 py-3">
+      <div className="premium-panel overflow-hidden rounded-[20px]">
+        <div className="compact-toolbar border-b border-white/8 px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="glass-badge">{getRetentionTotal(conversations)} retention</span>
             <span className="glass-badge">Sorted by unread</span>
@@ -173,23 +173,22 @@ export function ConversationList() {
 
         <div className="grid gap-1 p-2">
           {isLoading ? (
-            <div className="surface-subtle rounded-[18px] px-4 py-4 text-sm text-[var(--text-muted)]">
+            <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
               Загружаем inbox...
             </div>
           ) : orderedConversations.length === 0 ? (
-            <div className="surface-subtle rounded-[18px] px-4 py-5 text-sm text-[var(--text-muted)]">
-              У вас пока нет диалогов. Начните новый DM по username или перейдите в
-              People, чтобы быстро найти человека.
+            <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
+              Пока пусто. Откройте DM по username или через People.
             </div>
           ) : (
             orderedConversations.map((conversation) => (
               <Link
                 key={conversation.id}
                 href={`/app/messages/${conversation.id}`}
-                className="list-row rounded-[18px] px-3 py-3"
+                className="list-row rounded-[16px] px-3 py-2.5"
               >
-                <div className="flex items-start gap-3">
-                  <UserAvatar user={conversation.counterpart} size="md" />
+                <div className="flex items-start gap-2.5">
+                  <UserAvatar user={conversation.counterpart} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate text-sm font-semibold text-white">
@@ -214,11 +213,10 @@ export function ConversationList() {
                     <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
                       @{conversation.counterpart.username}
                     </p>
-                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-[var(--text-dim)]">
+                    <p className="mt-1.5 truncate text-sm text-[var(--text-dim)]">
                       {conversation.lastMessage?.isDeleted
                         ? "Последнее сообщение удалено"
-                        : (conversation.lastMessage?.content ??
-                          "Диалог готов к первому сообщению.")}
+                        : (conversation.lastMessage?.content ?? "Напишите первым")}
                     </p>
                   </div>
                 </div>

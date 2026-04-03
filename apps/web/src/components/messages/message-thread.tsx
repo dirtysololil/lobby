@@ -43,14 +43,14 @@ export function MessageThread({
   );
 
   return (
-    <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
+    <div className="min-h-0 space-y-3 overflow-y-auto pr-1">
       {conversation.messages.length === 0 ? (
-        <div className="surface-subtle rounded-[18px] p-5 text-sm text-[var(--text-muted)]">
-          Сообщений пока нет. Начните разговор с первого короткого сообщения.
+        <div className="surface-subtle rounded-[16px] p-4 text-sm text-[var(--text-muted)]">
+          Сообщений пока нет.
         </div>
       ) : (
         groupedMessages.map((group) => (
-          <div key={group.label} className="space-y-3">
+          <div key={group.label} className="space-y-2.5">
             <div className="flex items-center gap-3">
               <div className="thread-rule flex-1" />
               <span className="glass-badge">{group.label}</span>
@@ -104,10 +104,10 @@ export function MessageThread({
                     <div
                       className={cn(
                         isOwn ? "message-bubble-own ml-auto" : "message-bubble",
-                        "rounded-[16px] px-3 py-2.5",
+                        "rounded-[14px] px-3 py-2",
                       )}
                     >
-                      <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--text)]">
+                      <p className="whitespace-pre-wrap text-sm leading-5 text-[var(--text)]">
                         {message.isDeleted ? "Сообщение удалено" : message.content}
                       </p>
                     </div>

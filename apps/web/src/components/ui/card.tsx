@@ -5,9 +5,7 @@ export function Card({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={cn("premium-panel rounded-[24px]", className)} {...props} />
-  );
+  return <div className={cn("premium-panel rounded-[20px]", className)} {...props} />;
 }
 
 export function CardHeader({
@@ -16,7 +14,7 @@ export function CardHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("space-y-1.5 p-4 pb-0 lg:p-5 lg:pb-0", className)}
+      className={cn("space-y-1 p-4 pb-0", className)}
       {...props}
     />
   );
@@ -29,7 +27,7 @@ export function CardTitle({
   return (
     <h2
       className={cn(
-        "font-[var(--font-heading)] text-[1.1rem] font-semibold tracking-[-0.04em] text-[var(--text)] lg:text-[1.25rem]",
+        "font-[var(--font-heading)] text-[1.02rem] font-semibold tracking-[-0.04em] text-[var(--text)] lg:text-[1.15rem]",
         className,
       )}
       {...props}
@@ -43,7 +41,7 @@ export function CardDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn("text-sm leading-6 text-[var(--text-dim)]", className)}
+      className={cn("text-sm leading-5 text-[var(--text-dim)]", className)}
       {...props}
     />
   );
@@ -53,5 +51,5 @@ export function CardContent({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-4 lg:p-5", className)} {...props} />;
+  return <div className={cn("p-4", className)} {...props} />;
 }

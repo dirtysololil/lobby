@@ -67,18 +67,14 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
   }
 
   return (
-    <div className="grid gap-5">
-      <section className="social-shell rounded-[32px] p-6">
+    <div className="grid gap-4">
+      <section className="social-shell rounded-[20px] p-3.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="section-kicker">Центр контроля</p>
-            <h2 className="mt-2 font-[var(--font-heading)] text-3xl font-semibold tracking-[-0.04em] text-white">
+            <p className="section-kicker">Control</p>
+            <h2 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
               Модерация пользователей
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-[var(--text-dim)]">
-              Этот раздел должен ощущаться как внутренний центр контроля:
-              плотный, строгий, без витринной админки и без шаблонной оболочки.
-            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="eyebrow-pill">
@@ -90,7 +86,7 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
             </span>
           </div>
         </div>
-        <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_170px_170px_auto]">
+        <div className="mt-3 grid gap-2.5 xl:grid-cols-[minmax(0,1fr)_156px_156px_auto]">
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -122,9 +118,9 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
         {error ? <p className="mt-3 text-sm text-rose-200">{error}</p> : null}
       </section>
 
-      <section className="social-shell rounded-[32px] p-6">
+      <section className="social-shell rounded-[20px] p-3.5">
         <p className="section-kicker">Пользователи платформы</p>
-        <div className="mt-4 grid gap-3">
+        <div className="mt-3 grid gap-2">
           {response.items.length === 0 ? (
             <EmptyState
               title="Ничего не найдено"
@@ -134,13 +130,13 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
             response.items.map((item) => (
               <div
                 key={item.user.id}
-                className="list-row grid gap-4 rounded-[28px] p-4 xl:grid-cols-[minmax(0,1fr)_210px]"
+                className="list-row grid gap-3 rounded-[16px] p-3 xl:grid-cols-[minmax(0,1fr)_190px]"
               >
                 <div className="flex items-start gap-3">
                   <UserAvatar user={item.user} />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-base font-medium text-white">
+                      <p className="text-sm font-medium text-white">
                         {item.user.profile.displayName}
                       </p>
                       <span className="glass-badge">
@@ -159,7 +155,7 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
                     <p className="mt-1 text-sm text-[var(--text-dim)]">
                       {item.user.email}
                     </p>
-                    <p className="mt-2 text-sm text-[var(--text-dim)]">
+                    <p className="mt-1.5 text-sm text-[var(--text-dim)]">
                       Сессии: {item.activeSessionCount} · Хабы:{" "}
                       {item.hubMembershipCount} · Последняя активность:{" "}
                       {item.lastSeenAt
@@ -216,16 +212,11 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
             </Button>
           </div>
         </div>
-        <div className="surface-subtle mt-5 rounded-[24px] p-4 text-sm leading-7 text-[var(--text-dim)]">
+        <div className="surface-subtle mt-4 rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
           <span className="inline-flex items-center gap-2 text-white">
             <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-            Стиль центра контроля
+            Внутренний маршрут без лишнего UI.
           </span>
-          <p className="mt-2">
-            Внутренний контроль должен ощущаться статусно: аудит, блокировки и
-            модерация выглядят как часть премиальной платформы, а не отдельная
-            сервисная админка.
-          </p>
         </div>
       </section>
     </div>

@@ -48,11 +48,11 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
   }, []);
 
   return (
-    <aside className="workspace-dock flex gap-2 rounded-[24px] p-2 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:flex-col lg:items-center lg:justify-between">
+    <aside className="workspace-dock flex gap-1.5 rounded-[20px] p-1.5 lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)] lg:flex-col lg:items-center lg:justify-between">
       <div className="flex min-w-0 flex-1 items-center gap-2 lg:w-full lg:flex-none lg:flex-col">
         <Link
           href="/app/messages"
-          className="dock-icon dock-icon-active flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-[var(--accent)] text-[#180d08]"
+          className="dock-icon dock-icon-active flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[var(--accent)] text-[#180d08]"
           aria-label="Lobby inbox"
         >
           <span className="text-sm font-bold tracking-[-0.04em]">Lb</span>
@@ -69,7 +69,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
                 aria-label={item.label}
                 title={item.label}
                 className={cn(
-                  "dock-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] lg:h-12 lg:w-12",
+                  "dock-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] lg:h-11 lg:w-11",
                   active && "dock-icon-active",
                 )}
               >
@@ -82,8 +82,8 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
 
       <div className="hidden w-full flex-1 lg:flex lg:min-h-0 lg:flex-col lg:items-center">
         <div className="signal-line w-8" />
-        <div className="mt-3 flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-y-auto">
-          {hubs.slice(0, 8).map((hub) => {
+        <div className="mt-2.5 flex min-h-0 w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto">
+          {hubs.slice(0, 6).map((hub) => {
             const active = pathname.startsWith(`/app/hubs/${hub.id}`);
             const initials = hub.name
               .split(/\s+/)
@@ -100,7 +100,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
                 title={hub.name}
                 aria-label={hub.name}
                 className={cn(
-                  "circle-chip flex h-11 w-11 items-center justify-center rounded-[14px] text-[11px] font-semibold text-white",
+                  "circle-chip flex h-10 w-10 items-center justify-center rounded-[14px] text-[10px] font-semibold text-white",
                   active && "circle-chip-active",
                 )}
               >
@@ -113,7 +113,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
             href="/app/hubs"
             aria-label="Open hubs"
             title="Open hubs"
-            className="circle-chip mt-1 flex h-10 w-10 items-center justify-center rounded-[14px]"
+            className="circle-chip mt-0.5 flex h-9 w-9 items-center justify-center rounded-[14px]"
           >
             <Plus className="h-4 w-4" />
           </Link>
@@ -126,7 +126,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
           aria-label="Settings"
           title="Settings"
           className={cn(
-            "dock-icon flex h-11 w-11 items-center justify-center rounded-[14px]",
+            "dock-icon flex h-10 w-10 items-center justify-center rounded-[14px]",
             matchesPath(pathname, "/app/settings") && "dock-icon-active",
           )}
         >
@@ -138,7 +138,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
             aria-label="Admin"
             title="Admin"
             className={cn(
-              "dock-icon flex h-11 w-11 items-center justify-center rounded-[14px]",
+              "dock-icon flex h-10 w-10 items-center justify-center rounded-[14px]",
               matchesPath(pathname, "/app/admin") && "dock-icon-active",
             )}
           >

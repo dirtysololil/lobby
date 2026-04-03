@@ -8,18 +8,18 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-[var(--accent)] text-[#170d08] shadow-[0_10px_24px_rgba(255,123,82,0.24)] hover:-translate-y-[1px] hover:brightness-105",
+          "border-transparent bg-[var(--accent)] text-[#170d08] shadow-[0_6px_18px_rgba(255,123,82,0.18)] hover:-translate-y-[1px] hover:brightness-105",
         secondary:
-          "border-[var(--border)] bg-white/[0.04] text-[var(--text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-[var(--border-strong)] hover:bg-white/[0.08]",
+          "border-[var(--border)] bg-white/[0.04] text-[var(--text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-[var(--border-strong)] hover:bg-white/[0.06]",
         ghost:
           "border-transparent bg-transparent text-[var(--text-dim)] hover:bg-white/[0.05] hover:text-[var(--text)]",
         destructive:
-          "border-transparent bg-[var(--danger)] text-[#21080c] shadow-[0_10px_24px_rgba(255,110,121,0.2)] hover:-translate-y-[1px] hover:brightness-105",
+          "border-transparent bg-[var(--danger)] text-[#21080c] shadow-[0_6px_18px_rgba(255,110,121,0.16)] hover:-translate-y-[1px] hover:brightness-105",
       },
       size: {
-        default: "min-h-[38px] px-4",
-        sm: "min-h-[30px] px-3 text-xs",
-        lg: "min-h-[42px] px-5 text-base",
+        default: "min-h-[36px] px-3.5",
+        sm: "min-h-[28px] px-2.5 text-xs",
+        lg: "min-h-[40px] px-4.5 text-base",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

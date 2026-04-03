@@ -45,10 +45,10 @@ function RelationshipRow({
   actions,
 }: RelationshipRowProps) {
   return (
-    <div className={cn("group list-row rounded-[18px] px-3 py-3", actionKey && "opacity-80")}>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <UserAvatar user={user} size="md" />
+    <div className={cn("group list-row rounded-[16px] px-3 py-2.5", actionKey && "opacity-80")}>
+      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <UserAvatar user={user} size="sm" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <p className="truncate text-sm font-semibold text-white">
@@ -59,12 +59,12 @@ function RelationshipRow({
             <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
               @{user.username}
             </p>
-            <p className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--text-dim)]">
+            <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
               {subtitle ?? user.profile.bio ?? "Профиль без биографии."}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 lg:opacity-0 lg:transition lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
+        <div className="flex flex-wrap gap-1.5 lg:opacity-0 lg:transition lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
           {actions}
         </div>
       </div>
@@ -204,8 +204,8 @@ export function PeopleWorkspace() {
   const outgoing = friendships.filter((item) => item.state === "OUTGOING_REQUEST");
 
   return (
-    <section className="grid gap-4">
-      <div className="social-shell rounded-[24px] p-4">
+    <section className="grid gap-3">
+      <div className="social-shell rounded-[20px] p-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -218,8 +218,8 @@ export function PeopleWorkspace() {
                 {incoming.length + outgoing.length} requests
               </span>
             </div>
-            <h2 className="mt-2 font-[var(--font-heading)] text-[1.4rem] font-semibold tracking-[-0.04em] text-white">
-              Люди, связи и быстрые действия без сервисного шума
+            <h2 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
+              People
             </h2>
           </div>
 
@@ -274,14 +274,14 @@ export function PeopleWorkspace() {
         ))}
       </div>
 
-      <div className="premium-panel rounded-[24px] p-3">
+      <div className="premium-panel rounded-[20px] p-3">
         {activeView === "friends" ? (
           <div className="grid gap-2">
             <SectionHeader title="Friends" count={friends.length} />
             {friends.length === 0 ? (
               <EmptyState
                 title="Пока нет друзей"
-                description="Отправьте первый запрос или найдите человека через встроенный поиск."
+                description="Найдите человека и отправьте запрос."
               />
             ) : (
               friends.map((item) => (
@@ -344,7 +344,7 @@ export function PeopleWorkspace() {
             <div className="grid gap-2">
               <SectionHeader title="Incoming" count={incoming.length} />
               {incoming.length === 0 ? (
-                <div className="surface-subtle rounded-[18px] px-4 py-4 text-sm text-[var(--text-muted)]">
+                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
                   Нет входящих запросов.
                 </div>
               ) : (
@@ -399,7 +399,7 @@ export function PeopleWorkspace() {
             <div className="grid gap-2">
               <SectionHeader title="Outgoing" count={outgoing.length} />
               {outgoing.length === 0 ? (
-                <div className="surface-subtle rounded-[18px] px-4 py-4 text-sm text-[var(--text-muted)]">
+                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
                   Нет исходящих запросов.
                 </div>
               ) : (
@@ -443,10 +443,10 @@ export function PeopleWorkspace() {
             {query.trim().length === 0 ? (
               <EmptyState
                 title="Начните с username"
-                description="Поиск встроен прямо в экран: введите username и сразу получите быстрые действия."
+                description="Введите username."
               />
             ) : results.length === 0 ? (
-              <div className="surface-subtle rounded-[18px] px-4 py-4 text-sm text-[var(--text-muted)]">
+              <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
                 Ничего не найдено.
               </div>
             ) : (
@@ -577,7 +577,7 @@ export function PeopleWorkspace() {
             {blocks.length === 0 ? (
               <EmptyState
                 title="Список блокировок пуст"
-                description="Здесь будут только люди, которых вы сознательно скрыли из своего communication layer."
+                description="Здесь появятся скрытые пользователи."
               />
             ) : (
               blocks.map((block) => (

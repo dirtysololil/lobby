@@ -101,8 +101,8 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
   const lobby = hub.lobbies.find((item) => item.id === lobbyId);
 
   return (
-    <div className="grid gap-4">
-      <div className="social-shell rounded-[24px] p-4">
+    <div className="grid gap-3">
+      <div className="social-shell rounded-[20px] p-3">
         <div className="compact-toolbar">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -115,28 +115,22 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
                 {topics.filter((topic) => topic.pinned).length} pinned
               </span>
             </div>
-            <h1 className="mt-2 font-[var(--font-heading)] text-[1.45rem] font-semibold tracking-[-0.04em] text-white">
+            <h1 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
               {lobby?.name ?? "Форум"}
             </h1>
-            <p className="mt-1 text-sm text-[var(--text-dim)]">
-              Темы отсортированы по закреплению и последней активности.
-            </p>
           </div>
         </div>
       </div>
 
       {hub.membershipRole && !hub.isViewerMuted ? (
-        <div className="premium-panel rounded-[24px] p-4">
+        <div className="premium-panel rounded-[20px] p-3.5">
           <div className="compact-toolbar">
             <div>
               <p className="section-kicker">New topic</p>
-              <p className="mt-2 text-sm text-[var(--text-dim)]">
-                Короткий заголовок, ясный контекст и теги по необходимости.
-              </p>
             </div>
           </div>
 
-          <form className="mt-4 grid gap-3" onSubmit={handleCreateTopic}>
+          <form className="mt-3 grid gap-2.5" onSubmit={handleCreateTopic}>
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -159,14 +153,14 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
           </form>
         </div>
       ) : (
-        <div className="surface-subtle rounded-[18px] px-4 py-4 text-sm text-[var(--text-dim)]">
+        <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-dim)]">
           {hub.isViewerMuted
             ? "Вы ограничены в этом хабе и не можете создавать темы."
             : "Вступите в хаб, чтобы создавать темы."}
         </div>
       )}
 
-      <div className="premium-panel rounded-[24px] p-3">
+      <div className="premium-panel rounded-[20px] p-3">
         <div className="compact-toolbar px-1">
           <p className="section-kicker">Topics</p>
           <span className="glass-badge">{topics.length}</span>
@@ -183,7 +177,7 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
               <Link
                 key={topic.id}
                 href={`/app/hubs/${hubId}/forum/${lobbyId}/topics/${topic.id}`}
-                className="list-row rounded-[18px] px-3 py-3"
+                className="list-row rounded-[16px] px-3 py-2.5"
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1">

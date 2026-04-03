@@ -140,8 +140,8 @@ export function LobbyCallPanel({
   }
 
   return (
-    <div className="grid gap-3">
-      <div className="rounded-[18px] border border-[var(--border)] bg-white/[0.03] px-4 py-3">
+    <div className="grid gap-2.5">
+      <div className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] px-3 py-2.5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -150,12 +150,9 @@ export function LobbyCallPanel({
                 {state?.activeCall ? state.activeCall.status : "Ready"}
               </span>
             </div>
-            {errorMessage ? (
-              <p className="mt-2 text-sm text-rose-200">{errorMessage}</p>
-            ) : isViewerMuted ? (
-              <p className="mt-2 text-sm text-amber-100">
-                Вы можете слушать, но публикация медиа ограничена.
-              </p>
+            {errorMessage ? <p className="mt-1.5 text-sm text-rose-200">{errorMessage}</p> : null}
+            {!errorMessage && isViewerMuted ? (
+              <p className="mt-1.5 text-sm text-amber-100">Можно только слушать.</p>
             ) : null}
           </div>
 
@@ -184,7 +181,7 @@ export function LobbyCallPanel({
         </div>
 
         {state?.history.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-2.5 flex flex-wrap gap-2">
             {state.history.slice(0, 4).map((item) => (
               <span key={item.id} className="glass-badge">
                 {item.mode} · {item.status}
@@ -197,8 +194,8 @@ export function LobbyCallPanel({
       <LiveKitCallRoom
         connection={connection}
         mode={state?.activeCall?.mode ?? "AUDIO"}
-        title="Активный звонок лобби"
-        description="Групповой разговор внутри канала."
+        title="Lobby call"
+        description="Голос внутри канала."
         onLeave={async () => {
           await leaveCall();
         }}

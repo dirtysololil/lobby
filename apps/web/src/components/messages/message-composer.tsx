@@ -37,10 +37,10 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
 
   return (
     <form
-      className="rounded-[18px] border border-[var(--border)] bg-white/[0.03] p-3"
+      className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] p-2.5"
       onSubmit={handleSubmit}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="min-w-0 flex-1">
           <textarea
             value={content}
@@ -53,10 +53,10 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
             }
             disabled={disabled || isSending}
             rows={1}
-            className="field-textarea min-h-[44px] rounded-[14px] disabled:cursor-not-allowed disabled:opacity-60"
+            className="field-textarea min-h-[40px] rounded-[12px] disabled:cursor-not-allowed disabled:opacity-60"
           />
-          <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Enter отправляет, Shift+Enter переносит строку.
+          <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
+            Enter отправляет.
           </p>
         </div>
         <Button type="submit" disabled={disabled || isSending}>

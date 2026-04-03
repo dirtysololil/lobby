@@ -91,15 +91,15 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
   }
 
   return (
-    <div className="grid gap-5 2xl:grid-cols-[420px_minmax(0,1fr)]">
+    <div className="grid gap-4 2xl:grid-cols-[380px_minmax(0,1fr)]">
       <form
-        className="social-shell rounded-[32px] p-6"
+        className="social-shell rounded-[20px] p-3.5"
         onSubmit={form.handleSubmit((values) => void createInvite(values))}
       >
         <span className="eyebrow-pill">
           <KeyRound className="h-3.5 w-3.5" /> Новый ключ
         </span>
-        <div className="mt-5 grid gap-4">
+        <div className="mt-4 grid gap-3">
           <div className="grid gap-2">
             <Label htmlFor="label">Название</Label>
             <Input
@@ -145,20 +145,16 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
               Оставьте пустым, чтобы ключ был бессрочным.
             </p>
           </div>
-          <div className="surface-subtle rounded-[24px] p-4 text-sm leading-7 text-[var(--text-dim)]">
+          <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
             <span className="inline-flex items-center gap-2 text-white">
               <ShieldCheck className="h-4 w-4 text-[var(--accent)]" />
-              Маршрут доступа
+              Ключ задаёт роль и срок.
             </span>
-            <p className="mt-2">
-              Ключ определяет тип онбординга, уровень доступа и жизненный цикл
-              входа в платформу.
-            </p>
           </div>
         </div>
 
         {latestRawCode ? (
-          <div className="mt-5 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.06] p-4">
+        <div className="mt-4 rounded-[16px] border border-emerald-300/15 bg-emerald-300/[0.06] p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-emerald-100/80">
               Сырой ключ
             </p>
@@ -172,7 +168,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
           <p className="mt-4 text-sm text-emerald-200">{message}</p>
         ) : null}
 
-        <div className="mt-5 flex gap-2">
+        <div className="mt-4 flex gap-2">
           <Button type="submit" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting ? "Создаём..." : "Создать"}
           </Button>
@@ -186,7 +182,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
         </div>
       </form>
 
-      <section className="social-shell rounded-[32px] p-6">
+      <section className="social-shell rounded-[20px] p-3.5">
         <div className="flex items-center justify-between gap-3">
           <p className="section-kicker">Последние ключи</p>
           <span className="status-pill">
@@ -194,7 +190,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
             Контур доступа
           </span>
         </div>
-        <div className="mt-5 grid gap-3">
+        <div className="mt-3 grid gap-2">
           {invites.length === 0 ? (
             <EmptyState
               title="Ключей пока нет"
@@ -202,10 +198,10 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
             />
           ) : (
             invites.map((invite) => (
-              <div key={invite.id} className="list-row rounded-[26px] p-4">
+              <div key={invite.id} className="list-row rounded-[16px] p-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-base font-medium text-white">
+                    <p className="text-sm font-medium text-white">
                       {invite.label ?? "Ключ без названия"}
                     </p>
                     <p className="mt-1 text-sm text-[var(--text-dim)]">

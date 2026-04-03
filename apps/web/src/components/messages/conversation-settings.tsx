@@ -91,9 +91,9 @@ export function ConversationSettings({
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="surface-subtle rounded-[18px] p-3 text-sm text-[var(--text-dim)]">
-        Настройки применяются только к этому диалогу.
+    <div className="grid gap-3">
+      <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
+        Только для этого DM.
       </div>
 
       <div className="grid gap-3">

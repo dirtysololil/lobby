@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Camera, ShieldCheck, Sparkles } from "lucide-react";
 import {
   updateProfileSchema,
   type PublicUser,
@@ -146,34 +146,33 @@ export function ProfileSettingsForm({
   }
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-      <div className="premium-panel rounded-[32px] p-6 lg:p-8">
+    <section className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+      <div className="premium-panel rounded-[20px] p-4">
         <p className="section-kicker">Профиль в сети</p>
-        <div className="surface-highlight mt-6 flex flex-col items-center rounded-[32px] px-6 py-8 text-center">
+        <div className="surface-highlight mt-4 flex flex-col items-center rounded-[20px] px-4 py-5 text-center">
           <UserAvatar user={viewer} size="lg" />
-          <p className="mt-5 text-xl font-semibold text-white">
+          <p className="mt-4 text-lg font-semibold text-white">
             {viewer.profile.displayName}
           </p>
-          <p className="mt-2 font-mono text-sm text-[var(--text-soft)]">
+          <p className="mt-1.5 font-mono text-sm text-[var(--text-soft)]">
             @{viewer.username}
           </p>
-          <p className="mt-4 max-w-sm text-sm leading-7 text-slate-400">
-            Допустимы PNG, JPEG и WEBP. Анимированные аватары принимаются в GIF,
-            до {maxAvatarAnimationMs / 1000}с, {maxAvatarDimension}px и{" "}
-            {maxAvatarMb} МБ.
+          <p className="mt-3 max-w-sm text-sm leading-5 text-slate-400">
+            PNG, JPEG, WEBP, GIF. До {maxAvatarAnimationMs / 1000}с,{" "}
+            {maxAvatarDimension}px, {maxAvatarMb} МБ.
           </p>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <span className="status-pill">
               <ShieldCheck className="h-3.5 w-3.5 text-[var(--success)]" />
-              Публичная карточка активна
+              Публичный профиль
             </span>
             <span className="status-pill">
               <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
               {presetLabels[viewer.profile.avatarPreset]}
             </span>
           </div>
-          <div className="mt-6 flex w-full flex-col gap-3">
-            <label className="surface-subtle cursor-pointer rounded-[22px] px-4 py-3 text-sm text-white transition hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
+          <div className="mt-4 flex w-full flex-col gap-2.5">
+            <label className="surface-subtle cursor-pointer rounded-[16px] px-4 py-2.5 text-sm text-white transition hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif"
@@ -201,11 +200,11 @@ export function ProfileSettingsForm({
       </div>
 
       <form
-        className="premium-panel rounded-[32px] p-6 lg:p-8"
+        className="premium-panel rounded-[20px] p-4"
         onSubmit={form.handleSubmit((values) => void onSubmit(values))}
       >
         <p className="section-kicker">Настройки профиля</p>
-        <div className="mt-6 grid gap-5">
+        <div className="mt-4 grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="displayName">Отображаемое имя</Label>
             <Input id="displayName" {...form.register("displayName")} />
@@ -220,8 +219,8 @@ export function ProfileSettingsForm({
             <Label htmlFor="bio">Биография</Label>
             <textarea
               id="bio"
-              rows={5}
-              className="field-textarea min-h-[160px]"
+              rows={4}
+              className="field-textarea min-h-[120px]"
               {...form.register("bio")}
             />
             {form.formState.errors.bio ? (
@@ -263,16 +262,8 @@ export function ProfileSettingsForm({
             </div>
           </div>
 
-          <div className="surface-subtle rounded-[24px] p-4 text-sm leading-7 text-[var(--text-dim)]">
-            <span className="inline-flex items-center gap-2 text-white">
-              <UserRound className="h-4 w-4 text-[var(--accent)]" />
-              Как вас видят другие
-            </span>
-            <p className="mt-2">
-              Профиль формирует первое впечатление в диалогах, хабах и форумных
-              темах. Сделайте карточку читаемой и социальной, а не пустой
-              технической записью.
-            </p>
+          <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
+            Изменения сразу видны в DM, people и hubs.
           </div>
         </div>
 
@@ -281,7 +272,7 @@ export function ProfileSettingsForm({
           <p className="mt-5 text-sm text-emerald-200">{message}</p>
         ) : null}
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-5 flex flex-wrap gap-2.5">
           <Button type="submit" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting ? "Сохраняем..." : "Сохранить профиль"}
           </Button>
