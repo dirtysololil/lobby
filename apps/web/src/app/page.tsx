@@ -1,15 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  ArrowRight,
-  AudioLines,
-  KeyRound,
-  Lock,
-  Network,
-  ShieldCheck,
-  UsersRound,
-  Waves,
-} from "lucide-react";
+import { ArrowRight, MessageSquareMore, ShieldCheck, UsersRound, Waves } from "lucide-react";
 import { fetchViewer } from "@/lib/server-session";
 
 export default async function Home() {
@@ -20,16 +11,16 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1760px] flex-col px-4 py-5 sm:px-8 lg:px-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <main className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col px-4 py-4 lg:px-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="shell-frame flex h-12 w-12 items-center justify-center rounded-[18px]">
-            <ShieldCheck className="h-5 w-5 text-[var(--accent)]" />
+          <div className="dock-icon flex h-11 w-11 items-center justify-center rounded-[14px] bg-[var(--accent)] text-[#180d08]">
+            <span className="text-sm font-bold tracking-[-0.04em]">Lb</span>
           </div>
           <div>
-            <p className="section-kicker">Закрытая сеть Lobby</p>
+            <p className="section-kicker">Lobby</p>
             <p className="text-sm text-[var(--text-dim)]">
-              Премиальная социальная экосистема для закрытых сообществ
+              Private communication platform
             </p>
           </div>
         </div>
@@ -37,126 +28,51 @@ export default async function Home() {
           <Link href="/login" className="status-pill">
             Вход
           </Link>
-          <Link
-            href="/register"
-            className="inline-flex min-h-[44px] items-center rounded-full bg-[linear-gradient(135deg,#8ff0ea,#74d3cd,#8ea7ff)] px-4 text-sm font-semibold text-[#041014] shadow-[0_14px_32px_rgba(124,215,209,0.28)]"
-          >
+          <Link href="/register" className="status-pill border-[var(--accent)] bg-[var(--accent)] text-[#180d08]">
             Активация
           </Link>
         </div>
       </div>
 
-      <section className="grid flex-1 gap-6 2xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="shell-frame rounded-[38px] p-7 lg:p-8 xl:p-10">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="eyebrow-pill">
-              <Network className="h-3.5 w-3.5" /> Приватность по умолчанию
-            </span>
-            <span className="status-pill">
-              <span className="status-dot text-[var(--success)]" />
-              Закрытая сеть активна
-            </span>
-          </div>
-          <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-end">
-            <div className="space-y-5">
-              <h1 className="max-w-4xl font-[var(--font-heading)] text-4xl font-semibold tracking-[-0.06em] text-white sm:text-6xl xl:text-7xl">
-                Не просто чат. Это закрытая социальная операционная среда.
-              </h1>
-              <p className="max-w-3xl text-base leading-8 text-[var(--text-dim)]">
-                Lobby связывает личные диалоги, хабы, лобби, форумные ветки и
-                внутренний админ-контур в единую премиальную систему для
-                приватных сообществ, управленческих команд и отобранных сетей.
-              </p>
+      <section className="grid flex-1 gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="shell-frame flex flex-col justify-between rounded-[28px] p-6 lg:p-8">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="eyebrow-pill">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Closed network
+              </span>
+              <span className="status-pill">Compact, social, realtime</span>
             </div>
-            <div className="surface-highlight rounded-[28px] p-5">
-              <p className="section-kicker">Сигнатура продукта</p>
-              <p className="mt-3 text-lg font-semibold text-white">
-                Между мессенджером, экосистемой сообществ и центром контроля.
-              </p>
-              <p className="mt-3 text-sm leading-7 text-[var(--text-dim)]">
-                Без ощущения шаблонной админки, витринной оболочки или типового
-                сервисного дэшборда.
-              </p>
-            </div>
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <div className="surface-subtle rounded-[28px] p-5">
-              <UsersRound className="h-5 w-5 text-[var(--accent)]" />
-              <p className="mt-4 text-base font-semibold text-white">
-                Живые сообщества
-              </p>
-              <p className="mt-2 text-sm leading-7 text-[var(--text-dim)]">
-                Иерархия hub → lobby → topic читается мгновенно и ощущается как
-                пространство, а не список карточек.
-              </p>
-            </div>
-            <div className="surface-subtle rounded-[28px] p-5">
-              <AudioLines className="h-5 w-5 text-[var(--accent)]" />
-              <p className="mt-4 text-base font-semibold text-white">
-                Мессенджер и звонки
-              </p>
-              <p className="mt-2 text-sm leading-7 text-[var(--text-dim)]">
-                Диалоги, сгруппированные сообщения и сессии LiveKit собраны в
-                цельный настольный UX.
-              </p>
-            </div>
-            <div className="surface-subtle rounded-[28px] p-5">
-              <Lock className="h-5 w-5 text-[var(--accent)]" />
-              <p className="mt-4 text-base font-semibold text-white">
-                Контроль доступа
-              </p>
-              <p className="mt-2 text-sm leading-7 text-[var(--text-dim)]">
-                Инвайты, роли, модерация и аудит встроены в продукт, а не
-                выглядят как сторонняя админка.
-              </p>
-            </div>
-          </div>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/register"
-              className="inline-flex min-h-[52px] items-center gap-2 rounded-full bg-[linear-gradient(135deg,#8ff0ea,#74d3cd,#8ea7ff)] px-6 font-semibold text-[#041014] shadow-[0_18px_36px_rgba(124,215,209,0.28)]"
-            >
-              Активировать доступ <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex min-h-[52px] items-center gap-2 rounded-full border border-[var(--border)] bg-white/[0.04] px-6 font-medium text-[var(--text)]"
-            >
-              Войти в существующий контур
-            </Link>
-          </div>
-        </div>
+            <h1 className="mt-6 max-w-4xl font-[var(--font-heading)] text-4xl font-semibold tracking-[-0.06em] text-white sm:text-6xl">
+              Communication first. Identity visible. Noise controlled.
+            </h1>
+            <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--text-dim)]">
+              Lobby связывает direct messages, hubs, форумы и внутренний control layer в один зрелый продукт для закрытых команд и комьюнити.
+            </p>
 
-        <div className="grid gap-4">
-          <div className="shell-frame rounded-[36px] p-6 lg:p-7">
-            <p className="section-kicker">Почему Lobby ощущается дороже</p>
-            <div className="mt-5 grid gap-4">
+            <div className="mt-8 grid gap-3 md:grid-cols-3">
               {[
                 {
-                  icon: KeyRound,
-                  title: "Закрытый онбординг",
-                  text: "Нет публичной регистрации, каждый вход завязан на ключ, роль и управляемый маршрут доступа.",
+                  icon: MessageSquareMore,
+                  title: "Inbox",
+                  text: "Личные диалоги и звонки как основной рабочий слой.",
                 },
                 {
-                  icon: ShieldCheck,
-                  title: "Доверенный контур",
-                  text: "Сессии валидируются сервером, критичные действия логируются, а пространства остаются приватными по умолчанию.",
+                  icon: UsersRound,
+                  title: "People",
+                  text: "Друзья, запросы и discovery без сервисных giant cards.",
                 },
                 {
                   icon: Waves,
-                  title: "Социальная топология",
-                  text: "Внутри продукта чувствуется живая сеть: люди, диалоги, лобби, темы, активность и контекстные слои.",
+                  title: "Hubs",
+                  text: "Пространства и каналы с понятной левой архитектурой.",
                 },
               ].map((item) => (
-                <div
-                  key={item.title}
-                  className="surface-subtle rounded-[26px] p-5"
-                >
+                <div key={item.title} className="surface-subtle rounded-[20px] p-4">
                   <item.icon className="h-5 w-5 text-[var(--accent)]" />
-                  <p className="mt-4 text-base font-semibold text-white">
-                    {item.title}
-                  </p>
-                  <p className="mt-2 text-sm leading-7 text-[var(--text-dim)]">
+                  <p className="mt-3 text-sm font-semibold text-white">{item.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
                     {item.text}
                   </p>
                 </div>
@@ -164,23 +80,38 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="shell-frame rounded-[36px] p-6 lg:p-7">
-            <p className="section-kicker">Ключевые режимы</p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/register" className="inline-flex min-h-[42px] items-center gap-2 rounded-[12px] bg-[var(--accent)] px-5 text-sm font-semibold text-[#180d08]">
+              Активировать доступ <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/login" className="inline-flex min-h-[42px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-white/[0.04] px-5 text-sm font-medium text-[var(--text)]">
+              Войти
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-4">
+          <div className="shell-frame rounded-[28px] p-6 lg:p-7">
+            <p className="section-kicker">Что внутри</p>
+            <div className="mt-4 grid gap-2">
               {[
-                "Личные переговоры",
-                "Хабы сообществ",
-                "Форумные обсуждения",
-                "Аудит и модерация",
+                "Far-left global rail для spaces, inbox и profile",
+                "Context rail для chats, people views и hub channels",
+                "Messenger-grade DM surfaces и call states",
+                "Service surfaces only where they are actually useful",
               ].map((item) => (
-                <div
-                  key={item}
-                  className="metric-tile rounded-[22px] px-4 py-4 text-sm font-medium text-white"
-                >
+                <div key={item} className="list-row rounded-[16px] px-3 py-3 text-sm text-white">
                   {item}
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="shell-frame rounded-[28px] p-6 lg:p-7">
+            <p className="section-kicker">Доступ</p>
+            <p className="mt-3 text-sm leading-7 text-[var(--text-dim)]">
+              Публичной регистрации нет. Вход и активация завязаны на приватные маршруты доступа, роли и управляемый онбординг.
+            </p>
           </div>
         </div>
       </section>

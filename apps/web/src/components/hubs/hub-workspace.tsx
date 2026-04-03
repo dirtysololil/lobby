@@ -1,14 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Building2,
-  LockKeyhole,
-  Plus,
-  Sparkles,
-  UsersRound,
-  Waves,
-} from "lucide-react";
+import { LockKeyhole, Plus, Waves } from "lucide-react";
 import {
   hubListResponseSchema,
   hubSummarySchema,
@@ -18,13 +11,7 @@ import {
 } from "@lobby/shared";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { apiClientFetch } from "@/lib/api-client";
 
@@ -113,205 +100,171 @@ export function HubWorkspace() {
   }
 
   return (
-    <section className="grid gap-5 2xl:grid-cols-[420px_minmax(0,1fr)]">
-      <Card>
-        <CardHeader>
-          <span className="eyebrow-pill">
-            <Plus className="h-3.5 w-3.5" /> Новый хаб
-          </span>
-          <CardTitle>Создание хаба</CardTitle>
-          <CardDescription>
-            Сформируйте новое пространство для приватного сообщества, рабочих
-            обсуждений и управляемых лобби.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-3" onSubmit={handleCreateHub}>
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Название хаба"
-            />
-            <Input
-              value={slug}
-              onChange={(event) => setSlug(event.target.value)}
-              placeholder="slug-хаба"
-            />
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="Короткое описание"
-              className="field-textarea min-h-28"
-            />
-            <label className="surface-subtle flex items-center gap-3 rounded-[22px] px-4 py-3 text-sm text-[var(--text-soft)]">
-              <input
-                type="checkbox"
-                checked={isPrivate}
-                onChange={(event) => setIsPrivate(event.target.checked)}
-              />
-              Приватный хаб
-            </label>
-            <div className="surface-subtle rounded-[24px] p-4 text-sm leading-7 text-[var(--text-dim)]">
-              Создатель автоматически получает роль владельца, а структура
-              пространства может быть сразу расширена текстовыми, голосовыми и
-              форумными лобби.
+    <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-4">
+        <div className="social-shell rounded-[24px] p-4">
+          <div className="compact-toolbar">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="eyebrow-pill">
+                  <Waves className="h-3.5 w-3.5" />
+                  Hubs
+                </span>
+                <span className="status-pill">{hubs.length} spaces</span>
+                {invites.length > 0 ? (
+                  <span className="status-pill">{invites.length} invites</span>
+                ) : null}
+              </div>
+              <h2 className="mt-2 font-[var(--font-heading)] text-[1.4rem] font-semibold tracking-[-0.04em] text-white">
+                Пространства, в которые вы реально можете перейти прямо сейчас
+              </h2>
             </div>
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? "Создаём пространство..." : "Создать хаб"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
 
-      <div className="grid gap-5">
         {errorMessage ? (
-          <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+          <div className="rounded-[16px] border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
             {errorMessage}
           </div>
         ) : null}
 
-        <Card>
-          <CardHeader>
-            <p className="section-kicker">Экосистема хабов</p>
-            <CardTitle>Ваше пространство сообщества</CardTitle>
-            <CardDescription>
-              Lobby строит не набор карточек, а сетку приватных зон: хабы,
-              лобби, люди и доступы читаются как единая социальная архитектура.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <div className="surface-subtle rounded-[26px] p-5">
-              <Building2 className="h-5 w-5 text-[var(--accent)]" />
-              <p className="mt-4 text-base font-semibold text-white">Хабы</p>
-              <p className="mt-2 text-sm leading-7 text-[var(--text-dim)]">
-                Корневые пространства для команд, клубов и закрытых приватных
-                зон.
-              </p>
+        {invites.length > 0 ? (
+          <div className="premium-panel rounded-[24px] p-3">
+            <div className="compact-toolbar px-1">
+              <p className="section-kicker">Invites</p>
+              <span className="glass-badge">{invites.length}</span>
             </div>
-            <div className="surface-subtle rounded-[26px] p-5">
-              <UsersRound className="h-5 w-5 text-[var(--accent)]" />
-              <p className="mt-4 text-base font-semibold text-white">
-                Участники
-              </p>
-              <p className="mt-2 text-sm leading-7 text-[var(--text-dim)]">
-                Роли, приглашения, модерация и видимая иерархия сообщества.
-              </p>
-            </div>
-            <div className="surface-subtle rounded-[26px] p-5">
-              <Waves className="h-5 w-5 text-[var(--accent)]" />
-              <p className="mt-4 text-base font-semibold text-white">
-                Лобби и форумы
-              </p>
-              <p className="mt-2 text-sm leading-7 text-[var(--text-dim)]">
-                Каждый хаб мгновенно разворачивается в рабочую структуру общения
-                и обсуждений.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <span className="eyebrow-pill">
-              <Sparkles className="h-3.5 w-3.5" /> Приглашения
-            </span>
-            <CardTitle>Приглашения в хабы</CardTitle>
-            <CardDescription>
-              Запросы на вступление в приватные и открытые пространства.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            {invites.length === 0 ? (
-              <div className="surface-subtle rounded-[24px] p-4 text-sm text-[var(--text-muted)]">
-                Нет активных приглашений.
-              </div>
-            ) : (
-              invites.map((invite) => (
-                <div key={invite.id} className="list-row rounded-[26px] p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-base font-medium text-white">
-                      {invite.hub.name}
-                    </p>
-                    {invite.hub.isPrivate ? (
-                      <span className="glass-badge">
-                        <LockKeyhole className="h-3 w-3" /> приватный
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-sm text-[var(--text-dim)]">
-                    Пригласил: {invite.invitedBy.profile.displayName}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        void handleInviteAction(invite.id, "accept")
-                      }
-                    >
-                      Принять
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        void handleInviteAction(invite.id, "decline")
-                      }
-                    >
-                      Отклонить
-                    </Button>
+            <div className="mt-2 grid gap-2">
+              {invites.map((invite) => (
+                <div key={invite.id} className="list-row rounded-[18px] px-3 py-3">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-white">
+                          {invite.hub.name}
+                        </p>
+                        {invite.hub.isPrivate ? (
+                          <span className="glass-badge">
+                            <LockKeyhole className="h-3 w-3" />
+                            Private
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-sm text-[var(--text-dim)]">
+                        Пригласил {invite.invitedBy.profile.displayName}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => void handleInviteAction(invite.id, "accept")}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void handleInviteAction(invite.id, "decline")}
+                      >
+                        Decline
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
-        <Card>
-          <CardHeader>
-            <span className="eyebrow-pill">
-              <Waves className="h-3.5 w-3.5" /> Активные пространства
-            </span>
-            <CardTitle>Ваши хабы</CardTitle>
-            <CardDescription>
-              Рабочие пространства, к которым у вас есть доступ.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2.5">
+        <div className="premium-panel rounded-[24px] p-3">
+          <div className="compact-toolbar px-1">
+            <p className="section-kicker">Your hubs</p>
+            <span className="glass-badge">{hubs.length}</span>
+          </div>
+          <div className="mt-2 grid gap-2">
             {hubs.length === 0 ? (
-              <div className="surface-subtle rounded-[24px] p-4 text-sm text-[var(--text-muted)]">
-                Вы пока не состоите ни в одном хабе.
-              </div>
+              <EmptyState
+                title="Нет доступных хабов"
+                description="Создайте первое пространство или примите приглашение."
+              />
             ) : (
               hubs.map((hub) => (
                 <Link
                   key={hub.id}
                   href={`/app/hubs/${hub.id}`}
-                  className="list-row block rounded-[26px] p-4"
+                  className="list-row rounded-[18px] px-3 py-3"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-medium text-white">
-                        {hub.name}
+                  <div className="flex items-start gap-3">
+                    <span className="dock-icon flex h-10 w-10 items-center justify-center rounded-[12px] text-[11px] font-semibold text-white">
+                      {hub.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-semibold text-white">
+                          {hub.name}
+                        </p>
+                        <span className="glass-badge">
+                          {roleLabels[hub.membershipRole ?? "MEMBER"] ?? "Участник"}
+                        </span>
+                        {hub.isPrivate ? (
+                          <span className="glass-badge">Private</span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--text-dim)]">
+                        {hub.description ?? "Описание не задано."}
                       </p>
-                      <p className="mt-1 text-sm text-[var(--text-dim)]">
-                        {hub.description ?? "Описание не задано"}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 text-xs">
-                      <span className="glass-badge">
-                        {roleLabels[hub.membershipRole ?? "MEMBER"] ??
-                          "Участник"}
-                      </span>
-                      {hub.isPrivate ? (
-                        <span className="glass-badge">Приватный</span>
-                      ) : null}
                     </div>
                   </div>
                 </Link>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </div>
+
+      <div className="premium-panel rounded-[24px] p-4">
+        <div className="compact-toolbar">
+          <div>
+            <p className="section-kicker">Create hub</p>
+            <p className="mt-2 text-sm text-[var(--text-dim)]">
+              Новое пространство для каналов, ролей и приглашений.
+            </p>
+          </div>
+          <span className="glass-badge">
+            <Plus className="h-3 w-3" />
+            New
+          </span>
+        </div>
+
+        <form className="mt-4 grid gap-3" onSubmit={handleCreateHub}>
+          <Input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Название хаба"
+          />
+          <Input
+            value={slug}
+            onChange={(event) => setSlug(event.target.value)}
+            placeholder="slug"
+          />
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Короткое описание"
+            className="field-textarea"
+          />
+          <label className="field-checkbox text-sm">
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              onChange={(event) => setIsPrivate(event.target.checked)}
+            />
+            Private hub
+          </label>
+          <Button type="submit" disabled={isSubmitting} className="w-full">
+            {isSubmitting ? "Создаем..." : "Создать хаб"}
+          </Button>
+        </form>
       </div>
     </section>
   );

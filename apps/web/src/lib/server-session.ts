@@ -1,6 +1,6 @@
 import { authSessionResponseSchema, type PublicUser } from "@lobby/shared";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { resolveApiBaseUrlForServerRequest } from "./runtime-config";
 
 export async function fetchViewer(): Promise<PublicUser | null> {
@@ -21,15 +21,13 @@ export async function fetchViewer(): Promise<PublicUser | null> {
     });
 
     if (!response.ok) {
-      console.info(
-        `[auth/session] fetchViewer: unauthorized status=${response.status}`,
-      );
       return null;
     }
 
     const payload = authSessionResponseSchema.parse(await response.json());
     return payload.user;
   } catch (error) {
+    unstable_rethrow(error);
     console.warn("[auth/session] fetchViewer: request failed", error);
     return null;
   }

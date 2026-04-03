@@ -4,22 +4,15 @@ export default function SettingsLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <div className="grid gap-6">
-      <section className="premium-panel rounded-[28px] p-5 lg:p-6">
-        <p className="section-kicker">Личные настройки</p>
-        <h1 className="mt-4 font-[var(--font-heading)] text-[2rem] font-semibold tracking-[-0.04em] text-white">
+    <div className="grid gap-4">
+      <section className="social-shell rounded-[24px] p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="eyebrow-pill">Settings</span>
+          <span className="status-pill">Personal surface</span>
+        </div>
+        <h1 className="mt-2 font-[var(--font-heading)] text-[1.4rem] font-semibold tracking-[-0.04em] text-white">
           Профиль и уведомления
         </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
-          Здесь находится персональный слой продукта: публичная карточка внутри
-          сети, аватар, присутствие и правила сигналов для личных диалогов,
-          хабов и лобби.
-        </p>
-        <div className="surface-subtle mt-5 rounded-[22px] p-4 text-sm leading-6 text-[var(--text-dim)]">
-          Настройки в Lobby не выглядят как вторичная служебная форма. Это часть
-          общей premium-системы, в которой идентичность пользователя и
-          шум-контроль одинаково важны.
-        </div>
       </section>
       {children}
     </div>
