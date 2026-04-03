@@ -11,8 +11,8 @@ export default function AppError({
 }>) {
   return (
     <ErrorState
-      title="App shell failed to load"
-      description={error.message || "The requested workspace section could not be rendered."}
+      title="Не удалось загрузить оболочку приложения"
+      description={error.message || "Запрошенный раздел рабочей области не удалось отрисовать."}
       onRetry={reset}
     />
   );

@@ -58,14 +58,14 @@ export function LoginForm() {
     } catch {
       console.warn("[auth/login] session:not-persisted");
       throw new Error(
-        "Signed in, but session cookie was not persisted. Check SESSION_COOKIE_DOMAIN/SESSION_COOKIE_SECURE and HTTPS proxy setup.",
+        "Вход выполнен, но cookie сессии не сохранилась. Проверьте SESSION_COOKIE_DOMAIN/SESSION_COOKIE_SECURE и HTTPS-прокси.",
       );
     }
   }
 
   function mapLoginError(error: unknown): string {
     if (error instanceof ApiClientError && error.code === "network_or_cors") {
-      return "Network/CORS error while contacting API. Check API URL, CORS and HTTPS/cookie settings.";
+      return "Ошибка сети/CORS при обращении к API. Проверьте API URL, CORS и настройки cookie/HTTPS.";
     }
 
     if (error instanceof ApiClientError && error.status === 401) {
@@ -76,13 +76,13 @@ export function LoginForm() {
       return error.message;
     }
 
-    return "Unable to sign in";
+    return "Не удалось войти";
   }
 
   return (
     <form className="space-y-5" onSubmit={onSubmit}>
       <div className="space-y-2">
-        <Label htmlFor="login">Login or email</Label>
+        <Label htmlFor="login">Логин или почта</Label>
         <Input
           id="login"
           placeholder="owner"
@@ -95,11 +95,11 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Пароль</Label>
         <Input
           id="password"
           type="password"
-          placeholder="Your password"
+          placeholder="Ваш пароль"
           autoComplete="current-password"
           {...form.register("password")}
         />
@@ -115,7 +115,7 @@ export function LoginForm() {
       ) : null}
 
       <Button className="w-full" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Signing in..." : "Sign in"}
+        {isSubmitting ? "Вход..." : "Войти"}
       </Button>
     </form>
   );

@@ -28,7 +28,7 @@ export function LogoutButton() {
 
   return (
     <Button onClick={() => void handleLogout()} variant="secondary" disabled={isPending}>
-      {isPending ? "Signing out..." : "Sign out"}
+      {isPending ? "Выходим..." : "Выйти"}
     </Button>
   );
 }

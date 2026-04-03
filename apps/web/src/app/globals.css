@@ -2,38 +2,35 @@
 
 :root {
   color-scheme: dark;
-  --background: #050913;
-  --background-soft: rgba(10, 16, 29, 0.84);
-  --panel: rgba(13, 19, 36, 0.8);
-  --panel-border: rgba(148, 163, 184, 0.16);
-  --text: #eef2ff;
-  --text-muted: #9ca9c4;
-  --accent: #7dd3fc;
-  --accent-strong: #38bdf8;
-  --shadow: 0 35px 90px rgba(2, 8, 23, 0.42);
+  --bg-0: #06080f;
+  --bg-1: #0a0f1a;
+  --bg-2: #0f1726;
+  --surface: rgba(17, 24, 39, 0.72);
+  --surface-elevated: rgba(19, 28, 46, 0.8);
+  --surface-soft: rgba(255, 255, 255, 0.03);
+  --border: rgba(148, 163, 184, 0.2);
+  --border-strong: rgba(148, 163, 184, 0.35);
+  --text: #edf2ff;
+  --text-muted: #94a3b8;
+  --accent: #6ee7ff;
+  --accent-2: #8b5cf6;
+  --danger: #fb7185;
+  --shadow: 0 22px 65px rgba(2, 6, 23, 0.45);
 }
 
 * {
   box-sizing: border-box;
 }
 
-html {
-  min-height: 100%;
-  background:
-    radial-gradient(circle at top, rgba(34, 211, 238, 0.16), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(56, 189, 248, 0.14), transparent 24%),
-    radial-gradient(circle at 18% 82%, rgba(251, 191, 36, 0.08), transparent 24%),
-    linear-gradient(180deg, #08111f 0%, #050913 52%, #03060c 100%);
-}
-
+html,
 body {
-  min-height: 100vh;
   margin: 0;
+  min-height: 100%;
   color: var(--text);
   background:
-    radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.08), transparent 28%),
-    radial-gradient(circle at 85% 12%, rgba(168, 85, 247, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(7, 11, 20, 0.2), rgba(7, 11, 20, 0.94));
+    radial-gradient(circle at 8% 12%, rgba(110, 231, 255, 0.12), transparent 28%),
+    radial-gradient(circle at 84% 10%, rgba(139, 92, 246, 0.12), transparent 28%),
+    linear-gradient(180deg, #0a0f1a 0%, #06080f 60%, #05070d 100%);
 }
 
 body::before {
@@ -42,10 +39,10 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 90%);
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 88%);
 }
 
 a {
@@ -54,13 +51,15 @@ a {
 }
 
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
 }
 
 ::selection {
-  background: rgba(56, 189, 248, 0.35);
-  color: white;
+  background: rgba(110, 231, 255, 0.34);
+  color: #fff;
 }
 
 @keyframes avatar-spin {

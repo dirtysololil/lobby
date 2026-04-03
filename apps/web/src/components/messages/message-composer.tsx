@@ -34,12 +34,12 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
       <textarea
         value={content}
         onChange={(event) => setContent(event.target.value)}
-        placeholder={disabled ? "Messaging is disabled for this conversation" : "Write a direct message"}
+        placeholder={disabled ? "Отправка отключена для этого диалога" : "Напишите сообщение"}
         disabled={disabled || isSending}
         className="min-h-32 w-full rounded-3xl border border-white/10 bg-slate-950/50 px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-300/50 focus:bg-slate-950/70 disabled:cursor-not-allowed disabled:opacity-60"
       />
       <Button type="submit" disabled={disabled || isSending}>
-        {isSending ? "Sending..." : "Send message"}
+        {isSending ? "Отправка..." : "Отправить"}
       </Button>
     </form>
   );
