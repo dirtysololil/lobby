@@ -13,14 +13,14 @@ export default async function RegisterPage() {
 
   return (
     <AuthShell
-      eyebrow="Invite activation"
-      title="Create your account"
-      description="Access remains closed without a valid key. Enter your invite, then your session will be issued immediately."
+      eyebrow="Активация"
+      title="Создание аккаунта"
+      description="Доступ открывается только с валидным ключом приглашения."
       footer={
         <>
-          Already activated?{" "}
+          Уже активировали аккаунт?{" "}
           <Link className="text-sky-300 transition hover:text-sky-200" href="/login">
-            Sign in
+            Войти
           </Link>
         </>
       }

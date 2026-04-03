@@ -41,7 +41,7 @@ export function PeopleWorkspace() {
       setBlocks(blocksResponseSchema.parse(blocksPayload).items);
       setPanelError(null);
     } catch (error) {
-      setPanelError(error instanceof Error ? error.message : "Unable to load people data");
+      setPanelError(error instanceof Error ? error.message : "Не удалось загрузить данные по людям");
     }
   }
 
@@ -61,7 +61,7 @@ export function PeopleWorkspace() {
       setResults(userSearchResponseSchema.parse(payload).items);
       setSearchError(null);
     } catch (error) {
-      setSearchError(error instanceof Error ? error.message : "Unable to search users");
+      setSearchError(error instanceof Error ? error.message : "Не удалось выполнить поиск пользователей");
     } finally {
       setIsSearching(false);
     }
@@ -75,7 +75,7 @@ export function PeopleWorkspace() {
       await refreshPanels();
       await refreshSearch();
     } catch (error) {
-      setSearchError(error instanceof Error ? error.message : "Action failed");
+      setSearchError(error instanceof Error ? error.message : "Не удалось выполнить действие");
     } finally {
       setActionKey(null);
     }

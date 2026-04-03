@@ -5,11 +5,10 @@ export default function SettingsLayout({ children }: Readonly<{ children: ReactN
   return (
     <div className="grid gap-6">
       <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 shadow-[var(--shadow)] backdrop-blur-xl">
-        <p className="font-mono text-xs uppercase tracking-[0.26em] text-sky-200/70">Personal settings</p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Profile and notifications</h1>
+        <p className="font-mono text-xs uppercase tracking-[0.26em] text-sky-200/70">Личные настройки</p>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Профиль и уведомления</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
-          Manage your public profile, avatar presets, safe animated avatar uploads and notification routing
-          across direct messages, hubs and lobbies.
+          Управляйте профилем, аватаром и маршрутами уведомлений для личных чатов, хабов и лобби.
         </p>
       </section>
       <SettingsNav />
