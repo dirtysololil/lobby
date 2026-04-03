@@ -10,28 +10,13 @@ interface ConversationSettingsProps {
   retentionMode: DmRetentionMode;
   retentionSeconds: number | null;
   disabled: boolean;
-  onSave: (payload: {
-    notificationSetting: DmNotificationSetting;
-    retentionMode: DmRetentionMode;
-    customHours: number | null;
-  }) => Promise<void>;
+  onSave: (payload: { notificationSetting: DmNotificationSetting; retentionMode: DmRetentionMode; customHours: number | null; }) => Promise<void>;
 }
 
 const notificationOptions: DmNotificationSetting[] = ["ALL", "MENTIONS_ONLY", "MUTED", "OFF"];
 const retentionOptions: DmRetentionMode[] = ["OFF", "H24", "D7", "D30", "CUSTOM"];
-const notificationLabels: Record<DmNotificationSetting, string> = {
-  ALL: "Все",
-  MENTIONS_ONLY: "Только упоминания",
-  MUTED: "Без звука",
-  OFF: "Отключены",
-};
-const retentionLabels: Record<DmRetentionMode, string> = {
-  OFF: "Без автоудаления",
-  H24: "24 часа",
-  D7: "7 дней",
-  D30: "30 дней",
-  CUSTOM: "Свой период",
-};
+const notificationLabels: Record<DmNotificationSetting, string> = { ALL: "Все", MENTIONS_ONLY: "Только упоминания", MUTED: "Без звука", OFF: "Отключены" };
+const retentionLabels: Record<DmRetentionMode, string> = { OFF: "Без автоудаления", H24: "24 часа", D7: "7 дней", D30: "30 дней", CUSTOM: "Свой период" };
 
 export function ConversationSettings({ notificationSetting, retentionMode, retentionSeconds, disabled, onSave }: ConversationSettingsProps) {
   const [localNotificationSetting, setLocalNotificationSetting] = useState(notificationSetting);
@@ -49,35 +34,15 @@ export function ConversationSettings({ notificationSetting, retentionMode, reten
     setIsSaving(true);
     try {
       await onSave({ notificationSetting: localNotificationSetting, retentionMode: localRetentionMode, customHours: localRetentionMode === "CUSTOM" && customHours ? Number(customHours) : null });
-    } finally {
-      setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   }
 
   return (
-    <div className="grid gap-4 rounded-3xl border border-[var(--border)] bg-slate-950/35 p-5">
-      <div className="grid gap-2">
-        <label className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">Уведомления</label>
-        <select value={localNotificationSetting} onChange={(event) => setLocalNotificationSetting(event.target.value as DmNotificationSetting)} className="h-11 rounded-2xl border border-[var(--border)] bg-slate-950/50 px-4 text-sm text-white outline-none" disabled={disabled || isSaving}>
-          {notificationOptions.map((option) => <option key={option} value={option}>{notificationLabels[option]}</option>)}
-        </select>
-      </div>
-
-      <div className="grid gap-2">
-        <label className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">Хранение</label>
-        <select value={localRetentionMode} onChange={(event) => setLocalRetentionMode(event.target.value as DmRetentionMode)} className="h-11 rounded-2xl border border-[var(--border)] bg-slate-950/50 px-4 text-sm text-white outline-none" disabled={disabled || isSaving}>
-          {retentionOptions.map((option) => <option key={option} value={option}>{retentionLabels[option]}</option>)}
-        </select>
-      </div>
-
-      {localRetentionMode === "CUSTOM" ? (
-        <div className="grid gap-2">
-          <label className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">Период (часы)</label>
-          <Input value={customHours} onChange={(event) => setCustomHours(event.target.value)} inputMode="numeric" placeholder="72" disabled={disabled || isSaving} />
-        </div>
-      ) : null}
-
-      <Button variant="secondary" onClick={() => void handleSave()} disabled={disabled || isSaving}>{isSaving ? "Сохраняем..." : "Сохранить"}</Button>
+    <div className="grid gap-4">
+      <div className="grid gap-2"><label className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">Уведомления</label><select value={localNotificationSetting} onChange={(event) => setLocalNotificationSetting(event.target.value as DmNotificationSetting)} className="h-11 rounded-2xl border border-[var(--border)] bg-[#0b1322]/80 px-4 text-sm text-[var(--text)] outline-none" disabled={disabled || isSaving}>{notificationOptions.map((option) => <option key={option} value={option}>{notificationLabels[option]}</option>)}</select></div>
+      <div className="grid gap-2"><label className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">Хранение</label><select value={localRetentionMode} onChange={(event) => setLocalRetentionMode(event.target.value as DmRetentionMode)} className="h-11 rounded-2xl border border-[var(--border)] bg-[#0b1322]/80 px-4 text-sm text-[var(--text)] outline-none" disabled={disabled || isSaving}>{retentionOptions.map((option) => <option key={option} value={option}>{retentionLabels[option]}</option>)}</select></div>
+      {localRetentionMode === "CUSTOM" ? <div className="grid gap-2"><label className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">Период (часы)</label><Input value={customHours} onChange={(event) => setCustomHours(event.target.value)} inputMode="numeric" placeholder="72" disabled={disabled || isSaving} /></div> : null}
+      <Button variant="secondary" onClick={() => void handleSave()} disabled={disabled || isSaving}>{isSaving ? "Сохраняем..." : "Сохранить параметры"}</Button>
     </div>
   );
 }
