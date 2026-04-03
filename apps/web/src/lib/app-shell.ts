@@ -10,8 +10,9 @@ export interface AppRouteState {
   adminSection: string | null;
 }
 
-export function parseAppPath(pathname: string): AppRouteState {
-  const segments = pathname.split("/").filter(Boolean);
+export function parseAppPath(pathname: string | null | undefined): AppRouteState {
+  const normalizedPathname = pathname ?? "";
+  const segments = normalizedPathname.split("/").filter(Boolean);
   const section = ((segments[1] ?? "messages") as AppSection) || "messages";
 
   if (section === "messages") {
@@ -126,6 +127,7 @@ export function getSectionMeta(route: AppRouteState) {
   }
 }
 
-export function matchesPath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+export function matchesPath(pathname: string | null | undefined, href: string) {
+  const normalizedPathname = pathname ?? "";
+  return normalizedPathname === href || normalizedPathname.startsWith(`${href}/`);
 }
