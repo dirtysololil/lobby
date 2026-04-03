@@ -1,8 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { authSessionResponseSchema, loginSchema, type LoginInput } from "@lobby/shared";
+import {
+  authSessionResponseSchema,
+  loginSchema,
+  type LoginInput,
+} from "@lobby/shared";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { apiClientFetch, ApiClientError } from "@/lib/api-client";
 
 export function LoginForm() {
+  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<LoginInput>({
@@ -34,7 +40,8 @@ export function LoginForm() {
       authSessionResponseSchema.parse(response);
       console.info("[auth/login] submit:success");
       await ensureSessionCookiePersisted();
-      window.location.assign("/app");
+      router.replace("/app");
+      router.refresh();
     } catch (error) {
       console.warn("[auth/login] submit:error");
       setErrorMessage(mapLoginError(error));
@@ -42,7 +49,6 @@ export function LoginForm() {
       setIsSubmitting(false);
     }
   });
-
 
   async function ensureSessionCookiePersisted() {
     try {
@@ -77,8 +83,15 @@ export function LoginForm() {
     <form className="space-y-5" onSubmit={onSubmit}>
       <div className="space-y-2">
         <Label htmlFor="login">Login or email</Label>
-        <Input id="login" placeholder="owner" autoComplete="username" {...form.register("login")} />
-        <p className="text-xs text-rose-300">{form.formState.errors.login?.message}</p>
+        <Input
+          id="login"
+          placeholder="owner"
+          autoComplete="username"
+          {...form.register("login")}
+        />
+        <p className="text-xs text-rose-300">
+          {form.formState.errors.login?.message}
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -90,7 +103,9 @@ export function LoginForm() {
           autoComplete="current-password"
           {...form.register("password")}
         />
-        <p className="text-xs text-rose-300">{form.formState.errors.password?.message}</p>
+        <p className="text-xs text-rose-300">
+          {form.formState.errors.password?.message}
+        </p>
       </div>
 
       {errorMessage ? (
