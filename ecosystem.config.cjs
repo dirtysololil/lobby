@@ -15,17 +15,17 @@ module.exports = {
     },
     {
       name: "lobby-web",
-      cwd: ".",
-      script: "corepack",
-      args: "pnpm start:web",
+      cwd: "apps/web",
+      script: "node",
+      args: "./node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000",
       interpreter: "none",
       autorestart: true,
       watch: false,
       max_memory_restart: "512M",
       env: {
         NODE_ENV: "production",
-        WEB_HOST: "127.0.0.1",
-        WEB_PORT: "3000",
+        HOSTNAME: "127.0.0.1",
+        PORT: "3000",
       },
     },
     {
