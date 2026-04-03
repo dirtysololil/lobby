@@ -7,7 +7,7 @@ import {
   type DirectConversationDetail,
   type PublicUser,
 } from "@lobby/shared";
-import { BellRing, LockKeyhole, PhoneCall, UsersRound } from "lucide-react";
+import { BellRing, LockKeyhole, PhoneCall, UsersRound, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiClientFetch } from "@/lib/api-client";
@@ -18,9 +18,15 @@ import { useRealtime } from "@/components/realtime/realtime-provider";
 
 interface AppActivityRailProps {
   viewer: PublicUser;
+  open: boolean;
+  onClose: () => void;
 }
 
-export function AppActivityRail({ viewer }: AppActivityRailProps) {
+export function AppActivityRail({
+  viewer,
+  open,
+  onClose,
+}: AppActivityRailProps) {
   const pathname = usePathname();
   const route = parseAppPath(pathname);
   const { latestSignal } = useRealtime();
@@ -30,9 +36,37 @@ export function AppActivityRail({ viewer }: AppActivityRailProps) {
   const [hubInfo, setHubInfo] = useState<
     ReturnType<typeof hubShellResponseSchema.parse>["hub"] | null
   >(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const available =
+    (route.section === "messages" && Boolean(route.conversationId)) ||
+    (route.section === "hubs" && Boolean(route.hubId));
 
   useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open || !available) {
+      return;
+    }
+
     let active = true;
+    setIsLoading(true);
 
     void (async () => {
       try {
@@ -55,17 +89,15 @@ export function AppActivityRail({ viewer }: AppActivityRailProps) {
             setHubInfo(hubShellResponseSchema.parse(payload).hub);
             setConversation(null);
           }
-          return;
-        }
-
-        if (active) {
-          setConversation(null);
-          setHubInfo(null);
         }
       } catch {
         if (active) {
           setConversation(null);
           setHubInfo(null);
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
         }
       }
     })();
@@ -73,7 +105,7 @@ export function AppActivityRail({ viewer }: AppActivityRailProps) {
     return () => {
       active = false;
     };
-  }, [route.conversationId, route.hubId, route.section]);
+  }, [available, open, route.conversationId, route.hubId, route.section]);
 
   async function saveConversationSettings(payload: {
     notificationSetting: "ALL" | "MENTIONS_ONLY" | "MUTED" | "OFF";
@@ -101,103 +133,151 @@ export function AppActivityRail({ viewer }: AppActivityRailProps) {
     setConversation(directConversationDetailSchema.parse(nextConversation).conversation);
   }
 
-  if (route.section === "messages" && route.conversationId && conversation) {
-    const counterpart = conversation.participants.find(
-      (participant) => participant.user.id !== viewer.id,
-    )?.user;
-    const viewerSettings = conversation.participants.find(
-      (participant) => participant.user.id === viewer.id,
-    );
+  if (!open || !available) {
+    return null;
+  }
 
-    return (
-      <aside className="activity-rail hidden min-h-0 w-[296px] shrink-0 flex-col overflow-hidden rounded-[20px] p-2.5 2xl:flex 2xl:sticky 2xl:top-3 2xl:h-[calc(100vh-1.5rem)]">
-        <div className="surface-highlight rounded-[16px] p-3">
-          <div className="flex items-center gap-3">
-            {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">
-                {counterpart?.profile.displayName ?? "Conversation"}
-              </p>
-              <p className="truncate text-xs text-[var(--text-dim)]">
-                {counterpart ? `@${counterpart.username}` : "Private thread"}
-              </p>
-            </div>
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40"
+      onClick={onClose}
+      role="presentation"
+    >
+      <aside
+        className="activity-rail absolute inset-y-0 right-0 flex w-full max-w-[min(360px,100vw)] flex-col border-l border-[var(--border)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex h-14 items-center justify-between border-b border-[var(--border)] px-4">
+          <div>
+            <p className="section-kicker">
+              {route.section === "messages" ? "Conversation" : "Hub"}
+            </p>
+            <p className="text-sm font-semibold text-white">
+              {route.section === "messages" ? "Details" : "Members"}
+            </p>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="status-pill">
-              <BellRing className="h-3.5 w-3.5 text-[var(--accent)]" />
-              {viewerSettings?.notificationSetting ?? "ALL"}
-            </span>
-            <span className="status-pill">
-              <PhoneCall className="h-3.5 w-3.5 text-[var(--accent)]" />
-              {latestSignal?.call.dmConversationId === route.conversationId
-                ? latestSignal.call.status
-                : "Call ready"}
-            </span>
-            {conversation.retentionMode !== "OFF" ? (
-              <span className="status-pill">
-                <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent)]" />
-                {conversation.retentionMode}
-              </span>
-            ) : null}
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px]"
+            aria-label="Close details"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        <div className="mt-2.5 min-h-0 flex-1 overflow-y-auto pr-1">
-          {viewerSettings ? (
-            <ConversationSettings
-              notificationSetting={viewerSettings.notificationSetting}
-              retentionMode={conversation.retentionMode}
-              retentionSeconds={conversation.retentionSeconds}
-              disabled={false}
-              onSave={saveConversationSettings}
-            />
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          {isLoading ? (
+            <div className="surface-subtle rounded-[12px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
+              Loading details...
+            </div>
+          ) : null}
+
+          {route.section === "messages" && route.conversationId && conversation ? (
+            <div className="grid gap-3">
+              {(() => {
+                const counterpart = conversation.participants.find(
+                  (participant) => participant.user.id !== viewer.id,
+                )?.user;
+                const viewerSettings = conversation.participants.find(
+                  (participant) => participant.user.id === viewer.id,
+                );
+
+                return (
+                  <>
+                    <div className="surface-subtle rounded-[12px] p-3">
+                      <div className="flex items-center gap-3">
+                        {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-white">
+                            {counterpart?.profile.displayName ?? "Conversation"}
+                          </p>
+                          <p className="truncate text-xs text-[var(--text-dim)]">
+                            {counterpart ? `@${counterpart.username}` : "Private thread"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        <span className="status-pill">
+                          <BellRing className="h-3 w-3 text-[var(--accent)]" />
+                          {viewerSettings?.notificationSetting ?? "ALL"}
+                        </span>
+                        <span className="status-pill">
+                          <PhoneCall className="h-3 w-3 text-[var(--accent)]" />
+                          {latestSignal?.call.dmConversationId === route.conversationId
+                            ? latestSignal.call.status
+                            : "Call ready"}
+                        </span>
+                        {conversation.retentionMode !== "OFF" ? (
+                          <span className="status-pill">
+                            <LockKeyhole className="h-3 w-3 text-[var(--accent)]" />
+                            {conversation.retentionMode}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {viewerSettings ? (
+                      <ConversationSettings
+                        notificationSetting={viewerSettings.notificationSetting}
+                        retentionMode={conversation.retentionMode}
+                        retentionSeconds={conversation.retentionSeconds}
+                        disabled={false}
+                        onSave={saveConversationSettings}
+                      />
+                    ) : null}
+                  </>
+                );
+              })()}
+            </div>
+          ) : null}
+
+          {route.section === "hubs" && route.hubId && hubInfo ? (
+            <div className="grid gap-3">
+              <div className="surface-subtle rounded-[12px] p-3">
+                <p className="truncate text-sm font-semibold text-white">{hubInfo.name}</p>
+                <p className="mt-1 text-sm text-[var(--text-dim)]">
+                  {hubInfo.description ?? "Shared space"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="status-pill">
+                    <UsersRound className="h-3 w-3 text-[var(--accent)]" />
+                    {hubInfo.members.length} members
+                  </span>
+                  <span className="status-pill">{hubInfo.membershipRole ?? "Guest"}</span>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                {hubInfo.members.slice(0, 12).map((member) => (
+                  <div
+                    key={member.id}
+                    className="list-row flex items-center gap-3 rounded-[12px] px-3 py-2"
+                  >
+                    <UserAvatar user={member.user} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-white">
+                        {member.user.profile.displayName}
+                      </p>
+                      <p className="truncate text-xs text-[var(--text-dim)]">
+                        @{member.user.username} · {member.role}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {!isLoading &&
+          ((route.section === "messages" && !conversation) ||
+            (route.section === "hubs" && !hubInfo)) ? (
+            <div className="surface-subtle rounded-[12px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
+              Nothing to show for this panel yet.
+            </div>
           ) : null}
         </div>
       </aside>
-    );
-  }
-
-  if (route.section === "hubs" && route.hubId && hubInfo) {
-    return (
-      <aside className="activity-rail hidden min-h-0 w-[296px] shrink-0 flex-col overflow-hidden rounded-[20px] p-2.5 2xl:flex 2xl:sticky 2xl:top-3 2xl:h-[calc(100vh-1.5rem)]">
-        <div className="surface-highlight rounded-[16px] p-3">
-          <p className="truncate text-sm font-semibold text-white">{hubInfo.name}</p>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text-dim)]">
-            {hubInfo.description ?? "Hub members"}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="status-pill">
-              <UsersRound className="h-3.5 w-3.5 text-[var(--accent)]" />
-              {hubInfo.members.length} members
-            </span>
-            <span className="status-pill">{hubInfo.membershipRole ?? "Guest"}</span>
-          </div>
-        </div>
-
-        <div className="mt-2.5 min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="grid gap-2">
-            {hubInfo.members.slice(0, 10).map((member) => (
-              <div
-                key={member.id}
-                className="list-row flex items-center gap-3 rounded-[16px] px-3 py-2.5"
-              >
-                <UserAvatar user={member.user} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-white">
-                    {member.user.profile.displayName}
-                  </p>
-                  <p className="truncate text-xs text-[var(--text-dim)]">
-                    @{member.user.username} · {member.role}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </aside>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }

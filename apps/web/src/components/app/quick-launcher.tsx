@@ -169,36 +169,36 @@ export function QuickLauncher() {
       <button type="button" onClick={() => setOpen(true)} className="topbar-search">
         <span className="inline-flex items-center gap-2">
           <Search className="h-4 w-4" />
-          Jump to chat, hub or page
+          Jump to chat or hub
         </span>
         <span className="glass-badge">Ctrl K</span>
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 py-12 backdrop-blur-sm">
-          <div className="social-shell w-full max-w-[680px] rounded-[24px] p-3">
-            <div className="flex items-center gap-3 rounded-[16px] border border-[var(--border)] bg-white/[0.03] px-3">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 py-8">
+          <div className="social-shell w-full max-w-[560px] rounded-[18px] p-2.5">
+            <div className="flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--bg-panel-soft)] px-3">
               <Search className="h-4 w-4 text-[var(--text-muted)]" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search messages, people or hubs"
-                className="h-11 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
+                placeholder="Search chats, people, or hubs"
+                className="h-10 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
               />
               <button type="button" onClick={() => setOpen(false)} className="glass-badge">
                 Esc
               </button>
             </div>
 
-            <div className="mt-3 grid gap-1">
+            <div className="mt-2.5 grid gap-1">
               {isLoading ? (
-                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
-                  Загружаем цели...
+                <div className="surface-subtle rounded-[12px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
+                  Loading results...
                 </div>
               ) : filteredItems.length === 0 ? (
-                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
-                  Ничего не найдено.
+                <div className="surface-subtle rounded-[12px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
+                  No matches found.
                 </div>
               ) : (
                 filteredItems.map((item) => (
@@ -206,9 +206,9 @@ export function QuickLauncher() {
                     key={item.id}
                     type="button"
                     onClick={() => navigate(item.href)}
-                    className="list-row flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-left"
+                    className="list-row flex items-center gap-3 rounded-[12px] px-3 py-2 text-left"
                   >
-                    <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px]">
+                    <span className="dock-icon flex h-8 w-8 items-center justify-center rounded-[10px]">
                       <item.icon className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
