@@ -1,14 +1,16 @@
 import { adminOverviewResponseSchema } from "@lobby/shared";
-import { ShieldCheck } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { fetchServerApi } from "@/lib/server-api";
 import { requireAdminViewer } from "@/lib/server-session";
 
 const roleLabels: Record<string, string> = {
-  OWNER: "Владелец",
-  ADMIN: "Администратор",
-  MEMBER: "Участник",
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MEMBER: "Member",
 };
+
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
 export default async function AdminPage() {
   await requireAdminViewer();
@@ -17,59 +19,93 @@ export default async function AdminPage() {
 
   return (
     <div className="grid gap-4">
-      <section className="social-shell rounded-[20px] p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="eyebrow-pill">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Admin
-          </span>
-          <span className="status-pill">Internal</span>
+      <section className="premium-panel rounded-[24px] p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="eyebrow-pill">
+                <ShieldCheck {...iconProps} />
+                Admin
+              </span>
+              <span className="status-pill">
+                <UsersRound {...iconProps} />
+                Internal control
+              </span>
+            </div>
+            <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
+              Service control surface
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
+              Operational metrics, recent invite activity and the fast links needed to
+              keep Lobby healthy.
+            </p>
+          </div>
         </div>
-        <h1 className="mt-1.5 font-[var(--font-heading)] text-[1.1rem] font-semibold tracking-[-0.04em] text-white">
-          Операционный контур
-        </h1>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[0.72fr_0.28fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Показатели</CardTitle>
-            <CardDescription>Текущие цифры по платформе.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {[
-              ["Пользователи", overview.counts.users],
-              ["Заблокированные", overview.counts.blockedUsers],
-              ["Ключи", overview.counts.invites],
-              ["Хабы", overview.counts.hubs],
-              ["События аудита", overview.counts.auditEvents],
-            ].map(([label, value]) => (
-              <div key={label} className="metric-tile rounded-[16px] p-3">
-                <p className="text-sm text-[var(--text-dim)]">{label}</p>
-                <p className="mt-1.5 text-xl font-semibold text-white">{value}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <section className="premium-panel rounded-[24px] p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-white">Platform metrics</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                A compact read on the current platform footprint.
+              </p>
+            </div>
+            <span className="status-pill">
+              <Sparkles {...iconProps} />
+              Live snapshot
+            </span>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Последние ключи</CardTitle>
-            <CardDescription>Недавно созданные приглашения.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            {overview.recentInvites.map((invite) => (
-              <div key={invite.id} className="surface-subtle rounded-[16px] p-3">
-                <p className="text-sm font-semibold text-white">
-                  {invite.label ?? "Ключ без названия"}
-                </p>
-                <p className="mt-1 text-sm text-[var(--text-dim)]">
-                  {roleLabels[invite.role] ?? invite.role} · {invite.usedCount}/{invite.maxUses}
-                </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[
+              ["Users", overview.counts.users],
+              ["Blocked users", overview.counts.blockedUsers],
+              ["Invites", overview.counts.invites],
+              ["Hubs", overview.counts.hubs],
+              ["Audit events", overview.counts.auditEvents],
+            ].map(([label, value]) => (
+              <div key={label} className="surface-subtle rounded-[18px] px-4 py-3">
+                <p className="text-xs text-[var(--text-muted)]">{label}</p>
+                <p className="mt-1 text-xl font-semibold text-white">{value}</p>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
+
+        <section className="premium-panel rounded-[24px] p-0">
+          <div className="border-b border-[var(--border)] px-4 py-3">
+            <p className="text-sm font-medium text-white">Recent invite keys</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              The latest onboarding channels issued from admin.
+            </p>
+          </div>
+
+          <div className="min-h-0 overflow-y-auto">
+            {overview.recentInvites.length === 0 ? (
+              <EmptyState
+                className="py-10"
+                title="No invite keys yet"
+                description="Create the first invite to start onboarding through the control surface."
+              />
+            ) : (
+              overview.recentInvites.map((invite) => (
+                <div
+                  key={invite.id}
+                  className="border-b border-[var(--border-soft)] px-4 py-3 transition-colors hover:bg-[var(--bg-hover)]"
+                >
+                  <p className="text-sm font-medium text-white">
+                    {invite.label ?? "Untitled invite"}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--text-dim)]">
+                    {roleLabels[invite.role] ?? invite.role} / {invite.usedCount}/{invite.maxUses}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
       </section>
     </div>
   );

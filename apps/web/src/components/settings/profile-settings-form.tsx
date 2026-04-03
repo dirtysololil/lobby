@@ -39,18 +39,18 @@ const presetOptions: UpdateProfileInput["avatarPreset"][] = [
 ];
 
 const presenceLabels: Record<UpdateProfileInput["presence"], string> = {
-  ONLINE: "В сети",
-  IDLE: "Отошёл",
-  DND: "Не беспокоить",
-  OFFLINE: "Скрыт",
+  ONLINE: "Online",
+  IDLE: "Idle",
+  DND: "Do not disturb",
+  OFFLINE: "Hidden",
 };
 
 const presetLabels: Record<UpdateProfileInput["avatarPreset"], string> = {
-  NONE: "Без эффекта",
-  GOLD_GLOW: "Золотое свечение",
-  NEON_BLUE: "Неоновый синий",
-  PREMIUM_PURPLE: "Премиум фиолетовый",
-  ANIMATED_RING: "Анимированное кольцо",
+  NONE: "No effect",
+  GOLD_GLOW: "Gold ring",
+  NEON_BLUE: "Blue ring",
+  PREMIUM_PURPLE: "Premium ring",
+  ANIMATED_RING: "Animated ring",
 };
 
 export function ProfileSettingsForm({
@@ -83,13 +83,13 @@ export function ProfileSettingsForm({
         method: "PATCH",
         body: JSON.stringify(values),
       });
-      setMessage("Профиль обновлён.");
+      setMessage("Profile updated.");
       router.refresh();
     } catch (submissionError) {
       setError(
         submissionError instanceof Error
           ? submissionError.message
-          : "Не удалось обновить профиль",
+          : "Unable to update profile.",
       );
     }
   }
@@ -110,13 +110,13 @@ export function ProfileSettingsForm({
         method: "POST",
         body: payload,
       });
-      setMessage("Аватар обновлён.");
+      setMessage("Avatar updated.");
       router.refresh();
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
           ? uploadError.message
-          : "Не удалось загрузить аватар",
+          : "Unable to upload avatar.",
       );
     } finally {
       setIsUploadingAvatar(false);
@@ -132,13 +132,13 @@ export function ProfileSettingsForm({
       await apiClientFetch<UserResponse>("/v1/users/me/avatar", {
         method: "DELETE",
       });
-      setMessage("Аватар удалён.");
+      setMessage("Avatar removed.");
       router.refresh();
     } catch (removeError) {
       setError(
         removeError instanceof Error
           ? removeError.message
-          : "Не удалось удалить аватар",
+          : "Unable to remove avatar.",
       );
     } finally {
       setIsRemovingAvatar(false);
@@ -146,33 +146,31 @@ export function ProfileSettingsForm({
   }
 
   return (
-    <section className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
-      <div className="premium-panel rounded-[20px] p-4">
-        <p className="section-kicker">Профиль в сети</p>
-        <div className="surface-highlight mt-4 flex flex-col items-center rounded-[20px] px-4 py-5 text-center">
+    <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="premium-panel rounded-[24px] p-5">
+        <p className="section-kicker">Identity</p>
+        <div className="surface-highlight mt-4 rounded-[24px] px-5 py-6 text-center">
           <UserAvatar user={viewer} size="lg" />
           <p className="mt-4 text-lg font-semibold text-white">
             {viewer.profile.displayName}
           </p>
-          <p className="mt-1.5 font-mono text-sm text-[var(--text-soft)]">
-            @{viewer.username}
+          <p className="mt-1 text-sm text-[var(--text-soft)]">@{viewer.username}</p>
+          <p className="mt-4 text-sm leading-6 text-[var(--text-dim)]">
+            Upload PNG, JPEG, WEBP or GIF up to {maxAvatarMb} MB, {maxAvatarDimension}
+            px and {Math.floor(maxAvatarAnimationMs / 1000)} seconds.
           </p>
-          <p className="mt-3 max-w-sm text-sm leading-5 text-slate-400">
-            PNG, JPEG, WEBP, GIF. До {maxAvatarAnimationMs / 1000}с,{" "}
-            {maxAvatarDimension}px, {maxAvatarMb} МБ.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
             <span className="status-pill">
-              <ShieldCheck className="h-3.5 w-3.5 text-[var(--success)]" />
-              Публичный профиль
+              <ShieldCheck size={18} strokeWidth={1.5} className="text-[var(--success)]" />
+              Public identity
             </span>
             <span className="status-pill">
-              <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
+              <Sparkles size={18} strokeWidth={1.5} className="text-[var(--accent)]" />
               {presetLabels[viewer.profile.avatarPreset]}
             </span>
           </div>
-          <div className="mt-4 flex w-full flex-col gap-2.5">
-            <label className="surface-subtle cursor-pointer rounded-[16px] px-4 py-2.5 text-sm text-white transition hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
+          <div className="mt-5 grid gap-2">
+            <label className="surface-subtle cursor-pointer rounded-[18px] px-4 py-3 text-sm text-white transition hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif"
@@ -183,8 +181,8 @@ export function ProfileSettingsForm({
                 disabled={isUploadingAvatar}
               />
               <span className="inline-flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                {isUploadingAvatar ? "Загружаем аватар..." : "Загрузить аватар"}
+                <Camera size={18} strokeWidth={1.5} />
+                {isUploadingAvatar ? "Uploading avatar..." : "Upload avatar"}
               </span>
             </label>
             <Button
@@ -193,20 +191,26 @@ export function ProfileSettingsForm({
               onClick={() => void handleAvatarRemove()}
               disabled={!viewer.profile.avatar.fileKey || isRemovingAvatar}
             >
-              {isRemovingAvatar ? "Удаляем..." : "Удалить аватар"}
+              {isRemovingAvatar ? "Removing..." : "Remove avatar"}
             </Button>
           </div>
         </div>
       </div>
 
       <form
-        className="premium-panel rounded-[20px] p-4"
+        className="premium-panel rounded-[24px] p-5"
         onSubmit={form.handleSubmit((values) => void onSubmit(values))}
       >
-        <p className="section-kicker">Настройки профиля</p>
-        <div className="mt-4 grid gap-4">
+        <div className="flex flex-col gap-2">
+          <p className="section-kicker">Profile settings</p>
+          <p className="text-sm leading-6 text-[var(--text-dim)]">
+            This identity is used across DMs, people surfaces and hubs.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="displayName">Отображаемое имя</Label>
+            <Label htmlFor="displayName">Display name</Label>
             <Input id="displayName" {...form.register("displayName")} />
             {form.formState.errors.displayName ? (
               <p className="text-sm text-rose-200">
@@ -216,11 +220,11 @@ export function ProfileSettingsForm({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="bio">Биография</Label>
+            <Label htmlFor="bio">Bio</Label>
             <textarea
               id="bio"
               rows={4}
-              className="field-textarea min-h-[120px]"
+              className="field-textarea min-h-[124px]"
               {...form.register("bio")}
             />
             {form.formState.errors.bio ? (
@@ -230,9 +234,9 @@ export function ProfileSettingsForm({
             ) : null}
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="presence">Статус присутствия</Label>
+              <Label htmlFor="presence">Presence</Label>
               <select
                 id="presence"
                 className="field-select text-sm"
@@ -247,7 +251,7 @@ export function ProfileSettingsForm({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="avatarPreset">Пресет аватара</Label>
+              <Label htmlFor="avatarPreset">Avatar style</Label>
               <select
                 id="avatarPreset"
                 className="field-select text-sm"
@@ -262,19 +266,18 @@ export function ProfileSettingsForm({
             </div>
           </div>
 
-          <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-            Изменения сразу видны в DM, people и hubs.
+          <div className="surface-subtle rounded-[18px] px-4 py-3 text-sm leading-6 text-[var(--text-dim)]">
+            Changes propagate directly into DM headers, people rows and hub membership
+            surfaces.
           </div>
         </div>
 
         {error ? <p className="mt-5 text-sm text-rose-200">{error}</p> : null}
-        {message ? (
-          <p className="mt-5 text-sm text-emerald-200">{message}</p>
-        ) : null}
+        {message ? <p className="mt-5 text-sm text-emerald-200">{message}</p> : null}
 
         <div className="mt-5 flex flex-wrap gap-2.5">
           <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Сохраняем..." : "Сохранить профиль"}
+            {form.formState.isSubmitting ? "Saving..." : "Save profile"}
           </Button>
           <Button
             type="button"
@@ -282,7 +285,7 @@ export function ProfileSettingsForm({
             onClick={() => form.reset()}
             disabled={form.formState.isSubmitting}
           >
-            Сбросить форму
+            Reset
           </Button>
         </div>
       </form>

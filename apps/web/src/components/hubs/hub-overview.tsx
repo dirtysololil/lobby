@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { LockKeyhole, UsersRound, Waves } from "lucide-react";
+import type { ReactNode } from "react";
+import {
+  LockKeyhole,
+  ShieldBan,
+  UserRoundPlus,
+  UsersRound,
+  Waves,
+} from "lucide-react";
 import {
   hubShellResponseSchema,
   type HubMemberRole,
@@ -15,11 +22,13 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
 
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
 const roleLabels: Record<string, string> = {
-  OWNER: "Владелец",
-  ADMIN: "Администратор",
-  MODERATOR: "Модератор",
-  MEMBER: "Участник",
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MODERATOR: "Moderator",
+  MEMBER: "Member",
 };
 
 const lobbyTypeLabels: Record<string, string> = {
@@ -33,6 +42,29 @@ interface HubOverviewProps {
 }
 
 const assignableRoles: HubMemberRole[] = ["ADMIN", "MODERATOR", "MEMBER"];
+
+function CountBadge({ value }: { value: number | string }) {
+  return (
+    <span className="inline-flex min-h-5 items-center rounded-full bg-[var(--bg-panel-soft)] px-2 text-[11px] font-medium text-[var(--text-dim)]">
+      {value}
+    </span>
+  );
+}
+
+function SectionTitle({
+  title,
+  meta,
+}: {
+  title: string;
+  meta?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <p className="text-sm font-medium tracking-tight text-white">{title}</p>
+      {meta}
+    </div>
+  );
+}
 
 export function HubOverview({ hubId }: HubOverviewProps) {
   const [hub, setHub] = useState<HubShell["hub"] | null>(null);
@@ -63,7 +95,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось загрузить хаб",
+        error instanceof Error ? error.message : "Unable to load this hub.",
       );
     }
   }, [hubId]);
@@ -74,12 +106,13 @@ export function HubOverview({ hubId }: HubOverviewProps) {
 
   async function withAction(key: string, action: () => Promise<void>) {
     setActionKey(key);
+
     try {
       await action();
       await loadHub();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Ошибка действия в хабе",
+        error instanceof Error ? error.message : "Unable to update the hub.",
       );
     } finally {
       setActionKey(null);
@@ -88,7 +121,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
 
   if (errorMessage) {
     return (
-      <div className="rounded-[16px] border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+      <div className="rounded-[22px] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
         {errorMessage}
       </div>
     );
@@ -96,105 +129,116 @@ export function HubOverview({ hubId }: HubOverviewProps) {
 
   if (!hub) {
     return (
-      <div className="rounded-[18px] border border-[var(--border)] bg-white/[0.03] p-4 text-sm text-[var(--text-dim)]">
-        Загружаем хаб...
+      <div className="premium-panel rounded-[24px] p-5 text-sm text-[var(--text-dim)]">
+        Loading hub...
       </div>
     );
   }
 
   return (
-    <div className="grid gap-3">
-      <div className="social-shell rounded-[20px] p-3">
-        <div className="compact-toolbar">
-          <div>
+    <div className="grid gap-4">
+      <section className="premium-panel rounded-[24px] p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="eyebrow-pill">
-                <Waves className="h-3.5 w-3.5" />
+                <Waves {...iconProps} />
                 Hub
               </span>
               <span className="status-pill">
                 {hub.membershipRole
                   ? roleLabels[hub.membershipRole] ?? hub.membershipRole
-                  : "Гость"}
+                  : "Guest"}
+              </span>
+              <span className="status-pill">
+                <UsersRound {...iconProps} />
+                {hub.members.length} members
               </span>
               {hub.isPrivate ? (
                 <span className="status-pill">
-                  <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent)]" />
+                  <LockKeyhole {...iconProps} />
                   Private
                 </span>
               ) : null}
-              <span className="status-pill">
-                <UsersRound className="h-3.5 w-3.5 text-[var(--accent)]" />
-                {hub.members.length} members
-              </span>
             </div>
-            <h1 className="mt-1.5 font-[var(--font-heading)] text-[1.18rem] font-semibold tracking-[-0.04em] text-white">
+            <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
               {hub.name}
             </h1>
-            <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
-              {hub.description ?? "Без описания"}
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
+              {hub.description ??
+                "A shared communication space for channels, calls and member context."}
             </p>
           </div>
-        </div>
-      </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="grid gap-3">
-          <div className="premium-panel rounded-[20px] p-3">
-            <div className="compact-toolbar px-1">
-              <p className="section-kicker">Channels</p>
-              <span className="glass-badge">{hub.lobbies.length}</span>
+          <div className="grid min-w-[240px] grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
+            <div className="surface-subtle rounded-[18px] px-4 py-3">
+              <p className="text-xs text-[var(--text-muted)]">Channels</p>
+              <p className="mt-1 text-lg font-semibold text-white">{hub.lobbies.length}</p>
             </div>
-            <div className="mt-2 grid gap-2">
+            <div className="surface-subtle rounded-[18px] px-4 py-3">
+              <p className="text-xs text-[var(--text-muted)]">Pending invites</p>
+              <p className="mt-1 text-lg font-semibold text-white">
+                {hub.pendingInvites.length}
+              </p>
+            </div>
+            <div className="surface-subtle rounded-[18px] px-4 py-3">
+              <p className="text-xs text-[var(--text-muted)]">Active mutes</p>
+              <p className="mt-1 text-lg font-semibold text-white">{hub.activeMutes.length}</p>
+            </div>
+            <div className="surface-subtle rounded-[18px] px-4 py-3">
+              <p className="text-xs text-[var(--text-muted)]">Active bans</p>
+              <p className="mt-1 text-lg font-semibold text-white">{hub.activeBans.length}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid gap-4">
+          <section className="premium-panel rounded-[24px] p-4">
+            <SectionTitle
+              title="Channels and spaces"
+              meta={<CountBadge value={hub.lobbies.length} />}
+            />
+            <div className="mt-4 grid gap-2">
               {hub.lobbies.length === 0 ? (
                 <EmptyState
-                  title="Нет доступных каналов"
-                  description="Создайте первое лобби."
+                  title="No accessible spaces yet"
+                  description="Create the first lobby to give this hub a place to talk."
                 />
               ) : (
                 hub.lobbies.map((lobby) => (
                   <Link
                     key={lobby.id}
                     href={buildHubLobbyHref(hub.id, lobby.id, lobby.type)}
-                    className="list-row rounded-[16px] px-3 py-2.5"
+                    className="flex min-h-14 items-start gap-3 rounded-[18px] border border-transparent px-3 py-3 transition-colors hover:border-[var(--border)] hover:bg-[var(--bg-hover)]"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px] text-[10px] font-semibold text-white">
-                        {lobby.name.slice(0, 2).toUpperCase()}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-semibold text-white">
-                            {lobby.name}
-                          </p>
-                          <span className="glass-badge">
-                            {lobbyTypeLabels[lobby.type] ?? lobby.type}
-                          </span>
-                          {lobby.isPrivate ? (
-                            <span className="glass-badge">Private</span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
-                          {lobby.description ?? lobby.type}
-                        </p>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--bg-panel-soft)] text-[11px] font-semibold text-white">
+                      {lobby.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-white">{lobby.name}</p>
+                        <span className="glass-badge">
+                          {lobbyTypeLabels[lobby.type] ?? lobby.type}
+                        </span>
+                        {lobby.isPrivate ? <span className="glass-badge">Private</span> : null}
                       </div>
+                      <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+                        {lobby.description ?? "Ready for conversation."}
+                      </p>
                     </div>
                   </Link>
                 ))
               )}
             </div>
-          </div>
+          </section>
 
           {hub.permissions.canCreateLobby ? (
-            <div className="premium-panel rounded-[20px] p-3.5">
-              <div className="compact-toolbar">
-                <div>
-                  <p className="section-kicker">Create lobby</p>
-                </div>
-              </div>
-
+            <section className="premium-panel rounded-[24px] p-4">
+              <SectionTitle title="Create lobby" />
               <form
-                className="mt-3 grid gap-2.5"
+                className="mt-4 grid gap-3"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void withAction("create-lobby", async () => {
@@ -219,27 +263,31 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   });
                 }}
               >
-                <Input
-                  value={lobbyName}
-                  onChange={(event) => setLobbyName(event.target.value)}
-                  placeholder="Название лобби"
-                />
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
+                  <Input
+                    value={lobbyName}
+                    onChange={(event) => setLobbyName(event.target.value)}
+                    placeholder="Lobby name"
+                  />
+                  <select
+                    value={lobbyType}
+                    onChange={(event) =>
+                      setLobbyType(event.target.value as "TEXT" | "VOICE" | "FORUM")
+                    }
+                    className="field-select text-sm"
+                  >
+                    <option value="TEXT">Text</option>
+                    <option value="VOICE">Voice</option>
+                    <option value="FORUM">Forum</option>
+                  </select>
+                </div>
+
                 <Input
                   value={lobbyDescription}
                   onChange={(event) => setLobbyDescription(event.target.value)}
-                  placeholder="Описание"
+                  placeholder="Short description"
                 />
-                <select
-                  value={lobbyType}
-                  onChange={(event) =>
-                    setLobbyType(event.target.value as "TEXT" | "VOICE" | "FORUM")
-                  }
-                  className="field-select text-sm"
-                >
-                  <option value="TEXT">Текстовое</option>
-                  <option value="VOICE">Голосовое</option>
-                  <option value="FORUM">Форум</option>
-                </select>
+
                 <label className="field-checkbox text-sm">
                   <input
                     type="checkbox"
@@ -248,37 +296,37 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   />
                   Private lobby
                 </label>
+
                 {privateLobby ? (
                   <Input
                     value={allowedUsernames}
                     onChange={(event) => setAllowedUsernames(event.target.value)}
-                    placeholder="разрешенные username через запятую"
+                    placeholder="Allowed usernames, comma-separated"
                   />
                 ) : null}
-                <Button
-                  type="submit"
-                  disabled={actionKey === "create-lobby"}
-                  className="w-full"
-                >
-                  {actionKey === "create-lobby" ? "Создаем..." : "Создать лобби"}
-                </Button>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" disabled={actionKey === "create-lobby"}>
+                    {actionKey === "create-lobby" ? "Creating..." : "Create lobby"}
+                  </Button>
+                  <p className="self-center text-xs text-[var(--text-muted)]">
+                    Keep creation compact and lightweight. You can refine permissions later.
+                  </p>
+                </div>
               </form>
-            </div>
+            </section>
           ) : null}
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           {hub.permissions.canInviteMembers ? (
-            <div className="premium-panel rounded-[20px] p-3.5">
-              <div className="compact-toolbar">
-                <div>
-                  <p className="section-kicker">Invite member</p>
-                </div>
-                <span className="glass-badge">{hub.pendingInvites.length} pending</span>
-              </div>
-
+            <section className="premium-panel rounded-[24px] p-4">
+              <SectionTitle
+                title="Invite member"
+                meta={<CountBadge value={`${hub.pendingInvites.length} pending`} />}
+              />
               <form
-                className="mt-3 flex flex-col gap-2 sm:flex-row"
+                className="mt-4 flex flex-col gap-2 sm:flex-row"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void withAction("invite-member", async () => {
@@ -299,56 +347,59 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   placeholder="username"
                 />
                 <Button type="submit" disabled={actionKey === "invite-member"}>
-                  Invite
+                  <UserRoundPlus {...iconProps} />
+                  {actionKey === "invite-member" ? "Inviting..." : "Invite"}
                 </Button>
               </form>
 
-              <div className="mt-3 grid gap-2">
+              <div className="mt-4 grid gap-2">
                 {hub.pendingInvites.length === 0 ? (
-                  <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
-                    Нет ожидающих приглашений.
-                  </div>
+                  <EmptyState
+                    title="No pending invites"
+                    description="Invites will appear here while members have not accepted them yet."
+                  />
                 ) : (
                   hub.pendingInvites.map((invite) => (
                     <div
                       key={invite.id}
-                      className="list-row rounded-[16px] px-3 py-2.5 text-sm"
+                      className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] px-3 py-3"
                     >
-                      <p className="font-semibold text-white">
+                      <p className="text-sm font-medium text-white">
                         {invite.invitee.profile.displayName}
                       </p>
-                      <p className="mt-1 text-[var(--text-dim)]">
+                      <p className="mt-1 text-xs text-[var(--text-dim)]">
                         @{invite.invitee.username}
                       </p>
                     </div>
                   ))
                 )}
               </div>
-            </div>
+            </section>
           ) : null}
 
-          <div className="premium-panel rounded-[20px] p-3">
-            <div className="compact-toolbar px-1">
-              <p className="section-kicker">Members</p>
-              <span className="glass-badge">{hub.members.length}</span>
-            </div>
-
-            <div className="mt-2 grid gap-2">
+          <section className="premium-panel rounded-[24px] p-4">
+            <SectionTitle title="Members" meta={<CountBadge value={hub.members.length} />} />
+            <div className="mt-4 grid gap-2">
               {hub.members.map((member) => {
                 const roleDraft = roleDrafts[member.user.username] ?? member.role;
 
                 return (
-                  <div key={member.id} className="list-row rounded-[16px] px-3 py-2.5">
+                  <div
+                    key={member.id}
+                    className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] px-3 py-3"
+                  >
                     <div className="flex items-start gap-3">
                       <UserAvatar user={member.user} size="sm" />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-semibold text-white">
+                          <p className="truncate text-sm font-medium text-white">
                             {member.user.profile.displayName}
                           </p>
-                          <span className="glass-badge">{member.role}</span>
+                          <span className="glass-badge">
+                            {roleLabels[member.role] ?? member.role}
+                          </span>
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                        <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
                           @{member.user.username}
                         </p>
                       </div>
@@ -356,7 +407,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
 
                     {(hub.permissions.canManageHub || hub.permissions.canManageMembers) &&
                     member.canManage ? (
-                      <div className="mt-2.5 grid gap-2">
+                      <div className="mt-3 grid gap-2">
                         {hub.permissions.canManageHub ? (
                           <div className="flex flex-wrap gap-2">
                             <select
@@ -446,6 +497,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                                 })
                               }
                             >
+                              <ShieldBan {...iconProps} />
                               Ban
                             </Button>
                           </div>
@@ -456,29 +508,29 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 );
               })}
             </div>
-          </div>
+          </section>
 
           {(hub.activeMutes.length > 0 || hub.activeBans.length > 0) &&
           hub.permissions.canManageMembers ? (
-            <div className="premium-panel rounded-[20px] p-3">
-              <div className="compact-toolbar px-1">
-                <p className="section-kicker">Restrictions</p>
-                <span className="glass-badge">
-                  {hub.activeMutes.length + hub.activeBans.length}
-                </span>
-              </div>
-
-              <div className="mt-2 grid gap-2">
+            <section className="premium-panel rounded-[24px] p-4">
+              <SectionTitle
+                title="Restrictions"
+                meta={<CountBadge value={hub.activeMutes.length + hub.activeBans.length} />}
+              />
+              <div className="mt-4 grid gap-2">
                 {hub.activeMutes.map((mute) => (
-                  <div key={mute.id} className="list-row rounded-[16px] px-3 py-2.5">
-                    <p className="text-sm font-semibold text-white">
+                  <div
+                    key={mute.id}
+                    className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] px-3 py-3"
+                  >
+                    <p className="text-sm font-medium text-white">
                       {mute.user.profile.displayName}
                     </p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    <p className="mt-1 text-xs text-[var(--text-dim)]">
                       @{mute.user.username}
                     </p>
                     <Button
-                      className="mt-2.5"
+                      className="mt-3"
                       size="sm"
                       variant="secondary"
                       onClick={() =>
@@ -496,15 +548,18 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 ))}
 
                 {hub.activeBans.map((ban) => (
-                  <div key={ban.id} className="list-row rounded-[16px] px-3 py-2.5">
-                    <p className="text-sm font-semibold text-white">
+                  <div
+                    key={ban.id}
+                    className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] px-3 py-3"
+                  >
+                    <p className="text-sm font-medium text-white">
                       {ban.user.profile.displayName}
                     </p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    <p className="mt-1 text-xs text-[var(--text-dim)]">
                       @{ban.user.username}
                     </p>
                     <Button
-                      className="mt-2.5"
+                      className="mt-3"
                       size="sm"
                       variant="secondary"
                       onClick={() =>
@@ -521,7 +576,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           ) : null}
         </div>
       </div>

@@ -26,10 +26,10 @@ const notificationOptions: NotificationSetting[] = [
   "OFF",
 ];
 const notificationLabels: Record<NotificationSetting, string> = {
-  ALL: "Все события",
-  MENTIONS_ONLY: "Только упоминания",
-  MUTED: "Без звука",
-  OFF: "Отключено",
+  ALL: "All activity",
+  MENTIONS_ONLY: "Mentions only",
+  MUTED: "Muted",
+  OFF: "Off",
 };
 
 export function NotificationSettingsForm({
@@ -55,13 +55,13 @@ export function NotificationSettingsForm({
           body: JSON.stringify(defaults),
         },
       );
-      setMessage("Базовые правила уведомлений сохранены.");
+      setMessage("Default notification rules saved.");
       router.refresh();
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Не удалось сохранить настройки",
+          : "Unable to save notification settings.",
       );
     } finally {
       setIsSavingDefaults(false);
@@ -83,13 +83,13 @@ export function NotificationSettingsForm({
           body: JSON.stringify({ notificationSetting }),
         },
       );
-      setMessage("Правило уведомлений для хаба обновлено.");
+      setMessage("Hub rule updated.");
       router.refresh();
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Не удалось сохранить правило хаба",
+          : "Unable to update the hub rule.",
       );
     }
   }
@@ -110,54 +110,66 @@ export function NotificationSettingsForm({
           body: JSON.stringify({ notificationSetting }),
         },
       );
-      setMessage("Правило уведомлений для лобби обновлено.");
+      setMessage("Lobby rule updated.");
       router.refresh();
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Не удалось сохранить правило лобби",
+          : "Unable to update the lobby rule.",
       );
     }
   }
 
   return (
     <div className="grid gap-4">
-      <section className="premium-panel rounded-[20px] p-4">
-        <p className="section-kicker">Базовые правила</p>
-        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+      <section className="premium-panel rounded-[24px] p-5">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <p className="section-kicker">Defaults</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
+              Set the baseline notification behavior for new DMs, hubs and lobbies.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="status-pill">
+              <BellRing size={18} strokeWidth={1.5} />
+              Communication defaults
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
           {[
             {
               key: "dmNotificationDefault" as const,
-              label: "Личные диалоги",
-                description: "Правило по умолчанию для новых DM.",
+              label: "Direct messages",
+              description: "Applied when a brand-new DM thread is opened.",
               icon: BellRing,
             },
             {
               key: "hubNotificationDefault" as const,
-              label: "Хабы",
-                description: "Правило по умолчанию для новых хабов.",
+              label: "Hubs",
+              description: "Baseline rule for a new hub membership.",
               icon: Layers3,
             },
             {
               key: "lobbyNotificationDefault" as const,
-              label: "Лобби",
-                description: "Fallback для новых лобби.",
+              label: "Lobbies",
+              description: "Fallback for lobby-level overrides inside a hub.",
               icon: Volume2,
             },
           ].map((item) => (
-            <div key={item.key} className="surface-subtle rounded-[16px] p-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-[14px] bg-white/[0.05] text-[var(--accent)]">
-                <item.icon className="h-4 w-4" />
+            <div key={item.key} className="surface-subtle rounded-[20px] p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white/5 text-[var(--accent)]">
+                <item.icon size={18} strokeWidth={1.5} />
               </div>
-              <p className="mt-4 text-sm font-medium text-white">
-                {item.label}
-              </p>
-              <p className="mt-1.5 text-sm leading-5 text-slate-400">
+              <p className="mt-4 text-sm font-medium text-white">{item.label}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
                 {item.description}
               </p>
               <select
-                className="field-select mt-3 text-sm"
+                className="field-select mt-4 text-sm"
                 value={defaults[item.key]}
                 onChange={(event) =>
                   setDefaults((current) => ({
@@ -175,99 +187,95 @@ export function NotificationSettingsForm({
             </div>
           ))}
         </div>
-        <div className="mt-4 flex flex-wrap gap-2.5">
-          <Button
-            onClick={() => void saveDefaults()}
-            disabled={isSavingDefaults}
-          >
-            {isSavingDefaults ? "Сохраняем..." : "Сохранить базовые правила"}
+
+        <div className="mt-5 flex flex-wrap gap-2.5">
+          <Button onClick={() => void saveDefaults()} disabled={isSavingDefaults}>
+            {isSavingDefaults ? "Saving..." : "Save defaults"}
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => router.refresh()}
-          >
-            Обновить
+          <Button type="button" variant="secondary" onClick={() => router.refresh()}>
+            Refresh
           </Button>
         </div>
         {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
-        {message ? (
-          <p className="mt-4 text-sm text-emerald-200">{message}</p>
-        ) : null}
+        {message ? <p className="mt-4 text-sm text-emerald-200">{message}</p> : null}
       </section>
 
-      <section className="premium-panel rounded-[20px] p-4">
-        <p className="section-kicker">Хабы</p>
-        <div className="mt-4 grid gap-3">
+      <section className="premium-panel rounded-[24px] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="section-kicker">Hub rules</p>
+          <span className="status-pill">{initialSettings.hubs.length} hubs</span>
+        </div>
+
+        <div className="mt-4 grid gap-2">
           {initialSettings.hubs.length === 0 ? (
             <EmptyState
-              title="Нет подключённых хабов"
-              description="Вступите в хаб или создайте свой."
+              title="No joined hubs"
+              description="Hub-level notification rules appear once you have access to a hub."
             />
           ) : (
             initialSettings.hubs.map((hub) => (
               <div
                 key={hub.hubId}
-                className="list-row grid gap-3 rounded-[16px] p-3 lg:grid-cols-[1fr_210px]"
+                className="flex flex-col gap-3 rounded-[18px] border border-white/6 bg-white/[0.02] px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
               >
-                <div>
-                  <p className="text-sm font-medium text-white">
-                    {hub.hubName}
-                  </p>
-                  <p className="mt-1.5 text-sm leading-5 text-slate-400">
-                    Базовое правило для лобби внутри хаба.
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-white">{hub.hubName}</p>
+                  <p className="mt-1 text-sm text-[var(--text-dim)]">
+                    Base rule for spaces inside this hub.
                   </p>
                 </div>
-                <div className="flex gap-3">
-                  <select
-                    className="field-select flex-1 text-sm"
-                    defaultValue={hub.setting}
-                    onChange={(event) =>
-                      void updateHubSetting(
-                        hub.hubId,
-                        event.target.value as NotificationSetting,
-                      )
-                    }
-                  >
-                    {notificationOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {notificationLabels[option]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  className="field-select max-w-[220px] text-sm"
+                  defaultValue={hub.setting}
+                  onChange={(event) =>
+                    void updateHubSetting(
+                      hub.hubId,
+                      event.target.value as NotificationSetting,
+                    )
+                  }
+                >
+                  {notificationOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {notificationLabels[option]}
+                    </option>
+                  ))}
+                </select>
               </div>
             ))
           )}
         </div>
       </section>
 
-      <section className="premium-panel rounded-[20px] p-4">
-        <p className="section-kicker">Переопределения лобби</p>
-        <div className="mt-4 grid gap-3">
+      <section className="premium-panel rounded-[24px] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="section-kicker">Lobby overrides</p>
+          <span className="status-pill">{initialSettings.lobbies.length} lobbies</span>
+        </div>
+
+        <div className="mt-4 grid gap-2">
           {initialSettings.lobbies.length === 0 ? (
             <EmptyState
-              title="Нет доступных лобби"
-              description="Индивидуальные правила лобби появляются, когда у вас есть доступ хотя бы к одному пространству внутри хаба."
+              title="No lobby overrides yet"
+              description="Lobby-specific notification rules appear after you join hubs with accessible spaces."
             />
           ) : (
             initialSettings.lobbies.map((lobby) => (
               <div
                 key={lobby.lobbyId}
-                className="list-row grid gap-3 rounded-[16px] p-3 lg:grid-cols-[1fr_230px]"
+                className="flex flex-col gap-3 rounded-[18px] border border-white/6 bg-white/[0.02] px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
               >
-                <div>
-                  <p className="text-sm font-medium text-white">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-white">
                     {lobby.hubName} / {lobby.lobbyName}
                   </p>
-                  <p className="mt-1.5 text-sm leading-5 text-slate-400">
+                  <p className="mt-1 text-sm text-[var(--text-dim)]">
                     {lobby.inherited
-                      ? "Наследует хаб."
-                      : "Есть отдельное правило."}
+                      ? "Currently inheriting the hub rule."
+                      : "This lobby has its own override."}
                   </p>
                 </div>
                 <select
-                  className="field-select text-sm"
+                  className="field-select max-w-[220px] text-sm"
                   defaultValue={lobby.setting}
                   onChange={(event) =>
                     void updateLobbySetting(
@@ -287,10 +295,11 @@ export function NotificationSettingsForm({
             ))
           )}
         </div>
-        <div className="surface-subtle mt-4 rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
+
+        <div className="surface-subtle mt-5 rounded-[18px] px-4 py-3 text-sm leading-6 text-[var(--text-dim)]">
           <span className="inline-flex items-center gap-2 text-white">
-            <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-            DM, hubs и lobbies настраиваются отдельно.
+            <Sparkles size={18} strokeWidth={1.5} className="text-[var(--accent)]" />
+            DM, hub and lobby rules can be tuned independently.
           </span>
         </div>
       </section>

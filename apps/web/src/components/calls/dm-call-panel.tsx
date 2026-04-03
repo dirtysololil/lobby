@@ -38,6 +38,16 @@ export function DmCallPanel({
     canPublishMedia: boolean;
   } | null>(null);
 
+  const joinCallById = useCallback(async (callId: string) => {
+    const payload = await apiClientFetch(`/v1/calls/${callId}/token`, {
+      method: "POST",
+    });
+
+    const parsed = callTokenResponseSchema.parse(payload);
+    setConnection(parsed.connection);
+    return parsed;
+  }, []);
+
   const loadState = useCallback(async () => {
     try {
       const payload = await apiClientFetch(`/v1/calls/dm/${conversationId}`);
@@ -86,6 +96,38 @@ export function DmCallPanel({
     void loadState();
   }, [latestSignal, conversationId, clearIncomingCall, loadState]);
 
+  useEffect(() => {
+    if (!state?.activeCall && connection) {
+      setConnection(null);
+      return;
+    }
+
+    if (state?.activeCall && connection && state.activeCall.id !== connection.callId) {
+      setConnection(null);
+    }
+  }, [connection, state?.activeCall]);
+
+  useEffect(() => {
+    const activeCall = state?.activeCall;
+    const viewerParticipant = activeCall?.participants.find(
+      (participant) => participant.user.id === viewerId,
+    );
+
+    if (
+      !activeCall ||
+      connection ||
+      pendingAction ||
+      isBlocked ||
+      activeCall.status !== "ACCEPTED" ||
+      !viewerParticipant ||
+      !["ACCEPTED", "JOINED"].includes(viewerParticipant.state)
+    ) {
+      return;
+    }
+
+    void joinCallById(activeCall.id).catch(() => undefined);
+  }, [connection, isBlocked, joinCallById, pendingAction, state, viewerId]);
+
   async function startCall(mode: "AUDIO" | "VIDEO") {
     setPendingAction(`start:${mode}`);
 
@@ -95,7 +137,8 @@ export function DmCallPanel({
         body: JSON.stringify({ mode }),
       });
 
-      callResponseSchema.parse(payload);
+      const parsed = callResponseSchema.parse(payload);
+      await joinCallById(parsed.call.id);
       await loadState();
     } finally {
       setPendingAction(null);
@@ -114,7 +157,8 @@ export function DmCallPanel({
         method: "POST",
       });
 
-      callResponseSchema.parse(payload);
+      const parsed = callResponseSchema.parse(payload);
+      await joinCallById(parsed.call.id);
       clearIncomingCall(state.activeCall.id);
       await loadState();
     } finally {
@@ -151,12 +195,7 @@ export function DmCallPanel({
     setPendingAction("join");
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/token`, {
-        method: "POST",
-      });
-
-      const parsed = callTokenResponseSchema.parse(payload);
-      setConnection(parsed.connection);
+      await joinCallById(state.activeCall.id);
       await loadState();
     } finally {
       setPendingAction(null);
@@ -190,97 +229,114 @@ export function DmCallPanel({
     ) ?? null;
   const isIncomingCall =
     activeCall?.status === "RINGING" && activeCall.initiatedBy.id !== viewerId;
+  const connectedParticipants =
+    activeCall?.participants.filter((participant) =>
+      ["ACCEPTED", "JOINED"].includes(participant.state),
+    ).length ?? 0;
 
   return (
-    <div className="grid gap-2">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="status-pill">
-              <PhoneCall {...iconProps} />
-              {activeCall ? activeCall.status : "Call ready"}
-            </span>
-            {viewerParticipant ? (
-              <span className="status-pill">you: {viewerParticipant.state}</span>
+    <div className="grid gap-3">
+      <div className="premium-panel rounded-[24px] p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="eyebrow-pill">DM call</span>
+              <span className="status-pill">
+                <PhoneCall {...iconProps} />
+                {activeCall ? activeCall.status : "Ready"}
+              </span>
+              {viewerParticipant ? (
+                <span className="status-pill">You: {viewerParticipant.state}</span>
+              ) : null}
+              {activeCall ? (
+                <span className="status-pill">{connectedParticipants} connected</span>
+              ) : null}
+              {state?.history.length ? (
+                <span className="status-pill">{state.history.length} recent</span>
+              ) : null}
+            </div>
+            <p className="mt-3 text-sm leading-6 text-[var(--text-dim)]">
+              {activeCall
+                ? "Call state, live media and screen share stay anchored inside the DM scene."
+                : "Start a voice or video session without leaving the message thread."}
+            </p>
+            {errorMessage ? (
+              <p className="mt-3 text-sm text-rose-200">{errorMessage}</p>
             ) : null}
-            {state?.history.length ? (
-              <span className="status-pill">{state.history.length} recent</span>
+            {!errorMessage && isBlocked ? (
+              <p className="mt-3 text-sm text-amber-100">
+                Calling is unavailable in this conversation.
+              </p>
             ) : null}
           </div>
-          {errorMessage ? (
-            <p className="mt-1 text-sm text-rose-200">{errorMessage}</p>
-          ) : null}
-          {!errorMessage && isBlocked ? (
-            <p className="mt-1 text-sm text-amber-100">Calling is unavailable here.</p>
-          ) : null}
-        </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          {!activeCall ? (
-            <>
-              <Button
-                size="sm"
-                onClick={() => void startCall("AUDIO")}
-                disabled={isBlocked || pendingAction !== null}
-              >
-                <Phone {...iconProps} />
-                {pendingAction === "start:AUDIO" ? "Starting..." : "Audio"}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => void startCall("VIDEO")}
-                disabled={isBlocked || pendingAction !== null}
-              >
-                <Video {...iconProps} />
-                {pendingAction === "start:VIDEO" ? "Starting..." : "Video"}
-              </Button>
-            </>
-          ) : isIncomingCall ? (
-            <>
-              <Button
-                size="sm"
-                onClick={() => void acceptCall()}
-                disabled={pendingAction !== null || isBlocked}
-              >
-                {pendingAction === "accept" ? "Accepting..." : "Accept"}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => void declineCall()}
-                disabled={pendingAction !== null}
-              >
-                {pendingAction === "decline" ? "Declining..." : "Decline"}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                size="sm"
-                onClick={() => void joinCall()}
-                disabled={pendingAction !== null || isBlocked}
-              >
-                {pendingAction === "join" ? "Joining..." : "Join"}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => void endCall()}
-                disabled={pendingAction !== null}
-              >
-                {pendingAction === "end" ? "Ending..." : "End"}
-              </Button>
-            </>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {!activeCall ? (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => void startCall("AUDIO")}
+                  disabled={isBlocked || pendingAction !== null}
+                >
+                  <Phone {...iconProps} />
+                  {pendingAction === "start:AUDIO" ? "Starting..." : "Voice call"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void startCall("VIDEO")}
+                  disabled={isBlocked || pendingAction !== null}
+                >
+                  <Video {...iconProps} />
+                  {pendingAction === "start:VIDEO" ? "Starting..." : "Video call"}
+                </Button>
+              </>
+            ) : isIncomingCall ? (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => void acceptCall()}
+                  disabled={pendingAction !== null || isBlocked}
+                >
+                  {pendingAction === "accept" ? "Accepting..." : "Accept"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void declineCall()}
+                  disabled={pendingAction !== null}
+                >
+                  {pendingAction === "decline" ? "Declining..." : "Decline"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => void joinCall()}
+                  disabled={pendingAction !== null || isBlocked}
+                >
+                  {pendingAction === "join" ? "Joining..." : "Rejoin"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void endCall()}
+                  disabled={pendingAction !== null}
+                >
+                  {pendingAction === "end" ? "Ending..." : "End call"}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       <LiveKitCallRoom
         connection={connection}
         mode={activeCall?.mode ?? "AUDIO"}
-        title="Call"
-        description="Live controls in the DM thread."
+        title="Live scene"
+        description="Voice, camera and screen-share state stay grouped inside the DM."
         onLeave={async () => {
           await endCall();
         }}

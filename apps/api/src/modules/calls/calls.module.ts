@@ -15,6 +15,6 @@ import { LivekitService } from './livekit.service';
     LivekitService,
     CallTimeoutProcessor,
   ],
-  exports: [CallsService],
+  exports: [CallsService, CallsRealtimeService],
 })
 export class CallsModule {}

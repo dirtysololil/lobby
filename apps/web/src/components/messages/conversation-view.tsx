@@ -7,63 +7,357 @@ import {
   directConversationSummaryResponseSchema,
   directMessageResponseSchema,
   type DirectConversationDetail,
+  type DirectMessage,
 } from "@lobby/shared";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { DmCallPanel } from "@/components/calls/dm-call-panel";
+import { useRealtime } from "@/components/realtime/realtime-provider";
+import { sortDirectMessages } from "@/lib/direct-message-state";
 import { ConversationSettings } from "./conversation-settings";
 import { MessageComposer } from "./message-composer";
-import { MessageThread } from "./message-thread";
+import { MessageThread, type ThreadMessageItem } from "./message-thread";
 
 interface ConversationViewProps {
   conversationId: string;
   viewerId: string;
 }
 
+type ConversationState = Omit<DirectConversationDetail["conversation"], "messages">;
+
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
+function stripConversationMessages(
+  conversation: DirectConversationDetail["conversation"],
+): ConversationState {
+  const { messages: _messages, ...meta } = conversation;
+  return meta;
+}
+
+function buildOptimisticMessage(args: {
+  author: DirectConversationDetail["conversation"]["participants"][number]["user"];
+  conversationId: string;
+  content: string;
+  clientNonce: string;
+}): ThreadMessageItem {
+  const createdAt = new Date().toISOString();
+  const deleteExpiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+  return {
+    id: `temp:${args.clientNonce}`,
+    conversationId: args.conversationId,
+    author: args.author,
+    content: args.content,
+    isDeleted: false,
+    canDelete: true,
+    deleteExpiresAt,
+    clientNonce: args.clientNonce,
+    createdAt,
+    updatedAt: createdAt,
+    localState: "sending",
+  };
+}
+
+function mergeThreadMessage(
+  items: ThreadMessageItem[],
+  message: DirectMessage,
+): ThreadMessageItem[] {
+  const byIdIndex = items.findIndex((item) => item.id === message.id);
+
+  if (byIdIndex >= 0) {
+    const nextItems = [...items];
+    nextItems[byIdIndex] = {
+      ...nextItems[byIdIndex],
+      ...message,
+      localState: undefined,
+    };
+
+    return sortDirectMessages(nextItems);
+  }
+
+  if (message.clientNonce) {
+    const byNonceIndex = items.findIndex(
+      (item) => item.clientNonce && item.clientNonce === message.clientNonce,
+    );
+
+    if (byNonceIndex >= 0) {
+      const nextItems = [...items];
+      nextItems[byNonceIndex] = {
+        ...nextItems[byNonceIndex],
+        ...message,
+        localState: undefined,
+      };
+
+      return sortDirectMessages(nextItems);
+    }
+  }
+
+  return sortDirectMessages([
+    ...items,
+    {
+      ...message,
+      localState: undefined,
+    },
+  ]);
+}
+
+function markMessageAsFailed(
+  items: ThreadMessageItem[],
+  messageId: string,
+): ThreadMessageItem[] {
+  return items.map((item) =>
+    item.id === messageId ? { ...item, localState: "failed" } : item,
+  );
+}
+
+function removeThreadMessage(
+  items: ThreadMessageItem[],
+  messageId: string,
+): ThreadMessageItem[] {
+  return items.filter((item) => item.id !== messageId);
+}
+
+function applyLocalRead(
+  conversation: ConversationState | null,
+  viewerId: string,
+  lastReadMessageId: string | null,
+  lastReadAt: string | null,
+): ConversationState | null {
+  if (!conversation) {
+    return conversation;
+  }
+
+  return {
+    ...conversation,
+    participants: conversation.participants.map((participant) =>
+      participant.user.id === viewerId
+        ? {
+            ...participant,
+            lastReadMessageId,
+            lastReadAt,
+          }
+        : participant,
+    ),
+  };
+}
 
 export function ConversationView({
   conversationId,
   viewerId,
 }: ConversationViewProps) {
-  const [conversation, setConversation] = useState<
-    DirectConversationDetail["conversation"] | null
-  >(null);
+  const { latestDmSignal } = useRealtime();
+  const [conversation, setConversation] = useState<ConversationState | null>(null);
+  const [messages, setMessages] = useState<ThreadMessageItem[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const readInFlightRef = useRef(false);
+  const pendingReadRef = useRef<{
+    lastReadMessageId: string | null;
+    lastReadAt: string | null;
+  } | null>(null);
 
   const loadConversation = useCallback(async () => {
     try {
       const payload = await apiClientFetch(`/v1/direct-messages/${conversationId}`);
       const parsed = directConversationDetailSchema.parse(payload);
-      setConversation(parsed.conversation);
+      setConversation(stripConversationMessages(parsed.conversation));
+      setMessages(parsed.conversation.messages);
       setErrorMessage(null);
-      await apiClientFetch(`/v1/direct-messages/${conversationId}/read`, {
-        method: "POST",
-      });
+
+      const latestMessage = parsed.conversation.messages.at(-1) ?? null;
+      setConversation((current) =>
+        applyLocalRead(
+          current ?? stripConversationMessages(parsed.conversation),
+          viewerId,
+          latestMessage?.id ?? null,
+          latestMessage?.createdAt ?? null,
+        ),
+      );
+
+      if (latestMessage) {
+        await markConversationAsRead(latestMessage.id, latestMessage.createdAt);
+      } else {
+        await markConversationAsRead(null, null);
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to load conversation.",
       );
     }
-  }, [conversationId]);
+  }, [conversationId, viewerId]);
+
+  const markConversationAsRead = useCallback(
+    async (lastReadMessageId: string | null, lastReadAt: string | null) => {
+      if (readInFlightRef.current) {
+        pendingReadRef.current = {
+          lastReadMessageId,
+          lastReadAt,
+        };
+        return;
+      }
+
+      readInFlightRef.current = true;
+      pendingReadRef.current = null;
+      setConversation((current) =>
+        applyLocalRead(current, viewerId, lastReadMessageId, lastReadAt),
+      );
+
+      try {
+        await apiClientFetch(`/v1/direct-messages/${conversationId}/read`, {
+          method: "POST",
+        });
+      } finally {
+        readInFlightRef.current = false;
+
+        if (pendingReadRef.current) {
+          const pendingRead = pendingReadRef.current;
+          pendingReadRef.current = null;
+          void markConversationAsRead(
+            pendingRead.lastReadMessageId,
+            pendingRead.lastReadAt,
+          );
+        }
+      }
+    },
+    [conversationId, viewerId],
+  );
 
   useEffect(() => {
     void loadConversation();
   }, [loadConversation]);
 
+  useEffect(() => {
+    if (!latestDmSignal || latestDmSignal.conversationId !== conversationId) {
+      return;
+    }
+
+    if (latestDmSignal.event === "MESSAGE_CREATED" && latestDmSignal.message) {
+      setMessages((current) =>
+        mergeThreadMessage(current, latestDmSignal.message as DirectMessage),
+      );
+
+      if (latestDmSignal.actorUserId !== viewerId) {
+        void markConversationAsRead(
+          latestDmSignal.message.id,
+          latestDmSignal.message.createdAt,
+        );
+      }
+
+      return;
+    }
+
+    if (latestDmSignal.event === "MESSAGE_DELETED" && latestDmSignal.messageId) {
+      setMessages((current) =>
+        removeThreadMessage(current, latestDmSignal.messageId!),
+      );
+      return;
+    }
+
+    if (latestDmSignal.event === "CONVERSATION_READ") {
+      setConversation((current) =>
+        applyLocalRead(
+          current,
+          viewerId,
+          latestDmSignal.conversation.settings.lastReadMessageId,
+          latestDmSignal.conversation.settings.lastReadAt,
+        ),
+      );
+      return;
+    }
+
+    if (latestDmSignal.event === "CONVERSATION_UPDATED") {
+      setConversation((current) =>
+        current
+          ? {
+              ...current,
+              retentionMode: latestDmSignal.conversation.retentionMode,
+              retentionSeconds: latestDmSignal.conversation.retentionSeconds,
+            }
+          : current,
+      );
+    }
+  }, [conversationId, latestDmSignal, markConversationAsRead, viewerId]);
+
+  const counterpart = useMemo(
+    () =>
+      conversation?.participants.find((participant) => participant.user.id !== viewerId)
+        ?.user ?? null,
+    [conversation, viewerId],
+  );
+  const viewerParticipant = useMemo(
+    () =>
+      conversation?.participants.find((participant) => participant.user.id === viewerId) ??
+      null,
+    [conversation, viewerId],
+  );
+  const isBlocked =
+    conversation?.isBlockedByViewer || conversation?.hasBlockedViewer || false;
+
   async function sendMessage(content: string) {
-    await apiClientFetch(`/v1/direct-messages/${conversationId}/messages`, {
-      method: "POST",
-      body: JSON.stringify({ content }),
+    if (!conversation || !counterpart) {
+      return;
+    }
+
+    const author =
+      conversation.participants.find((participant) => participant.user.id === viewerId)
+        ?.user ?? counterpart;
+    const clientNonce =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const optimisticMessage = buildOptimisticMessage({
+      author,
+      conversationId,
+      content,
+      clientNonce,
     });
-    await loadConversation();
+
+    setMessages((current) => sortDirectMessages([...current, optimisticMessage]));
+    setConversation((current) =>
+      applyLocalRead(current, viewerId, optimisticMessage.id, optimisticMessage.createdAt),
+    );
+
+    try {
+      const payload = await apiClientFetch(`/v1/direct-messages/${conversationId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ content, clientNonce }),
+      });
+      const parsed = directMessageResponseSchema.parse(payload);
+      setMessages((current) => mergeThreadMessage(current, parsed.message));
+      setConversation((current) =>
+        applyLocalRead(current, viewerId, parsed.message.id, parsed.message.createdAt),
+      );
+      setErrorMessage(null);
+    } catch (error) {
+      setMessages((current) => markMessageAsFailed(current, optimisticMessage.id));
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to send message.",
+      );
+    }
+  }
+
+  async function retryMessage(messageId: string) {
+    const failedMessage = messages.find((item) => item.id === messageId);
+
+    if (!failedMessage?.content) {
+      return;
+    }
+
+    setMessages((current) => removeThreadMessage(current, messageId));
+    await sendMessage(failedMessage.content);
   }
 
   async function deleteMessage(messageId: string) {
+    const previousMessage = messages.find((message) => message.id === messageId);
+
+    if (!previousMessage || !previousMessage.canDelete) {
+      return;
+    }
+
     setIsDeleting(messageId);
+    setMessages((current) => removeThreadMessage(current, messageId));
 
     try {
       const payload = await apiClientFetch(
@@ -71,7 +365,23 @@ export function ConversationView({
         { method: "DELETE" },
       );
       directMessageResponseSchema.parse(payload);
-      await loadConversation();
+      setErrorMessage(null);
+    } catch (error) {
+      const deleteWindowExpired =
+        error instanceof Error &&
+        error.message.toLowerCase().includes("1 hour");
+      setMessages((current) =>
+        sortDirectMessages([
+          ...current,
+          {
+            ...previousMessage,
+            canDelete: deleteWindowExpired ? false : previousMessage.canDelete,
+          },
+        ]),
+      );
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to delete message.",
+      );
     } finally {
       setIsDeleting(null);
     }
@@ -90,63 +400,54 @@ export function ConversationView({
     await loadConversation();
   }
 
-  if (errorMessage) {
+  if (errorMessage && !conversation) {
     return (
-      <div className="empty-state-minimal bg-[#09090b] text-zinc-500">
+      <div className="empty-state-minimal bg-[var(--bg-app)] text-[var(--text-muted)]">
         <ShieldAlert {...iconProps} />
         <p className="text-sm text-rose-200">{errorMessage}</p>
       </div>
     );
   }
 
-  if (!conversation) {
+  if (!conversation || !counterpart || !viewerParticipant) {
     return (
-      <div className="empty-state-minimal bg-[#09090b] text-zinc-500">
+      <div className="empty-state-minimal bg-[var(--bg-app)] text-[var(--text-muted)]">
         <UserRound {...iconProps} />
         <p className="text-sm">Loading conversation...</p>
       </div>
     );
   }
 
-  const counterpart = conversation.participants.find(
-    (participant) => participant.user.id !== viewerId,
-  )?.user;
-  const isBlocked =
-    conversation.isBlockedByViewer || conversation.hasBlockedViewer;
-  const viewerSettings =
-    conversation.participants.find((participant) => participant.user.id === viewerId)
-      ?.notificationSetting ?? "ALL";
-
   return (
-    <div className="flex min-h-full flex-col bg-[#09090b]">
+    <div className="flex min-h-full flex-col bg-[var(--bg-app)]">
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="sticky top-0 z-10 flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(9,9,11,0.82)] px-4 backdrop-blur-md">
+        <div className="sticky top-0 z-10 flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(15,18,24,0.84)] px-4 backdrop-blur-md">
           <div className="flex min-w-0 items-center gap-3">
-            {counterpart ? <UserAvatar user={counterpart} size="sm" /> : null}
+            <UserAvatar user={counterpart} size="sm" />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="truncate text-sm font-medium tracking-tight text-white">
-                  {counterpart?.profile.displayName ?? "Conversation"}
+                  {counterpart.profile.displayName}
                 </p>
-                <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                   <UserRound {...iconProps} />
                   DM
                 </span>
                 {conversation.retentionMode !== "OFF" ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                  <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                     <Clock3 {...iconProps} />
                     {conversation.retentionMode}
                   </span>
                 ) : null}
                 {isBlocked ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-rose-300">
+                  <span className="inline-flex items-center gap-1 text-xs text-amber-300">
                     <ShieldAlert {...iconProps} />
                     Restricted
                   </span>
                 ) : null}
               </div>
-              <p className="truncate text-xs text-zinc-500">
-                {counterpart ? `@${counterpart.username}` : "Private thread"}
+              <p className="truncate text-xs text-[var(--text-muted)]">
+                @{counterpart.username}
               </p>
             </div>
           </div>
@@ -159,13 +460,7 @@ export function ConversationView({
           </Link>
         </div>
 
-        {isBlocked ? (
-          <div className="border-b border-white/5 px-4 py-2 text-sm text-zinc-400">
-            Messaging and calling are unavailable in this conversation.
-          </div>
-        ) : null}
-
-        <div className="border-b border-white/5 px-4 py-2">
+        <div className="border-b border-white/5 bg-[color:var(--bg-panel-muted)]/78 px-4 py-3">
           <DmCallPanel
             conversationId={conversationId}
             viewerId={viewerId}
@@ -173,23 +468,31 @@ export function ConversationView({
           />
         </div>
 
+        {errorMessage ? (
+          <div className="border-b border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">
+            {errorMessage}
+          </div>
+        ) : null}
+
         <div className="min-h-0 flex-1">
           <MessageThread
             viewerId={viewerId}
-            conversation={conversation}
+            messages={messages}
             isDeleting={isDeleting}
+            lastReadAt={viewerParticipant.lastReadAt}
             onDelete={deleteMessage}
+            onRetry={retryMessage}
           />
         </div>
 
-        <div className="border-t border-white/5 bg-[rgba(9,9,11,0.88)] px-4 py-3 backdrop-blur-md">
+        <div className="border-t border-white/5 bg-[rgba(12,15,20,0.92)] px-4 py-3 backdrop-blur-md">
           <MessageComposer disabled={isBlocked} onSend={sendMessage} />
         </div>
       </section>
 
       <div className="border-t border-white/5 px-4 py-3 2xl:hidden">
         <ConversationSettings
-          notificationSetting={viewerSettings}
+          notificationSetting={viewerParticipant.notificationSetting}
           retentionMode={conversation.retentionMode}
           retentionSeconds={conversation.retentionSeconds}
           disabled={false}

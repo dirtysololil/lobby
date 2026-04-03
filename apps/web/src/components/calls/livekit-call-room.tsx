@@ -1,10 +1,21 @@
 "use client";
 
 import type { CallMode } from "@lobby/shared";
-import { Mic, MicOff, MonitorUp, MonitorX, PhoneOff, Video, VideoOff } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  Monitor,
+  MonitorUp,
+  MonitorX,
+  Mic,
+  MicOff,
+  PhoneOff,
+  Video,
+  VideoOff,
+  Waves,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Room, RoomEvent, Track, type Participant } from "livekit-client";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface CallConnection {
   callId: string;
@@ -74,11 +85,36 @@ function collectTrackViews(room: Room) {
   };
 }
 
-function TrackTile({ item }: { item: TrackView }) {
+function isScreenShareTrack(item: TrackView) {
+  return item.source.toLowerCase().includes("screen");
+}
+
+function isMicrophoneTrack(item: TrackView) {
+  return item.source.toLowerCase().includes("microphone");
+}
+
+function getParticipantInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function TrackSurface({
+  item,
+  emphasis = "tile",
+}: {
+  item: TrackView;
+  emphasis?: "stage" | "tile";
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
+
     if (!container) {
       return;
     }
@@ -95,7 +131,10 @@ function TrackTile({ item }: { item: TrackView }) {
     element.volume = item.isLocal ? 0 : 1;
 
     if (element instanceof HTMLVideoElement) {
-      element.className = "h-full w-full rounded-[16px] object-cover";
+      element.className =
+        emphasis === "stage"
+          ? "h-full w-full object-cover"
+          : "h-full w-full rounded-[18px] object-cover";
       element.playsInline = true;
     } else {
       element.className = "hidden";
@@ -109,26 +148,53 @@ function TrackTile({ item }: { item: TrackView }) {
       item.track.detach(element);
       element.remove();
     };
-  }, [item]);
+  }, [emphasis, item]);
+
+  const isScreen = isScreenShareTrack(item);
 
   return (
-    <div className="rounded-[14px] border border-[var(--border)] bg-white/[0.03] p-2.5">
-      <div className="mb-2 flex items-center justify-between gap-2">
+    <div
+      className={cn(
+        "relative overflow-hidden border border-white/6 bg-[var(--bg-panel-muted)]",
+        emphasis === "stage" ? "min-h-[320px] rounded-[24px]" : "rounded-[20px]",
+      )}
+    >
+      <div ref={containerRef} className="absolute inset-0" />
+
+      {item.kind === "audio" ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,rgba(124,140,255,0.16),transparent_42%),rgba(10,13,18,0.82)]">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/8 bg-white/5 text-lg font-semibold text-white">
+            {getParticipantInitials(item.participantName)}
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-white">{item.participantName}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Voice stream active
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-[linear-gradient(180deg,transparent,rgba(5,8,12,0.82))] px-4 pb-4 pt-10">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">{item.participantName}</p>
-          <p className="truncate text-xs text-[var(--text-dim)]">
-            {item.isLocal ? "local" : "remote"} · {item.source}
+          <p className="truncate text-sm font-medium text-white">
+            {item.participantName}
+          </p>
+          <p className="truncate text-xs text-[var(--text-soft)]">
+            {item.isLocal ? "You" : "Remote"} ·{" "}
+            {isScreen ? "Screen share" : item.kind === "video" ? "Camera" : "Audio"}
           </p>
         </div>
-        <span className="glass-badge">{item.kind}</span>
-      </div>
-      <div
-        ref={containerRef}
-        className="relative flex min-h-[136px] items-center justify-center overflow-hidden rounded-[14px] bg-black/30"
-      >
-        {item.kind === "audio" ? (
-          <span className="text-sm text-[var(--text-dim)]">Аудиопоток активен</span>
-        ) : null}
+        <span className="inline-flex items-center gap-1 rounded-full border border-white/8 bg-black/30 px-2 py-1 text-[11px] text-[var(--text-soft)] backdrop-blur-sm">
+          {isScreen ? (
+            <Monitor size={14} strokeWidth={1.5} />
+          ) : item.kind === "video" ? (
+            <Video size={14} strokeWidth={1.5} />
+          ) : (
+            <Mic size={14} strokeWidth={1.5} />
+          )}
+          {isScreen ? "Share" : item.kind}
+        </span>
       </div>
     </div>
   );
@@ -197,6 +263,12 @@ export function LiveKitCallRoom({
       nextRoom.on(event, syncRoomState);
     }
 
+    nextRoom.on(RoomEvent.Reconnecting, () => {
+      if (!isCancelled) {
+        setStatus("connecting");
+      }
+    });
+
     nextRoom.on(RoomEvent.Disconnected, () => {
       if (!isCancelled) {
         setStatus("idle");
@@ -217,7 +289,7 @@ export function LiveKitCallRoom({
         }
 
         if (isCancelled) {
-          await nextRoom.disconnect();
+          nextRoom.disconnect();
           return;
         }
 
@@ -229,7 +301,7 @@ export function LiveKitCallRoom({
           setErrorMessage(
             error instanceof Error
               ? error.message
-              : "Не удалось подключиться к комнате LiveKit",
+              : "Unable to connect to the LiveKit room.",
           );
         }
       }
@@ -293,81 +365,191 @@ export function LiveKitCallRoom({
     }
   }
 
+  const screenTracks = useMemo(
+    () => tracks.filter((item) => item.kind === "video" && isScreenShareTrack(item)),
+    [tracks],
+  );
+  const cameraTracks = useMemo(
+    () => tracks.filter((item) => item.kind === "video" && !isScreenShareTrack(item)),
+    [tracks],
+  );
+  const audioTracks = useMemo(
+    () =>
+      tracks.filter(
+        (item) =>
+          item.kind === "audio" &&
+          (isMicrophoneTrack(item) || !item.source.toLowerCase().includes("screen")),
+      ),
+    [tracks],
+  );
+
+  const primaryTrack =
+    screenTracks.find((item) => !item.isLocal) ??
+    screenTracks[0] ??
+    cameraTracks.find((item) => !item.isLocal) ??
+    cameraTracks[0] ??
+    null;
+
+  const secondaryVideoTracks = [...screenTracks, ...cameraTracks].filter(
+    (item) => item.id !== primaryTrack?.id,
+  );
+
   if (!connection) {
     return null;
   }
 
   return (
-    <div className="premium-panel rounded-[18px] p-3">
-      <div className="compact-toolbar">
-        <div>
-          <p className="text-sm font-semibold text-white">{title}</p>
-          <p className="mt-1 text-xs text-[var(--text-dim)]">{description}</p>
+    <div className="premium-panel rounded-[24px] p-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="eyebrow-pill">{title}</span>
+            <span className="status-pill">{mode}</span>
+            <span className="status-pill">{status}</span>
+            {screenTracks.length > 0 ? (
+              <span className="status-pill">
+                <Monitor {...iconProps} />
+                Screen share active
+              </span>
+            ) : null}
+            {!connection.canPublishMedia ? (
+              <span className="status-pill">Listen only</span>
+            ) : null}
+          </div>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
+            {description}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="glass-badge">{mode}</span>
-          <span className="glass-badge">{status}</span>
-          {!connection.canPublishMedia ? (
-            <span className="glass-badge">listen only</span>
-          ) : null}
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Button
+            size="sm"
+            variant={microphoneEnabled ? "secondary" : "ghost"}
+            onClick={() => void toggleMicrophone()}
+            disabled={!connection.canPublishMedia}
+            className="justify-start"
+          >
+            {microphoneEnabled ? <Mic {...iconProps} /> : <MicOff {...iconProps} />}
+            {microphoneEnabled ? "Mic on" : "Mic off"}
+          </Button>
+          <Button
+            size="sm"
+            variant={cameraEnabled ? "secondary" : "ghost"}
+            onClick={() => void toggleCamera()}
+            disabled={!connection.canPublishMedia}
+            className="justify-start"
+          >
+            {cameraEnabled ? <Video {...iconProps} /> : <VideoOff {...iconProps} />}
+            {cameraEnabled ? "Camera" : "Camera off"}
+          </Button>
+          <Button
+            size="sm"
+            variant={screenShareEnabled ? "secondary" : "ghost"}
+            onClick={() => void toggleScreenShare()}
+            disabled={!connection.canPublishMedia}
+            className="justify-start"
+          >
+            {screenShareEnabled ? (
+              <MonitorX {...iconProps} />
+            ) : (
+              <MonitorUp {...iconProps} />
+            )}
+            {screenShareEnabled ? "Stop share" : "Share"}
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => void leaveRoom()}
+            disabled={isLeaving}
+            className="justify-start"
+          >
+            <PhoneOff {...iconProps} />
+            {isLeaving ? "Leaving..." : "Leave"}
+          </Button>
         </div>
       </div>
 
       {errorMessage ? (
-        <div className="mt-2.5 rounded-[14px] border border-rose-400/20 bg-rose-400/10 px-3 py-2.5 text-sm text-rose-100">
+        <div className="mt-4 rounded-[18px] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
           {errorMessage}
         </div>
       ) : null}
 
-      <div className="mt-2.5 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => void toggleMicrophone()}
-          disabled={!connection.canPublishMedia}
-        >
-          {microphoneEnabled ? <Mic {...iconProps} /> : <MicOff {...iconProps} />}
-          {microphoneEnabled ? "Mic on" : "Mic off"}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => void toggleCamera()}
-          disabled={!connection.canPublishMedia}
-        >
-          {cameraEnabled ? <Video {...iconProps} /> : <VideoOff {...iconProps} />}
-          {cameraEnabled ? "Camera on" : "Camera off"}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => void toggleScreenShare()}
-          disabled={!connection.canPublishMedia}
-        >
-          {screenShareEnabled ? (
-            <MonitorX {...iconProps} />
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_320px]">
+        <div className="space-y-3">
+          {primaryTrack ? (
+            <TrackSurface item={primaryTrack} emphasis="stage" />
           ) : (
-            <MonitorUp {...iconProps} />
+            <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[24px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(124,140,255,0.12),transparent_28%),var(--bg-panel-muted)] px-6 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/8 bg-white/5 text-[var(--accent)]">
+                <Waves size={24} strokeWidth={1.5} />
+              </div>
+              <p className="mt-4 text-sm font-medium text-white">Call scene is ready</p>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--text-dim)]">
+                As soon as a camera or screen track is published, it will appear here.
+              </p>
+            </div>
           )}
-          {screenShareEnabled ? "Stop share" : "Share screen"}
-        </Button>
-        <Button size="sm" onClick={() => void leaveRoom()} disabled={isLeaving}>
-          <PhoneOff {...iconProps} />
-          {isLeaving ? "Выходим..." : "Выйти"}
-        </Button>
-      </div>
 
-      {tracks.length === 0 ? (
-        <div className="mt-2.5 rounded-[14px] border border-[var(--border)] bg-white/[0.03] p-3 text-sm text-[var(--text-dim)]">
-          Ожидаем медиапотоки...
+          {secondaryVideoTracks.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {secondaryVideoTracks.map((item) => (
+                <TrackSurface key={item.id} item={item} />
+              ))}
+            </div>
+          ) : null}
         </div>
-      ) : (
-        <div className="mt-2.5 grid gap-2.5 xl:grid-cols-2">
-          {tracks.map((item) => (
-            <TrackTile key={item.id} item={item} />
-          ))}
+
+        <div className="space-y-3">
+          <div className="surface-subtle rounded-[22px] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-white">Participants</p>
+              <span className="text-xs text-[var(--text-muted)]">
+                {new Set(tracks.map((item) => item.participantName)).size || 1} live
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2">
+              {audioTracks.length === 0 && cameraTracks.length === 0 && screenTracks.length === 0 ? (
+                <div className="rounded-[18px] border border-white/6 bg-black/10 px-3 py-4 text-center text-sm text-[var(--text-dim)]">
+                  Waiting for participants...
+                </div>
+              ) : (
+                audioTracks.map((item) => (
+                  <TrackSurface key={item.id} item={item} />
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="surface-subtle rounded-[22px] p-3">
+            <p className="text-sm font-medium text-white">Live state</p>
+            <div className="mt-3 grid gap-2 text-sm text-[var(--text-dim)]">
+              <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/6 bg-black/10 px-3 py-2.5">
+                <span>Connection</span>
+                <span className="text-[var(--text-soft)]">{status}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/6 bg-black/10 px-3 py-2.5">
+                <span>Microphone</span>
+                <span className="text-[var(--text-soft)]">
+                  {microphoneEnabled ? "Live" : "Muted"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/6 bg-black/10 px-3 py-2.5">
+                <span>Camera</span>
+                <span className="text-[var(--text-soft)]">
+                  {cameraEnabled ? "Publishing" : "Off"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/6 bg-black/10 px-3 py-2.5">
+                <span>Screen share</span>
+                <span className="text-[var(--text-soft)]">
+                  {screenShareEnabled ? "Publishing" : "Inactive"}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

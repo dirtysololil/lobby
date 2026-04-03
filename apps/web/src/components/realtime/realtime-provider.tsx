@@ -1,6 +1,13 @@
 "use client";
 
-import { callSignalSchema, type CallSignal, type CallSummary, type PublicUser } from "@lobby/shared";
+import {
+  callSignalSchema,
+  dmSignalSchema,
+  type CallSignal,
+  type CallSummary,
+  type DmSignal,
+  type PublicUser,
+} from "@lobby/shared";
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { io, type Socket } from "socket.io-client";
@@ -9,6 +16,7 @@ import { resolveRealtimeBaseUrlForBrowser, runtimeConfig } from "@/lib/runtime-c
 interface RealtimeContextValue {
   socket: Socket | null;
   latestSignal: CallSignal | null;
+  latestDmSignal: DmSignal | null;
   incomingCalls: CallSummary[];
   clearIncomingCall: (callId: string) => void;
 }
@@ -29,6 +37,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
     }),
   );
   const [latestSignal, setLatestSignal] = useState<CallSignal | null>(null);
+  const [latestDmSignal, setLatestDmSignal] = useState<DmSignal | null>(null);
   const [incomingCalls, setIncomingCalls] = useState<CallSummary[]>([]);
   const clearIncomingCall = useCallback((callId: string) => {
     setIncomingCalls((current) => current.filter((item) => item.id !== callId));
@@ -55,10 +64,16 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       });
     }
 
+    function handleDmSignal(rawPayload: unknown) {
+      setLatestDmSignal(dmSignalSchema.parse(rawPayload));
+    }
+
     socket.on("calls.signal", handleSignal);
+    socket.on("dm.signal", handleDmSignal);
 
     return () => {
       socket.off("calls.signal", handleSignal);
+      socket.off("dm.signal", handleDmSignal);
       socket.disconnect();
     };
   }, [socket, viewer.id]);
@@ -68,6 +83,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       value={{
         socket,
         latestSignal,
+        latestDmSignal,
         incomingCalls,
         clearIncomingCall,
       }}

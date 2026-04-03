@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { CallSignal } from '@lobby/shared';
+import type { CallSignal, DmSignal } from '@lobby/shared';
 import type { Server } from 'socket.io';
 
 const CALL_SIGNAL_EVENT = 'calls.signal';
+const DM_SIGNAL_EVENT = 'dm.signal';
 
 @Injectable()
 export class CallsRealtimeService {
@@ -20,6 +21,10 @@ export class CallsRealtimeService {
     for (const userId of [...new Set(userIds)]) {
       this.server.to(this.getUserRoom(userId)).emit(CALL_SIGNAL_EVENT, payload);
     }
+  }
+
+  public emitDmSignalToUser(userId: string, payload: DmSignal): void {
+    this.server?.to(this.getUserRoom(userId)).emit(DM_SIGNAL_EVENT, payload);
   }
 
   public emitToDm(conversationId: string, payload: CallSignal): void {

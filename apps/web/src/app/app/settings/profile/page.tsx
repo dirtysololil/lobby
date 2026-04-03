@@ -1,17 +1,17 @@
 import { requireViewer } from "@/lib/server-session";
 import { ProfileSettingsForm } from "@/components/settings/profile-settings-form";
 
-function getRequiredNumberEnv(name: string): number {
+function getPositiveNumberEnv(name: string, fallback: number): number {
   const value = process.env[name];
 
   if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
+    return fallback;
   }
 
   const parsed = Number(value);
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(`Invalid numeric environment variable: ${name}`);
+    return fallback;
   }
 
   return parsed;
@@ -23,9 +23,9 @@ export default async function ProfileSettingsPage() {
   return (
     <ProfileSettingsForm
       viewer={viewer}
-      maxAvatarMb={getRequiredNumberEnv("MAX_AVATAR_MB")}
-      maxAvatarDimension={getRequiredNumberEnv("MAX_AVATAR_DIMENSION")}
-      maxAvatarAnimationMs={getRequiredNumberEnv("MAX_AVATAR_ANIMATION_MS")}
+      maxAvatarMb={getPositiveNumberEnv("MAX_AVATAR_MB", 10)}
+      maxAvatarDimension={getPositiveNumberEnv("MAX_AVATAR_DIMENSION", 1024)}
+      maxAvatarAnimationMs={getPositiveNumberEnv("MAX_AVATAR_ANIMATION_MS", 15_000)}
     />
   );
 }

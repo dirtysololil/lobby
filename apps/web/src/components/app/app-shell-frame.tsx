@@ -60,7 +60,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const showDockedActivityRail = activityAvailable && activityOpen && isWideScreen;
 
   return (
-    <div className="relative min-h-screen bg-[#09090b] text-white">
+    <div className="relative min-h-screen bg-[var(--bg-app)] text-white">
       <div
         className={cn(
           "grid min-h-screen grid-cols-1 md:grid-cols-[72px_15rem_minmax(0,1fr)]",
@@ -70,13 +70,13 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
         <AppSidebar viewer={viewer} />
         <AppContextRail viewer={viewer} />
 
-        <main className="relative flex min-h-screen min-w-0 flex-col bg-[#09090b]">
+        <main className="relative flex min-h-screen min-w-0 flex-col bg-[var(--bg-app)]">
           {activityAvailable ? (
             <button
               type="button"
               onClick={() => setActivityOpen((current) => !current)}
               className={cn(
-                "absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-[#121214]/90 text-zinc-400 backdrop-blur-md transition-colors hover:bg-white/5 hover:text-white",
+                "absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-[var(--bg-sidebar)]/92 text-[var(--text-muted)] backdrop-blur-md transition-colors hover:bg-white/5 hover:text-white",
                 activityOpen && "bg-white/5 text-white",
               )}
               aria-label={activityOpen ? "Hide details" : "Show details"}

@@ -11,7 +11,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRealtime } from "@/components/realtime/realtime-provider";
 import { apiClientFetch } from "@/lib/api-client";
+import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +45,7 @@ function formatConversationTime(value: string | null) {
 
 export function ConversationList() {
   const router = useRouter();
+  const { latestDmSignal } = useRealtime();
   const [conversations, setConversations] = useState<DirectConversationSummary[]>(
     [],
   );
@@ -54,6 +57,16 @@ export function ConversationList() {
   useEffect(() => {
     void loadConversations();
   }, []);
+
+  useEffect(() => {
+    if (!latestDmSignal) {
+      return;
+    }
+
+    setConversations((current) =>
+      applyDmSignalToConversationSummaries(current, latestDmSignal),
+    );
+  }, [latestDmSignal]);
 
   async function loadConversations() {
     setIsLoading(true);
@@ -85,6 +98,7 @@ export function ConversationList() {
 
       const conversation =
         directConversationSummaryResponseSchema.parse(payload).conversation;
+      setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)]);
       router.push(`/app/messages/${conversation.id}`);
       router.refresh();
     } catch (error) {
@@ -110,8 +124,8 @@ export function ConversationList() {
   }, [conversations]);
 
   return (
-    <section className="flex min-h-full flex-col bg-[#09090b]">
-      <div className="flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(9,9,11,0.82)] px-4 backdrop-blur-md">
+    <section className="flex min-h-full flex-col bg-[var(--bg-app)]">
+      <div className="flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(12,15,20,0.84)] px-4 backdrop-blur-md">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium tracking-tight text-white">
@@ -139,7 +153,7 @@ export function ConversationList() {
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
             />
             <Input
-              className="h-9 border-white/5 bg-white/5 pl-9 text-sm text-white placeholder:text-zinc-500"
+              className="h-9 border-white/6 bg-[var(--bg-panel-muted)] pl-9 text-sm text-white placeholder:text-[var(--text-muted)]"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               placeholder="@username"
