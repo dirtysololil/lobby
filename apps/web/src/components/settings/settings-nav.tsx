@@ -4,14 +4,14 @@ import { Palette, SlidersHorizontal } from "lucide-react";
 const items = [
   {
     href: "/app/settings/profile",
-    label: "Profile",
-    description: "Avatar, preset and public identity",
+    label: "Профиль",
+    description: "Аватар, пресет и публичная карточка",
     icon: Palette,
   },
   {
     href: "/app/settings/notifications",
-    label: "Notifications",
-    description: "Defaults plus hub and lobby overrides",
+    label: "Уведомления",
+    description: "Базовые правила и переопределения по хабам",
     icon: SlidersHorizontal,
   },
 ];
