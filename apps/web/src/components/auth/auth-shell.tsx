@@ -19,8 +19,8 @@ export function AuthShell({
   children,
 }: AuthShellProps) {
   return (
-    <main className="mx-auto grid min-h-screen w-full max-w-[1480px] gap-4 px-4 py-4 lg:grid-cols-[1.05fr_0.95fr] lg:px-6">
-      <section className="shell-frame flex flex-col justify-between rounded-[28px] p-6 lg:p-8">
+    <main className="mx-auto grid min-h-screen w-full max-w-[1380px] gap-3 px-3 py-3 lg:grid-cols-[0.95fr_0.9fr] lg:px-4">
+      <section className="shell-frame flex flex-col justify-between rounded-[24px] p-4 lg:p-5">
         <div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link href="/" className="eyebrow-pill">
@@ -32,39 +32,38 @@ export function AuthShell({
             </span>
           </div>
 
-          <div className="mt-8 max-w-3xl">
+          <div className="mt-6 max-w-2xl">
             <p className="section-kicker">{eyebrow}</p>
-            <h1 className="mt-3 font-[var(--font-heading)] text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl">
-              Compact communication for private communities.
+            <h1 className="mt-2.5 font-[var(--font-heading)] text-3xl font-semibold tracking-[-0.05em] text-white sm:text-[2.6rem]">
+              Private communication, compact by default.
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--text-dim)]">
-              Lobby открывается как рабочая среда для общения: быстрый inbox,
-              hubs, identity-driven people layer и сервисный control only where it matters.
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-dim)]">
+              Inbox, people and hubs без лишнего слоя панели.
             </p>
           </div>
 
-          <div className="mt-8 grid gap-3 md:grid-cols-3">
+          <div className="mt-6 grid gap-2.5 md:grid-cols-3">
             {[
               {
                 icon: MessageSquareMore,
                 label: "Inbox first",
-                text: "DM и сообщения открываются как основной сценарий, а не как вторичный модуль.",
+                text: "DM как основной сценарий.",
               },
               {
                 icon: Waves,
                 label: "Hub structure",
-                text: "Хабы, каналы и форумы собираются в понятную компактную навигацию.",
+                text: "Хабы и каналы в плотной навигации.",
               },
               {
                 icon: KeyRound,
                 label: "Access control",
-                text: "Регистрация, роли и доступы остаются приватными и управляемыми.",
+                text: "Закрытый доступ и управляемые роли.",
               },
             ].map((item) => (
-              <div key={item.label} className="surface-subtle rounded-[20px] p-4">
-                <item.icon className="h-5 w-5 text-[var(--accent)]" />
-                <p className="mt-3 text-sm font-semibold text-white">{item.label}</p>
-                <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
+              <div key={item.label} className="surface-subtle rounded-[16px] p-3.5">
+                <item.icon className="h-4 w-4 text-[var(--accent)]" />
+                <p className="mt-2.5 text-sm font-semibold text-white">{item.label}</p>
+                <p className="mt-1.5 text-sm leading-5 text-[var(--text-dim)]">
                   {item.text}
                 </p>
               </div>
@@ -72,21 +71,21 @@ export function AuthShell({
           </div>
         </div>
 
-        <div className="surface-subtle mt-6 rounded-[20px] px-4 py-4 text-sm text-[var(--text-dim)]">
-          Доступ в продукт по-прежнему закрыт: сначала identity, потом пространство.
+        <div className="surface-subtle mt-4 rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
+          Сначала identity, потом доступ.
         </div>
       </section>
 
       <div className="flex items-center justify-center">
-        <Card className="w-full max-w-xl rounded-[28px]">
+        <Card className="w-full max-w-lg rounded-[24px]">
           <CardHeader>
             <p className="section-kicker">{eyebrow}</p>
             <CardTitle>{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-4">
             {children}
-            <div className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] px-4 py-4 text-sm text-[var(--text-dim)]">
+            <div className="rounded-[14px] border border-[var(--border)] bg-white/[0.03] px-3 py-3 text-sm text-[var(--text-dim)]">
               {footer}
             </div>
           </CardContent>

@@ -185,8 +185,8 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   }, [hub]);
 
   return (
-    <aside className="context-rail flex min-h-0 flex-col overflow-hidden rounded-[24px] p-3 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
-      <div className="flex items-center gap-3 border-b border-white/8 pb-3">
+    <aside className="context-rail flex min-h-0 flex-col overflow-hidden rounded-[20px] p-2.5 lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)]">
+      <div className="flex items-center gap-2.5 border-b border-white/8 pb-2.5">
         <UserAvatar user={viewer} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-white">
@@ -198,7 +198,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         </div>
       </div>
 
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="mt-2.5 min-h-0 flex-1 overflow-y-auto pr-1">
         {route.section === "messages" ? (
           <div className="rail-group">
             <div className="rail-heading">
@@ -210,11 +210,11 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
             </div>
             <div className="mt-2 grid gap-1">
               {loadingLabel === "messages" ? (
-                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
+                <div className="surface-subtle rounded-[14px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
                   Загружаем диалоги...
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
+                <div className="surface-subtle rounded-[14px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
                   Здесь появятся ваши DM.
                 </div>
               ) : (
@@ -238,7 +238,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                         <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
                           {conversation.lastMessage?.isDeleted
                             ? "Сообщение удалено"
-                            : (conversation.lastMessage?.content ?? "Новый диалог")}
+                            : (conversation.lastMessage?.content ?? "Пустой диалог")}
                         </span>
                       </span>
                       {conversation.unreadCount > 0 ? (
@@ -263,7 +263,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
             </div>
             <div className="mt-2 grid gap-1">
               {loadingLabel === "hubs" ? (
-                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
+                <div className="surface-subtle rounded-[14px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
                   Загружаем хабы...
                 </div>
               ) : (
@@ -299,12 +299,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "hubs" && route.hubId ? (
           <div className="grid gap-4">
-            <div className="surface-subtle rounded-[18px] p-3">
+            <div className="surface-subtle rounded-[16px] p-3">
               <p className="truncate text-sm font-semibold text-white">
                 {hub?.name ?? "Хаб"}
               </p>
-              <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text-dim)]">
-                {hub?.description ?? "Загружаем структуру пространства."}
+              <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+                {hub?.membershipRole ?? "Структура пространства"}
               </p>
             </div>
 
@@ -348,12 +348,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-white">
-                            {lobby.name}
-                          </span>
-                          <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
-                            {lobby.description ?? lobby.type}
-                          </span>
+                        <span className="block truncate text-sm font-semibold text-white">
+                          {lobby.name}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-[var(--text-dim)]">
+                          {lobby.type}
+                        </span>
                         </span>
                         {lobby.isPrivate ? (
                           <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent)]" />
@@ -459,7 +459,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         ) : null}
       </div>
 
-      <div className="surface-subtle mt-3 rounded-[16px] p-3">
+      <div className="surface-subtle mt-2.5 rounded-[14px] p-2.5">
         <div className="flex items-center justify-between gap-3 text-xs text-[var(--text-dim)]">
           <span>Realtime</span>
           <span>{incomingCalls.length} calls</span>

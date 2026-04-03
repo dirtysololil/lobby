@@ -76,8 +76,8 @@ export function RegisterForm() {
   }
 
   return (
-    <form className="space-y-5" onSubmit={onSubmit}>
-      <div className="grid gap-5 sm:grid-cols-2">
+    <form className="space-y-4" onSubmit={onSubmit}>
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="username">Имя пользователя</Label>
           <Input
@@ -133,9 +133,8 @@ export function RegisterForm() {
         </p>
       </div>
 
-      <div className="surface-subtle rounded-[24px] px-4 py-4 text-sm leading-7 text-[var(--text-dim)]">
-        Ключ доступа определяет маршрут онбординга, роль и ограничения. Доступ к
-        платформе не открывается публично.
+      <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
+        Ключ доступа определяет роль и маршрут входа.
       </div>
 
       <div className="space-y-2">

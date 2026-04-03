@@ -8,7 +8,7 @@ interface AuditLogPanelProps {
 
 export function AuditLogPanel({ response }: AuditLogPanelProps) {
   return (
-    <section className="social-shell rounded-[32px] p-6">
+    <section className="social-shell rounded-[20px] p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="section-kicker">Журнал действий</p>
         <span className="status-pill">
@@ -16,7 +16,7 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
           Поток аудита
         </span>
       </div>
-      <div className="mt-4 grid gap-3">
+      <div className="mt-3 grid gap-2">
         {response.items.length === 0 ? (
           <EmptyState
             title="Записей не найдено"
@@ -24,10 +24,10 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
           />
         ) : (
           response.items.map((item) => (
-            <div key={item.id} className="list-row rounded-[26px] p-4">
+            <div key={item.id} className="list-row rounded-[16px] p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="glass-badge">{item.entityType}</span>
-                <p className="text-base font-medium text-white">
+                <p className="text-sm font-medium text-white">
                   {item.action}
                 </p>
               </div>
@@ -42,7 +42,7 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
                 {item.ipAddress ?? "n/a"}
               </p>
               {item.metadata ? (
-                <pre className="mt-3 overflow-x-auto rounded-2xl border border-[var(--border)] bg-slate-950/65 p-3 text-xs leading-6 text-slate-300">
+                <pre className="mt-2.5 overflow-x-auto rounded-[14px] border border-[var(--border)] bg-slate-950/65 p-3 text-xs leading-5 text-slate-300">
                   {JSON.stringify(item.metadata, null, 2)}
                 </pre>
               ) : null}
@@ -50,16 +50,11 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
           ))
         )}
       </div>
-      <div className="surface-subtle mt-5 rounded-[24px] p-4 text-sm leading-7 text-[var(--text-dim)]">
+      <div className="surface-subtle mt-4 rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
         <span className="inline-flex items-center gap-2 text-white">
           <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-          След критичных действий
+          Короткий журнал действий.
         </span>
-        <p className="mt-2">
-          Аудит не должен выглядеть техническим дампом. Это читаемый журнал
-          ответственности, который подтверждает управляемость закрытой
-          платформы.
-        </p>
       </div>
     </section>
   );

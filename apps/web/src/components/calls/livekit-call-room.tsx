@@ -109,7 +109,7 @@ function TrackTile({ item }: { item: TrackView }) {
   }, [item]);
 
   return (
-    <div className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] p-3">
+    <div className="rounded-[14px] border border-[var(--border)] bg-white/[0.03] p-2.5">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">{item.participantName}</p>
@@ -121,7 +121,7 @@ function TrackTile({ item }: { item: TrackView }) {
       </div>
       <div
         ref={containerRef}
-        className="relative flex min-h-[160px] items-center justify-center overflow-hidden rounded-[16px] bg-black/30"
+        className="relative flex min-h-[136px] items-center justify-center overflow-hidden rounded-[14px] bg-black/30"
       >
         {item.kind === "audio" ? (
           <span className="text-sm text-[var(--text-dim)]">Аудиопоток активен</span>
@@ -294,11 +294,11 @@ export function LiveKitCallRoom({
   }
 
   return (
-    <div className="premium-panel rounded-[20px] p-4">
+    <div className="premium-panel rounded-[18px] p-3">
       <div className="compact-toolbar">
         <div>
           <p className="text-sm font-semibold text-white">{title}</p>
-          <p className="mt-1 text-sm text-[var(--text-dim)]">{description}</p>
+          <p className="mt-1 text-xs text-[var(--text-dim)]">{description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <span className="glass-badge">{mode}</span>
@@ -310,12 +310,12 @@ export function LiveKitCallRoom({
       </div>
 
       {errorMessage ? (
-        <div className="mt-3 rounded-[16px] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+        <div className="mt-2.5 rounded-[14px] border border-rose-400/20 bg-rose-400/10 px-3 py-2.5 text-sm text-rose-100">
           {errorMessage}
         </div>
       ) : null}
 
-      <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-2.5 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
         <Button
           size="sm"
           variant="secondary"
@@ -354,11 +354,11 @@ export function LiveKitCallRoom({
       </div>
 
       {tracks.length === 0 ? (
-        <div className="mt-3 rounded-[16px] border border-[var(--border)] bg-white/[0.03] p-4 text-sm text-[var(--text-dim)]">
+        <div className="mt-2.5 rounded-[14px] border border-[var(--border)] bg-white/[0.03] p-3 text-sm text-[var(--text-dim)]">
           Ожидаем медиапотоки...
         </div>
       ) : (
-        <div className="mt-3 grid gap-3 xl:grid-cols-2">
+        <div className="mt-2.5 grid gap-2.5 xl:grid-cols-2">
           {tracks.map((item) => (
             <TrackTile key={item.id} item={item} />
           ))}

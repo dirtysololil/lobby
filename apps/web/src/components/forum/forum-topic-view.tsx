@@ -122,8 +122,8 @@ export function ForumTopicView({
     !topic.archived;
 
   return (
-    <div className="grid gap-4">
-      <div className="social-shell rounded-[24px] p-4">
+    <div className="grid gap-3">
+      <div className="social-shell rounded-[20px] p-3">
         <div className="compact-toolbar">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -146,7 +146,7 @@ export function ForumTopicView({
                 </span>
               ) : null}
             </div>
-            <h1 className="mt-2 font-[var(--font-heading)] text-[1.45rem] font-semibold tracking-[-0.04em] text-white">
+            <h1 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
               {topic.title}
             </h1>
             <p className="mt-1 text-sm text-[var(--text-dim)]">
@@ -157,7 +157,7 @@ export function ForumTopicView({
         </div>
       </div>
 
-      <div className="premium-panel rounded-[24px] p-4">
+      <div className="premium-panel rounded-[20px] p-3.5">
         <div className="flex flex-wrap gap-2">
           {topic.tags.map((tag) => (
             <span key={tag.id} className="glass-badge">
@@ -167,12 +167,12 @@ export function ForumTopicView({
           ))}
         </div>
 
-        <div className="mt-4 whitespace-pre-wrap rounded-[18px] border border-[var(--border)] bg-white/[0.03] p-4 text-sm leading-7 text-[var(--text-soft)]">
+        <div className="mt-3 whitespace-pre-wrap rounded-[16px] border border-[var(--border)] bg-white/[0.03] p-3 text-sm leading-6 text-[var(--text-soft)]">
           {topic.content}
         </div>
 
         {hub.permissions.canModerateForum ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="secondary"
@@ -201,18 +201,18 @@ export function ForumTopicView({
         ) : null}
       </div>
 
-      <div className="premium-panel rounded-[24px] p-4">
+      <div className="premium-panel rounded-[20px] p-3.5">
         <div className="compact-toolbar">
           <div>
             <p className="section-kicker">Replies</p>
-            <p className="mt-2 text-sm text-[var(--text-dim)]">
+            <p className="mt-1.5 text-sm text-[var(--text-dim)]">
               {topic.replies.length} ответов в этой теме.
             </p>
           </div>
         </div>
 
         {canReply ? (
-          <form className="mt-4 grid gap-3" onSubmit={handleReply}>
+          <form className="mt-3 grid gap-2.5" onSubmit={handleReply}>
             <textarea
               value={replyContent}
               onChange={(event) => setReplyContent(event.target.value)}
@@ -224,7 +224,7 @@ export function ForumTopicView({
             </Button>
           </form>
         ) : (
-          <div className="mt-4 surface-subtle rounded-[18px] px-4 py-4 text-sm text-[var(--text-dim)]">
+          <div className="mt-3 surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-dim)]">
             {hub.isViewerMuted
               ? "Вы ограничены в этом хабе."
               : topic.locked || topic.archived
@@ -233,7 +233,7 @@ export function ForumTopicView({
           </div>
         )}
 
-        <div className="mt-4 grid gap-2">
+        <div className="mt-3 grid gap-2">
           {topic.replies.length === 0 ? (
             <EmptyState
               title="Пока нет ответов"
@@ -241,7 +241,7 @@ export function ForumTopicView({
             />
           ) : (
             topic.replies.map((reply) => (
-              <div key={reply.id} className="list-row rounded-[18px] px-3 py-3">
+              <div key={reply.id} className="list-row rounded-[16px] px-3 py-2.5">
                 <div className="flex items-start gap-3">
                   <UserAvatar user={reply.author} size="sm" />
                   <div className="min-w-0 flex-1">

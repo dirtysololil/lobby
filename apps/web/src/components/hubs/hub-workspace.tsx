@@ -100,9 +100,9 @@ export function HubWorkspace() {
   }
 
   return (
-    <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="grid gap-4">
-        <div className="social-shell rounded-[24px] p-4">
+    <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-3">
+        <div className="social-shell rounded-[20px] p-3">
           <div className="compact-toolbar">
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -115,8 +115,8 @@ export function HubWorkspace() {
                   <span className="status-pill">{invites.length} invites</span>
                 ) : null}
               </div>
-              <h2 className="mt-2 font-[var(--font-heading)] text-[1.4rem] font-semibold tracking-[-0.04em] text-white">
-                Пространства, в которые вы реально можете перейти прямо сейчас
+              <h2 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
+                Hubs
               </h2>
             </div>
           </div>
@@ -129,14 +129,14 @@ export function HubWorkspace() {
         ) : null}
 
         {invites.length > 0 ? (
-          <div className="premium-panel rounded-[24px] p-3">
+          <div className="premium-panel rounded-[20px] p-3">
             <div className="compact-toolbar px-1">
               <p className="section-kicker">Invites</p>
               <span className="glass-badge">{invites.length}</span>
             </div>
             <div className="mt-2 grid gap-2">
               {invites.map((invite) => (
-                <div key={invite.id} className="list-row rounded-[18px] px-3 py-3">
+                <div key={invite.id} className="list-row rounded-[16px] px-3 py-2.5">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -176,7 +176,7 @@ export function HubWorkspace() {
           </div>
         ) : null}
 
-        <div className="premium-panel rounded-[24px] p-3">
+        <div className="premium-panel rounded-[20px] p-3">
           <div className="compact-toolbar px-1">
             <p className="section-kicker">Your hubs</p>
             <span className="glass-badge">{hubs.length}</span>
@@ -192,10 +192,10 @@ export function HubWorkspace() {
                 <Link
                   key={hub.id}
                   href={`/app/hubs/${hub.id}`}
-                  className="list-row rounded-[18px] px-3 py-3"
+                  className="list-row rounded-[16px] px-3 py-2.5"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="dock-icon flex h-10 w-10 items-center justify-center rounded-[12px] text-[11px] font-semibold text-white">
+                    <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px] text-[10px] font-semibold text-white">
                       {hub.name.slice(0, 2).toUpperCase()}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -210,8 +210,8 @@ export function HubWorkspace() {
                           <span className="glass-badge">Private</span>
                         ) : null}
                       </div>
-                      <p className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--text-dim)]">
-                        {hub.description ?? "Описание не задано."}
+                      <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
+                        {hub.description ?? "Без описания"}
                       </p>
                     </div>
                   </div>
@@ -222,13 +222,10 @@ export function HubWorkspace() {
         </div>
       </div>
 
-      <div className="premium-panel rounded-[24px] p-4">
+      <div className="premium-panel rounded-[20px] p-3.5">
         <div className="compact-toolbar">
           <div>
             <p className="section-kicker">Create hub</p>
-            <p className="mt-2 text-sm text-[var(--text-dim)]">
-              Новое пространство для каналов, ролей и приглашений.
-            </p>
           </div>
           <span className="glass-badge">
             <Plus className="h-3 w-3" />
@@ -236,7 +233,7 @@ export function HubWorkspace() {
           </span>
         </div>
 
-        <form className="mt-4 grid gap-3" onSubmit={handleCreateHub}>
+        <form className="mt-3 grid gap-2.5" onSubmit={handleCreateHub}>
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}

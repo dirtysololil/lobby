@@ -30,9 +30,9 @@ export default async function AdminAuditPage({
   const response = adminAuditLogListResponseSchema.parse(payload);
 
   return (
-    <div className="grid gap-5">
-      <section className="premium-panel rounded-[28px] p-5">
-        <form className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+    <div className="grid gap-4">
+      <section className="premium-panel rounded-[20px] p-3.5">
+        <form className="grid gap-2.5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
           <Input
             name="action"
             placeholder="Действие содержит..."

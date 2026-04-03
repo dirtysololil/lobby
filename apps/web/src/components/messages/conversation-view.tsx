@@ -97,7 +97,7 @@ export function ConversationView({
 
   if (!conversation) {
     return (
-      <div className="premium-tile rounded-[20px] p-5 text-sm text-[var(--text-muted)]">
+      <div className="premium-tile rounded-[16px] p-4 text-sm text-[var(--text-muted)]">
         Загружаем чат...
       </div>
     );
@@ -113,14 +113,14 @@ export function ConversationView({
       ?.notificationSetting ?? "ALL";
 
   return (
-    <div className="grid min-h-0 gap-4">
-      <section className="premium-panel flex min-h-[calc(100vh-11rem)] flex-col overflow-hidden rounded-[24px]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-4 py-3">
+    <div className="grid min-h-0 gap-3">
+      <section className="premium-panel flex min-h-[calc(100vh-9.5rem)] flex-col overflow-hidden rounded-[20px]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-3 py-2.5">
           <div className="flex min-w-0 items-center gap-3">
             {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-base font-semibold text-white">
+                <p className="truncate text-sm font-semibold text-white">
                   {counterpart?.profile.displayName ?? "Диалог"}
                 </p>
                 <span className="status-pill">
@@ -140,7 +140,7 @@ export function ConversationView({
                   </span>
                 ) : null}
               </div>
-              <p className="mt-0.5 truncate text-sm text-[var(--text-dim)]">
+              <p className="mt-0.5 truncate text-xs text-[var(--text-dim)]">
                 {counterpart ? `@${counterpart.username}` : "Личный диалог"}
               </p>
             </div>
@@ -155,13 +155,12 @@ export function ConversationView({
         </div>
 
         {isBlocked ? (
-          <div className="border-b border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-            Один из участников заблокирован. История доступна, но новые сообщения и
-            звонки могут быть ограничены.
+          <div className="border-b border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-50">
+            Новые сообщения и звонки ограничены.
           </div>
         ) : null}
 
-        <div className="border-b border-white/8 px-4 py-3">
+        <div className="border-b border-white/8 px-3 py-2.5">
           <DmCallPanel
             conversationId={conversationId}
             viewerId={viewerId}
@@ -169,7 +168,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="min-h-0 flex-1 px-4 py-4">
+        <div className="min-h-0 flex-1 px-3 py-3">
           <MessageThread
             viewerId={viewerId}
             conversation={conversation}
@@ -178,12 +177,12 @@ export function ConversationView({
           />
         </div>
 
-        <div className="border-t border-white/8 px-4 py-3">
+        <div className="border-t border-white/8 px-3 py-2.5">
           <MessageComposer disabled={isBlocked} onSend={sendMessage} />
         </div>
       </section>
 
-      <div className="premium-panel rounded-[24px] p-4 xl:hidden">
+      <div className="premium-panel rounded-[20px] p-3 2xl:hidden">
         <ConversationSettings
           notificationSetting={viewerSettings}
           retentionMode={conversation.retentionMode}

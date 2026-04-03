@@ -11,8 +11,8 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col px-4 py-4 lg:px-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <main className="mx-auto flex min-h-screen w-full max-w-[1380px] flex-col px-3 py-3 lg:px-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="dock-icon flex h-11 w-11 items-center justify-center rounded-[14px] bg-[var(--accent)] text-[#180d08]">
             <span className="text-sm font-bold tracking-[-0.04em]">Lb</span>
@@ -34,8 +34,8 @@ export default async function Home() {
         </div>
       </div>
 
-      <section className="grid flex-1 gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="shell-frame flex flex-col justify-between rounded-[28px] p-6 lg:p-8">
+      <section className="grid flex-1 gap-3 lg:grid-cols-[0.98fr_0.82fr]">
+        <div className="shell-frame flex flex-col justify-between rounded-[24px] p-4 lg:p-5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="eyebrow-pill">
@@ -44,14 +44,14 @@ export default async function Home() {
               </span>
               <span className="status-pill">Compact, social, realtime</span>
             </div>
-            <h1 className="mt-6 max-w-4xl font-[var(--font-heading)] text-4xl font-semibold tracking-[-0.06em] text-white sm:text-6xl">
+            <h1 className="mt-5 max-w-3xl font-[var(--font-heading)] text-3xl font-semibold tracking-[-0.06em] text-white sm:text-[3.1rem]">
               Communication first. Identity visible. Noise controlled.
             </h1>
-            <p className="mt-4 max-w-3xl text-base leading-8 text-[var(--text-dim)]">
-              Lobby связывает direct messages, hubs, форумы и внутренний control layer в один зрелый продукт для закрытых команд и комьюнити.
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-dim)]">
+              Lobby соединяет DM, hubs и форумы в один рабочий продукт для закрытых команд.
             </p>
 
-            <div className="mt-8 grid gap-3 md:grid-cols-3">
+            <div className="mt-6 grid gap-2.5 md:grid-cols-3">
               {[
                 {
                   icon: MessageSquareMore,
@@ -69,10 +69,10 @@ export default async function Home() {
                   text: "Пространства и каналы с понятной левой архитектурой.",
                 },
               ].map((item) => (
-                <div key={item.title} className="surface-subtle rounded-[20px] p-4">
-                  <item.icon className="h-5 w-5 text-[var(--accent)]" />
-                  <p className="mt-3 text-sm font-semibold text-white">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
+                <div key={item.title} className="surface-subtle rounded-[16px] p-3.5">
+                  <item.icon className="h-4 w-4 text-[var(--accent)]" />
+                  <p className="mt-2.5 text-sm font-semibold text-white">{item.title}</p>
+                  <p className="mt-1.5 text-sm leading-5 text-[var(--text-dim)]">
                     {item.text}
                   </p>
                 </div>
@@ -80,37 +80,37 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/register" className="inline-flex min-h-[42px] items-center gap-2 rounded-[12px] bg-[var(--accent)] px-5 text-sm font-semibold text-[#180d08]">
+          <div className="mt-6 flex flex-wrap gap-2.5">
+            <Link href="/register" className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] bg-[var(--accent)] px-4 text-sm font-semibold text-[#180d08]">
               Активировать доступ <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/login" className="inline-flex min-h-[42px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-white/[0.04] px-5 text-sm font-medium text-[var(--text)]">
+            <Link href="/login" className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-white/[0.04] px-4 text-sm font-medium text-[var(--text)]">
               Войти
             </Link>
           </div>
         </div>
 
-        <div className="grid gap-4">
-          <div className="shell-frame rounded-[28px] p-6 lg:p-7">
+        <div className="grid gap-3">
+          <div className="shell-frame rounded-[24px] p-4">
             <p className="section-kicker">Что внутри</p>
-            <div className="mt-4 grid gap-2">
+            <div className="mt-3 grid gap-2">
               {[
                 "Far-left global rail для spaces, inbox и profile",
                 "Context rail для chats, people views и hub channels",
                 "Messenger-grade DM surfaces и call states",
                 "Service surfaces only where they are actually useful",
               ].map((item) => (
-                <div key={item} className="list-row rounded-[16px] px-3 py-3 text-sm text-white">
+                <div key={item} className="list-row rounded-[16px] px-3 py-2.5 text-sm text-white">
                   {item}
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="shell-frame rounded-[28px] p-6 lg:p-7">
+          <div className="shell-frame rounded-[24px] p-4">
             <p className="section-kicker">Доступ</p>
-            <p className="mt-3 text-sm leading-7 text-[var(--text-dim)]">
-              Публичной регистрации нет. Вход и активация завязаны на приватные маршруты доступа, роли и управляемый онбординг.
+            <p className="mt-2.5 text-sm leading-5 text-[var(--text-dim)]">
+              Публичной регистрации нет. Вход и активация работают через приватные ключи и роли.
             </p>
           </div>
         </div>

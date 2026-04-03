@@ -110,15 +110,15 @@ export function AppActivityRail({ viewer }: AppActivityRailProps) {
     );
 
     return (
-      <aside className="activity-rail hidden min-h-0 w-[320px] shrink-0 flex-col overflow-hidden rounded-[24px] p-3 xl:flex xl:sticky xl:top-4 xl:h-[calc(100vh-2rem)]">
-        <div className="surface-highlight rounded-[18px] p-4">
+      <aside className="activity-rail hidden min-h-0 w-[296px] shrink-0 flex-col overflow-hidden rounded-[20px] p-2.5 2xl:flex 2xl:sticky 2xl:top-3 2xl:h-[calc(100vh-1.5rem)]">
+        <div className="surface-highlight rounded-[16px] p-3">
           <div className="flex items-center gap-3">
             {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-white">
+              <p className="truncate text-sm font-semibold text-white">
                 {counterpart?.profile.displayName ?? "Conversation"}
               </p>
-              <p className="truncate text-sm text-[var(--text-dim)]">
+              <p className="truncate text-xs text-[var(--text-dim)]">
                 {counterpart ? `@${counterpart.username}` : "Private thread"}
               </p>
             </div>
@@ -143,7 +143,7 @@ export function AppActivityRail({ viewer }: AppActivityRailProps) {
           </div>
         </div>
 
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="mt-2.5 min-h-0 flex-1 overflow-y-auto pr-1">
           {viewerSettings ? (
             <ConversationSettings
               notificationSetting={viewerSettings.notificationSetting}
@@ -160,11 +160,11 @@ export function AppActivityRail({ viewer }: AppActivityRailProps) {
 
   if (route.section === "hubs" && route.hubId && hubInfo) {
     return (
-      <aside className="activity-rail hidden min-h-0 w-[320px] shrink-0 flex-col overflow-hidden rounded-[24px] p-3 xl:flex xl:sticky xl:top-4 xl:h-[calc(100vh-2rem)]">
-        <div className="surface-highlight rounded-[18px] p-4">
-          <p className="truncate text-base font-semibold text-white">{hubInfo.name}</p>
-          <p className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--text-dim)]">
-            {hubInfo.description ?? "Community space"}
+      <aside className="activity-rail hidden min-h-0 w-[296px] shrink-0 flex-col overflow-hidden rounded-[20px] p-2.5 2xl:flex 2xl:sticky 2xl:top-3 2xl:h-[calc(100vh-1.5rem)]">
+        <div className="surface-highlight rounded-[16px] p-3">
+          <p className="truncate text-sm font-semibold text-white">{hubInfo.name}</p>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--text-dim)]">
+            {hubInfo.description ?? "Hub members"}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="status-pill">
@@ -175,7 +175,7 @@ export function AppActivityRail({ viewer }: AppActivityRailProps) {
           </div>
         </div>
 
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="mt-2.5 min-h-0 flex-1 overflow-y-auto pr-1">
           <div className="grid gap-2">
             {hubInfo.members.slice(0, 10).map((member) => (
               <div

@@ -23,8 +23,8 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="social-shell rounded-[24px] p-4">
+    <div className="grid gap-3">
+      <div className="social-shell rounded-[20px] p-3">
         <div className="compact-toolbar">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -44,11 +44,11 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
                 </span>
               ) : null}
             </div>
-            <h1 className="mt-2 font-[var(--font-heading)] text-[1.45rem] font-semibold tracking-[-0.04em] text-white">
+            <h1 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
               {lobby.name}
             </h1>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
-              {lobby.description ?? "Описание лобби не задано."}
+            <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
+              {lobby.description ?? lobby.type}
             </p>
           </div>
         </div>
@@ -67,26 +67,23 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
           isViewerMuted={hub.isViewerMuted}
         />
       ) : (
-        <div className="premium-panel rounded-[24px] p-4">
+        <div className="premium-panel rounded-[20px] p-3">
           <EmptyState
-            title="Текстовый канал готов"
-            description="В этом режиме у продукта пока нет отдельного feed API, поэтому экран сфокусирован на структуре пространства и быстрых переходах."
+            title="Текстовый канал"
+            description="Переходите в связанные форумы или другие каналы."
           />
         </div>
       )}
 
       {hub.lobbies.filter((item) => item.type === "FORUM").length > 0 ? (
-        <div className="premium-panel rounded-[24px] p-4">
+        <div className="premium-panel rounded-[20px] p-3">
           <div className="compact-toolbar">
             <div>
               <p className="section-kicker">Related forums</p>
-              <p className="mt-2 text-sm text-[var(--text-dim)]">
-                Длинные обсуждения лучше переносить в форумные каналы.
-              </p>
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-2.5 flex flex-wrap gap-2">
             {hub.lobbies
               .filter((item) => item.type === "FORUM")
               .map((item) => (
