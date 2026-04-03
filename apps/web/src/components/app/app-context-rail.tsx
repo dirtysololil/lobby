@@ -58,8 +58,9 @@ const peopleViews = [
 
 export function AppContextRail({ viewer }: AppContextRailProps) {
   const pathname = usePathname();
+  const safePathname = pathname ?? "";
   const searchParams = useSearchParams();
-  const route = parseAppPath(pathname);
+  const route = parseAppPath(safePathname);
   const { incomingCalls, latestSignal } = useRealtime();
   const [conversations, setConversations] = useState<DirectConversationSummary[]>(
     [],
@@ -240,7 +241,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                       href={href}
                       className={cn(
                         "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                        pathname === href && "bg-[var(--bg-active)]",
+                        safePathname === href && "bg-[var(--bg-active)]",
                       )}
                     >
                       <UserAvatar user={conversation.counterpart} size="sm" />
@@ -291,7 +292,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     href={`/app/hubs/${item.id}`}
                     className={cn(
                       "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                      pathname.startsWith(`/app/hubs/${item.id}`) && "bg-[var(--bg-active)]",
+                      safePathname.startsWith(`/app/hubs/${item.id}`) && "bg-[var(--bg-active)]",
                     )}
                   >
                     <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--bg-panel-soft)] text-[10px] font-semibold text-white">
@@ -331,7 +332,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                 href={`/app/hubs/${route.hubId}`}
                 className={cn(
                   "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                  pathname === `/app/hubs/${route.hubId}` && "bg-[var(--bg-active)]",
+                  safePathname === `/app/hubs/${route.hubId}` && "bg-[var(--bg-active)]",
                 )}
               >
                 <House className="h-[18px] w-[18px] text-[var(--accent)]" />
@@ -347,7 +348,8 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
                 {group.items.map((lobby) => {
                   const href = buildHubLobbyHref(route.hubId!, lobby.id, lobby.type);
-                  const active = pathname === href || pathname.startsWith(`${href}/`);
+                  const active =
+                    safePathname === href || safePathname.startsWith(`${href}/`);
 
                   return (
                     <Link

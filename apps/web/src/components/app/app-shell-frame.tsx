@@ -18,7 +18,8 @@ interface AppShellFrameProps {
 
 export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const pathname = usePathname();
-  const route = parseAppPath(pathname);
+  const safePathname = pathname ?? "";
+  const route = parseAppPath(safePathname);
   const activityAvailable =
     (route.section === "messages" && Boolean(route.conversationId)) ||
     (route.section === "hubs" && Boolean(route.hubId));
@@ -27,7 +28,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
 
   useEffect(() => {
     setActivityOpen(false);
-  }, [pathname]);
+  }, [safePathname]);
 
   useEffect(() => {
     if (!activityAvailable) {

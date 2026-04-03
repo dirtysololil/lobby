@@ -22,6 +22,7 @@ const coreLinks = [
 
 export function AppSidebar({ viewer }: AppSidebarProps) {
   const pathname = usePathname();
+  const safePathname = pathname ?? "";
   const [hubs, setHubs] = useState<HubSummary[]>([]);
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
           <div className="signal-line w-8" />
           <div className="mt-2 flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2">
             {hubs.slice(0, 6).map((hub) => {
-              const active = pathname.startsWith(`/app/hubs/${hub.id}`);
+              const active = safePathname.startsWith(`/app/hubs/${hub.id}`);
               const initials = hub.name
                 .split(/\s+/)
                 .slice(0, 2)

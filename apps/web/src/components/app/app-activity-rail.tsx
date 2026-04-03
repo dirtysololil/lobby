@@ -31,7 +31,7 @@ export function AppActivityRail({
   mode,
 }: AppActivityRailProps) {
   const pathname = usePathname();
-  const route = parseAppPath(pathname);
+  const route = parseAppPath(pathname ?? "");
   const { latestSignal } = useRealtime();
   const [conversation, setConversation] = useState<
     DirectConversationDetail["conversation"] | null

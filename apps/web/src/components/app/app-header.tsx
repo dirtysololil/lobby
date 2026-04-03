@@ -30,7 +30,7 @@ export function AppHeader({
   viewer,
 }: AppHeaderProps) {
   const pathname = usePathname();
-  const route = parseAppPath(pathname);
+  const route = parseAppPath(pathname ?? "");
   const meta = getSectionMeta(route);
 
   return (
