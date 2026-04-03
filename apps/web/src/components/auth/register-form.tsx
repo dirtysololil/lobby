@@ -55,41 +55,41 @@ export function RegisterForm() {
     } catch {
       console.warn("[auth/register] session:not-persisted");
       throw new Error(
-        "Signed in, but session cookie was not persisted. Check SESSION_COOKIE_DOMAIN/SESSION_COOKIE_SECURE and HTTPS proxy setup.",
+        "Вход выполнен, но cookie сессии не сохранилась. Проверьте SESSION_COOKIE_DOMAIN/SESSION_COOKIE_SECURE и HTTPS-прокси.",
       );
     }
   }
 
   function mapRegisterError(error: unknown): string {
     if (error instanceof ApiClientError && error.code === "network_or_cors") {
-      return "Network/CORS error while contacting API. Check API URL, CORS and HTTPS/cookie settings.";
+      return "Ошибка сети/CORS при обращении к API. Проверьте API URL, CORS и настройки cookie/HTTPS.";
     }
 
     if (error instanceof Error) {
       return error.message;
     }
 
-    return "Unable to activate account";
+    return "Не удалось активировать аккаунт";
   }
 
   return (
     <form className="space-y-5" onSubmit={onSubmit}>
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="username">Имя пользователя</Label>
           <Input id="username" placeholder="owner" autoComplete="username" {...form.register("username")} />
           <p className="text-xs text-rose-300">{form.formState.errors.username?.message}</p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="displayName">Display name</Label>
+          <Label htmlFor="displayName">Отображаемое имя</Label>
           <Input id="displayName" placeholder="Owner" autoComplete="name" {...form.register("displayName")} />
           <p className="text-xs text-rose-300">{form.formState.errors.displayName?.message}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">Почта</Label>
         <Input
           id="email"
           type="email"
@@ -101,11 +101,11 @@ export function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Пароль</Label>
         <Input
           id="password"
           type="password"
-          placeholder="At least 12 characters"
+          placeholder="Минимум 12 символов"
           autoComplete="new-password"
           {...form.register("password")}
         />
@@ -113,7 +113,7 @@ export function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="accessKey">Access key</Label>
+        <Label htmlFor="accessKey">Ключ доступа</Label>
         <Input
           id="accessKey"
           placeholder="LBY-XXXXXXXX-XXXXXXXX-XXXXXXXX"
@@ -130,7 +130,7 @@ export function RegisterForm() {
       ) : null}
 
       <Button className="w-full" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Activating..." : "Activate account"}
+        {isSubmitting ? "Активация..." : "Активировать аккаунт"}
       </Button>
     </form>
   );
