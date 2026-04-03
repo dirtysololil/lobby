@@ -39,10 +39,8 @@ export class AuthController {
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.register(
-      body,
-      getRequestMetadata(request),
-    );
+    const requestMetadata = getRequestMetadata(request);
+    const result = await this.authService.register(body, requestMetadata);
 
     setSessionCookie(
       response,
@@ -62,16 +60,18 @@ export class AuthController {
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.login(
-      body,
-      getRequestMetadata(request),
-    );
+    const requestMetadata = getRequestMetadata(request);
+    const result = await this.authService.login(body, requestMetadata);
 
     setSessionCookie(
       response,
       this.envService.getValues(),
       result.session.rawToken,
       result.session.expiresAt,
+    );
+
+    console.info(
+      `[auth/login] success userId=${result.user.id} ip=${requestMetadata.ipAddress ?? 'unknown'}`,
     );
 
     return authSessionResponseSchema.parse({
