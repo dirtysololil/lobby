@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
-const bodyFont = Manrope({
+const bodyFont = Inter({
   subsets: ["latin", "cyrillic"],
   variable: "--font-body",
 });
 
-const headingFont = Manrope({
+const headingFont = Inter({
   subsets: ["latin", "cyrillic"],
   variable: "--font-heading",
 });

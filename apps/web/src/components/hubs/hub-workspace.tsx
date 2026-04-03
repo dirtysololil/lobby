@@ -11,16 +11,56 @@ import {
 } from "@lobby/shared";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { apiClientFetch } from "@/lib/api-client";
 
 const roleLabels: Record<string, string> = {
-  OWNER: "Владелец",
-  ADMIN: "Администратор",
-  MODERATOR: "Модератор",
-  MEMBER: "Участник",
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MODERATOR: "Moderator",
+  MEMBER: "Member",
 };
+
+function CountBadge({ value }: { value: number | string }) {
+  return (
+    <span className="inline-flex min-h-5 items-center rounded-full bg-[var(--bg-panel-soft)] px-2 text-[11px] font-medium text-[var(--text-dim)]">
+      {value}
+    </span>
+  );
+}
+
+function SectionHeader({
+  title,
+  count,
+}: {
+  title: string;
+  count: number;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-dim)]">
+      <span>{title}</span>
+      <CountBadge value={count} />
+    </div>
+  );
+}
+
+function EmptyView({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="empty-state-minimal">
+      <Waves className="h-5 w-5 text-[var(--text-muted)]" />
+      <div>
+        <p className="text-sm font-medium text-white">{title}</p>
+        <p className="mt-1 text-xs text-[var(--text-dim)]">{description}</p>
+      </div>
+    </div>
+  );
+}
 
 export function HubWorkspace() {
   const [hubs, setHubs] = useState<HubSummary[]>([]);
@@ -43,7 +83,7 @@ export function HubWorkspace() {
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось загрузить хабы",
+        error instanceof Error ? error.message : "Unable to load hubs.",
       );
     }
   }, []);
@@ -55,6 +95,7 @@ export function HubWorkspace() {
   async function handleCreateHub(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
+
     try {
       const payload = await apiClientFetch("/v1/hubs", {
         method: "POST",
@@ -65,6 +106,7 @@ export function HubWorkspace() {
           isPrivate,
         }),
       });
+
       const createdHub = hubSummarySchema.parse(payload);
       setHubs((current) => [...current, createdHub]);
       setName("");
@@ -74,7 +116,7 @@ export function HubWorkspace() {
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось создать хаб",
+        error instanceof Error ? error.message : "Unable to create hub.",
       );
     } finally {
       setIsSubmitting(false);
@@ -94,126 +136,116 @@ export function HubWorkspace() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Не удалось обработать приглашение",
+          : "Unable to process the invite.",
       );
     }
   }
 
   return (
-    <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="grid gap-3">
-        <div className="social-shell rounded-[20px] p-3">
-          <div className="compact-toolbar">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="eyebrow-pill">
-                  <Waves className="h-3.5 w-3.5" />
-                  Hubs
-                </span>
-                <span className="status-pill">{hubs.length} spaces</span>
-                {invites.length > 0 ? (
-                  <span className="status-pill">{invites.length} invites</span>
-                ) : null}
-              </div>
-              <h2 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
-                Hubs
-              </h2>
-            </div>
+    <section className="grid min-h-full grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="flex min-h-0 flex-col">
+        <div className="border-b border-[var(--border)] px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="eyebrow-pill">
+              <Waves className="h-[18px] w-[18px]" />
+              Hubs
+            </span>
+            <span className="status-pill">{hubs.length} spaces</span>
+            {invites.length > 0 ? (
+              <span className="status-pill">{invites.length} invites</span>
+            ) : null}
           </div>
+          <h2 className="mt-1 text-base font-semibold tracking-tight text-white">
+            Shared spaces
+          </h2>
         </div>
 
         {errorMessage ? (
-          <div className="rounded-[16px] border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+          <div className="border-b border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
             {errorMessage}
           </div>
         ) : null}
 
-        {invites.length > 0 ? (
-          <div className="premium-panel rounded-[20px] p-3">
-            <div className="compact-toolbar px-1">
-              <p className="section-kicker">Invites</p>
-              <span className="glass-badge">{invites.length}</span>
-            </div>
-            <div className="mt-2 grid gap-2">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {invites.length > 0 ? (
+            <div>
+              <SectionHeader title="Invites" count={invites.length} />
               {invites.map((invite) => (
-                <div key={invite.id} className="list-row rounded-[16px] px-3 py-2.5">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-white">
-                          {invite.hub.name}
-                        </p>
-                        {invite.hub.isPrivate ? (
-                          <span className="glass-badge">
-                            <LockKeyhole className="h-3 w-3" />
-                            Private
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-sm text-[var(--text-dim)]">
-                        Пригласил {invite.invitedBy.profile.displayName}
+                <div
+                  key={invite.id}
+                  className="flex flex-col gap-2 border-b border-[var(--border-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-hover)] lg:flex-row lg:items-center lg:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-medium leading-tight text-white">
+                        {invite.hub.name}
                       </p>
+                      {invite.hub.isPrivate ? (
+                        <CountBadge value="Private" />
+                      ) : null}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => void handleInviteAction(invite.id, "accept")}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => void handleInviteAction(invite.id, "decline")}
-                      >
-                        Decline
-                      </Button>
-                    </div>
+                    <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+                      Invited by {invite.invitedBy.profile.displayName}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button
+                      size="sm"
+                      onClick={() => void handleInviteAction(invite.id, "accept")}
+                      className="h-8 px-2.5"
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void handleInviteAction(invite.id, "decline")}
+                      className="h-8 px-2.5"
+                    >
+                      Decline
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        <div className="premium-panel rounded-[20px] p-3">
-          <div className="compact-toolbar px-1">
-            <p className="section-kicker">Your hubs</p>
-            <span className="glass-badge">{hubs.length}</span>
-          </div>
-          <div className="mt-2 grid gap-2">
+          <div>
+            <SectionHeader title="Your hubs" count={hubs.length} />
             {hubs.length === 0 ? (
-              <EmptyState
-                title="Нет доступных хабов"
-                description="Создайте первое пространство или примите приглашение."
+              <EmptyView
+                title="No hubs yet"
+                description="Create a space or accept an invite to get started."
               />
             ) : (
               hubs.map((hub) => (
                 <Link
                   key={hub.id}
                   href={`/app/hubs/${hub.id}`}
-                  className="list-row rounded-[16px] px-3 py-2.5"
+                  className="flex items-start gap-3 border-b border-[var(--border-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-hover)]"
                 >
-                  <div className="flex items-start gap-3">
-                    <span className="dock-icon flex h-9 w-9 items-center justify-center rounded-[12px] text-[10px] font-semibold text-white">
-                      {hub.name.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-white">
-                          {hub.name}
-                        </p>
-                        <span className="glass-badge">
-                          {roleLabels[hub.membershipRole ?? "MEMBER"] ?? "Участник"}
-                        </span>
-                        {hub.isPrivate ? (
-                          <span className="glass-badge">Private</span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
-                        {hub.description ?? "Без описания"}
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-panel-soft)] text-[11px] font-semibold text-white">
+                    {hub.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-medium leading-tight text-white">
+                        {hub.name}
                       </p>
+                      <CountBadge
+                        value={roleLabels[hub.membershipRole ?? "MEMBER"] ?? "Member"}
+                      />
+                      {hub.isPrivate ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-[var(--text-dim)]">
+                          <LockKeyhole className="h-[18px] w-[18px]" />
+                          Private
+                        </span>
+                      ) : null}
                     </div>
+                    <p className="mt-1 truncate text-xs leading-tight text-[var(--text-dim)]">
+                      {hub.description ?? "No description yet."}
+                    </p>
                   </div>
                 </Link>
               ))
@@ -222,33 +254,37 @@ export function HubWorkspace() {
         </div>
       </div>
 
-      <div className="premium-panel rounded-[20px] p-3.5">
-        <div className="compact-toolbar">
-          <div>
-            <p className="section-kicker">Create hub</p>
+      <aside className="border-t border-[var(--border)] xl:border-l xl:border-t-0">
+        <div className="border-b border-[var(--border)] px-3 py-3">
+          <div className="flex items-center gap-2">
+            <span className="eyebrow-pill">
+              <Plus className="h-[18px] w-[18px]" />
+              New hub
+            </span>
           </div>
-          <span className="glass-badge">
-            <Plus className="h-3 w-3" />
-            New
-          </span>
+          <h3 className="mt-1 text-base font-semibold tracking-tight text-white">
+            Create space
+          </h3>
         </div>
 
-        <form className="mt-3 grid gap-2.5" onSubmit={handleCreateHub}>
+        <form className="grid gap-2 px-3 py-3" onSubmit={handleCreateHub}>
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Название хаба"
+            placeholder="Hub name"
+            className="h-9"
           />
           <Input
             value={slug}
             onChange={(event) => setSlug(event.target.value)}
             placeholder="slug"
+            className="h-9"
           />
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Короткое описание"
-            className="field-textarea"
+            placeholder="Short description"
+            className="field-textarea min-h-24 text-sm"
           />
           <label className="field-checkbox text-sm">
             <input
@@ -258,11 +294,11 @@ export function HubWorkspace() {
             />
             Private hub
           </label>
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Создаем..." : "Создать хаб"}
+          <Button type="submit" disabled={isSubmitting} className="h-9 w-full">
+            {isSubmitting ? "Creating..." : "Create hub"}
           </Button>
         </form>
-      </div>
+      </aside>
     </section>
   );
 }

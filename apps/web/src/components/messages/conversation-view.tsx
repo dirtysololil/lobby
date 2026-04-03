@@ -43,7 +43,7 @@ export function ConversationView({
       });
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось загрузить диалог",
+        error instanceof Error ? error.message : "Unable to load conversation.",
       );
     }
   }, [conversationId]);
@@ -62,6 +62,7 @@ export function ConversationView({
 
   async function deleteMessage(messageId: string) {
     setIsDeleting(messageId);
+
     try {
       const payload = await apiClientFetch(
         `/v1/direct-messages/${conversationId}/messages/${messageId}`,
@@ -89,16 +90,16 @@ export function ConversationView({
 
   if (errorMessage) {
     return (
-      <div className="rounded-[18px] border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-        {errorMessage}
+      <div className="empty-state-minimal">
+        <p className="text-sm text-rose-200">{errorMessage}</p>
       </div>
     );
   }
 
   if (!conversation) {
     return (
-      <div className="premium-tile rounded-[16px] p-4 text-sm text-[var(--text-muted)]">
-        Загружаем чат...
+      <div className="empty-state-minimal">
+        <p className="text-sm text-[var(--text-muted)]">Loading conversation...</p>
       </div>
     );
   }
@@ -113,54 +114,54 @@ export function ConversationView({
       ?.notificationSetting ?? "ALL";
 
   return (
-    <div className="grid min-h-0 gap-3">
-      <section className="premium-panel flex min-h-[calc(100vh-9.5rem)] flex-col overflow-hidden rounded-[20px]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-3 py-2.5">
+    <div className="flex min-h-full flex-col">
+      <section className="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-12 items-center justify-between gap-3 border-b border-[var(--border)] px-3">
           <div className="flex min-w-0 items-center gap-3">
-            {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
+            {counterpart ? <UserAvatar user={counterpart} size="sm" /> : null}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-sm font-semibold text-white">
-                  {counterpart?.profile.displayName ?? "Диалог"}
+                <p className="truncate text-sm font-medium text-white">
+                  {counterpart?.profile.displayName ?? "Conversation"}
                 </p>
                 <span className="status-pill">
-                  <UserRound className="h-3.5 w-3.5 text-[var(--accent)]" />
+                  <UserRound className="h-[18px] w-[18px] text-[var(--accent)]" />
                   DM
                 </span>
                 {conversation.retentionMode !== "OFF" ? (
                   <span className="status-pill">
-                    <Clock3 className="h-3.5 w-3.5 text-[var(--accent)]" />
+                    <Clock3 className="h-[18px] w-[18px] text-[var(--accent)]" />
                     {conversation.retentionMode}
                   </span>
                 ) : null}
                 {isBlocked ? (
                   <span className="status-pill">
-                    <ShieldAlert className="h-3.5 w-3.5 text-[var(--danger)]" />
-                    Ограничение
+                    <ShieldAlert className="h-[18px] w-[18px] text-[var(--danger)]" />
+                    Restricted
                   </span>
                 ) : null}
               </div>
-              <p className="mt-0.5 truncate text-xs text-[var(--text-dim)]">
-                {counterpart ? `@${counterpart.username}` : "Личный диалог"}
+              <p className="truncate text-xs text-[var(--text-dim)]">
+                {counterpart ? `@${counterpart.username}` : "Private thread"}
               </p>
             </div>
           </div>
 
           <Link href="/app/messages">
-            <Button size="sm" variant="secondary">
-              <ArrowLeft className="h-4 w-4" />
-              Все диалоги
+            <Button size="sm" variant="ghost">
+              <ArrowLeft className="h-[18px] w-[18px]" />
+              Back
             </Button>
           </Link>
         </div>
 
         {isBlocked ? (
-          <div className="border-b border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-50">
-            Новые сообщения и звонки ограничены.
+          <div className="border-b border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+            Messaging and calling are unavailable in this conversation.
           </div>
         ) : null}
 
-        <div className="border-b border-white/8 px-3 py-2.5">
+        <div className="border-b border-[var(--border-soft)] px-3 py-2">
           <DmCallPanel
             conversationId={conversationId}
             viewerId={viewerId}
@@ -168,7 +169,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="min-h-0 flex-1 px-3 py-3">
+        <div className="min-h-0 flex-1">
           <MessageThread
             viewerId={viewerId}
             conversation={conversation}
@@ -177,12 +178,12 @@ export function ConversationView({
           />
         </div>
 
-        <div className="border-t border-white/8 px-3 py-2.5">
+        <div className="border-t border-[var(--border)] px-3 py-2">
           <MessageComposer disabled={isBlocked} onSend={sendMessage} />
         </div>
       </section>
 
-      <div className="premium-panel rounded-[20px] p-3 2xl:hidden">
+      <div className="border-t border-[var(--border)] px-3 py-3 2xl:hidden">
         <ConversationSettings
           notificationSetting={viewerSettings}
           retentionMode={conversation.retentionMode}
