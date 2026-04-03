@@ -148,6 +148,7 @@ export class AuthService {
     });
 
     if (!user) {
+      console.info(`[auth/login] user_not_found login=${normalizedLogin}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -157,10 +158,12 @@ export class AuthService {
     );
 
     if (!passwordMatches) {
+      console.info(`[auth/login] invalid_password userId=${user.id}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.platformBlock) {
+      console.warn(`[auth/login] blocked_user userId=${user.id}`);
       throw new ForbiddenException('Account is blocked by moderation');
     }
 
@@ -182,6 +185,8 @@ export class AuthService {
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
     });
+
+    console.info(`[auth/login] session_created userId=${user.id}`);
 
     return {
       session,

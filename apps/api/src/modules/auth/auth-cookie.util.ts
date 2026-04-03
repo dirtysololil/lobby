@@ -9,6 +9,10 @@ export function setSessionCookie(
 ): void {
   const cookieDomain = resolveSessionCookieDomain(env);
 
+  console.info(
+    `[auth/cookie] set cookieName=${env.SESSION_COOKIE_NAME} domain=${cookieDomain ?? 'host-only'} secure=${env.NODE_ENV === 'production'}`,
+  );
+
   response.cookie(env.SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
@@ -22,6 +26,10 @@ export function setSessionCookie(
 export function clearSessionCookie(response: Response, env: ApiEnv): void {
   const cookieDomain = resolveSessionCookieDomain(env);
 
+  console.info(
+    `[auth/cookie] clear cookieName=${env.SESSION_COOKIE_NAME} domain=${cookieDomain ?? 'host-only'}`,
+  );
+
   response.clearCookie(env.SESSION_COOKIE_NAME, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
@@ -33,7 +41,8 @@ export function clearSessionCookie(response: Response, env: ApiEnv): void {
 
 function resolveSessionCookieDomain(env: ApiEnv): string | undefined {
   const rawDomain = env.SESSION_COOKIE_DOMAIN?.trim();
-  const hostname = parseDomainHostname(rawDomain) ?? parseDomainHostname(env.WEB_PUBLIC_URL);
+  const hostname =
+    parseDomainHostname(rawDomain) ?? parseDomainHostname(env.WEB_PUBLIC_URL);
 
   if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
     return undefined;
