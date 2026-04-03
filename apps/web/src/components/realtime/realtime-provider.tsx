@@ -4,7 +4,7 @@ import { callSignalSchema, type CallSignal, type CallSummary, type PublicUser } 
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import { runtimeConfig } from "@/lib/runtime-config";
+import { resolveRealtimeBaseUrlForBrowser, runtimeConfig } from "@/lib/runtime-config";
 
 interface RealtimeContextValue {
   socket: Socket | null;
@@ -22,9 +22,9 @@ interface RealtimeProviderProps {
 
 export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
   const [socket] = useState<Socket>(() =>
-    io(runtimeConfig.realtimePublicUrl, {
+    io(resolveRealtimeBaseUrlForBrowser(), {
       withCredentials: true,
-      transports: ["polling", "websocket"],
+      transports: ["websocket"],
       path: runtimeConfig.realtimePath,
     }),
   );

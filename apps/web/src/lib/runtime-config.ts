@@ -107,6 +107,22 @@ export function resolveApiBaseUrlForBrowser(): string {
   return deriveApiUrlFromHostname(new URL(window.location.origin));
 }
 
+export function resolveRealtimeBaseUrlForBrowser(): string {
+  if (runtimeConfig.realtimePublicUrl) {
+    return runtimeConfig.realtimePublicUrl;
+  }
+
+  if (runtimeConfig.apiPublicUrl) {
+    return runtimeConfig.apiPublicUrl;
+  }
+
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return deriveApiUrlFromHostname(new URL(window.location.origin));
+}
+
 function deriveApiUrlFromHostname(origin: URL): string {
   const { protocol, hostname } = origin;
 
