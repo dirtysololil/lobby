@@ -1,12 +1,13 @@
 import { authSessionResponseSchema, type PublicUser } from "@lobby/shared";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { resolveApiBaseUrlForServer } from "./runtime-config";
+import { resolveApiBaseUrlForServerRequest } from "./runtime-config";
 
 export async function fetchViewer(): Promise<PublicUser | null> {
-  const apiBaseUrl = resolveApiBaseUrlForServer();
+  const apiBaseUrl = await resolveApiBaseUrlForServerRequest();
 
   if (!apiBaseUrl) {
+    console.warn("[auth/session] fetchViewer: missing API base URL");
     return null;
   }
 
@@ -20,12 +21,16 @@ export async function fetchViewer(): Promise<PublicUser | null> {
     });
 
     if (!response.ok) {
+      console.info(
+        `[auth/session] fetchViewer: unauthorized status=${response.status}`,
+      );
       return null;
     }
 
     const payload = authSessionResponseSchema.parse(await response.json());
     return payload.user;
-  } catch {
+  } catch (error) {
+    console.warn("[auth/session] fetchViewer: request failed", error);
     return null;
   }
 }
