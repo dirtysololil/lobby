@@ -16,8 +16,8 @@ module.exports = {
     {
       name: "lobby-web",
       cwd: ".",
-      script: "node",
-      args: "apps/web/scripts/run-next.mjs start",
+      script: "corepack",
+      args: "pnpm start:web",
       interpreter: "none",
       autorestart: true,
       watch: false,
