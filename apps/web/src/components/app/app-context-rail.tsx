@@ -25,7 +25,7 @@ import {
   type HubSummary,
   type PublicUser,
 } from "@lobby/shared";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { apiClientFetch } from "@/lib/api-client";
 import { matchesPath, parseAppPath } from "@/lib/app-shell";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
@@ -55,6 +55,45 @@ const peopleViews = [
   { id: "discover", label: "Discover" },
   { id: "blocked", label: "Blocked" },
 ] as const;
+
+const railIconProps = { size: 18, strokeWidth: 1.5 } as const;
+
+function RailRow({
+  href,
+  active,
+  leading,
+  label,
+  meta,
+  detail,
+}: {
+  href: string;
+  active: boolean;
+  leading: ReactNode;
+  label: string;
+  meta?: ReactNode;
+  detail?: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex min-h-11 items-center gap-3 border-b border-white/5 px-3 text-sm transition-colors hover:bg-white/5",
+        active ? "bg-white/5 text-white" : "text-zinc-400",
+      )}
+    >
+      {leading}
+      <span className="min-w-0 flex-1">
+        <span className={cn("block truncate leading-tight", active ? "text-white" : "text-zinc-200")}>
+          {label}
+        </span>
+        {detail ? (
+          <span className="mt-0.5 block truncate text-xs text-zinc-500">{detail}</span>
+        ) : null}
+      </span>
+      {meta}
+    </Link>
+  );
+}
 
 export function AppContextRail({ viewer }: AppContextRailProps) {
   const pathname = usePathname();
@@ -198,153 +237,129 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   }, [hub]);
 
   return (
-    <aside className="context-rail hidden min-h-screen w-64 border-r border-[var(--border)] md:flex md:flex-col">
-      <div className="flex h-12 items-center gap-2 border-b border-[var(--border)] px-3">
+    <aside className="context-rail hidden min-h-screen w-60 border-r border-white/5 bg-[#121214] md:flex md:flex-col">
+      <div className="flex h-12 items-center gap-2 border-b border-white/5 px-3">
         <UserAvatar user={viewer} size="sm" />
-        <div className="flex-1">
-          <p className="truncate text-sm font-semibold text-white">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-white">
             {viewer.profile.displayName}
           </p>
-          <p className="truncate text-xs text-[var(--text-muted)]">
-            @{viewer.username}
-          </p>
+          <p className="truncate text-xs text-zinc-500">@{viewer.username}</p>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {route.section === "messages" ? (
           <div>
-            <div className="flex items-center justify-between px-3 py-2 text-xs text-[var(--text-muted)]">
-              <span className="section-kicker">Conversations</span>
-              <Link href="/app/people?view=discover" className="glass-badge">
-                <UserRoundPlus className="h-[18px] w-[18px]" />
+            <div className="flex h-10 items-center justify-between border-b border-white/5 px-3 text-xs text-zinc-500">
+              <span>Conversations</span>
+              <Link href="/app/people?view=discover" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
+                <UserRoundPlus {...railIconProps} />
                 New
               </Link>
             </div>
 
             {loadingLabel === "messages" ? (
-              <div className="px-3 py-8 text-center text-sm text-[var(--text-muted)]">
+              <div className="px-3 py-6 text-center text-sm text-zinc-500">
                 Loading chats...
               </div>
             ) : conversations.length === 0 ? (
-              <div className="px-3 py-8 text-center text-sm text-[var(--text-muted)]">
+              <div className="px-3 py-6 text-center text-sm text-zinc-500">
                 No direct messages yet.
               </div>
             ) : (
-              <div>
-                {conversations.map((conversation) => {
-                  const href = `/app/messages/${conversation.id}`;
+              conversations.map((conversation) => {
+                const href = `/app/messages/${conversation.id}`;
 
-                  return (
-                    <Link
-                      key={conversation.id}
-                      href={href}
-                      className={cn(
-                        "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                        safePathname === href && "bg-[var(--bg-active)]",
-                      )}
-                    >
-                      <UserAvatar user={conversation.counterpart} size="sm" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium text-white">
-                          {conversation.counterpart.profile.displayName}
+                return (
+                  <RailRow
+                    key={conversation.id}
+                    href={href}
+                    active={safePathname === href}
+                    leading={<UserAvatar user={conversation.counterpart} size="sm" />}
+                    label={conversation.counterpart.profile.displayName}
+                    detail={
+                      conversation.lastMessage?.isDeleted
+                        ? "Message deleted"
+                        : (conversation.lastMessage?.content ?? "No messages yet")
+                    }
+                    meta={
+                      conversation.unreadCount > 0 ? (
+                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-[11px] text-white">
+                          {conversation.unreadCount}
                         </span>
-                        <span className="block truncate text-xs text-[var(--text-dim)]">
-                          {conversation.lastMessage?.isDeleted
-                            ? "Message deleted"
-                            : (conversation.lastMessage?.content ?? "No messages yet")}
-                        </span>
-                      </span>
-                      {conversation.unreadCount > 0 ? (
-                        <span className="nav-link-meta">{conversation.unreadCount}</span>
-                      ) : null}
-                    </Link>
-                  );
-                })}
-              </div>
+                      ) : null
+                    }
+                  />
+                );
+              })
             )}
           </div>
         ) : null}
 
         {route.section === "hubs" && !route.hubId ? (
           <div>
-            <div className="flex items-center justify-between px-3 py-2 text-xs text-[var(--text-muted)]">
-              <span className="section-kicker">Hubs</span>
-              <Link href="/app/hubs" className="glass-badge">
-                <Layers3 className="h-[18px] w-[18px]" />
+            <div className="flex h-10 items-center justify-between border-b border-white/5 px-3 text-xs text-zinc-500">
+              <span>Hubs</span>
+              <Link href="/app/hubs" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
+                <Layers3 {...railIconProps} />
                 Browse
               </Link>
             </div>
 
             {loadingLabel === "hubs" ? (
-              <div className="px-3 py-8 text-center text-sm text-[var(--text-muted)]">
+              <div className="px-3 py-6 text-center text-sm text-zinc-500">
                 Loading hubs...
               </div>
             ) : hubs.length === 0 ? (
-              <div className="px-3 py-8 text-center text-sm text-[var(--text-muted)]">
+              <div className="px-3 py-6 text-center text-sm text-zinc-500">
                 Join a hub or create a new one.
               </div>
             ) : (
-              <div>
-                {hubs.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/app/hubs/${item.id}`}
-                    className={cn(
-                      "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                      safePathname.startsWith(`/app/hubs/${item.id}`) && "bg-[var(--bg-active)]",
-                    )}
-                  >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--bg-panel-soft)] text-[10px] font-semibold text-white">
+              hubs.map((item) => (
+                <RailRow
+                  key={item.id}
+                  href={`/app/hubs/${item.id}`}
+                  active={safePathname.startsWith(`/app/hubs/${item.id}`)}
+                  leading={
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-[10px] font-semibold text-zinc-200">
                       {item.name.slice(0, 2).toUpperCase()}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-white">
-                        {item.name}
-                      </span>
-                      <span className="block truncate text-xs text-[var(--text-dim)]">
-                        {item.membershipRole ?? "Guest"}
-                      </span>
-                    </span>
-                    {item.isPrivate ? (
-                      <LockKeyhole className="h-[18px] w-[18px] text-[var(--accent)]" />
-                    ) : null}
-                  </Link>
-                ))}
-              </div>
+                  }
+                  label={item.name}
+                  detail={item.membershipRole ?? "Guest"}
+                  meta={
+                    item.isPrivate ? (
+                      <LockKeyhole {...railIconProps} className="text-zinc-500" />
+                    ) : null
+                  }
+                />
+              ))
             )}
           </div>
         ) : null}
 
         {route.section === "hubs" && route.hubId ? (
           <div>
-            <div className="border-b border-[var(--border-soft)] px-3 py-3">
-              <p className="truncate text-sm font-semibold text-white">
+            <div className="border-b border-white/5 px-3 py-3">
+              <p className="truncate text-sm font-medium text-white">
                 {hub?.name ?? "Hub"}
               </p>
-              <p className="mt-0.5 truncate text-xs text-[var(--text-dim)]">
+              <p className="mt-0.5 truncate text-xs text-zinc-500">
                 {hub?.membershipRole ?? "Member"}
               </p>
             </div>
 
-            <div>
-              <Link
-                href={`/app/hubs/${route.hubId}`}
-                className={cn(
-                  "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                  safePathname === `/app/hubs/${route.hubId}` && "bg-[var(--bg-active)]",
-                )}
-              >
-                <House className="h-[18px] w-[18px] text-[var(--accent)]" />
-                <span className="font-medium text-white">Home</span>
-              </Link>
-            </div>
+            <RailRow
+              href={`/app/hubs/${route.hubId}`}
+              active={safePathname === `/app/hubs/${route.hubId}`}
+              leading={<House {...railIconProps} className="text-zinc-400" />}
+              label="Home"
+            />
 
             {groupedLobbies.map((group) => (
               <div key={group.label}>
-                <div className="px-3 py-2 text-xs text-[var(--text-muted)]">
-                  <span className="section-kicker">{group.label}</span>
-                </div>
+                <div className="px-3 py-2 text-xs text-zinc-500">{group.label}</div>
 
                 {group.items.map((lobby) => {
                   const href = buildHubLobbyHref(route.hubId!, lobby.id, lobby.type);
@@ -352,33 +367,25 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     safePathname === href || safePathname.startsWith(`${href}/`);
 
                   return (
-                    <Link
+                    <RailRow
                       key={lobby.id}
                       href={href}
-                      className={cn(
-                        "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                        active && "bg-[var(--bg-active)]",
-                      )}
-                    >
-                      <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--bg-panel-soft)]">
-                        {lobby.type === "VOICE" ? (
-                            <Mic className="h-[18px] w-[18px]" />
-                          ) : (
-                            <Hash className="h-[18px] w-[18px]" />
-                          )}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium text-white">
-                          {lobby.name}
-                        </span>
-                        <span className="block truncate text-xs text-[var(--text-dim)]">
-                          {lobby.type}
-                        </span>
-                      </span>
-                      {lobby.isPrivate ? (
-                          <LockKeyhole className="h-[18px] w-[18px] text-[var(--accent)]" />
-                      ) : null}
-                    </Link>
+                      active={active}
+                      leading={
+                        lobby.type === "VOICE" ? (
+                          <Mic {...railIconProps} className="text-zinc-400" />
+                        ) : (
+                          <Hash {...railIconProps} className="text-zinc-400" />
+                        )
+                      }
+                      label={lobby.name}
+                      detail={lobby.type}
+                      meta={
+                        lobby.isPrivate ? (
+                          <LockKeyhole {...railIconProps} className="text-zinc-500" />
+                        ) : null
+                      }
+                    />
                   );
                 })}
               </div>
@@ -388,10 +395,10 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "people" ? (
           <div>
-            <div className="flex items-center justify-between px-3 py-2 text-xs text-[var(--text-muted)]">
-              <span className="section-kicker">People</span>
-              <Link href="/app/messages" className="glass-badge">
-                <MessageSquareMore className="h-[18px] w-[18px]" />
+            <div className="flex h-10 items-center justify-between border-b border-white/5 px-3 text-xs text-zinc-500">
+              <span>People</span>
+              <Link href="/app/messages" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
+                <MessageSquareMore {...railIconProps} />
                 Inbox
               </Link>
             </div>
@@ -409,20 +416,20 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                       : undefined;
 
               return (
-                <Link
+                <RailRow
                   key={item.id}
                   href={href}
-                  className={cn(
-                    "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                    active && "bg-[var(--bg-active)]",
-                  )}
-                >
-                    <Users2 className="h-[18px] w-[18px] text-[var(--accent)]" />
-                  <span className="min-w-0 flex-1 font-medium text-white">
-                    {item.label}
-                  </span>
-                  {count !== undefined ? <span className="nav-link-meta">{count}</span> : null}
-                </Link>
+                  active={active}
+                  leading={<Users2 {...railIconProps} className="text-zinc-400" />}
+                  label={item.label}
+                  meta={
+                    count !== undefined ? (
+                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-[11px] text-zinc-200">
+                        {count}
+                      </span>
+                    ) : null
+                  }
+                />
               );
             })}
           </div>
@@ -430,55 +437,41 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "settings" ? (
           <div>
-            <div className="px-3 py-2 text-xs text-[var(--text-muted)]">
-              <span className="section-kicker">Settings</span>
-            </div>
-
+            <div className="px-3 py-2 text-xs text-zinc-500">Settings</div>
             {settingsLinks.map((item) => (
-              <Link
+              <RailRow
                 key={item.href}
                 href={item.href}
-                className={cn(
-                  "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                  matchesPath(pathname, item.href) && "bg-[var(--bg-active)]",
-                )}
-              >
-                  <Settings2 className="h-[18px] w-[18px] text-[var(--accent)]" />
-                <span className="font-medium text-white">{item.label}</span>
-              </Link>
+                active={matchesPath(safePathname, item.href)}
+                leading={<Settings2 {...railIconProps} className="text-zinc-400" />}
+                label={item.label}
+              />
             ))}
           </div>
         ) : null}
 
         {route.section === "admin" ? (
           <div>
-            <div className="px-3 py-2 text-xs text-[var(--text-muted)]">
-              <span className="section-kicker">Control</span>
-            </div>
-
+            <div className="px-3 py-2 text-xs text-zinc-500">Control</div>
             {adminLinks.map((item) => (
-              <Link
+              <RailRow
                 key={item.href}
                 href={item.href}
-                className={cn(
-                  "flex items-center gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-panel-soft)]",
-                  matchesPath(pathname, item.href) && "bg-[var(--bg-active)]",
-                )}
-              >
-                  <ShieldCheck className="h-[18px] w-[18px] text-[var(--accent)]" />
-                <span className="font-medium text-white">{item.label}</span>
-              </Link>
+                active={matchesPath(safePathname, item.href)}
+                leading={<ShieldCheck {...railIconProps} className="text-zinc-400" />}
+                label={item.label}
+              />
             ))}
           </div>
         ) : null}
       </div>
 
-      <div className="border-t border-[var(--border)] px-3 py-2">
-        <div className="flex items-center justify-between gap-3 text-xs text-[var(--text-dim)]">
+      <div className="border-t border-white/5 px-3 py-2">
+        <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
           <span>Realtime</span>
           <span>{incomingCalls.length} active</span>
         </div>
-        <p className="mt-1 truncate text-sm font-medium text-white">
+        <p className="mt-1 truncate text-sm text-zinc-200">
           {latestSignal ? latestSignal.call.status : "Connected"}
         </p>
       </div>

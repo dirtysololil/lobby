@@ -90,17 +90,20 @@ function TrackTile({ item }: { item: TrackView }) {
 
     element.autoplay = true;
     element.setAttribute("playsinline", "true");
+    element.muted = item.isLocal;
+    element.defaultMuted = item.isLocal;
+    element.volume = item.isLocal ? 0 : 1;
 
     if (element instanceof HTMLVideoElement) {
       element.className = "h-full w-full rounded-[16px] object-cover";
       element.playsInline = true;
-      element.muted = item.isLocal;
     } else {
       element.className = "hidden";
     }
 
     item.track.attach(element);
     container.appendChild(element);
+    void element.play().catch(() => undefined);
 
     return () => {
       item.track.detach(element);
@@ -138,6 +141,7 @@ export function LiveKitCallRoom({
   description,
   onLeave,
 }: LiveKitCallRoomProps) {
+  const iconProps = { size: 18, strokeWidth: 1.5 } as const;
   const roomRef = useRef<Room | null>(null);
   const [status, setStatus] = useState<"idle" | "connecting" | "connected" | "error">(
     "idle",
@@ -322,7 +326,7 @@ export function LiveKitCallRoom({
           onClick={() => void toggleMicrophone()}
           disabled={!connection.canPublishMedia}
         >
-          {microphoneEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+          {microphoneEnabled ? <Mic {...iconProps} /> : <MicOff {...iconProps} />}
           {microphoneEnabled ? "Mic on" : "Mic off"}
         </Button>
         <Button
@@ -331,7 +335,7 @@ export function LiveKitCallRoom({
           onClick={() => void toggleCamera()}
           disabled={!connection.canPublishMedia}
         >
-          {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+          {cameraEnabled ? <Video {...iconProps} /> : <VideoOff {...iconProps} />}
           {cameraEnabled ? "Camera on" : "Camera off"}
         </Button>
         <Button
@@ -341,14 +345,14 @@ export function LiveKitCallRoom({
           disabled={!connection.canPublishMedia}
         >
           {screenShareEnabled ? (
-            <MonitorX className="h-4 w-4" />
+            <MonitorX {...iconProps} />
           ) : (
-            <MonitorUp className="h-4 w-4" />
+            <MonitorUp {...iconProps} />
           )}
           {screenShareEnabled ? "Stop share" : "Share screen"}
         </Button>
         <Button size="sm" onClick={() => void leaveRoom()} disabled={isLeaving}>
-          <PhoneOff className="h-4 w-4" />
+          <PhoneOff {...iconProps} />
           {isLeaving ? "Выходим..." : "Выйти"}
         </Button>
       </div>

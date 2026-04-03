@@ -3,16 +3,16 @@
 :root {
   color-scheme: dark;
   --bg-app: #09090b;
-  --bg-sidebar: rgba(9, 9, 11, 0.95);
+  --bg-sidebar: #121214;
   --bg-panel: #09090b;
-  --bg-panel-muted: #111114;
-  --bg-panel-soft: #141418;
-  --bg-hover: rgba(244, 63, 94, 0.08);
-  --bg-active: rgba(244, 63, 94, 0.14);
+  --bg-panel-muted: #121214;
+  --bg-panel-soft: rgba(255, 255, 255, 0.06);
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.08);
   --bg-accent-soft: rgba(244, 63, 94, 0.1);
   --bg-accent-strong: rgba(244, 63, 94, 0.16);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.13);
+  --border: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(39, 39, 42, 0.5);
   --border-soft: rgba(255, 255, 255, 0.05);
   --text: #f5f7fa;
   --text-soft: #d7dde6;
@@ -129,7 +129,7 @@ textarea {
 
 .context-rail,
 .activity-rail {
-  background: var(--bg-panel);
+  background: var(--bg-sidebar);
 }
 
 .surface-subtle,
@@ -179,7 +179,7 @@ textarea {
   min-height: 22px;
   border-radius: 999px;
   border: 1px solid var(--border-soft);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.05);
   padding: 0.1rem 0.5rem;
   font-size: 11px;
   font-weight: 500;
@@ -288,9 +288,9 @@ textarea {
 .field-textarea,
 .field-select {
   width: 100%;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--bg-panel-soft);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text);
   outline: none;
   transition:
@@ -307,15 +307,15 @@ textarea {
 .field-input:focus,
 .field-textarea:focus,
 .field-select:focus {
-  border-color: rgba(244, 63, 94, 0.28);
+  border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 0 3px var(--ring);
-  background: var(--bg-panel-muted);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .field-input,
 .field-select {
-  min-height: 34px;
-  padding: 0 0.7rem;
+  min-height: 36px;
+  padding: 0 0.875rem;
 }
 
 .field-textarea {
@@ -327,9 +327,9 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--bg-panel-soft);
+  background: rgba(255, 255, 255, 0.05);
   padding: 0.45rem 0.7rem;
   color: var(--text-soft);
 }
@@ -352,12 +352,12 @@ textarea {
 .message-bubble,
 .message-bubble-own {
   border: 1px solid var(--border-soft);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .message-bubble-own {
   border-color: rgba(244, 63, 94, 0.16);
-  background: rgba(244, 63, 94, 0.08);
+  background: rgba(244, 63, 94, 0.14);
 }
 
 .empty-state-minimal {
@@ -406,10 +406,10 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-dim);
+  color: #a1a1aa;
   transition:
     border-color 140ms ease,
     color 140ms ease,

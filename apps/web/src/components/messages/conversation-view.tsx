@@ -22,6 +22,8 @@ interface ConversationViewProps {
   viewerId: string;
 }
 
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
 export function ConversationView({
   conversationId,
   viewerId,
@@ -90,7 +92,8 @@ export function ConversationView({
 
   if (errorMessage) {
     return (
-      <div className="empty-state-minimal">
+      <div className="empty-state-minimal bg-[#09090b] text-zinc-500">
+        <ShieldAlert {...iconProps} />
         <p className="text-sm text-rose-200">{errorMessage}</p>
       </div>
     );
@@ -98,8 +101,9 @@ export function ConversationView({
 
   if (!conversation) {
     return (
-      <div className="empty-state-minimal">
-        <p className="text-sm text-[var(--text-muted)]">Loading conversation...</p>
+      <div className="empty-state-minimal bg-[#09090b] text-zinc-500">
+        <UserRound {...iconProps} />
+        <p className="text-sm">Loading conversation...</p>
       </div>
     );
   }
@@ -114,34 +118,34 @@ export function ConversationView({
       ?.notificationSetting ?? "ALL";
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col bg-[#09090b]">
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="flex h-12 items-center justify-between gap-3 border-b border-[var(--border)] px-3">
+        <div className="sticky top-0 z-10 flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(9,9,11,0.82)] px-4 backdrop-blur-md">
           <div className="flex min-w-0 items-center gap-3">
             {counterpart ? <UserAvatar user={counterpart} size="sm" /> : null}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-sm font-medium text-white">
+                <p className="truncate text-sm font-medium tracking-tight text-white">
                   {counterpart?.profile.displayName ?? "Conversation"}
                 </p>
-                <span className="status-pill">
-                  <UserRound className="h-[18px] w-[18px] text-[var(--accent)]" />
+                <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                  <UserRound {...iconProps} />
                   DM
                 </span>
                 {conversation.retentionMode !== "OFF" ? (
-                  <span className="status-pill">
-                    <Clock3 className="h-[18px] w-[18px] text-[var(--accent)]" />
+                  <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                    <Clock3 {...iconProps} />
                     {conversation.retentionMode}
                   </span>
                 ) : null}
                 {isBlocked ? (
-                  <span className="status-pill">
-                    <ShieldAlert className="h-[18px] w-[18px] text-[var(--danger)]" />
+                  <span className="inline-flex items-center gap-1 text-xs text-rose-300">
+                    <ShieldAlert {...iconProps} />
                     Restricted
                   </span>
                 ) : null}
               </div>
-              <p className="truncate text-xs text-[var(--text-dim)]">
+              <p className="truncate text-xs text-zinc-500">
                 {counterpart ? `@${counterpart.username}` : "Private thread"}
               </p>
             </div>
@@ -149,19 +153,19 @@ export function ConversationView({
 
           <Link href="/app/messages">
             <Button size="sm" variant="ghost">
-              <ArrowLeft className="h-[18px] w-[18px]" />
+              <ArrowLeft {...iconProps} />
               Back
             </Button>
           </Link>
         </div>
 
         {isBlocked ? (
-          <div className="border-b border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+          <div className="border-b border-white/5 px-4 py-2 text-sm text-zinc-400">
             Messaging and calling are unavailable in this conversation.
           </div>
         ) : null}
 
-        <div className="border-b border-[var(--border-soft)] px-3 py-2">
+        <div className="border-b border-white/5 px-4 py-2">
           <DmCallPanel
             conversationId={conversationId}
             viewerId={viewerId}
@@ -178,12 +182,12 @@ export function ConversationView({
           />
         </div>
 
-        <div className="border-t border-[var(--border)] px-3 py-2">
+        <div className="border-t border-white/5 bg-[rgba(9,9,11,0.88)] px-4 py-3 backdrop-blur-md">
           <MessageComposer disabled={isBlocked} onSend={sendMessage} />
         </div>
       </section>
 
-      <div className="border-t border-[var(--border)] px-3 py-3 2xl:hidden">
+      <div className="border-t border-white/5 px-4 py-3 2xl:hidden">
         <ConversationSettings
           notificationSetting={viewerSettings}
           retentionMode={conversation.retentionMode}

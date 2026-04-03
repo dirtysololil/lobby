@@ -11,6 +11,7 @@ interface MessageComposerProps {
 
 const BASE_HEIGHT = 40;
 const MAX_HEIGHT = 128;
+const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
 export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
   const [content, setContent] = useState("");
@@ -64,17 +65,17 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         placeholder={disabled ? "Messaging is unavailable in this chat." : "Message"}
         disabled={disabled || isSending}
         rows={1}
-        className="block min-h-10 max-h-32 flex-1 resize-none rounded-2xl border-none bg-[var(--bg-panel-soft)] px-3 py-[9px] text-sm leading-5 text-white outline-none transition-colors placeholder:text-[var(--text-muted)] focus:bg-[var(--bg-panel-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="block min-h-10 max-h-32 flex-1 resize-none rounded-2xl border border-white/5 bg-[#121214] px-4 py-2 text-sm leading-tight text-white outline-none transition-colors placeholder:text-zinc-500 focus:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
       />
 
       <Button
         type="submit"
         size="sm"
         disabled={disabled || isSending}
-        className="h-10 w-10 rounded-full px-0"
+        className="h-9 w-9 rounded-full px-0"
         aria-label={isSending ? "Sending message" : "Send message"}
       >
-        <SendHorizontal className="h-[18px] w-[18px]" />
+        <SendHorizontal {...iconProps} />
       </Button>
     </form>
   );
