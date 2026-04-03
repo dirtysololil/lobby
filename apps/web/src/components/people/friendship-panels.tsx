@@ -16,103 +16,30 @@ interface FriendshipPanelsProps {
 }
 
 const friendshipSections = [
-  { title: "Incoming requests", state: "INCOMING_REQUEST" },
-  { title: "Outgoing requests", state: "OUTGOING_REQUEST" },
-  { title: "Accepted", state: "ACCEPTED" },
-  { title: "Removed", state: "REMOVED" },
+  { title: "Входящие", state: "INCOMING_REQUEST" },
+  { title: "Исходящие", state: "OUTGOING_REQUEST" },
+  { title: "Друзья", state: "ACCEPTED" },
+  { title: "Удалённые", state: "REMOVED" },
 ] as const;
 
-export function FriendshipPanels({
-  friendships,
-  blocks,
-  actionKey,
-  onAccept,
-  onRemove,
-  onBlock,
-  onUnblock,
-  onOpenDm,
-}: FriendshipPanelsProps) {
+export function FriendshipPanels({ friendships, blocks, actionKey, onAccept, onRemove, onBlock, onUnblock, onOpenDm }: FriendshipPanelsProps) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[0.66fr_0.34fr]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <Card>
         <CardHeader>
-          <CardTitle>Friendships</CardTitle>
-          <CardDescription>Incoming, outgoing, accepted and removed states stay private.</CardDescription>
+          <CardTitle>Связи</CardTitle>
+          <CardDescription>Статусы дружбы и обращения в личные сообщения.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4">
+        <CardContent className="grid gap-3">
           {friendshipSections.map((section) => {
             const items = friendships.filter((friendship) => friendship.state === section.state);
-
             return (
-              <div key={section.title} className="rounded-3xl border border-white/10 bg-slate-950/35 p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="text-sm font-medium text-white">{section.title}</p>
-                  <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">
-                    {items.length}
-                  </span>
-                </div>
-
-                {items.length === 0 ? (
-                  <p className="text-sm text-slate-500">Nothing here yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {items.map((item) => {
-                      const isBusyForUser = actionKey?.endsWith(`:${item.otherUser.username}`) ?? false;
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-white">{item.otherUser.profile.displayName}</p>
-                            <p className="font-mono text-xs text-sky-200/75">@{item.otherUser.username}</p>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
-                            {item.state === "INCOMING_REQUEST" ? (
-                              <Button
-                                size="sm"
-                                onClick={() => void onAccept(item.otherUser.username)}
-                                disabled={isBusyForUser}
-                              >
-                                Accept
-                              </Button>
-                            ) : null}
-
-                            {item.state === "ACCEPTED" ? (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => void onOpenDm(item.otherUser.username)}
-                                disabled={isBusyForUser}
-                              >
-                                Open DM
-                              </Button>
-                            ) : null}
-
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => void onRemove(item.otherUser.username)}
-                              disabled={isBusyForUser}
-                            >
-                              Remove
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => void onBlock(item.otherUser.username)}
-                              disabled={isBusyForUser}
-                            >
-                              Block
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+              <div key={section.title} className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4">
+                <div className="mb-3 flex items-center justify-between"><p className="text-sm font-medium text-white">{section.title}</p><span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-slate-300">{items.length}</span></div>
+                {items.length === 0 ? <p className="text-sm text-slate-500">Пусто.</p> : <div className="space-y-2">{items.map((item) => {
+                  const isBusyForUser = actionKey?.endsWith(`:${item.otherUser.username}`) ?? false;
+                  return <div key={item.id} className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-slate-950/55 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-medium text-white">{item.otherUser.profile.displayName}</p><p className="font-mono text-xs text-cyan-100/75">@{item.otherUser.username}</p></div><div className="flex flex-wrap gap-2">{item.state === "INCOMING_REQUEST" ? <Button size="sm" onClick={() => void onAccept(item.otherUser.username)} disabled={isBusyForUser}>Принять</Button> : null}{item.state === "ACCEPTED" ? <Button size="sm" variant="secondary" onClick={() => void onOpenDm(item.otherUser.username)} disabled={isBusyForUser}>В чат</Button> : null}<Button size="sm" variant="secondary" onClick={() => void onRemove(item.otherUser.username)} disabled={isBusyForUser}>Удалить</Button><Button size="sm" variant="destructive" onClick={() => void onBlock(item.otherUser.username)} disabled={isBusyForUser}>Блок</Button></div></div>;
+                })}</div>}
               </div>
             );
           })}
@@ -121,35 +48,16 @@ export function FriendshipPanels({
 
       <Card>
         <CardHeader>
-          <CardTitle>Blocks</CardTitle>
-          <CardDescription>Blocked users cannot receive DM, calls or invite-related interactions.</CardDescription>
+          <CardTitle>Блокировки</CardTitle>
+          <CardDescription>Заблокированные пользователи не могут писать и звонить вам.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {blocks.length === 0 ? (
-            <p className="rounded-3xl border border-white/10 bg-slate-950/35 p-5 text-sm text-slate-500">
-              No blocked users.
-            </p>
-          ) : (
-            blocks.map((block) => (
-              <div
-                key={block.id}
-                className="flex flex-col gap-3 rounded-3xl border border-white/10 bg-slate-950/35 p-5"
-              >
-                <div>
-                  <p className="text-sm font-medium text-white">{block.blockedUser.profile.displayName}</p>
-                  <p className="font-mono text-xs text-sky-200/75">@{block.blockedUser.username}</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void onUnblock(block.blockedUser.username)}
-                  disabled={actionKey === `UNBLOCK:${block.blockedUser.username}`}
-                >
-                  Unblock
-                </Button>
-              </div>
-            ))
-          )}
+        <CardContent className="space-y-2.5">
+          {blocks.length === 0 ? <p className="rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4 text-sm text-slate-500">Список блокировок пуст.</p> : blocks.map((block) => (
+            <div key={block.id} className="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-slate-950/40 p-4">
+              <div><p className="text-sm font-medium text-white">{block.blockedUser.profile.displayName}</p><p className="font-mono text-xs text-cyan-100/75">@{block.blockedUser.username}</p></div>
+              <Button size="sm" variant="secondary" onClick={() => void onUnblock(block.blockedUser.username)} disabled={actionKey === `UNBLOCK:${block.blockedUser.username}`}>Разблокировать</Button>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>
