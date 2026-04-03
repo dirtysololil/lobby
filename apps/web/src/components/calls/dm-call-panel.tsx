@@ -9,7 +9,13 @@ import {
 import { Phone, Video } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { apiClientFetch } from "@/lib/api-client";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
@@ -20,7 +26,11 @@ interface DmCallPanelProps {
   isBlocked: boolean;
 }
 
-export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanelProps) {
+export function DmCallPanel({
+  conversationId,
+  viewerId,
+  isBlocked,
+}: DmCallPanelProps) {
   const { socket, latestSignal, clearIncomingCall } = useRealtime();
   const [state, setState] = useState<CallStateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -39,7 +49,11 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
       setState(callStateResponseSchema.parse(payload));
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Не удалось загрузить состояние звонка");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить состояние звонка",
+      );
     }
   }, [conversationId]);
 
@@ -85,10 +99,13 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
     setPendingAction(`start:${mode}`);
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/dm/${conversationId}/start`, {
-        method: "POST",
-        body: JSON.stringify({ mode }),
-      });
+      const payload = await apiClientFetch(
+        `/v1/calls/dm/${conversationId}/start`,
+        {
+          method: "POST",
+          body: JSON.stringify({ mode }),
+        },
+      );
 
       callResponseSchema.parse(payload);
       await loadState();
@@ -105,9 +122,12 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
     setPendingAction("accept");
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/accept`, {
-        method: "POST",
-      });
+      const payload = await apiClientFetch(
+        `/v1/calls/${state.activeCall.id}/accept`,
+        {
+          method: "POST",
+        },
+      );
 
       callResponseSchema.parse(payload);
       clearIncomingCall(state.activeCall.id);
@@ -125,9 +145,12 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
     setPendingAction("decline");
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/decline`, {
-        method: "POST",
-      });
+      const payload = await apiClientFetch(
+        `/v1/calls/${state.activeCall.id}/decline`,
+        {
+          method: "POST",
+        },
+      );
 
       callResponseSchema.parse(payload);
       clearIncomingCall(state.activeCall.id);
@@ -146,9 +169,12 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
     setPendingAction("join");
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/token`, {
-        method: "POST",
-      });
+      const payload = await apiClientFetch(
+        `/v1/calls/${state.activeCall.id}/token`,
+        {
+          method: "POST",
+        },
+      );
 
       const parsed = callTokenResponseSchema.parse(payload);
       setConnection(parsed.connection);
@@ -166,9 +192,12 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
     setPendingAction("end");
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/end`, {
-        method: "POST",
-      });
+      const payload = await apiClientFetch(
+        `/v1/calls/${state.activeCall.id}/end`,
+        {
+          method: "POST",
+        },
+      );
 
       callResponseSchema.parse(payload);
       setConnection(null);
@@ -179,15 +208,21 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
   }
 
   const activeCall = state?.activeCall ?? null;
-  const viewerParticipant = activeCall?.participants.find((participant) => participant.user.id === viewerId) ?? null;
-  const isIncomingCall = activeCall?.status === "RINGING" && activeCall.initiatedBy.id !== viewerId;
+  const viewerParticipant =
+    activeCall?.participants.find(
+      (participant) => participant.user.id === viewerId,
+    ) ?? null;
+  const isIncomingCall =
+    activeCall?.status === "RINGING" && activeCall.initiatedBy.id !== viewerId;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Звонок</CardTitle>
-          <CardDescription>Голосовые и видеозвонки LiveKit внутри личного диалога.</CardDescription>
+          <CardDescription>
+            Голосовые и видеозвонки LiveKit внутри личного диалога.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {errorMessage ? (
@@ -205,32 +240,59 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
           <div className="flex flex-wrap gap-3">
             {!activeCall ? (
               <>
-                <Button onClick={() => void startCall("AUDIO")} disabled={isBlocked || pendingAction !== null}>
+                <Button
+                  onClick={() => void startCall("AUDIO")}
+                  disabled={isBlocked || pendingAction !== null}
+                >
                   <Phone className="mr-2 h-4 w-4" />
-                  {pendingAction === "start:AUDIO" ? "Запуск..." : "Аудиозвонок"}
+                  {pendingAction === "start:AUDIO"
+                    ? "Запуск..."
+                    : "Аудиозвонок"}
                 </Button>
-                <Button variant="secondary" onClick={() => void startCall("VIDEO")} disabled={isBlocked || pendingAction !== null}>
+                <Button
+                  variant="secondary"
+                  onClick={() => void startCall("VIDEO")}
+                  disabled={isBlocked || pendingAction !== null}
+                >
                   <Video className="mr-2 h-4 w-4" />
-                  {pendingAction === "start:VIDEO" ? "Запуск..." : "Видеозвонок"}
+                  {pendingAction === "start:VIDEO"
+                    ? "Запуск..."
+                    : "Видеозвонок"}
                 </Button>
               </>
             ) : (
               <>
                 {isIncomingCall ? (
                   <>
-                    <Button onClick={() => void acceptCall()} disabled={pendingAction !== null || isBlocked}>
+                    <Button
+                      onClick={() => void acceptCall()}
+                      disabled={pendingAction !== null || isBlocked}
+                    >
                       {pendingAction === "accept" ? "Принимаем..." : "Принять"}
                     </Button>
-                    <Button variant="secondary" onClick={() => void declineCall()} disabled={pendingAction !== null}>
-                      {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
+                    <Button
+                      variant="secondary"
+                      onClick={() => void declineCall()}
+                      disabled={pendingAction !== null}
+                    >
+                      {pendingAction === "decline"
+                        ? "Отклоняем..."
+                        : "Отклонить"}
                     </Button>
                   </>
                 ) : null}
 
-                <Button onClick={() => void joinCall()} disabled={pendingAction !== null || isBlocked}>
+                <Button
+                  onClick={() => void joinCall()}
+                  disabled={pendingAction !== null || isBlocked}
+                >
                   {pendingAction === "join" ? "Подключаем..." : "Подключиться"}
                 </Button>
-                <Button variant="secondary" onClick={() => void endCall()} disabled={pendingAction !== null}>
+                <Button
+                  variant="secondary"
+                  onClick={() => void endCall()}
+                  disabled={pendingAction !== null}
+                >
                   {pendingAction === "end" ? "Завершаем..." : "Завершить"}
                 </Button>
               </>
@@ -240,8 +302,12 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
           {activeCall ? (
             <div className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5">
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full border border-white/10 px-3 py-1 text-sky-200/70">{activeCall.mode}</span>
-                <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">{activeCall.status}</span>
+                <span className="rounded-full border border-white/10 px-3 py-1 text-sky-200/70">
+                  {activeCall.mode}
+                </span>
+                <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">
+                  {activeCall.status}
+                </span>
                 {viewerParticipant ? (
                   <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">
                     вы: {viewerParticipant.state}
@@ -253,14 +319,19 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
 
           {state?.history.length ? (
             <div className="rounded-[24px] border border-white/10 bg-slate-950/35 p-5">
-              <p className="text-sm font-medium text-white">Recent call history</p>
+              <p className="text-sm font-medium text-white">История звонков</p>
               <div className="mt-3 space-y-2 text-sm text-slate-300">
                 {state.history.slice(0, 5).map((item) => (
-                  <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3">
+                  <div
+                    key={item.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3"
+                  >
                     <span>
                       {item.mode} / {item.status}
                     </span>
-                    <span className="text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</span>
+                    <span className="text-xs text-slate-500">
+                      {new Date(item.createdAt).toLocaleString()}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -272,8 +343,8 @@ export function DmCallPanel({ conversationId, viewerId, isBlocked }: DmCallPanel
       <LiveKitCallRoom
         connection={connection}
         mode={activeCall?.mode ?? "AUDIO"}
-        title="Active DM call"
-        description="Microphone, camera and screen sharing are published through LiveKit."
+        title="Активный личный звонок"
+        description="Микрофон, камера и демонстрация экрана публикуются через LiveKit внутри приватного диалога."
         onLeave={async () => {
           await endCall();
         }}

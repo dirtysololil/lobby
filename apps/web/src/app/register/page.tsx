@@ -14,12 +14,15 @@ export default async function RegisterPage() {
   return (
     <AuthShell
       eyebrow="Активация"
-      title="Создание аккаунта"
-      description="Доступ открывается только с валидным ключом приглашения."
+      title="Активация доступа"
+      description="Создайте аккаунт по валидному ключу приглашения и войдите в приватную сеть Lobby без публичной регистрации."
       footer={
         <>
           Уже активировали аккаунт?{" "}
-          <Link className="text-sky-300 transition hover:text-sky-200" href="/login">
+          <Link
+            className="text-sky-300 transition hover:text-sky-200"
+            href="/login"
+          >
             Войти
           </Link>
         </>

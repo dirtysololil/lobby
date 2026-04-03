@@ -1,31 +1,40 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import type { ReactNode } from "react";
+import { IBM_Plex_Mono, Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
+const bodyFont = Inter({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-body",
+});
+
 const headingFont = Space_Grotesk({
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
   variable: "--font-heading",
 });
 
 const monoFont = IBM_Plex_Mono({
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
   weight: ["400", "500"],
   variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
-  title: "Lobby",
-  description: "Private communication platform",
+  title: "Lobby — приватная социальная экосистема",
+  description:
+    "Премиальная приватная социальная платформа для диалогов, хабов, форумов и админ-контроля.",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="ru">
-      <body className={`${headingFont.variable} ${monoFont.variable} antialiased`}>
+      <body
+        className={`${bodyFont.variable} ${headingFont.variable} ${monoFont.variable} antialiased`}
+      >
         {children}
       </body>
     </html>

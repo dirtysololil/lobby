@@ -14,12 +14,15 @@ export default async function LoginPage() {
   return (
     <AuthShell
       eyebrow="Вход"
-      title="С возвращением"
-      description="Введите логин или почту, чтобы войти в закрытое пространство Lobby."
+      title="Вход в закрытый контур"
+      description="Введите логин или почту, чтобы вернуться в личные диалоги, хабы и приватные рабочие пространства Lobby."
       footer={
         <>
           Нет аккаунта?{" "}
-          <Link className="text-sky-300 transition hover:text-sky-200" href="/register">
+          <Link
+            className="text-sky-300 transition hover:text-sky-200"
+            href="/register"
+          >
             Активировать по ключу
           </Link>
         </>

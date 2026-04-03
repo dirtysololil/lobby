@@ -1,12 +1,12 @@
 export function LoadingCard() {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-8 shadow-[var(--shadow)] backdrop-blur-xl">
-      <div className="h-4 w-28 animate-pulse rounded-full bg-white/10" />
-      <div className="mt-4 h-10 w-2/3 animate-pulse rounded-2xl bg-white/10" />
-      <div className="mt-6 grid gap-3">
-        <div className="h-16 animate-pulse rounded-3xl bg-white/7" />
-        <div className="h-16 animate-pulse rounded-3xl bg-white/7" />
-        <div className="h-16 animate-pulse rounded-3xl bg-white/7" />
+    <div className="premium-panel rounded-[32px] p-8 lg:p-10">
+      <div className="h-3 w-32 animate-pulse rounded-full bg-white/10" />
+      <div className="mt-5 h-12 w-2/3 animate-pulse rounded-[22px] bg-white/10" />
+      <div className="mt-7 grid gap-4">
+        <div className="h-20 animate-pulse rounded-[26px] bg-white/7" />
+        <div className="h-20 animate-pulse rounded-[26px] bg-white/7" />
+        <div className="h-20 animate-pulse rounded-[26px] bg-white/7" />
       </div>
     </div>
   );
