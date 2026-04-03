@@ -10,11 +10,16 @@ import {
   type PublicUser,
   type UserSearchResult,
 } from "@lobby/shared";
-import { MessageSquareMore, Search, ShieldBan, UserPlus2, Users2 } from "lucide-react";
+import {
+  MessageSquareMore,
+  Search,
+  ShieldBan,
+  UserPlus2,
+  Users2,
+} from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
@@ -31,42 +36,58 @@ const peopleViews: Array<{ id: PeopleView; label: string }> = [
 
 interface RelationshipRowProps {
   user: PublicUser;
-  subtitle?: string;
+  subtitle: string;
   meta?: ReactNode;
-  actionKey: string | null;
+  busy: boolean;
   actions: ReactNode;
 }
 
-function RelationshipRow({
-  user,
-  subtitle,
-  meta,
-  actionKey,
-  actions,
-}: RelationshipRowProps) {
+function CountBadge({ value }: { value: number | string }) {
   return (
-    <div className={cn("group list-row rounded-[16px] px-3 py-2.5", actionKey && "opacity-80")}>
-      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <UserAvatar user={user} size="sm" />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-sm font-semibold text-white">
-                {user.profile.displayName}
-              </p>
-              {meta}
-            </div>
-            <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
-              @{user.username}
-            </p>
-            <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
-              {subtitle ?? user.profile.bio ?? "Профиль без биографии."}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5 lg:opacity-0 lg:transition lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
-          {actions}
-        </div>
+    <span className="inline-flex min-h-5 items-center rounded-full bg-[var(--bg-panel-soft)] px-2 text-[11px] font-medium text-[var(--text-dim)]">
+      {value}
+    </span>
+  );
+}
+
+function ViewTabs({
+  activeView,
+  onSelect,
+}: {
+  activeView: PeopleView;
+  onSelect: (view: PeopleView) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto px-3 py-2 lg:hidden">
+      {peopleViews.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onSelect(item.id)}
+          className={cn("segment-chip whitespace-nowrap", activeView === item.id && "segment-chip-active")}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function EmptyView({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Users2;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="empty-state-minimal">
+      <Icon className="h-5 w-5 text-[var(--text-muted)]" />
+      <div>
+        <p className="text-sm font-medium text-white">{title}</p>
+        <p className="mt-1 text-xs text-[var(--text-dim)]">{description}</p>
       </div>
     </div>
   );
@@ -80,9 +101,48 @@ function SectionHeader({
   count: number;
 }) {
   return (
-    <div className="compact-toolbar px-1">
-      <p className="section-kicker">{title}</p>
-      <span className="glass-badge">{count}</span>
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-dim)]">
+      <span>{title}</span>
+      <CountBadge value={count} />
+    </div>
+  );
+}
+
+function RelationshipRow({
+  user,
+  subtitle,
+  meta,
+  busy,
+  actions,
+}: RelationshipRowProps) {
+  return (
+    <div
+      className={cn(
+        "group flex flex-col gap-2 border-b border-[var(--border-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-hover)] lg:flex-row lg:items-center lg:justify-between",
+        busy && "opacity-70",
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <UserAvatar user={user} size="sm" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-medium leading-tight text-white">
+              {user.profile.displayName}
+            </p>
+            {meta}
+          </div>
+          <p className="mt-0.5 truncate text-xs leading-tight text-[var(--text-muted)]">
+            @{user.username}
+          </p>
+          <p className="mt-1 truncate text-xs leading-tight text-[var(--text-dim)]">
+            {subtitle}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
+        {actions}
+      </div>
     </div>
   );
 }
@@ -121,7 +181,7 @@ export function PeopleWorkspace() {
       setPanelError(null);
     } catch (error) {
       setPanelError(
-        error instanceof Error ? error.message : "Не удалось загрузить данные по людям",
+        error instanceof Error ? error.message : "Unable to load people right now.",
       );
     }
   }
@@ -145,9 +205,7 @@ export function PeopleWorkspace() {
       setSearchError(null);
     } catch (error) {
       setSearchError(
-        error instanceof Error
-          ? error.message
-          : "Не удалось выполнить поиск пользователей",
+        error instanceof Error ? error.message : "Unable to search people.",
       );
     } finally {
       setIsSearching(false);
@@ -163,7 +221,7 @@ export function PeopleWorkspace() {
       await refreshSearch();
     } catch (error) {
       setSearchError(
-        error instanceof Error ? error.message : "Не удалось выполнить действие",
+        error instanceof Error ? error.message : "Unable to complete that action.",
       );
     } finally {
       setActionKey(null);
@@ -195,22 +253,23 @@ export function PeopleWorkspace() {
         .sort((left, right) =>
           left.otherUser.profile.displayName.localeCompare(
             right.otherUser.profile.displayName,
-            "ru",
+            "en",
           ),
         ),
     [friendships],
   );
+
   const incoming = friendships.filter((item) => item.state === "INCOMING_REQUEST");
   const outgoing = friendships.filter((item) => item.state === "OUTGOING_REQUEST");
 
   return (
-    <section className="grid gap-3">
-      <div className="social-shell rounded-[20px] p-3">
+    <section className="flex min-h-full flex-col">
+      <div className="border-b border-[var(--border)] px-3 py-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="eyebrow-pill">
-                <Users2 className="h-3.5 w-3.5" />
+                <Users2 className="h-[18px] w-[18px]" />
                 People
               </span>
               <span className="status-pill">{friends.length} friends</span>
@@ -218,159 +277,158 @@ export function PeopleWorkspace() {
                 {incoming.length + outgoing.length} requests
               </span>
             </div>
-            <h2 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
-              People
+            <h2 className="mt-1 text-base font-semibold tracking-tight text-white">
+              Social graph
             </h2>
           </div>
 
           <form
-            className="flex w-full flex-col gap-2 sm:flex-row xl:max-w-[460px]"
+            className="flex w-full max-w-[420px] gap-2"
             onSubmit={(event) => {
               event.preventDefault();
               setView("discover");
               void refreshSearch();
             }}
           >
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--text-muted)]" />
               <Input
-                className="pl-9"
+                className="h-9 pl-9"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Найти по username"
+                placeholder="Search by username"
                 autoComplete="off"
               />
             </div>
-            <Button type="submit" disabled={isSearching}>
-              {isSearching ? "Ищем..." : "Search"}
+            <Button type="submit" size="sm" disabled={isSearching} className="h-9 px-3">
+              {isSearching ? "Searching..." : "Search"}
             </Button>
           </form>
         </div>
-
-        {searchError ? (
-          <p className="mt-3 text-sm text-rose-200">{searchError}</p>
-        ) : null}
       </div>
 
       {panelError ? (
-        <div className="rounded-[16px] border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+        <div className="border-b border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
           {panelError}
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 lg:hidden">
-        {peopleViews.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={cn(
-              "segment-chip",
-              activeView === item.id && "segment-chip-active",
-            )}
-            onClick={() => setView(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {searchError ? (
+        <div className="border-b border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
+          {searchError}
+        </div>
+      ) : null}
 
-      <div className="premium-panel rounded-[20px] p-3">
+      <ViewTabs activeView={activeView} onSelect={setView} />
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {activeView === "friends" ? (
-          <div className="grid gap-2">
+          <div>
             <SectionHeader title="Friends" count={friends.length} />
             {friends.length === 0 ? (
-              <EmptyState
-                title="Пока нет друзей"
-                description="Найдите человека и отправьте запрос."
+              <EmptyView
+                icon={Users2}
+                title="No friends yet"
+                description="Search for someone and send a request."
               />
             ) : (
-              friends.map((item) => (
-                <RelationshipRow
-                  key={item.id}
-                  user={item.otherUser}
-                  actionKey={actionKey === `ACCEPTED:${item.otherUser.username}` ? actionKey : null}
-                  actions={
-                    <>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => void openDm(item.otherUser.username)}
-                        disabled={actionKey === `SEARCH:${item.otherUser.username}`}
-                      >
-                        <MessageSquareMore className="h-3.5 w-3.5" />
-                        Message
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() =>
-                          void withAction(`ACCEPTED:${item.otherUser.username}`, async () => {
-                            await apiClientFetch("/v1/relationships/friends/remove", {
-                              method: "POST",
-                              body: JSON.stringify({ username: item.otherUser.username }),
-                            });
-                          })
-                        }
-                        disabled={actionKey === `ACCEPTED:${item.otherUser.username}`}
-                      >
-                        Remove
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() =>
-                          void withAction(`ACCEPTED:${item.otherUser.username}`, async () => {
-                            await apiClientFetch("/v1/relationships/blocks", {
-                              method: "POST",
-                              body: JSON.stringify({ username: item.otherUser.username }),
-                            });
-                          })
-                        }
-                        disabled={actionKey === `ACCEPTED:${item.otherUser.username}`}
-                      >
-                        <ShieldBan className="h-3.5 w-3.5" />
-                        Block
-                      </Button>
-                    </>
-                  }
-                />
-              ))
+              friends.map((item) => {
+                const removeKey = `ACCEPTED:${item.otherUser.username}`;
+                const messageKey = `SEARCH:${item.otherUser.username}`;
+
+                return (
+                  <RelationshipRow
+                    key={item.id}
+                    user={item.otherUser}
+                    subtitle={item.otherUser.profile.bio ?? "No bio yet."}
+                    busy={actionKey === removeKey || actionKey === messageKey}
+                    actions={
+                      <>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void openDm(item.otherUser.username)}
+                          disabled={actionKey === messageKey}
+                          className="h-8 px-2.5"
+                        >
+                          <MessageSquareMore className="h-[18px] w-[18px]" />
+                          Message
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            void withAction(removeKey, async () => {
+                              await apiClientFetch("/v1/relationships/friends/remove", {
+                                method: "POST",
+                                body: JSON.stringify({ username: item.otherUser.username }),
+                              });
+                            })
+                          }
+                          disabled={actionKey === removeKey}
+                          className="h-8 px-2.5"
+                        >
+                          Remove
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() =>
+                            void withAction(removeKey, async () => {
+                              await apiClientFetch("/v1/relationships/blocks", {
+                                method: "POST",
+                                body: JSON.stringify({ username: item.otherUser.username }),
+                              });
+                            })
+                          }
+                          disabled={actionKey === removeKey}
+                          className="h-8 px-2.5"
+                        >
+                          <ShieldBan className="h-[18px] w-[18px]" />
+                          Block
+                        </Button>
+                      </>
+                    }
+                  />
+                );
+              })
             )}
           </div>
         ) : null}
 
         {activeView === "requests" ? (
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <SectionHeader title="Incoming" count={incoming.length} />
-              {incoming.length === 0 ? (
-                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
-                  Нет входящих запросов.
-                </div>
-              ) : (
-                incoming.map((item) => (
+          <div>
+            <SectionHeader title="Incoming requests" count={incoming.length} />
+            {incoming.length === 0 ? (
+              <EmptyView
+                icon={Users2}
+                title="No incoming requests"
+                description="New requests will show up here."
+              />
+            ) : (
+              incoming.map((item) => {
+                const busyKey = `INCOMING_REQUEST:${item.otherUser.username}`;
+
+                return (
                   <RelationshipRow
                     key={item.id}
                     user={item.otherUser}
-                    subtitle="Хочет добавить вас в друзья."
-                    actionKey={
-                      actionKey === `INCOMING_REQUEST:${item.otherUser.username}`
-                        ? actionKey
-                        : null
-                    }
+                    subtitle="Wants to connect with you."
+                    busy={actionKey === busyKey}
                     actions={
                       <>
                         <Button
                           size="sm"
                           onClick={() =>
-                            void withAction(`INCOMING_REQUEST:${item.otherUser.username}`, async () => {
+                            void withAction(busyKey, async () => {
                               await apiClientFetch("/v1/relationships/friends/accept", {
                                 method: "POST",
                                 body: JSON.stringify({ username: item.otherUser.username }),
                               });
                             })
                           }
-                          disabled={actionKey === `INCOMING_REQUEST:${item.otherUser.username}`}
+                          disabled={actionKey === busyKey}
+                          className="h-8 px-2.5"
                         >
                           Accept
                         </Button>
@@ -378,77 +436,82 @@ export function PeopleWorkspace() {
                           size="sm"
                           variant="secondary"
                           onClick={() =>
-                            void withAction(`INCOMING_REQUEST:${item.otherUser.username}`, async () => {
+                            void withAction(busyKey, async () => {
                               await apiClientFetch("/v1/relationships/friends/remove", {
                                 method: "POST",
                                 body: JSON.stringify({ username: item.otherUser.username }),
                               });
                             })
                           }
-                          disabled={actionKey === `INCOMING_REQUEST:${item.otherUser.username}`}
+                          disabled={actionKey === busyKey}
+                          className="h-8 px-2.5"
                         >
                           Dismiss
                         </Button>
                       </>
                     }
                   />
-                ))
-              )}
-            </div>
+                );
+              })
+            )}
 
-            <div className="grid gap-2">
-              <SectionHeader title="Outgoing" count={outgoing.length} />
-              {outgoing.length === 0 ? (
-                <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
-                  Нет исходящих запросов.
-                </div>
-              ) : (
-                outgoing.map((item) => (
+            <SectionHeader title="Outgoing requests" count={outgoing.length} />
+            {outgoing.length === 0 ? (
+              <EmptyView
+                icon={Users2}
+                title="No outgoing requests"
+                description="Pending requests will show up here."
+              />
+            ) : (
+              outgoing.map((item) => {
+                const busyKey = `OUTGOING_REQUEST:${item.otherUser.username}`;
+
+                return (
                   <RelationshipRow
                     key={item.id}
                     user={item.otherUser}
-                    subtitle="Ожидает ответа на ваш запрос."
-                    actionKey={
-                      actionKey === `OUTGOING_REQUEST:${item.otherUser.username}`
-                        ? actionKey
-                        : null
-                    }
+                    subtitle="Waiting for a reply."
+                    busy={actionKey === busyKey}
                     actions={
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={() =>
-                          void withAction(`OUTGOING_REQUEST:${item.otherUser.username}`, async () => {
+                          void withAction(busyKey, async () => {
                             await apiClientFetch("/v1/relationships/friends/remove", {
                               method: "POST",
                               body: JSON.stringify({ username: item.otherUser.username }),
                             });
                           })
                         }
-                        disabled={actionKey === `OUTGOING_REQUEST:${item.otherUser.username}`}
+                        disabled={actionKey === busyKey}
+                        className="h-8 px-2.5"
                       >
                         Cancel
                       </Button>
                     }
                   />
-                ))
-              )}
-            </div>
+                );
+              })
+            )}
           </div>
         ) : null}
 
         {activeView === "discover" ? (
-          <div className="grid gap-2">
+          <div>
             <SectionHeader title="Discover" count={results.length} />
             {query.trim().length === 0 ? (
-              <EmptyState
-                title="Начните с username"
-                description="Введите username."
+              <EmptyView
+                icon={Search}
+                title="Search by username"
+                description="Type a username to find people."
               />
             ) : results.length === 0 ? (
-              <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
-                Ничего не найдено.
-              </div>
+              <EmptyView
+                icon={Search}
+                title="No matches"
+                description="Try another username."
+              />
             ) : (
               results.map((item) => {
                 const busyKey = `SEARCH:${item.user.username}`;
@@ -458,13 +521,13 @@ export function PeopleWorkspace() {
                   <RelationshipRow
                     key={item.user.id}
                     user={item.user}
-                    subtitle={item.user.profile.bio ?? "Профиль без биографии."}
-                    actionKey={actionKey === busyKey ? actionKey : null}
+                    subtitle={item.user.profile.bio ?? "No bio yet."}
+                    busy={actionKey === busyKey}
                     meta={
                       friendshipState === "ACCEPTED" ? (
-                        <span className="glass-badge">Friend</span>
+                        <CountBadge value="Friend" />
                       ) : item.relationship.isBlockedByViewer ? (
-                        <span className="glass-badge">Blocked</span>
+                        <CountBadge value="Blocked" />
                       ) : null
                     }
                     actions={
@@ -481,6 +544,7 @@ export function PeopleWorkspace() {
                             })
                           }
                           disabled={actionKey === busyKey}
+                          className="h-8 px-2.5"
                         >
                           Unblock
                         </Button>
@@ -498,8 +562,9 @@ export function PeopleWorkspace() {
                                 })
                               }
                               disabled={actionKey === busyKey || item.relationship.hasBlockedViewer}
+                              className="h-8 px-2.5"
                             >
-                              <UserPlus2 className="h-3.5 w-3.5" />
+                              <UserPlus2 className="h-[18px] w-[18px]" />
                               Add
                             </Button>
                           )}
@@ -515,6 +580,7 @@ export function PeopleWorkspace() {
                                 })
                               }
                               disabled={actionKey === busyKey}
+                              className="h-8 px-2.5"
                             >
                               Accept
                             </Button>
@@ -533,6 +599,7 @@ export function PeopleWorkspace() {
                                 })
                               }
                               disabled={actionKey === busyKey}
+                              className="h-8 px-2.5"
                             >
                               Remove
                             </Button>
@@ -542,7 +609,9 @@ export function PeopleWorkspace() {
                             variant="secondary"
                             onClick={() => void openDm(item.user.username)}
                             disabled={actionKey === busyKey || item.relationship.hasBlockedViewer}
+                            className="h-8 px-2.5"
                           >
+                            <MessageSquareMore className="h-[18px] w-[18px]" />
                             {item.relationship.dmConversationId ? "Open chat" : "Message"}
                           </Button>
                           <Button
@@ -557,8 +626,9 @@ export function PeopleWorkspace() {
                               })
                             }
                             disabled={actionKey === busyKey}
+                            className="h-8 px-2.5"
                           >
-                            <ShieldBan className="h-3.5 w-3.5" />
+                            <ShieldBan className="h-[18px] w-[18px]" />
                             Block
                           </Button>
                         </>
@@ -572,39 +642,45 @@ export function PeopleWorkspace() {
         ) : null}
 
         {activeView === "blocked" ? (
-          <div className="grid gap-2">
+          <div>
             <SectionHeader title="Blocked" count={blocks.length} />
             {blocks.length === 0 ? (
-              <EmptyState
-                title="Список блокировок пуст"
-                description="Здесь появятся скрытые пользователи."
+              <EmptyView
+                icon={ShieldBan}
+                title="Nobody is blocked"
+                description="Blocked accounts will appear here."
               />
             ) : (
-              blocks.map((block) => (
-                <RelationshipRow
-                  key={block.id}
-                  user={block.blockedUser}
-                  subtitle="Сообщения и звонки с этим пользователем заблокированы."
-                  actionKey={actionKey === `UNBLOCK:${block.blockedUser.username}` ? actionKey : null}
-                  actions={
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        void withAction(`UNBLOCK:${block.blockedUser.username}`, async () => {
-                          await apiClientFetch("/v1/relationships/blocks/unblock", {
-                            method: "POST",
-                            body: JSON.stringify({ username: block.blockedUser.username }),
-                          });
-                        })
-                      }
-                      disabled={actionKey === `UNBLOCK:${block.blockedUser.username}`}
-                    >
-                      Unblock
-                    </Button>
-                  }
-                />
-              ))
+              blocks.map((block) => {
+                const busyKey = `UNBLOCK:${block.blockedUser.username}`;
+
+                return (
+                  <RelationshipRow
+                    key={block.id}
+                    user={block.blockedUser}
+                    subtitle="Messages and calls are blocked."
+                    busy={actionKey === busyKey}
+                    actions={
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          void withAction(busyKey, async () => {
+                            await apiClientFetch("/v1/relationships/blocks/unblock", {
+                              method: "POST",
+                              body: JSON.stringify({ username: block.blockedUser.username }),
+                            });
+                          })
+                        }
+                        disabled={actionKey === busyKey}
+                        className="h-8 px-2.5"
+                      >
+                        Unblock
+                      </Button>
+                    }
+                  />
+                );
+              })
             )}
           </div>
         ) : null}

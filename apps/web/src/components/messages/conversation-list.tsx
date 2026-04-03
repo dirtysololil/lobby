@@ -11,15 +11,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 function getUnreadTotal(items: DirectConversationSummary[]) {
   return items.reduce((sum, item) => sum + item.unreadCount, 0);
-}
-
-function getRetentionTotal(items: DirectConversationSummary[]) {
-  return items.filter((item) => item.retentionMode !== "OFF").length;
 }
 
 function formatConversationTime(value: string | null) {
@@ -32,13 +28,13 @@ function formatConversationTime(value: string | null) {
   const sameDay = date.toDateString() === now.toDateString();
 
   return sameDay
-    ? date.toLocaleTimeString("ru-RU", {
-        hour: "2-digit",
+    ? date.toLocaleTimeString("en-US", {
+        hour: "numeric",
         minute: "2-digit",
       })
-    : date.toLocaleDateString("ru-RU", {
-        day: "numeric",
+    : date.toLocaleDateString("en-US", {
         month: "short",
+        day: "numeric",
       });
 }
 
@@ -64,7 +60,7 @@ export function ConversationList() {
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось загрузить диалоги",
+        error instanceof Error ? error.message : "Unable to load conversations.",
       );
     } finally {
       setIsLoading(false);
@@ -90,7 +86,7 @@ export function ConversationList() {
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось открыть диалог",
+        error instanceof Error ? error.message : "Unable to open conversation.",
       );
     } finally {
       setIsOpening(false);
@@ -111,119 +107,120 @@ export function ConversationList() {
   }, [conversations]);
 
   return (
-    <section className="grid gap-3">
-      <div className="social-shell rounded-[20px] p-3">
+    <section className="flex min-h-full flex-col">
+      <div className="border-b border-[var(--border)] px-3 py-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="eyebrow-pill">
-                <MessageSquareMore className="h-3.5 w-3.5" />
+                <MessageSquareMore className="h-[18px] w-[18px]" />
                 Inbox
               </span>
-              <span className="status-pill">{conversations.length} threads</span>
+              <span className="status-pill">{conversations.length} chats</span>
               <span className="status-pill">{getUnreadTotal(conversations)} unread</span>
             </div>
-            <h2 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
-              Inbox
+            <h2 className="mt-1 text-base font-semibold tracking-[-0.03em] text-white">
+              Recent chats
             </h2>
           </div>
 
           <form
-            className="flex w-full flex-col gap-2 sm:flex-row xl:max-w-[460px]"
+            className="flex w-full max-w-[420px] gap-2"
             onSubmit={(event) => {
               event.preventDefault();
               void handleOpenConversation();
             }}
           >
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--text-muted)]" />
               <Input
-                className="pl-9"
+                className="h-9 pl-9"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="@username"
                 autoComplete="off"
               />
             </div>
-            <Button type="submit" disabled={isOpening}>
-              <UserRoundPlus className="h-4 w-4" />
-              {isOpening ? "Открываем..." : "Новый DM"}
+            <Button type="submit" disabled={isOpening} size="sm">
+              <UserRoundPlus className="h-[18px] w-[18px]" />
+              {isOpening ? "Opening..." : "New DM"}
             </Button>
           </form>
         </div>
       </div>
 
       {errorMessage ? (
-        <div className="rounded-[16px] border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+        <div className="border-b border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
           {errorMessage}
         </div>
       ) : null}
 
-      <div className="premium-panel overflow-hidden rounded-[20px]">
-        <div className="compact-toolbar border-b border-white/8 px-3 py-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="glass-badge">{getRetentionTotal(conversations)} retention</span>
-            <span className="glass-badge">Sorted by unread</span>
-          </div>
-          <Link href="/app/people?view=discover" className="glass-badge">
-            <UserRoundPlus className="h-3 w-3" />
-            Find people
-          </Link>
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-dim)]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{orderedConversations.length} threads</span>
+          <span>Sorted by unread</span>
         </div>
+        <Link href="/app/people?view=discover" className="glass-badge">
+          <UserRoundPlus className="h-[18px] w-[18px]" />
+          Find people
+        </Link>
+      </div>
 
-        <div className="grid gap-1 p-2">
-          {isLoading ? (
-            <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
-              Загружаем inbox...
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="empty-state-minimal">
+            <p className="text-sm text-[var(--text-muted)]">Loading inbox...</p>
+          </div>
+        ) : orderedConversations.length === 0 ? (
+          <div className="empty-state-minimal">
+            <MessageSquareMore className="h-5 w-5 text-[var(--text-muted)]" />
+            <div>
+              <p className="text-base font-semibold text-white">No chats yet</p>
+              <p className="mt-1 text-sm text-[var(--text-dim)]">
+                Start a DM by username or open someone from People.
+              </p>
             </div>
-          ) : orderedConversations.length === 0 ? (
-            <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-muted)]">
-              Пока пусто. Откройте DM по username или через People.
-            </div>
-          ) : (
-            orderedConversations.map((conversation) => (
+          </div>
+        ) : (
+          <div>
+            {orderedConversations.map((conversation) => (
               <Link
                 key={conversation.id}
                 href={`/app/messages/${conversation.id}`}
-                className="list-row rounded-[16px] px-3 py-2.5"
+                className="flex items-start gap-3 border-b border-[var(--border-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-panel-soft)]"
               >
-                <div className="flex items-start gap-2.5">
-                  <UserAvatar user={conversation.counterpart} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-semibold text-white">
-                        {conversation.counterpart.profile.displayName}
-                      </p>
-                      {conversation.unreadCount > 0 ? (
-                        <span className="glass-badge">{conversation.unreadCount}</span>
-                      ) : null}
-                      {conversation.retentionMode !== "OFF" ? (
-                        <span className="glass-badge">
-                          <Clock3 className="h-3 w-3" />
-                          {conversation.retentionMode}
-                        </span>
-                      ) : null}
-                      {conversation.isBlockedByViewer || conversation.hasBlockedViewer ? (
-                        <span className="glass-badge">Blocked</span>
-                      ) : null}
-                      <span className="ml-auto text-xs text-[var(--text-muted)]">
-                        {formatConversationTime(conversation.lastMessageAt)}
+                <UserAvatar user={conversation.counterpart} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-white">
+                      {conversation.counterpart.profile.displayName}
+                    </p>
+                    {conversation.unreadCount > 0 ? (
+                      <span className="nav-link-meta">{conversation.unreadCount}</span>
+                    ) : null}
+                    {conversation.retentionMode !== "OFF" ? (
+                      <span className="glass-badge">
+                        <Clock3 className="h-[18px] w-[18px]" />
+                        {conversation.retentionMode}
                       </span>
-                    </div>
-                    <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
-                      @{conversation.counterpart.username}
-                    </p>
-                    <p className="mt-1.5 truncate text-sm text-[var(--text-dim)]">
-                      {conversation.lastMessage?.isDeleted
-                        ? "Последнее сообщение удалено"
-                        : (conversation.lastMessage?.content ?? "Напишите первым")}
-                    </p>
+                    ) : null}
+                    <span className="ml-auto shrink-0 text-xs text-[var(--text-muted)]">
+                      {formatConversationTime(conversation.lastMessageAt)}
+                    </span>
                   </div>
+                  <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                    @{conversation.counterpart.username}
+                  </p>
+                  <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
+                    {conversation.lastMessage?.isDeleted
+                      ? "Last message was deleted"
+                      : (conversation.lastMessage?.content ?? "Say hello")}
+                  </p>
                 </div>
               </Link>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

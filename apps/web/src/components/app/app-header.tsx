@@ -34,7 +34,7 @@ export function AppHeader({
   const meta = getSectionMeta(route);
 
   return (
-    <header className="flex h-14 items-center gap-3 px-3 md:px-4">
+    <header className="flex h-12 items-center gap-3 px-3 md:px-4">
       <div className="min-w-0 flex-1">
         <p className="section-kicker">{meta.label}</p>
         <div className="mt-0.5 flex items-center gap-2">

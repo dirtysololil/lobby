@@ -2,15 +2,15 @@
 
 :root {
   color-scheme: dark;
-  --bg-app: #0d0f12;
-  --bg-sidebar: #0a0c0f;
-  --bg-panel: #111418;
-  --bg-panel-muted: #15191e;
-  --bg-panel-soft: #0f1216;
-  --bg-hover: #171b21;
-  --bg-active: #1d232b;
-  --bg-accent-soft: rgba(255, 117, 84, 0.12);
-  --bg-accent-strong: rgba(255, 117, 84, 0.18);
+  --bg-app: #09090b;
+  --bg-sidebar: rgba(9, 9, 11, 0.95);
+  --bg-panel: #09090b;
+  --bg-panel-muted: #111114;
+  --bg-panel-soft: #141418;
+  --bg-hover: rgba(244, 63, 94, 0.08);
+  --bg-active: rgba(244, 63, 94, 0.14);
+  --bg-accent-soft: rgba(244, 63, 94, 0.1);
+  --bg-accent-strong: rgba(244, 63, 94, 0.16);
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.13);
   --border-soft: rgba(255, 255, 255, 0.05);
@@ -18,21 +18,21 @@
   --text-soft: #d7dde6;
   --text-dim: #99a3af;
   --text-muted: #6d7784;
-  --accent: #ff7554;
-  --accent-strong: #ff9a83;
-  --accent-secondary: #ff7554;
-  --accent-warm: #ffb18e;
+  --accent: #f43f5e;
+  --accent-strong: #fb7185;
+  --accent-secondary: #f43f5e;
+  --accent-warm: #fb7185;
   --success: #4ac58c;
-  --warning: #e6b55e;
+  --warning: #f59e0b;
   --danger: #ff6978;
-  --ring: rgba(255, 117, 84, 0.16);
+  --ring: rgba(244, 63, 94, 0.16);
   --radius-sm: 8px;
   --radius-md: 10px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 20px;
-  --rail-width: 56px;
-  --context-width: 280px;
+  --rail-width: 72px;
+  --context-width: 256px;
   --activity-width: 336px;
   --bg: var(--bg-app);
   --bg-elevated: var(--bg-panel);
@@ -49,7 +49,7 @@
   --surface-4: var(--bg-active);
   --surface-soft: var(--bg-accent-soft);
   --surface-strong: var(--bg-accent-strong);
-  --surface-warm: rgba(255, 177, 142, 0.12);
+  --surface-warm: rgba(244, 63, 94, 0.1);
   --shadow-lg: none;
   --shadow-md: none;
   --shadow-sm: none;
@@ -93,7 +93,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(255, 117, 84, 0.22);
+  background: rgba(244, 63, 94, 0.22);
   color: white;
 }
 
@@ -142,8 +142,8 @@ textarea {
 
 .surface-highlight,
 .app-panel-accent {
-  border: 1px solid rgba(255, 117, 84, 0.18);
-  background: rgba(255, 117, 84, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.18);
+  background: rgba(244, 63, 94, 0.08);
 }
 
 .panel-title {
@@ -187,8 +187,8 @@ textarea {
 }
 
 .eyebrow-pill {
-  border-color: rgba(255, 117, 84, 0.2);
-  background: rgba(255, 117, 84, 0.1);
+  border-color: rgba(244, 63, 94, 0.2);
+  background: rgba(244, 63, 94, 0.1);
   color: var(--accent-strong);
 }
 
@@ -209,8 +209,8 @@ textarea {
 }
 
 .segment-chip-active {
-  border-color: rgba(255, 117, 84, 0.2);
-  background: rgba(255, 117, 84, 0.12);
+  border-color: rgba(244, 63, 94, 0.2);
+  background: rgba(244, 63, 94, 0.12);
   color: var(--text);
 }
 
@@ -261,7 +261,7 @@ textarea {
 
 .nav-link-active,
 .context-link-active {
-  border-color: rgba(255, 117, 84, 0.18);
+  border-color: rgba(244, 63, 94, 0.18);
   background: var(--bg-active);
   color: var(--text);
 }
@@ -307,7 +307,7 @@ textarea {
 .field-input:focus,
 .field-textarea:focus,
 .field-select:focus {
-  border-color: rgba(255, 117, 84, 0.28);
+  border-color: rgba(244, 63, 94, 0.28);
   box-shadow: 0 0 0 3px var(--ring);
   background: var(--bg-panel-muted);
 }
@@ -352,12 +352,24 @@ textarea {
 .message-bubble,
 .message-bubble-own {
   border: 1px solid var(--border-soft);
-  background: var(--bg-panel-soft);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .message-bubble-own {
-  border-color: rgba(255, 117, 84, 0.16);
-  background: rgba(255, 117, 84, 0.08);
+  border-color: rgba(244, 63, 94, 0.16);
+  background: rgba(244, 63, 94, 0.08);
+}
+
+.empty-state-minimal {
+  display: flex;
+  width: 100%;
+  min-height: 8rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 1rem;
+  text-align: center;
 }
 
 .thread-rule {
@@ -413,8 +425,8 @@ textarea {
 
 .dock-icon-active,
 .circle-chip-active {
-  border-color: rgba(255, 117, 84, 0.16);
-  background: rgba(255, 117, 84, 0.12);
+  border-color: rgba(244, 63, 94, 0.16);
+  background: rgba(244, 63, 94, 0.12);
   color: var(--text);
 }
 

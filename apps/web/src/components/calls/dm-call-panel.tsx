@@ -43,9 +43,7 @@ export function DmCallPanel({
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Не удалось загрузить состояние звонка",
+        error instanceof Error ? error.message : "Unable to load call state.",
       );
     }
   }, [conversationId]);
@@ -90,13 +88,10 @@ export function DmCallPanel({
     setPendingAction(`start:${mode}`);
 
     try {
-      const payload = await apiClientFetch(
-        `/v1/calls/dm/${conversationId}/start`,
-        {
-          method: "POST",
-          body: JSON.stringify({ mode }),
-        },
-      );
+      const payload = await apiClientFetch(`/v1/calls/dm/${conversationId}/start`, {
+        method: "POST",
+        body: JSON.stringify({ mode }),
+      });
 
       callResponseSchema.parse(payload);
       await loadState();
@@ -195,107 +190,95 @@ export function DmCallPanel({
     activeCall?.status === "RINGING" && activeCall.initiatedBy.id !== viewerId;
 
   return (
-    <div className="grid gap-2.5">
-      <div className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] px-3 py-2.5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="eyebrow-pill">
-                <PhoneCall className="h-3.5 w-3.5" />
-                Call
-              </span>
-              {activeCall ? (
-                <span className="status-pill">{activeCall.status}</span>
-              ) : (
-                <span className="status-pill">Ready</span>
-              )}
-              {viewerParticipant ? (
-                <span className="status-pill">you: {viewerParticipant.state}</span>
-              ) : null}
-            </div>
-            {errorMessage ? <p className="mt-1.5 text-sm text-rose-200">{errorMessage}</p> : null}
-            {!errorMessage && isBlocked ? (
-              <p className="mt-1.5 text-sm text-amber-100">Звонки недоступны.</p>
+    <div className="grid gap-2">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="status-pill">
+              <PhoneCall className="h-[18px] w-[18px] text-[var(--accent)]" />
+              {activeCall ? activeCall.status : "Call ready"}
+            </span>
+            {viewerParticipant ? (
+              <span className="status-pill">you: {viewerParticipant.state}</span>
+            ) : null}
+            {state?.history.length ? (
+              <span className="status-pill">{state.history.length} recent</span>
             ) : null}
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            {!activeCall ? (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => void startCall("AUDIO")}
-                  disabled={isBlocked || pendingAction !== null}
-                >
-                  <Phone className="h-4 w-4" />
-                  {pendingAction === "start:AUDIO" ? "Запуск..." : "Audio"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void startCall("VIDEO")}
-                  disabled={isBlocked || pendingAction !== null}
-                >
-                  <Video className="h-4 w-4" />
-                  {pendingAction === "start:VIDEO" ? "Запуск..." : "Video"}
-                </Button>
-              </>
-            ) : isIncomingCall ? (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => void acceptCall()}
-                  disabled={pendingAction !== null || isBlocked}
-                >
-                  {pendingAction === "accept" ? "Принимаем..." : "Принять"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void declineCall()}
-                  disabled={pendingAction !== null}
-                >
-                  {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => void joinCall()}
-                  disabled={pendingAction !== null || isBlocked}
-                >
-                  {pendingAction === "join" ? "Подключаем..." : "Подключиться"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void endCall()}
-                  disabled={pendingAction !== null}
-                >
-                  {pendingAction === "end" ? "Завершаем..." : "Завершить"}
-                </Button>
-              </>
-            )}
-          </div>
+          {errorMessage ? (
+            <p className="mt-1 text-sm text-rose-200">{errorMessage}</p>
+          ) : null}
+          {!errorMessage && isBlocked ? (
+            <p className="mt-1 text-sm text-amber-100">Calling is unavailable here.</p>
+          ) : null}
         </div>
 
-        {state?.history.length ? (
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {state.history.slice(0, 4).map((item) => (
-              <span key={item.id} className="glass-badge">
-                {item.mode} · {item.status}
-              </span>
-            ))}
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-1.5">
+          {!activeCall ? (
+            <>
+              <Button
+                size="sm"
+                onClick={() => void startCall("AUDIO")}
+                disabled={isBlocked || pendingAction !== null}
+              >
+                <Phone className="h-[18px] w-[18px]" />
+                {pendingAction === "start:AUDIO" ? "Starting..." : "Audio"}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void startCall("VIDEO")}
+                disabled={isBlocked || pendingAction !== null}
+              >
+                <Video className="h-[18px] w-[18px]" />
+                {pendingAction === "start:VIDEO" ? "Starting..." : "Video"}
+              </Button>
+            </>
+          ) : isIncomingCall ? (
+            <>
+              <Button
+                size="sm"
+                onClick={() => void acceptCall()}
+                disabled={pendingAction !== null || isBlocked}
+              >
+                {pendingAction === "accept" ? "Accepting..." : "Accept"}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void declineCall()}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction === "decline" ? "Declining..." : "Decline"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                onClick={() => void joinCall()}
+                disabled={pendingAction !== null || isBlocked}
+              >
+                {pendingAction === "join" ? "Joining..." : "Join"}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void endCall()}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction === "end" ? "Ending..." : "End"}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <LiveKitCallRoom
         connection={connection}
         mode={activeCall?.mode ?? "AUDIO"}
-        title="Звонок"
-        description="Управление прямо в DM."
+        title="Call"
+        description="Live controls in the DM thread."
         onLeave={async () => {
           await endCall();
         }}
