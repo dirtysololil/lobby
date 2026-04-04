@@ -6,10 +6,15 @@ import {
   type CallStateResponse,
   type CallSummary,
 } from "@lobby/shared";
-import { Phone, PhoneCall, Video } from "lucide-react";
+import { Phone, PhoneCall, Users2, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
+import {
+  callModeLabels,
+  callParticipantStateLabels,
+  callStatusLabels,
+} from "@/lib/ui-labels";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
 import { useCallSession } from "./call-session-provider";
@@ -39,8 +44,8 @@ export function DmCallPanel({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   const callRoute = `/app/messages/${conversationId}`;
-  const callTitle = `Call with ${counterpartName}`;
-  const callSubtitle = `DM · @${counterpartUsername}`;
+  const callTitle = `Звонок с ${counterpartName}`;
+  const callSubtitle = `ЛС · @${counterpartUsername}`;
 
   const connectToResolvedCall = useCallback(
     async (call: CallSummary) => {
@@ -71,7 +76,7 @@ export function DmCallPanel({
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to load call state.",
+        error instanceof Error ? error.message : "Не удалось загрузить состояние звонка.",
       );
     }
   }, [callRoute, callSubtitle, callTitle, conversationId, syncCall]);
@@ -244,16 +249,16 @@ export function DmCallPanel({
   const metrics = useMemo(
     () => [
       {
-        label: "Session",
-        value: activeCall ? "Persistent live room" : "Ready to start",
+        label: "Сеанс",
+        value: activeCall ? "Уже открыт" : "Готов к старту",
       },
       {
-        label: "Participants",
-        value: `${connectedParticipants} connected`,
+        label: "Участники",
+        value: `${connectedParticipants} на связи`,
       },
       {
-        label: "History",
-        value: `${state?.history.length ?? 0} calls`,
+        label: "История",
+        value: `${state?.history.length ?? 0} вызовов`,
       },
     ],
     [activeCall, connectedParticipants, state?.history.length],
@@ -261,20 +266,24 @@ export function DmCallPanel({
 
   return (
     <div className="grid gap-2.5">
-      <div className="premium-panel rounded-[22px] p-3">
+      <div className="premium-panel rounded-[20px] p-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="eyebrow-pill">DM call</span>
+              <span className="eyebrow-pill">Личный звонок</span>
               <span className="status-pill">
                 <PhoneCall {...iconProps} />
-                {activeCall ? activeCall.status : "Ready"}
+                {activeCall ? callStatusLabels[activeCall.status] : "Готов"}
               </span>
-              {activeCall ? <span className="status-pill">{activeCall.mode}</span> : null}
-              {viewerParticipant ? (
-                <span className="status-pill">You: {viewerParticipant.state}</span>
+              {activeCall ? (
+                <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
               ) : null}
-              {isCurrentSession ? <span className="status-pill">Persistent</span> : null}
+              {viewerParticipant ? (
+                <span className="status-pill">
+                  Вы: {callParticipantStateLabels[viewerParticipant.state]}
+                </span>
+              ) : null}
+              {isCurrentSession ? <span className="status-pill">Закреплён</span> : null}
             </div>
 
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -288,12 +297,10 @@ export function DmCallPanel({
               ))}
             </div>
 
-            {errorMessage ? (
-              <p className="mt-2 text-sm text-rose-200">{errorMessage}</p>
-            ) : null}
+            {errorMessage ? <p className="mt-2 text-sm text-rose-200">{errorMessage}</p> : null}
             {!errorMessage && isBlocked ? (
               <p className="mt-2 text-sm text-amber-100">
-                Calling is unavailable in this conversation.
+                Звонки недоступны в этом диалоге.
               </p>
             ) : null}
           </div>
@@ -307,7 +314,7 @@ export function DmCallPanel({
                   disabled={isBlocked || pendingAction !== null}
                 >
                   <Phone {...iconProps} />
-                  {pendingAction === "start:AUDIO" ? "Starting..." : "Voice"}
+                  {pendingAction === "start:AUDIO" ? "Запускаем..." : "Голос"}
                 </Button>
                 <Button
                   size="sm"
@@ -316,7 +323,7 @@ export function DmCallPanel({
                   disabled={isBlocked || pendingAction !== null}
                 >
                   <Video {...iconProps} />
-                  {pendingAction === "start:VIDEO" ? "Starting..." : "Video"}
+                  {pendingAction === "start:VIDEO" ? "Запускаем..." : "Видео"}
                 </Button>
               </>
             ) : isIncomingCall ? (
@@ -326,7 +333,7 @@ export function DmCallPanel({
                   onClick={() => void acceptCall()}
                   disabled={pendingAction !== null || isBlocked}
                 >
-                  {pendingAction === "accept" ? "Accepting..." : "Accept"}
+                  {pendingAction === "accept" ? "Принимаем..." : "Принять"}
                 </Button>
                 <Button
                   size="sm"
@@ -334,7 +341,7 @@ export function DmCallPanel({
                   onClick={() => void declineCall()}
                   disabled={pendingAction !== null}
                 >
-                  {pendingAction === "decline" ? "Declining..." : "Decline"}
+                  {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
                 </Button>
               </>
             ) : (
@@ -344,11 +351,12 @@ export function DmCallPanel({
                   onClick={() => void joinCall()}
                   disabled={pendingAction !== null || isBlocked}
                 >
+                  <Users2 {...iconProps} />
                   {pendingAction === "join"
-                    ? "Joining..."
+                    ? "Подключаем..."
                     : isCurrentSession
-                      ? "Return to live room"
-                      : "Join"}
+                      ? "Вернуться в комнату"
+                      : "Подключиться"}
                 </Button>
                 <Button
                   size="sm"
@@ -356,7 +364,7 @@ export function DmCallPanel({
                   onClick={() => void endCall()}
                   disabled={pendingAction !== null}
                 >
-                  {pendingAction === "end" ? "Ending..." : "Leave / end"}
+                  {pendingAction === "end" ? "Завершаем..." : "Выйти"}
                 </Button>
               </>
             )}
@@ -366,8 +374,8 @@ export function DmCallPanel({
 
       <LiveKitCallRoom
         callId={activeCall?.id ?? null}
-        title="Live DM room"
-        description="The active voice session now lives above the route, so navigation no longer drops the call."
+        title="Комната ЛС"
+        description="Сеанс остаётся активным во всём приложении и не рвётся при навигации."
       />
     </div>
   );

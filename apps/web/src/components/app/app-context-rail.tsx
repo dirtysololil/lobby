@@ -30,6 +30,7 @@ import { apiClientFetch } from "@/lib/api-client";
 import { matchesPath, parseAppPath } from "@/lib/app-shell";
 import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
+import { callStatusLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useRealtime } from "@/components/realtime/realtime-provider";
@@ -39,25 +40,53 @@ interface AppContextRailProps {
 }
 
 const settingsLinks = [
-  { href: "/app/settings/profile", label: "Profile" },
-  { href: "/app/settings/notifications", label: "Notifications" },
+  { href: "/app/settings/profile", label: "Профиль" },
+  { href: "/app/settings/notifications", label: "Уведомления" },
 ] as const;
 
 const adminLinks = [
-  { href: "/app/admin", label: "Control" },
-  { href: "/app/admin/users", label: "Users" },
-  { href: "/app/admin/invites", label: "Invites" },
-  { href: "/app/admin/audit", label: "Audit Log" },
+  { href: "/app/admin", label: "Панель" },
+  { href: "/app/admin/users", label: "Пользователи" },
+  { href: "/app/admin/invites", label: "Инвайты" },
+  { href: "/app/admin/audit", label: "Аудит" },
 ] as const;
 
 const peopleViews = [
-  { id: "friends", label: "Friends" },
-  { id: "requests", label: "Requests" },
-  { id: "discover", label: "Discover" },
-  { id: "blocked", label: "Blocked" },
+  { id: "friends", label: "Друзья" },
+  { id: "requests", label: "Запросы" },
+  { id: "discover", label: "Поиск" },
+  { id: "blocked", label: "Блокировки" },
 ] as const;
 
 const railIconProps = { size: 18, strokeWidth: 1.5 } as const;
+
+function formatMembershipRole(role: string | null | undefined) {
+  switch (role) {
+    case "OWNER":
+      return "Владелец";
+    case "ADMIN":
+      return "Админ";
+    case "MEMBER":
+      return "Участник";
+    case "GUEST":
+      return "Гость";
+    default:
+      return role ?? "Участник";
+  }
+}
+
+function formatLobbyType(type: string) {
+  switch (type) {
+    case "TEXT":
+      return "Текст";
+    case "VOICE":
+      return "Голос";
+    case "FORUM":
+      return "Форум";
+    default:
+      return type;
+  }
+}
 
 function RailRow({
   href,
@@ -235,15 +264,15 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
     return [
       {
-        label: "Text",
+        label: "Текст",
         items: hub.lobbies.filter((item) => item.type === "TEXT"),
       },
       {
-        label: "Voice",
+        label: "Голос",
         items: hub.lobbies.filter((item) => item.type === "VOICE"),
       },
       {
-        label: "Forum",
+        label: "Форум",
         items: hub.lobbies.filter((item) => item.type === "FORUM"),
       },
     ].filter((group) => group.items.length > 0);
@@ -268,20 +297,20 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "messages" ? (
           <div>
             <div className="flex h-10 items-center justify-between px-3 pt-2 text-xs text-zinc-500">
-              <span>Conversations</span>
+              <span>Диалоги</span>
               <Link href="/app/people?view=discover" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
                 <UserRoundPlus {...railIconProps} />
-                New
+                Новый
               </Link>
             </div>
 
             {loadingLabel === "messages" ? (
               <div className="px-3 py-6 text-center text-sm text-zinc-500">
-                Loading chats...
+                Загружаем чаты...
               </div>
             ) : conversations.length === 0 ? (
               <div className="px-3 py-6 text-center text-sm text-zinc-500">
-                No direct messages yet.
+                Пока нет личных сообщений.
               </div>
             ) : (
               conversations.map((conversation) => {
@@ -296,8 +325,8 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     label={conversation.counterpart.profile.displayName}
                     detail={
                       conversation.lastMessage?.isDeleted
-                        ? "Message deleted"
-                        : (conversation.lastMessage?.content ?? "No messages yet")
+                        ? "Сообщение удалено"
+                        : (conversation.lastMessage?.content ?? "Сообщений пока нет")
                     }
                     meta={
                       conversation.unreadCount > 0 ? (
@@ -316,20 +345,20 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "hubs" && !route.hubId ? (
           <div>
             <div className="flex h-10 items-center justify-between px-3 pt-2 text-xs text-zinc-500">
-              <span>Hubs</span>
+              <span>Хабы</span>
               <Link href="/app/hubs" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
                 <Layers3 {...railIconProps} />
-                Browse
+                Обзор
               </Link>
             </div>
 
             {loadingLabel === "hubs" ? (
               <div className="px-3 py-6 text-center text-sm text-zinc-500">
-                Loading hubs...
+                Загружаем хабы...
               </div>
             ) : hubs.length === 0 ? (
               <div className="px-3 py-6 text-center text-sm text-zinc-500">
-                Join a hub or create a new one.
+                Вступите в хаб или создайте новый.
               </div>
             ) : (
               hubs.map((item) => (
@@ -343,7 +372,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     </span>
                   }
                   label={item.name}
-                  detail={item.membershipRole ?? "Guest"}
+                  detail={formatMembershipRole(item.membershipRole)}
                   meta={
                     item.isPrivate ? (
                       <LockKeyhole {...railIconProps} className="text-zinc-500" />
@@ -359,10 +388,10 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
           <div>
             <div className="px-3 py-3">
               <p className="truncate text-sm font-medium text-white">
-                {hub?.name ?? "Hub"}
+                {hub?.name ?? "Хаб"}
               </p>
               <p className="mt-0.5 truncate text-xs text-zinc-500">
-                {hub?.membershipRole ?? "Member"}
+                {formatMembershipRole(hub?.membershipRole)}
               </p>
             </div>
 
@@ -370,7 +399,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               href={`/app/hubs/${route.hubId}`}
               active={safePathname === `/app/hubs/${route.hubId}`}
               leading={<House {...railIconProps} className="text-zinc-400" />}
-              label="Home"
+              label="Главная"
             />
 
             {groupedLobbies.map((group) => (
@@ -395,7 +424,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                         )
                       }
                       label={lobby.name}
-                      detail={lobby.type}
+                      detail={formatLobbyType(lobby.type)}
                       meta={
                         lobby.isPrivate ? (
                           <LockKeyhole {...railIconProps} className="text-zinc-500" />
@@ -412,10 +441,10 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "people" ? (
           <div>
             <div className="flex h-10 items-center justify-between px-3 pt-2 text-xs text-zinc-500">
-              <span>People</span>
+              <span>Люди</span>
               <Link href="/app/messages" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
                 <MessageSquareMore {...railIconProps} />
-                Inbox
+                Диалоги
               </Link>
             </div>
 
@@ -453,7 +482,8 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "settings" ? (
           <div>
-            <div className="px-3 py-3 text-xs text-zinc-500">Settings</div>
+            <div className="px-3 py-3 text-xs text-zinc-500">Настройки</div>
+
             {settingsLinks.map((item) => (
               <RailRow
                 key={item.href}
@@ -468,7 +498,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "admin" ? (
           <div>
-            <div className="px-3 py-3 text-xs text-zinc-500">Control</div>
+            <div className="px-3 py-3 text-xs text-zinc-500">Админ</div>
             {adminLinks.map((item) => (
               <RailRow
                 key={item.href}
@@ -484,12 +514,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
       <div className="border-t border-white/5 px-3 py-3">
         <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
-          <span>Realtime</span>
-          <span>{incomingCalls.length} active</span>
+          <span>Связь</span>
+          <span>{incomingCalls.length} активных</span>
         </div>
         <div className="mt-2 rounded-[16px] border border-white/6 bg-white/[0.03] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <p className="truncate text-sm text-zinc-200">
-            {latestSignal ? latestSignal.call.status : "Connected"}
+            {latestSignal ? callStatusLabels[latestSignal.call.status] : "На связи"}
           </p>
         </div>
       </div>

@@ -22,9 +22,9 @@ interface AppSidebarProps {
 }
 
 const coreLinks = [
-  { href: "/app/messages", icon: MessageSquareMore, label: "Inbox" },
-  { href: "/app/people", icon: Users2, label: "People" },
-  { href: "/app/hubs", icon: Layers3, label: "Hubs" },
+  { href: "/app/messages", icon: MessageSquareMore, label: "Диалоги" },
+  { href: "/app/people", icon: Users2, label: "Люди" },
+  { href: "/app/hubs", icon: Layers3, label: "Хабы" },
 ] as const;
 
 const railIconProps = { size: 20, strokeWidth: 1.5 } as const;
@@ -123,8 +123,8 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
 
             <Link
               href="/app/hubs"
-              aria-label="Open hubs"
-              title="Open hubs"
+              aria-label="Открыть хабы"
+              title="Открыть хабы"
               className="circle-chip mt-1 flex h-10 w-10 items-center justify-center rounded-[16px] bg-white/5 text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
             >
               <Plus {...railIconProps} />
@@ -135,8 +135,8 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
         <div className="flex items-center gap-1 md:w-full md:flex-col md:px-2 md:gap-2">
           <Link
             href="/app/settings/profile"
-            aria-label="Settings"
-            title="Settings"
+            aria-label="Настройки"
+            title="Настройки"
             className={cn(
               "dock-icon flex h-10 w-10 items-center justify-center rounded-2xl text-zinc-400",
               matchesPath(safePathname, "/app/settings") && "dock-icon-active text-white",
@@ -147,8 +147,8 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
           {viewer.role !== "MEMBER" ? (
             <Link
               href="/app/admin"
-              aria-label="Admin"
-              title="Admin"
+              aria-label="Админ"
+              title="Админ"
               className={cn(
                 "dock-icon flex h-10 w-10 items-center justify-center rounded-2xl text-zinc-400",
                 matchesPath(safePathname, "/app/admin") && "dock-icon-active text-white",
@@ -159,8 +159,8 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
           ) : null}
           <Link
             href="/app/settings/profile"
-            title="Profile"
-            aria-label="Profile"
+            title="Профиль"
+            aria-label="Профиль"
             className="ml-1 flex items-center justify-center rounded-[16px] border border-transparent p-0.5 transition-colors hover:border-white/10 md:ml-0"
           >
             <UserAvatar user={viewer} size="sm" />

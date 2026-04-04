@@ -25,8 +25,7 @@ export function IncomingCallBanner() {
     return null;
   }
 
-  const resolvedCallId: string = callId;
-  const resolvedConversationId = conversationId;
+  const resolvedCallId = callId;
 
   async function acceptCall() {
     setPendingAction("accept");
@@ -37,8 +36,8 @@ export function IncomingCallBanner() {
       });
       clearIncomingCall(resolvedCallId);
 
-      if (resolvedConversationId) {
-        router.push(`/app/messages/${resolvedConversationId}`);
+      if (conversationId) {
+        router.push(`/app/messages/${conversationId}`);
         router.refresh();
       }
     } finally {
@@ -64,18 +63,18 @@ export function IncomingCallBanner() {
       <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="eyebrow-pill">Incoming call</span>
+            <span className="eyebrow-pill">Входящий звонок</span>
             <span className="status-pill">
               {call.mode === "VIDEO" ? (
                 <Video size={18} strokeWidth={1.5} />
               ) : (
                 <PhoneCall size={18} strokeWidth={1.5} />
               )}
-              {call.mode === "VIDEO" ? "Video" : "Audio"}
+              {call.mode === "VIDEO" ? "Видео" : "Голос"}
             </span>
           </div>
           <p className="mt-1.5 text-sm font-medium text-white">
-            {caller.profile.displayName} is calling you
+            {caller.profile.displayName} звонит вам
           </p>
           <p className="mt-1 text-xs text-[var(--text-soft)]">@{caller.username}</p>
         </div>
@@ -85,7 +84,7 @@ export function IncomingCallBanner() {
             onClick={() => void acceptCall()}
             disabled={pendingAction !== null}
           >
-            {pendingAction === "accept" ? "Accepting..." : "Accept"}
+            {pendingAction === "accept" ? "Принимаем..." : "Принять"}
           </Button>
           <Button
             size="sm"
@@ -93,7 +92,7 @@ export function IncomingCallBanner() {
             onClick={() => void declineCall()}
             disabled={pendingAction !== null}
           >
-            {pendingAction === "decline" ? "Declining..." : "Decline"}
+            {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
           </Button>
         </div>
       </div>

@@ -47,9 +47,7 @@ function formatConversationTime(value: string | null) {
 export function ConversationList() {
   const router = useRouter();
   const { latestDmSignal } = useRealtime();
-  const [conversations, setConversations] = useState<DirectConversationSummary[]>(
-    [],
-  );
+  const [conversations, setConversations] = useState<DirectConversationSummary[]>([]);
   const [username, setUsername] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +97,10 @@ export function ConversationList() {
 
       const conversation =
         directConversationSummaryResponseSchema.parse(payload).conversation;
-      setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)]);
+      setConversations((current) => [
+        conversation,
+        ...current.filter((item) => item.id !== conversation.id),
+      ]);
       router.push(`/app/messages/${conversation.id}`);
       router.refresh();
     } catch (error) {
@@ -129,12 +130,8 @@ export function ConversationList() {
       <div className="flex h-11 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(12,15,20,0.84)] px-3 backdrop-blur-md">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium tracking-tight text-white">
-              Диалоги
-            </span>
-            <span className="text-xs text-zinc-500">
-              {conversations.length} чатов
-            </span>
+            <span className="text-sm font-medium tracking-tight text-white">Диалоги</span>
+            <span className="text-xs text-zinc-500">{conversations.length} чатов</span>
             <span className="text-xs text-zinc-500">
               {getUnreadTotal(conversations)} непрочитанных
             </span>
@@ -176,7 +173,10 @@ export function ConversationList() {
 
       <div className="flex items-center justify-between border-b border-white/5 px-3 py-2 text-xs text-zinc-500">
         <span>{orderedConversations.length} веток</span>
-        <Link href="/app/people?view=discover" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
+        <Link
+          href="/app/people?view=discover"
+          className="inline-flex items-center gap-1 text-zinc-400 hover:text-white"
+        >
           <UserRoundPlus {...iconProps} />
           Найти людей
         </Link>
