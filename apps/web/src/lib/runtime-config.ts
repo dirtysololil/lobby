@@ -34,6 +34,11 @@ export const runtimeConfig = {
   ),
   realtimePath:
     readEnvValue("NEXT_PUBLIC_REALTIME_PATH", "REALTIME_PATH") ?? "/socket.io",
+  realtimeTransportMode:
+    readEnvValue(
+      "NEXT_PUBLIC_REALTIME_TRANSPORT_MODE",
+      "REALTIME_TRANSPORT_MODE",
+    ) ?? "auto",
 };
 
 export function resolveApiBaseUrlForServer(): string {
