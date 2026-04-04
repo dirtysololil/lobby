@@ -60,24 +60,25 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const showDockedActivityRail = activityAvailable && activityOpen && isWideScreen;
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-app)] text-white">
+    <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(106,168,248,0.08),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_20%)]" />
       <div
         className={cn(
-          "grid min-h-screen grid-cols-1 md:grid-cols-[72px_15rem_minmax(0,1fr)]",
+          "relative z-10 grid min-h-screen grid-cols-1 md:grid-cols-[72px_15rem_minmax(0,1fr)]",
           showDockedActivityRail && "2xl:grid-cols-[72px_15rem_minmax(0,1fr)_16rem]",
         )}
       >
         <AppSidebar viewer={viewer} />
         <AppContextRail viewer={viewer} />
 
-        <main className="relative flex min-h-screen min-w-0 flex-col bg-[var(--bg-app)]">
+        <main className="relative flex min-h-screen min-w-0 flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_18%)]">
           {activityAvailable ? (
             <button
               type="button"
               onClick={() => setActivityOpen((current) => !current)}
               className={cn(
                 "absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-[var(--bg-sidebar)]/92 text-[var(--text-muted)] backdrop-blur-md transition-colors hover:bg-white/5 hover:text-white",
-                activityOpen && "bg-white/5 text-white",
+                activityOpen && "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-white",
               )}
               aria-label={activityOpen ? "Hide details" : "Show details"}
             >

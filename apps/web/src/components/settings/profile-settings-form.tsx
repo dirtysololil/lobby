@@ -47,10 +47,10 @@ const presenceLabels: Record<UpdateProfileInput["presence"], string> = {
 
 const presetLabels: Record<UpdateProfileInput["avatarPreset"], string> = {
   NONE: "No effect",
-  GOLD_GLOW: "Gold ring",
-  NEON_BLUE: "Blue ring",
-  PREMIUM_PURPLE: "Premium ring",
-  ANIMATED_RING: "Animated ring",
+  GOLD_GLOW: "Gold halo",
+  NEON_BLUE: "Signal blue",
+  PREMIUM_PURPLE: "Premium halo",
+  ANIMATED_RING: "Animated halo",
 };
 
 export function ProfileSettingsForm({
@@ -147,9 +147,9 @@ export function ProfileSettingsForm({
 
   return (
     <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <div className="premium-panel rounded-[24px] p-5">
+      <div className="premium-panel rounded-[26px] p-5">
         <p className="section-kicker">Identity</p>
-        <div className="surface-highlight mt-4 rounded-[24px] px-5 py-6 text-center">
+        <div className="mt-4 rounded-[24px] border border-white/6 bg-[linear-gradient(180deg,rgba(106,168,248,0.14),transparent_38%),rgba(20,29,40,0.86)] px-5 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <UserAvatar user={viewer} size="lg" />
           <p className="mt-4 text-lg font-semibold text-white">
             {viewer.profile.displayName}
@@ -198,7 +198,7 @@ export function ProfileSettingsForm({
       </div>
 
       <form
-        className="premium-panel rounded-[24px] p-5"
+        className="premium-panel rounded-[26px] p-5"
         onSubmit={form.handleSubmit((values) => void onSubmit(values))}
       >
         <div className="flex flex-col gap-2">
@@ -209,9 +209,11 @@ export function ProfileSettingsForm({
         </div>
 
         <div className="mt-5 grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="displayName">Display name</Label>
-            <Input id="displayName" {...form.register("displayName")} />
+          <div className="surface-subtle rounded-[18px] p-4">
+            <div className="grid gap-2">
+              <Label htmlFor="displayName">Display name</Label>
+              <Input id="displayName" {...form.register("displayName")} />
+            </div>
             {form.formState.errors.displayName ? (
               <p className="text-sm text-rose-200">
                 {form.formState.errors.displayName.message}
@@ -219,14 +221,16 @@ export function ProfileSettingsForm({
             ) : null}
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="bio">Bio</Label>
-            <textarea
-              id="bio"
-              rows={4}
-              className="field-textarea min-h-[124px]"
-              {...form.register("bio")}
-            />
+          <div className="surface-subtle rounded-[18px] p-4">
+            <div className="grid gap-2">
+              <Label htmlFor="bio">Bio</Label>
+              <textarea
+                id="bio"
+                rows={4}
+                className="field-textarea min-h-[124px]"
+                {...form.register("bio")}
+              />
+            </div>
             {form.formState.errors.bio ? (
               <p className="text-sm text-rose-200">
                 {form.formState.errors.bio.message}
@@ -234,7 +238,8 @@ export function ProfileSettingsForm({
             ) : null}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="surface-subtle rounded-[18px] p-4">
+            <div className="grid gap-4 lg:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="presence">Presence</Label>
               <select
@@ -263,6 +268,7 @@ export function ProfileSettingsForm({
                   </option>
                 ))}
               </select>
+            </div>
             </div>
           </div>
 

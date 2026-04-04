@@ -19,7 +19,7 @@ export default async function AdminPage() {
 
   return (
     <div className="grid gap-4">
-      <section className="premium-panel rounded-[24px] p-5">
+      <section className="premium-panel rounded-[26px] p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -36,15 +36,15 @@ export default async function AdminPage() {
               Service control surface
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
-              Operational metrics, recent invite activity and the fast links needed to
-              keep Lobby healthy.
+              Operational metrics, invite flow and the compact controls needed to keep
+              Lobby healthy without pulling focus from daily communication.
             </p>
           </div>
         </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[0.72fr_0.28fr]">
-        <section className="premium-panel rounded-[24px] p-5">
+        <section className="premium-panel rounded-[26px] p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-white">Platform metrics</p>
@@ -74,7 +74,7 @@ export default async function AdminPage() {
           </div>
         </section>
 
-        <section className="premium-panel rounded-[24px] p-0">
+        <section className="premium-panel rounded-[26px] p-0">
           <div className="border-b border-[var(--border)] px-4 py-3">
             <p className="text-sm font-medium text-white">Recent invite keys</p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">

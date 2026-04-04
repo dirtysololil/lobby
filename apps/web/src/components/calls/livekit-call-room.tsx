@@ -162,7 +162,7 @@ function TrackSurface({
       <div ref={containerRef} className="absolute inset-0" />
 
       {item.kind === "audio" ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,rgba(124,140,255,0.16),transparent_42%),rgba(10,13,18,0.82)]">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.16),transparent_42%),rgba(10,13,18,0.82)]">
           <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/8 bg-white/5 text-lg font-semibold text-white">
             {getParticipantInitials(item.participantName)}
           </div>
@@ -399,8 +399,8 @@ export function LiveKitCallRoom({
   }
 
   return (
-    <div className="premium-panel rounded-[24px] p-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+    <div className="premium-panel rounded-[28px] p-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="eyebrow-pill">{title}</span>
@@ -421,7 +421,7 @@ export function LiveKitCallRoom({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 rounded-[20px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:grid-cols-4">
           <Button
             size="sm"
             variant={microphoneEnabled ? "secondary" : "ghost"}
@@ -480,7 +480,7 @@ export function LiveKitCallRoom({
           {primaryTrack ? (
             <TrackSurface item={primaryTrack} emphasis="stage" />
           ) : (
-            <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[24px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(124,140,255,0.12),transparent_28%),var(--bg-panel-muted)] px-6 text-center">
+            <div className="flex min-h-[340px] flex-col items-center justify-center rounded-[24px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_28%),var(--bg-panel-muted)] px-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/8 bg-white/5 text-[var(--accent)]">
                 <Waves size={24} strokeWidth={1.5} />
               </div>

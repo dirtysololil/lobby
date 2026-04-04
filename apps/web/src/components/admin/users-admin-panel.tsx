@@ -75,7 +75,7 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
 
   return (
     <div className="grid gap-4">
-      <section className="premium-panel rounded-[24px] p-5">
+      <section className="premium-panel rounded-[26px] p-5">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -130,7 +130,7 @@ export function UsersAdminPanel({ response, filters }: UsersAdminPanelProps) {
         {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
       </section>
 
-      <section className="premium-panel rounded-[24px] p-0">
+      <section className="premium-panel rounded-[26px] p-0">
         <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
           <div>
             <p className="text-sm font-medium text-white">Moderation queue</p>

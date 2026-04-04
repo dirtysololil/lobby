@@ -236,30 +236,48 @@ export function DmCallPanel({
 
   return (
     <div className="grid gap-3">
-      <div className="premium-panel rounded-[24px] p-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+      <div className="premium-panel rounded-[28px] p-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="eyebrow-pill">DM call</span>
+              <span className="eyebrow-pill">Call scene</span>
               <span className="status-pill">
                 <PhoneCall {...iconProps} />
                 {activeCall ? activeCall.status : "Ready"}
               </span>
+              {activeCall ? (
+                <span className="status-pill">{activeCall.mode}</span>
+              ) : null}
               {viewerParticipant ? (
                 <span className="status-pill">You: {viewerParticipant.state}</span>
               ) : null}
-              {activeCall ? (
-                <span className="status-pill">{connectedParticipants} connected</span>
-              ) : null}
-              {state?.history.length ? (
-                <span className="status-pill">{state.history.length} recent</span>
-              ) : null}
             </div>
-            <p className="mt-3 text-sm leading-6 text-[var(--text-dim)]">
-              {activeCall
-                ? "Call state, live media and screen share stay anchored inside the DM scene."
-                : "Start a voice or video session without leaving the message thread."}
-            </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <div className="surface-subtle rounded-[18px] px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  Session
+                </p>
+                <p className="mt-1 text-sm font-medium text-white">
+                  {activeCall ? "Live in thread" : "Not started"}
+                </p>
+              </div>
+              <div className="surface-subtle rounded-[18px] px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  Participants
+                </p>
+                <p className="mt-1 text-sm font-medium text-white">
+                  {connectedParticipants || 0} connected
+                </p>
+              </div>
+              <div className="surface-subtle rounded-[18px] px-3 py-3">
+                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  Recents
+                </p>
+                <p className="mt-1 text-sm font-medium text-white">
+                  {state?.history.length ?? 0} calls
+                </p>
+              </div>
+            </div>
             {errorMessage ? (
               <p className="mt-3 text-sm text-rose-200">{errorMessage}</p>
             ) : null}
@@ -270,7 +288,7 @@ export function DmCallPanel({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 rounded-[20px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             {!activeCall ? (
               <>
                 <Button
@@ -279,7 +297,7 @@ export function DmCallPanel({
                   disabled={isBlocked || pendingAction !== null}
                 >
                   <Phone {...iconProps} />
-                  {pendingAction === "start:AUDIO" ? "Starting..." : "Voice call"}
+                  {pendingAction === "start:AUDIO" ? "Starting..." : "Voice"}
                 </Button>
                 <Button
                   size="sm"
@@ -288,7 +306,7 @@ export function DmCallPanel({
                   disabled={isBlocked || pendingAction !== null}
                 >
                   <Video {...iconProps} />
-                  {pendingAction === "start:VIDEO" ? "Starting..." : "Video call"}
+                  {pendingAction === "start:VIDEO" ? "Starting..." : "Video"}
                 </Button>
               </>
             ) : isIncomingCall ? (
@@ -316,7 +334,7 @@ export function DmCallPanel({
                   onClick={() => void joinCall()}
                   disabled={pendingAction !== null || isBlocked}
                 >
-                  {pendingAction === "join" ? "Joining..." : "Rejoin"}
+                  {pendingAction === "join" ? "Joining..." : "Join"}
                 </Button>
                 <Button
                   size="sm"

@@ -16,6 +16,7 @@ import { apiClientFetch } from "@/lib/api-client";
 import { DmCallPanel } from "@/components/calls/dm-call-panel";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import { sortDirectMessages } from "@/lib/direct-message-state";
+import { cn } from "@/lib/utils";
 import { ConversationSettings } from "./conversation-settings";
 import { MessageComposer } from "./message-composer";
 import { MessageThread, type ThreadMessageItem } from "./message-thread";
@@ -26,8 +27,25 @@ interface ConversationViewProps {
 }
 
 type ConversationState = Omit<DirectConversationDetail["conversation"], "messages">;
+type PendingReadState = {
+  lastReadMessageId: string | null;
+  lastReadAt: string | null;
+};
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
+function getPresenceTone(presence: string | null | undefined) {
+  switch (presence) {
+    case "ONLINE":
+      return "bg-emerald-400";
+    case "IDLE":
+      return "bg-amber-400";
+    case "DND":
+      return "bg-rose-400";
+    default:
+      return "bg-zinc-500";
+  }
+}
 
 function stripConversationMessages(
   conversation: DirectConversationDetail["conversation"],
@@ -153,10 +171,11 @@ export function ConversationView({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const readInFlightRef = useRef(false);
-  const pendingReadRef = useRef<{
-    lastReadMessageId: string | null;
-    lastReadAt: string | null;
-  } | null>(null);
+  const pendingReadRef = useRef<PendingReadState>({
+    lastReadMessageId: null,
+    lastReadAt: null,
+  });
+  const hasPendingReadRef = useRef(false);
 
   const loadConversation = useCallback(async () => {
     try {
@@ -195,11 +214,12 @@ export function ConversationView({
           lastReadMessageId,
           lastReadAt,
         };
+        hasPendingReadRef.current = true;
         return;
       }
 
       readInFlightRef.current = true;
-      pendingReadRef.current = null;
+      hasPendingReadRef.current = false;
       setConversation((current) =>
         applyLocalRead(current, viewerId, lastReadMessageId, lastReadAt),
       );
@@ -211,13 +231,15 @@ export function ConversationView({
       } finally {
         readInFlightRef.current = false;
 
-        if (pendingReadRef.current) {
-          const pendingRead = pendingReadRef.current;
-          pendingReadRef.current = null;
-          void markConversationAsRead(
-            pendingRead.lastReadMessageId,
-            pendingRead.lastReadAt,
-          );
+        if (hasPendingReadRef.current) {
+          const pendingReadMessageId = pendingReadRef.current.lastReadMessageId;
+          const pendingReadAt = pendingReadRef.current.lastReadAt;
+          hasPendingReadRef.current = false;
+          pendingReadRef.current = {
+            lastReadMessageId: null,
+            lastReadAt: null,
+          };
+          void markConversationAsRead(pendingReadMessageId, pendingReadAt);
         }
       }
     },
@@ -419,9 +441,9 @@ export function ConversationView({
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-[var(--bg-app)]">
+    <div className="flex min-h-full flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="sticky top-0 z-10 flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(15,18,24,0.84)] px-4 backdrop-blur-md">
+        <div className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(11,16,24,0.86)] px-4 backdrop-blur-xl">
           <div className="flex min-w-0 items-center gap-3">
             <UserAvatar user={counterpart} size="sm" />
             <div className="min-w-0">
@@ -429,6 +451,7 @@ export function ConversationView({
                 <p className="truncate text-sm font-medium tracking-tight text-white">
                   {counterpart.profile.displayName}
                 </p>
+                <span className={cn("status-dot", getPresenceTone(counterpart.profile.presence))} />
                 <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                   <UserRound {...iconProps} />
                   DM
@@ -460,7 +483,7 @@ export function ConversationView({
           </Link>
         </div>
 
-        <div className="border-b border-white/5 bg-[color:var(--bg-panel-muted)]/78 px-4 py-3">
+        <div className="border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_48%),rgba(20,29,40,0.72)] px-4 py-4">
           <DmCallPanel
             conversationId={conversationId}
             viewerId={viewerId}
@@ -485,12 +508,12 @@ export function ConversationView({
           />
         </div>
 
-        <div className="border-t border-white/5 bg-[rgba(12,15,20,0.92)] px-4 py-3 backdrop-blur-md">
+        <div className="border-t border-white/5 bg-[rgba(11,16,24,0.9)] px-4 py-3 backdrop-blur-xl">
           <MessageComposer disabled={isBlocked} onSend={sendMessage} />
         </div>
       </section>
 
-      <div className="border-t border-white/5 px-4 py-3 2xl:hidden">
+      <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-4 py-3 2xl:hidden">
         <ConversationSettings
           notificationSetting={viewerParticipant.notificationSetting}
           retentionMode={conversation.retentionMode}

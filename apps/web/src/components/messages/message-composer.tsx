@@ -56,7 +56,10 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
   }
 
   return (
-    <form className="flex items-end gap-2" onSubmit={handleSubmit}>
+    <form
+      className="flex items-end gap-2 rounded-[26px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.025),transparent_42%),rgba(20,29,40,0.94)] px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_16px_28px_rgba(5,10,18,0.16)]"
+      onSubmit={handleSubmit}
+    >
       <textarea
         ref={textareaRef}
         value={content}
@@ -65,14 +68,14 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         placeholder={disabled ? "Messaging is unavailable in this chat." : "Message"}
         disabled={disabled || isSending}
         rows={1}
-        className="block min-h-10 max-h-32 flex-1 resize-none rounded-2xl border border-white/6 bg-[var(--bg-panel-muted)] px-4 py-2 text-sm leading-tight text-white outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[color:var(--accent)]/30 focus:bg-[var(--bg-panel-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="block min-h-10 max-h-32 flex-1 resize-none rounded-[20px] border-none bg-transparent px-3 py-2 text-sm leading-tight text-white outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
       />
 
       <Button
         type="submit"
         size="sm"
         disabled={disabled || isSending}
-        className="h-9 w-9 rounded-full px-0"
+        className="h-9 w-9 rounded-full border border-white/8 bg-[var(--accent)] px-0 shadow-[0_10px_20px_rgba(8,16,26,0.22)] hover:bg-[var(--accent-strong)]"
         aria-label={isSending ? "Sending message" : "Send message"}
       >
         <SendHorizontal {...iconProps} />
