@@ -58,7 +58,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
   }, []);
 
   return (
-    <aside className="workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#121214] md:static md:inset-auto md:z-auto md:flex md:min-h-screen md:w-[72px] md:flex-col md:items-center md:justify-between md:border-r md:border-t-0">
+    <aside className="workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#121214] md:static md:inset-auto md:z-auto md:flex md:h-full md:w-[72px] md:flex-col md:items-center md:justify-between md:border-r md:border-t-0">
       <div className="flex items-center justify-between gap-2 px-2 py-2 md:h-full md:w-full md:flex-col md:px-0 md:py-3">
         <div className="flex items-center gap-1 md:w-full md:flex-col md:gap-2">
           <Link

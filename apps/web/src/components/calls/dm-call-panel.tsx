@@ -3,62 +3,78 @@
 import {
   callResponseSchema,
   callStateResponseSchema,
-  callTokenResponseSchema,
   type CallStateResponse,
+  type CallSummary,
 } from "@lobby/shared";
 import { Phone, PhoneCall, Video } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
+import { useCallSession } from "./call-session-provider";
 
 interface DmCallPanelProps {
   conversationId: string;
   viewerId: string;
   isBlocked: boolean;
+  counterpartName: string;
+  counterpartUsername: string;
 }
 
-const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+const iconProps = { size: 16, strokeWidth: 1.5 } as const;
 
 export function DmCallPanel({
   conversationId,
   viewerId,
   isBlocked,
+  counterpartName,
+  counterpartUsername,
 }: DmCallPanelProps) {
   const { socket, latestSignal, clearIncomingCall } = useRealtime();
+  const { connectToCall, dismissCall, isActiveCall, leaveCall, syncCall } =
+    useCallSession();
   const [state, setState] = useState<CallStateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [connection, setConnection] = useState<{
-    callId: string;
-    url: string;
-    roomName: string;
-    token: string;
-    canPublishMedia: boolean;
-  } | null>(null);
 
-  const joinCallById = useCallback(async (callId: string) => {
-    const payload = await apiClientFetch(`/v1/calls/${callId}/token`, {
-      method: "POST",
-    });
+  const callRoute = `/app/messages/${conversationId}`;
+  const callTitle = `Call with ${counterpartName}`;
+  const callSubtitle = `DM · @${counterpartUsername}`;
 
-    const parsed = callTokenResponseSchema.parse(payload);
-    setConnection(parsed.connection);
-    return parsed;
-  }, []);
+  const connectToResolvedCall = useCallback(
+    async (call: CallSummary) => {
+      await connectToCall({
+        callId: call.id,
+        scope: "DM",
+        route: callRoute,
+        title: callTitle,
+        subtitle: callSubtitle,
+        call,
+      });
+    },
+    [callRoute, callSubtitle, callTitle, connectToCall],
+  );
 
   const loadState = useCallback(async () => {
     try {
       const payload = await apiClientFetch(`/v1/calls/dm/${conversationId}`);
-      setState(callStateResponseSchema.parse(payload));
+      const parsed = callStateResponseSchema.parse(payload);
+      setState(parsed);
+      if (parsed.activeCall) {
+        syncCall(parsed.activeCall, {
+          route: callRoute,
+          title: callTitle,
+          subtitle: callSubtitle,
+        });
+      }
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to load call state.",
       );
     }
-  }, [conversationId]);
+  }, [callRoute, callSubtitle, callTitle, conversationId, syncCall]);
 
   useEffect(() => {
     void loadState();
@@ -89,23 +105,12 @@ export function DmCallPanel({
     }
 
     if (["DECLINED", "ENDED", "MISSED"].includes(latestSignal.call.status)) {
-      setConnection(null);
+      dismissCall(latestSignal.call.id);
       clearIncomingCall(latestSignal.call.id);
     }
 
     void loadState();
-  }, [latestSignal, conversationId, clearIncomingCall, loadState]);
-
-  useEffect(() => {
-    if (!state?.activeCall && connection) {
-      setConnection(null);
-      return;
-    }
-
-    if (state?.activeCall && connection && state.activeCall.id !== connection.callId) {
-      setConnection(null);
-    }
-  }, [connection, state?.activeCall]);
+  }, [clearIncomingCall, conversationId, dismissCall, latestSignal, loadState]);
 
   useEffect(() => {
     const activeCall = state?.activeCall;
@@ -115,9 +120,9 @@ export function DmCallPanel({
 
     if (
       !activeCall ||
-      connection ||
       pendingAction ||
       isBlocked ||
+      isActiveCall(activeCall.id) ||
       activeCall.status !== "ACCEPTED" ||
       !viewerParticipant ||
       !["ACCEPTED", "JOINED"].includes(viewerParticipant.state)
@@ -125,8 +130,15 @@ export function DmCallPanel({
       return;
     }
 
-    void joinCallById(activeCall.id).catch(() => undefined);
-  }, [connection, isBlocked, joinCallById, pendingAction, state, viewerId]);
+    void connectToResolvedCall(activeCall).catch(() => undefined);
+  }, [
+    connectToResolvedCall,
+    isActiveCall,
+    isBlocked,
+    pendingAction,
+    state?.activeCall,
+    viewerId,
+  ]);
 
   async function startCall(mode: "AUDIO" | "VIDEO") {
     setPendingAction(`start:${mode}`);
@@ -138,7 +150,7 @@ export function DmCallPanel({
       });
 
       const parsed = callResponseSchema.parse(payload);
-      await joinCallById(parsed.call.id);
+      await connectToResolvedCall(parsed.call);
       await loadState();
     } finally {
       setPendingAction(null);
@@ -158,7 +170,7 @@ export function DmCallPanel({
       });
 
       const parsed = callResponseSchema.parse(payload);
-      await joinCallById(parsed.call.id);
+      await connectToResolvedCall(parsed.call);
       clearIncomingCall(state.activeCall.id);
       await loadState();
     } finally {
@@ -179,8 +191,8 @@ export function DmCallPanel({
       });
 
       callResponseSchema.parse(payload);
+      dismissCall(state.activeCall.id);
       clearIncomingCall(state.activeCall.id);
-      setConnection(null);
       await loadState();
     } finally {
       setPendingAction(null);
@@ -195,7 +207,7 @@ export function DmCallPanel({
     setPendingAction("join");
 
     try {
-      await joinCallById(state.activeCall.id);
+      await connectToResolvedCall(state.activeCall);
       await loadState();
     } finally {
       setPendingAction(null);
@@ -210,12 +222,7 @@ export function DmCallPanel({
     setPendingAction("end");
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/end`, {
-        method: "POST",
-      });
-
-      callResponseSchema.parse(payload);
-      setConnection(null);
+      await leaveCall(state.activeCall.id);
       await loadState();
     } finally {
       setPendingAction(null);
@@ -233,62 +240,65 @@ export function DmCallPanel({
     activeCall?.participants.filter((participant) =>
       ["ACCEPTED", "JOINED"].includes(participant.state),
     ).length ?? 0;
+  const isCurrentSession = isActiveCall(activeCall?.id ?? null);
+  const metrics = useMemo(
+    () => [
+      {
+        label: "Session",
+        value: activeCall ? "Persistent live room" : "Ready to start",
+      },
+      {
+        label: "Participants",
+        value: `${connectedParticipants} connected`,
+      },
+      {
+        label: "History",
+        value: `${state?.history.length ?? 0} calls`,
+      },
+    ],
+    [activeCall, connectedParticipants, state?.history.length],
+  );
 
   return (
-    <div className="grid gap-3">
-      <div className="premium-panel rounded-[28px] p-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <div className="grid gap-2.5">
+      <div className="premium-panel rounded-[22px] p-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="eyebrow-pill">Call scene</span>
+              <span className="eyebrow-pill">DM call</span>
               <span className="status-pill">
                 <PhoneCall {...iconProps} />
                 {activeCall ? activeCall.status : "Ready"}
               </span>
-              {activeCall ? (
-                <span className="status-pill">{activeCall.mode}</span>
-              ) : null}
+              {activeCall ? <span className="status-pill">{activeCall.mode}</span> : null}
               {viewerParticipant ? (
                 <span className="status-pill">You: {viewerParticipant.state}</span>
               ) : null}
+              {isCurrentSession ? <span className="status-pill">Persistent</span> : null}
             </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              <div className="surface-subtle rounded-[18px] px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                  Session
-                </p>
-                <p className="mt-1 text-sm font-medium text-white">
-                  {activeCall ? "Live in thread" : "Not started"}
-                </p>
-              </div>
-              <div className="surface-subtle rounded-[18px] px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                  Participants
-                </p>
-                <p className="mt-1 text-sm font-medium text-white">
-                  {connectedParticipants || 0} connected
-                </p>
-              </div>
-              <div className="surface-subtle rounded-[18px] px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                  Recents
-                </p>
-                <p className="mt-1 text-sm font-medium text-white">
-                  {state?.history.length ?? 0} calls
-                </p>
-              </div>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {metrics.map((metric) => (
+                <div key={metric.label} className="surface-subtle rounded-[16px] px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    {metric.label}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white">{metric.value}</p>
+                </div>
+              ))}
             </div>
+
             {errorMessage ? (
-              <p className="mt-3 text-sm text-rose-200">{errorMessage}</p>
+              <p className="mt-2 text-sm text-rose-200">{errorMessage}</p>
             ) : null}
             {!errorMessage && isBlocked ? (
-              <p className="mt-3 text-sm text-amber-100">
+              <p className="mt-2 text-sm text-amber-100">
                 Calling is unavailable in this conversation.
               </p>
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2 rounded-[20px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="flex flex-wrap gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             {!activeCall ? (
               <>
                 <Button
@@ -334,7 +344,11 @@ export function DmCallPanel({
                   onClick={() => void joinCall()}
                   disabled={pendingAction !== null || isBlocked}
                 >
-                  {pendingAction === "join" ? "Joining..." : "Join"}
+                  {pendingAction === "join"
+                    ? "Joining..."
+                    : isCurrentSession
+                      ? "Return to live room"
+                      : "Join"}
                 </Button>
                 <Button
                   size="sm"
@@ -342,7 +356,7 @@ export function DmCallPanel({
                   onClick={() => void endCall()}
                   disabled={pendingAction !== null}
                 >
-                  {pendingAction === "end" ? "Ending..." : "End call"}
+                  {pendingAction === "end" ? "Ending..." : "Leave / end"}
                 </Button>
               </>
             )}
@@ -351,13 +365,9 @@ export function DmCallPanel({
       </div>
 
       <LiveKitCallRoom
-        connection={connection}
-        mode={activeCall?.mode ?? "AUDIO"}
-        title="Live scene"
-        description="Voice, camera and screen-share state stay grouped inside the DM."
-        onLeave={async () => {
-          await endCall();
-        }}
+        callId={activeCall?.id ?? null}
+        title="Live DM room"
+        description="The active voice session now lives above the route, so navigation no longer drops the call."
       />
     </div>
   );

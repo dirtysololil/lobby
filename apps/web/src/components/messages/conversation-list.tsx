@@ -124,8 +124,8 @@ export function ConversationList() {
   }, [conversations]);
 
   return (
-    <section className="flex min-h-full flex-col bg-[var(--bg-app)]">
-      <div className="flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(12,15,20,0.84)] px-4 backdrop-blur-md">
+    <section className="flex h-full min-h-0 flex-col bg-[var(--bg-app)]">
+      <div className="flex h-11 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(12,15,20,0.84)] px-3 backdrop-blur-md">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium tracking-tight text-white">
@@ -173,7 +173,7 @@ export function ConversationList() {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-2 text-xs text-zinc-500">
+      <div className="flex items-center justify-between border-b border-white/5 px-3 py-2 text-xs text-zinc-500">
         <span>{orderedConversations.length} threads</span>
         <Link href="/app/people?view=discover" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
           <UserRoundPlus {...iconProps} />
@@ -202,7 +202,7 @@ export function ConversationList() {
             <Link
               key={conversation.id}
               href={`/app/messages/${conversation.id}`}
-              className="flex min-h-14 items-center gap-3 border-b border-white/5 px-4 py-2 transition-colors hover:bg-white/5"
+              className="flex min-h-12 items-center gap-3 border-b border-white/5 px-3 py-2 transition-colors hover:bg-white/5"
             >
               <UserAvatar user={conversation.counterpart} size="sm" />
               <div className="min-w-0 flex-1">
@@ -230,7 +230,7 @@ export function ConversationList() {
                 </p>
                 <p
                   className={cn(
-                    "mt-1 truncate text-sm leading-tight",
+                    "mt-0.5 truncate text-[13px] leading-tight",
                     conversation.unreadCount > 0 ? "text-zinc-200" : "text-zinc-400",
                   )}
                 >

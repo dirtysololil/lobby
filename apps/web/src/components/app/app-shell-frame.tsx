@@ -7,6 +7,7 @@ import type { PublicUser } from "@lobby/shared";
 import { AppActivityRail } from "@/components/app/app-activity-rail";
 import { AppContextRail } from "@/components/app/app-context-rail";
 import { AppSidebar } from "@/components/app/app-sidebar";
+import { PersistentCallDock } from "@/components/calls/call-session-provider";
 import { IncomingCallBanner } from "@/components/realtime/incoming-call-banner";
 import { parseAppPath } from "@/lib/app-shell";
 import { cn } from "@/lib/utils";
@@ -60,18 +61,18 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const showDockedActivityRail = activityAvailable && activityOpen && isWideScreen;
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text)]">
+    <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-app)] text-[var(--text)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(106,168,248,0.08),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_20%)]" />
       <div
         className={cn(
-          "relative z-10 grid min-h-screen grid-cols-1 md:grid-cols-[72px_15rem_minmax(0,1fr)]",
+          "relative z-10 grid h-full min-h-0 grid-cols-1 md:grid-cols-[72px_15rem_minmax(0,1fr)]",
           showDockedActivityRail && "2xl:grid-cols-[72px_15rem_minmax(0,1fr)_16rem]",
         )}
       >
         <AppSidebar viewer={viewer} />
         <AppContextRail viewer={viewer} />
 
-        <main className="relative flex min-h-screen min-w-0 flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_18%)]">
+        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_18%)]">
           {activityAvailable ? (
             <button
               type="button"
@@ -92,7 +93,11 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
 
           <IncomingCallBanner />
 
-          <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+          <div className="min-h-0 flex-1 overflow-hidden p-2 md:p-3 lg:p-4">
+            <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[26px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_18%),rgba(9,15,22,0.88)]">
+              {children}
+            </div>
+          </div>
         </main>
 
         {showDockedActivityRail ? (
@@ -113,6 +118,8 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
           mode="overlay"
         />
       ) : null}
+
+      <PersistentCallDock />
     </div>
   );
 }

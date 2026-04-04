@@ -2,6 +2,7 @@
 
 import type { DirectConversationDetail } from "@lobby/shared";
 import { AlertCircle, RotateCcw, Trash2 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
@@ -88,9 +89,35 @@ export function MessageThread({
             message.author.id !== viewerId &&
             new Date(message.createdAt).getTime() > new Date(lastReadAt).getTime(),
         );
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const didInitScrollRef = useRef(false);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    if (!didInitScrollRef.current) {
+      viewport.scrollTop = viewport.scrollHeight;
+      didInitScrollRef.current = true;
+      return;
+    }
+
+    const distanceFromBottom =
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+
+    if (distanceFromBottom < 160) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+  }, [messages]);
 
   return (
-    <div className="min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.06),transparent_18%),transparent]">
+    <div
+      ref={viewportRef}
+      className="min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.05),transparent_18%),transparent]"
+    >
       {messages.length === 0 ? (
         <div className="empty-state-minimal text-[var(--text-muted)]">
           <p className="text-sm">No messages yet.</p>
@@ -99,10 +126,10 @@ export function MessageThread({
           </p>
         </div>
       ) : (
-        <div className="space-y-4 px-4 py-4">
+        <div className="space-y-3 px-3 py-3">
           {groupedMessages.map((group) => (
             <div key={group.label} className="space-y-1">
-              <div className="flex items-center gap-3 py-1">
+              <div className="flex items-center gap-3 py-0.5">
                 <div className="h-px flex-1 bg-white/5" />
                 <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
                   {group.label}
@@ -120,7 +147,7 @@ export function MessageThread({
                 return (
                   <div key={message.id}>
                     {isUnreadMarker ? (
-                      <div className="mb-2 flex items-center gap-3 py-1">
+                      <div className="mb-2 flex items-center gap-3 py-0.5">
                         <div className="h-px flex-1 bg-[color:var(--accent)]/35" />
                         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--accent)]">
                           New
@@ -131,8 +158,8 @@ export function MessageThread({
 
                     <div
                       className={cn(
-                        "group flex gap-2 py-1",
-                        continuation && "mt-[-3px]",
+                        "group flex gap-2 py-0.5",
+                        continuation && "mt-[-2px]",
                         isOwn && "flex-row-reverse",
                       )}
                     >
@@ -192,14 +219,14 @@ export function MessageThread({
 
                         <div
                           className={cn(
-                            "rounded-[18px] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_12px_22px_rgba(5,10,18,0.08)]",
+                            "rounded-[16px] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_10px_18px_rgba(5,10,18,0.08)]",
                             isOwn ? "message-bubble-own ml-auto" : "message-bubble",
-                            continuation && "rounded-[16px] py-1.5",
+                            continuation && "rounded-[14px] py-1.5",
                             message.localState === "failed" &&
                               "border-amber-400/30 bg-amber-400/10",
                           )}
                         >
-                          <p className="whitespace-pre-wrap text-sm leading-[1.35] text-white">
+                          <p className="whitespace-pre-wrap text-[13px] leading-[1.32] text-white">
                             {message.content}
                           </p>
                         </div>

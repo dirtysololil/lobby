@@ -441,9 +441,9 @@ export function ConversationView({
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
+    <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(11,16,24,0.86)] px-4 backdrop-blur-xl">
+        <div className="flex h-12 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(11,16,24,0.88)] px-3 backdrop-blur-xl">
           <div className="flex min-w-0 items-center gap-3">
             <UserAvatar user={counterpart} size="sm" />
             <div className="min-w-0">
@@ -483,21 +483,23 @@ export function ConversationView({
           </Link>
         </div>
 
-        <div className="border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_48%),rgba(20,29,40,0.72)] px-4 py-4">
+        <div className="border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_48%),rgba(20,29,40,0.72)] px-3 py-2.5">
           <DmCallPanel
             conversationId={conversationId}
             viewerId={viewerId}
             isBlocked={isBlocked}
+            counterpartName={counterpart.profile.displayName}
+            counterpartUsername={counterpart.username}
           />
         </div>
 
         {errorMessage ? (
-          <div className="border-b border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">
+          <div className="border-b border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
             {errorMessage}
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <MessageThread
             viewerId={viewerId}
             messages={messages}
@@ -508,12 +510,12 @@ export function ConversationView({
           />
         </div>
 
-        <div className="border-t border-white/5 bg-[rgba(11,16,24,0.9)] px-4 py-3 backdrop-blur-xl">
+        <div className="border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 py-2.5 backdrop-blur-xl">
           <MessageComposer disabled={isBlocked} onSend={sendMessage} />
         </div>
       </section>
 
-      <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-4 py-3 2xl:hidden">
+      <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-3 py-2.5 2xl:hidden">
         <ConversationSettings
           notificationSetting={viewerParticipant.notificationSetting}
           retentionMode={conversation.retentionMode}

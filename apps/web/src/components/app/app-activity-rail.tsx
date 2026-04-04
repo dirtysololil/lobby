@@ -148,7 +148,7 @@ export function AppActivityRail({
         "activity-rail flex w-64 min-w-64 flex-col border-l border-white/5 bg-[#121214]",
         mode === "overlay"
           ? "absolute inset-y-0 right-0 z-50 h-full"
-          : "min-h-screen",
+          : "h-full",
       )}
       onClick={(event) => {
         if (mode === "overlay") {
