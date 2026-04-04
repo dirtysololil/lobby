@@ -29,7 +29,8 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
   const avatarUrl = getAvatarUrl(user);
   const initials = getAvatarInitials(user.profile.displayName || user.username);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const showImage = Boolean(avatarUrl) && avatarUrl !== failedUrl;
+  const imageSrc =
+    avatarUrl && avatarUrl.trim().length > 0 && avatarUrl !== failedUrl ? avatarUrl : null;
 
   return (
     <div
@@ -40,14 +41,14 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
       )}
     >
       <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.22),transparent_70%),rgba(255,255,255,0.06)] text-center font-semibold uppercase tracking-[0.06em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-        {showImage ? (
+        {imageSrc ? (
           <img
-            src={avatarUrl}
+            src={imageSrc}
             alt={user.profile.displayName}
             className="h-full w-full rounded-full object-cover"
             loading="lazy"
             decoding="async"
-            onError={() => setFailedUrl(avatarUrl)}
+            onError={() => setFailedUrl(imageSrc)}
           />
         ) : (
           <span className="select-none">{initials}</span>
