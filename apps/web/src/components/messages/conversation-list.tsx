@@ -16,6 +16,7 @@ import { apiClientFetch } from "@/lib/api-client";
 import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
+import { dmRetentionLabels } from "@/lib/ui-labels";
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
@@ -33,11 +34,11 @@ function formatConversationTime(value: string | null) {
   const sameDay = date.toDateString() === now.toDateString();
 
   return sameDay
-    ? date.toLocaleTimeString("en-US", {
-        hour: "numeric",
+    ? date.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
         minute: "2-digit",
       })
-    : date.toLocaleDateString("en-US", {
+    : date.toLocaleDateString("ru-RU", {
         month: "short",
         day: "numeric",
       });
@@ -76,7 +77,7 @@ export function ConversationList() {
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to load conversations.",
+        error instanceof Error ? error.message : "Не удалось загрузить диалоги.",
       );
     } finally {
       setIsLoading(false);
@@ -103,7 +104,7 @@ export function ConversationList() {
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to open conversation.",
+        error instanceof Error ? error.message : "Не удалось открыть диалог.",
       );
     } finally {
       setIsOpening(false);
@@ -129,13 +130,13 @@ export function ConversationList() {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium tracking-tight text-white">
-              Inbox
+              Диалоги
             </span>
             <span className="text-xs text-zinc-500">
-              {conversations.length} chats
+              {conversations.length} чатов
             </span>
             <span className="text-xs text-zinc-500">
-              {getUnreadTotal(conversations)} unread
+              {getUnreadTotal(conversations)} непрочитанных
             </span>
           </div>
         </div>
@@ -162,7 +163,7 @@ export function ConversationList() {
           </div>
           <Button type="submit" disabled={isOpening} size="sm" className="shrink-0">
             <UserRoundPlus {...iconProps} />
-            {isOpening ? "Opening..." : "New DM"}
+            {isOpening ? "Открываем..." : "Новый диалог"}
           </Button>
         </form>
       </div>
@@ -174,10 +175,10 @@ export function ConversationList() {
       ) : null}
 
       <div className="flex items-center justify-between border-b border-white/5 px-3 py-2 text-xs text-zinc-500">
-        <span>{orderedConversations.length} threads</span>
+        <span>{orderedConversations.length} веток</span>
         <Link href="/app/people?view=discover" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
           <UserRoundPlus {...iconProps} />
-          Find people
+          Найти людей
         </Link>
       </div>
 
@@ -185,15 +186,15 @@ export function ConversationList() {
         {isLoading ? (
           <div className="empty-state-minimal text-zinc-500">
             <MessageSquareMore {...iconProps} />
-            <p className="text-sm">Loading inbox...</p>
+            <p className="text-sm">Загружаем диалоги...</p>
           </div>
         ) : orderedConversations.length === 0 ? (
           <div className="empty-state-minimal text-zinc-500">
             <MessageSquareMore size={20} strokeWidth={1.5} />
             <div>
-              <p className="text-sm font-medium text-white">No chats yet</p>
+              <p className="text-sm font-medium text-white">Диалогов пока нет</p>
               <p className="mt-1 text-xs text-zinc-500">
-                Start a DM by username or open someone from People.
+                Откройте диалог по имени пользователя или через раздел «Люди».
               </p>
             </div>
           </div>
@@ -218,7 +219,7 @@ export function ConversationList() {
                   {conversation.retentionMode !== "OFF" ? (
                     <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
                       <Clock3 {...iconProps} />
-                      {conversation.retentionMode}
+                      {dmRetentionLabels[conversation.retentionMode]}
                     </span>
                   ) : null}
                   <span className="ml-auto shrink-0 text-xs text-zinc-500">
@@ -235,8 +236,8 @@ export function ConversationList() {
                   )}
                 >
                   {conversation.lastMessage?.isDeleted
-                    ? "Last message was deleted"
-                    : (conversation.lastMessage?.content ?? "Say hello")}
+                    ? "Последнее сообщение удалено"
+                    : (conversation.lastMessage?.content ?? "Напишите первым")}
                 </p>
               </div>
             </Link>

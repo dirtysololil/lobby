@@ -16,6 +16,7 @@ import { apiClientFetch } from "@/lib/api-client";
 import { DmCallPanel } from "@/components/calls/dm-call-panel";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import { sortDirectMessages } from "@/lib/direct-message-state";
+import { dmRetentionLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 import { ConversationSettings } from "./conversation-settings";
 import { MessageComposer } from "./message-composer";
@@ -202,7 +203,7 @@ export function ConversationView({
       }
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to load conversation.",
+        error instanceof Error ? error.message : "Не удалось загрузить диалог.",
       );
     }
   }, [conversationId, viewerId]);
@@ -355,7 +356,7 @@ export function ConversationView({
     } catch (error) {
       setMessages((current) => markMessageAsFailed(current, optimisticMessage.id));
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to send message.",
+        error instanceof Error ? error.message : "Не удалось отправить сообщение.",
       );
     }
   }
@@ -402,7 +403,7 @@ export function ConversationView({
         ]),
       );
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to delete message.",
+        error instanceof Error ? error.message : "Не удалось удалить сообщение.",
       );
     } finally {
       setIsDeleting(null);
@@ -435,7 +436,7 @@ export function ConversationView({
     return (
       <div className="empty-state-minimal bg-[var(--bg-app)] text-[var(--text-muted)]">
         <UserRound {...iconProps} />
-        <p className="text-sm">Loading conversation...</p>
+        <p className="text-sm">Загружаем диалог...</p>
       </div>
     );
   }
@@ -454,18 +455,18 @@ export function ConversationView({
                 <span className={cn("status-dot", getPresenceTone(counterpart.profile.presence))} />
                 <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                   <UserRound {...iconProps} />
-                  DM
+                  ЛС
                 </span>
                 {conversation.retentionMode !== "OFF" ? (
                   <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                     <Clock3 {...iconProps} />
-                    {conversation.retentionMode}
+                    {dmRetentionLabels[conversation.retentionMode]}
                   </span>
                 ) : null}
                 {isBlocked ? (
                   <span className="inline-flex items-center gap-1 text-xs text-amber-300">
                     <ShieldAlert {...iconProps} />
-                    Restricted
+                    Ограничено
                   </span>
                 ) : null}
               </div>
@@ -478,7 +479,7 @@ export function ConversationView({
           <Link href="/app/messages">
             <Button size="sm" variant="ghost">
               <ArrowLeft {...iconProps} />
-              Back
+              Назад
             </Button>
           </Link>
         </div>

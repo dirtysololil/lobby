@@ -65,7 +65,7 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         value={content}
         onChange={(event) => setContent(event.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={disabled ? "Messaging is unavailable in this chat." : "Message"}
+        placeholder={disabled ? "В этом диалоге нельзя отправлять сообщения." : "Сообщение"}
         disabled={disabled || isSending}
         rows={1}
         className="block min-h-9 max-h-28 flex-1 resize-none rounded-[18px] border-none bg-transparent px-3 py-2 text-sm leading-tight text-white outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
@@ -76,7 +76,7 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         size="sm"
         disabled={disabled || isSending}
         className="h-8 w-8 rounded-full border border-white/8 bg-[var(--accent)] px-0 shadow-[0_10px_20px_rgba(8,16,26,0.22)] hover:bg-[var(--accent-strong)]"
-        aria-label={isSending ? "Sending message" : "Send message"}
+        aria-label={isSending ? "Отправляем сообщение" : "Отправить сообщение"}
       >
         <SendHorizontal {...iconProps} />
       </Button>

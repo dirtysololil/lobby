@@ -44,15 +44,15 @@ function isContinuation(
 }
 
 function formatThreadDate(value: string) {
-  return new Date(value).toLocaleDateString("en-US", {
+  return new Date(value).toLocaleDateString("ru-RU", {
     month: "long",
     day: "numeric",
   });
 }
 
 function formatThreadTime(value: string) {
-  return new Date(value).toLocaleTimeString("en-US", {
-    hour: "numeric",
+  return new Date(value).toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
     minute: "2-digit",
   });
 }
@@ -120,13 +120,13 @@ export function MessageThread({
     >
       {messages.length === 0 ? (
         <div className="empty-state-minimal text-[var(--text-muted)]">
-          <p className="text-sm">No messages yet.</p>
+          <p className="text-sm">Сообщений пока нет.</p>
           <p className="text-xs text-[var(--text-dim)]">
-            The thread will start here as soon as someone sends a message.
+            Переписка появится здесь, как только кто-то напишет.
           </p>
         </div>
       ) : (
-        <div className="space-y-3 px-3 py-3">
+        <div className="space-y-2.5 px-3 py-2.5">
           {groupedMessages.map((group) => (
             <div key={group.label} className="space-y-1">
               <div className="flex items-center gap-3 py-0.5">
@@ -150,7 +150,7 @@ export function MessageThread({
                       <div className="mb-2 flex items-center gap-3 py-0.5">
                         <div className="h-px flex-1 bg-[color:var(--accent)]/35" />
                         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--accent)]">
-                          New
+                          Новое
                         </span>
                         <div className="h-px flex-1 bg-[color:var(--accent)]/35" />
                       </div>
@@ -193,14 +193,14 @@ export function MessageThread({
                               {formatThreadTime(message.createdAt)}
                             </span>
                             {message.localState === "sending" ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
-                                Sending
+                            <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                                Отправляем
                               </span>
                             ) : null}
                             {message.localState === "failed" ? (
                               <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[11px] text-amber-300">
                                 <AlertCircle size={14} strokeWidth={1.5} />
-                                Failed
+                                Ошибка
                               </span>
                             ) : null}
                             {isOwn && message.canDelete ? (
@@ -239,7 +239,7 @@ export function MessageThread({
                             )}
                           >
                             <span className="text-[var(--text-muted)]">
-                              Not delivered
+                              Не доставлено
                             </span>
                             <Button
                               size="sm"
@@ -248,7 +248,7 @@ export function MessageThread({
                               className="h-7 gap-1 rounded-full px-2 text-[var(--text-soft)]"
                             >
                               <RotateCcw size={14} strokeWidth={1.5} />
-                              Retry
+                              Повторить
                             </Button>
                           </div>
                         ) : null}
