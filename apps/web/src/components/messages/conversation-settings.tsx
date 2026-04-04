@@ -4,6 +4,7 @@ import type { DmNotificationSetting, DmRetentionMode } from "@lobby/shared";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { dmNotificationLabels, dmRetentionLabels } from "@/lib/ui-labels";
 
 interface ConversationSettingsProps {
   notificationSetting: DmNotificationSetting;
@@ -31,21 +32,6 @@ const retentionOptions: DmRetentionMode[] = [
   "D30",
   "CUSTOM",
 ];
-
-const notificationLabels: Record<DmNotificationSetting, string> = {
-  ALL: "Все",
-  MENTIONS_ONLY: "Упоминания",
-  MUTED: "Без звука",
-  OFF: "Отключено",
-};
-
-const retentionLabels: Record<DmRetentionMode, string> = {
-  OFF: "Без автоудаления",
-  H24: "24 часа",
-  D7: "7 дней",
-  D30: "30 дней",
-  CUSTOM: "Свой период",
-};
 
 export function ConversationSettings({
   notificationSetting,
@@ -93,7 +79,7 @@ export function ConversationSettings({
   return (
     <div className="grid gap-3">
       <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-        Только для этого DM.
+        Настройки применяются только к этому диалогу.
       </div>
 
       <div className="grid gap-3">
@@ -111,7 +97,7 @@ export function ConversationSettings({
           >
             {notificationOptions.map((option) => (
               <option key={option} value={option}>
-                {notificationLabels[option]}
+                {dmNotificationLabels[option]}
               </option>
             ))}
           </select>
@@ -129,7 +115,7 @@ export function ConversationSettings({
           >
             {retentionOptions.map((option) => (
               <option key={option} value={option}>
-                {retentionLabels[option]}
+                {dmRetentionLabels[option]}
               </option>
             ))}
           </select>

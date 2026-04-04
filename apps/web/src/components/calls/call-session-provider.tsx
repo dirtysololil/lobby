@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   ArrowUpRight,
+  Check,
+  LoaderCircle,
   Mic,
   MicOff,
   Monitor,
@@ -11,12 +13,15 @@ import {
   MonitorX,
   PhoneCall,
   PhoneOff,
+  Settings2,
+  Sparkles,
   Users2,
   Video,
   VideoOff,
+  Volume2,
   Waves,
 } from "lucide-react";
-import type { CallSummary } from "@lobby/shared";
+import type { CallParticipant, CallSummary, PublicUser } from "@lobby/shared";
 import { callTokenResponseSchema } from "@lobby/shared";
 import { usePathname } from "next/navigation";
 import {
@@ -28,11 +33,29 @@ import {
   useRef,
   useState,
 } from "react";
-import { Room, RoomEvent, Track, type Participant } from "livekit-client";
+import {
+  LocalAudioTrack,
+  Room,
+  RoomEvent,
+  Track,
+  supportsAudioOutputSelection,
+  type Participant,
+} from "livekit-client";
 import { apiClientFetch } from "@/lib/api-client";
+import {
+  callModeLabels,
+  callParticipantStateLabels,
+  callStatusLabels,
+} from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useRealtime } from "@/components/realtime/realtime-provider";
+import {
+  createVoiceEffectProcessor,
+  type VoiceEffectPreset,
+  voiceEffectLabels,
+} from "./voice-effects";
 
 type ActiveCallScope = Extract<CallSummary["scope"], "DM" | "HUB_LOBBY">;
 type CallConnectionStatus =
@@ -70,6 +93,7 @@ interface CallConnectRequest {
 
 interface TrackView {
   id: string;
+  participantId: string;
   participantName: string;
   source: string;
   kind: "audio" | "video";
@@ -77,15 +101,40 @@ interface TrackView {
   track: Track;
 }
 
+interface ParticipantPresenceView {
+  id: string;
+  name: string;
+  user: PublicUser | null;
+  state: CallParticipant["state"] | null;
+  isLocal: boolean;
+  isConnected: boolean;
+  isSpeaking: boolean;
+  isMuted: boolean;
+  hasAudio: boolean;
+  hasCamera: boolean;
+  hasScreenShare: boolean;
+  audioLevel: number;
+  connectionQuality: string;
+}
+
 interface CallSessionContextValue {
   session: ActiveCallSession | null;
   status: CallConnectionStatus;
   errorMessage: string | null;
   tracks: TrackView[];
+  participants: ParticipantPresenceView[];
   participantCount: number;
   microphoneEnabled: boolean;
   cameraEnabled: boolean;
   screenShareEnabled: boolean;
+  inputDevices: MediaDeviceInfo[];
+  outputDevices: MediaDeviceInfo[];
+  selectedInputDeviceId: string | null;
+  selectedOutputDeviceId: string | null;
+  outputSelectionSupported: boolean;
+  deviceError: string | null;
+  voiceEffect: VoiceEffectPreset;
+  effectError: string | null;
   connectToCall: (request: CallConnectRequest) => Promise<void>;
   syncCall: (
     call: CallSummary | null,
@@ -97,9 +146,29 @@ interface CallSessionContextValue {
   toggleMicrophone: () => Promise<void>;
   toggleCamera: () => Promise<void>;
   toggleScreenShare: () => Promise<void>;
+  setInputDevice: (deviceId: string) => Promise<void>;
+  setOutputDevice: (deviceId: string) => Promise<void>;
+  setVoiceEffect: (effect: VoiceEffectPreset) => Promise<void>;
 }
 
 const CallSessionContext = createContext<CallSessionContextValue | null>(null);
+
+const connectionStatusLabels: Record<CallConnectionStatus, string> = {
+  idle: "Не подключено",
+  connecting: "Подключаемся",
+  connected: "На связи",
+  reconnecting: "Переподключаемся",
+  error: "Ошибка",
+};
+
+const connectionQualityLabels: Record<string, string> = {
+  excellent: "Связь отличная",
+  good: "Связь нормальная",
+  poor: "Связь слабая",
+  lost: "Связь потеряна",
+  unknown: "Статус неизвестен",
+  offline: "Не в комнате",
+};
 
 function collectTrackViews(room: Room) {
   const items: TrackView[] = [];
@@ -112,6 +181,7 @@ function collectTrackViews(room: Room) {
 
       items.push({
         id: `${participant.identity}:${publication.trackSid ?? publication.source}`,
+        participantId: participant.identity,
         participantName: participant.name || participant.identity,
         source: String(publication.source ?? "unknown"),
         kind: publication.track.kind === Track.Kind.Video ? "video" : "audio",
@@ -152,6 +222,139 @@ function isMicrophoneTrack(item: TrackView) {
   return item.source.toLowerCase().includes("microphone");
 }
 
+function getConnectionQualityLabel(value: string) {
+  return connectionQualityLabels[value] ?? "Статус неизвестен";
+}
+
+function getDeviceLabel(
+  device: MediaDeviceInfo,
+  fallbackPrefix: string,
+  index: number,
+) {
+  return device.label || `${fallbackPrefix} ${index + 1}`;
+}
+
+function getSinkableAudioElement(element: HTMLAudioElement) {
+  return element as HTMLAudioElement & {
+    setSinkId?: (deviceId: string) => Promise<void>;
+  };
+}
+
+async function applySinkIdToAudioElement(
+  element: HTMLAudioElement,
+  deviceId: string | null,
+) {
+  if (!deviceId) {
+    return;
+  }
+
+  const sinkableElement = getSinkableAudioElement(element);
+  if (typeof sinkableElement.setSinkId !== "function") {
+    return;
+  }
+
+  await sinkableElement.setSinkId(deviceId);
+}
+
+function findCallParticipant(
+  call: CallSummary,
+  participant: Participant,
+): CallParticipant | null {
+  const candidateName = participant.name?.trim() ?? null;
+
+  return (
+    call.participants.find((item) => {
+      return (
+        item.user.id === participant.identity ||
+        item.user.username === participant.identity ||
+        item.user.username === candidateName ||
+        item.user.profile.displayName === candidateName
+      );
+    }) ?? null
+  );
+}
+
+function collectParticipantViews(room: Room, call: CallSummary) {
+  const connectedParticipants: ParticipantPresenceView[] = [];
+  const liveParticipants: Participant[] = [
+    room.localParticipant,
+    ...room.remoteParticipants.values(),
+  ];
+
+  for (const participant of liveParticipants) {
+    const callParticipant = findCallParticipant(call, participant);
+    const microphonePublication =
+      participant.getTrackPublication(Track.Source.Microphone) ??
+      participant.audioTrackPublications.values().next().value ??
+      undefined;
+    const cameraPublication = participant.getTrackPublication(Track.Source.Camera);
+    const screenPublication = participant.getTrackPublication(Track.Source.ScreenShare);
+
+    connectedParticipants.push({
+      id: callParticipant?.user.id ?? participant.identity,
+      name:
+        callParticipant?.user.profile.displayName ??
+        participant.name ??
+        participant.identity,
+      user: callParticipant?.user ?? null,
+      state: callParticipant?.state ?? null,
+      isLocal: participant === room.localParticipant,
+      isConnected: true,
+      isSpeaking: participant.isSpeaking,
+      isMuted: microphonePublication?.isMuted ?? !microphonePublication?.track,
+      hasAudio: Boolean(microphonePublication?.track),
+      hasCamera: Boolean(cameraPublication?.track),
+      hasScreenShare: Boolean(screenPublication?.track),
+      audioLevel: participant.audioLevel,
+      connectionQuality: participant.connectionQuality,
+    });
+  }
+
+  const seenIds = new Set(connectedParticipants.map((participant) => participant.id));
+
+  const waitingParticipants = call.participants
+    .filter((participant) => !seenIds.has(participant.user.id))
+    .map<ParticipantPresenceView>((participant) => ({
+      id: participant.user.id,
+      name: participant.user.profile.displayName,
+      user: participant.user,
+      state: participant.state,
+      isLocal: false,
+      isConnected: false,
+      isSpeaking: false,
+      isMuted: true,
+      hasAudio: false,
+      hasCamera: false,
+      hasScreenShare: false,
+      audioLevel: 0,
+      connectionQuality: "offline",
+    }));
+
+  return [...connectedParticipants, ...waitingParticipants].sort((left, right) => {
+    if (left.isLocal !== right.isLocal) {
+      return left.isLocal ? -1 : 1;
+    }
+
+    if (left.isConnected !== right.isConnected) {
+      return left.isConnected ? -1 : 1;
+    }
+
+    if (left.isSpeaking !== right.isSpeaking) {
+      return left.isSpeaking ? -1 : 1;
+    }
+
+    if (left.hasScreenShare !== right.hasScreenShare) {
+      return left.hasScreenShare ? -1 : 1;
+    }
+
+    if (left.hasCamera !== right.hasCamera) {
+      return left.hasCamera ? -1 : 1;
+    }
+
+    return left.name.localeCompare(right.name, "ru-RU");
+  });
+}
+
 function getParticipantInitials(name: string) {
   return name
     .split(/\s+/)
@@ -168,20 +371,46 @@ function getConnectedParticipantCount(call: CallSummary): number {
   }).length;
 }
 
+function getLocalMicrophoneTrack(room: Room | null) {
+  const publication = room?.localParticipant.getTrackPublication(Track.Source.Microphone);
+
+  if (!publication?.track || publication.track.kind !== Track.Kind.Audio) {
+    return null;
+  }
+
+  return publication.track as LocalAudioTrack;
+}
+
 export function CallSessionProvider({ children }: { children: ReactNode }) {
   const { latestSignal } = useRealtime();
   const roomRef = useRef<Room | null>(null);
+  const desiredVoiceEffectRef = useRef<VoiceEffectPreset>("normal");
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [session, setSession] = useState<ActiveCallSession | null>(null);
   const [status, setStatus] = useState<CallConnectionStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [tracks, setTracks] = useState<TrackView[]>([]);
+  const [participants, setParticipants] = useState<ParticipantPresenceView[]>([]);
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenShareEnabled, setScreenShareEnabled] = useState(false);
+  const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
+  const [outputDevices, setOutputDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedInputDeviceId, setSelectedInputDeviceId] = useState<string | null>(
+    null,
+  );
+  const [selectedOutputDeviceId, setSelectedOutputDeviceId] = useState<string | null>(
+    null,
+  );
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [voiceEffect, setVoiceEffectState] = useState<VoiceEffectPreset>("normal");
+  const [effectError, setEffectError] = useState<string | null>(null);
+  const outputSelectionSupported = useMemo(() => supportsAudioOutputSelection(), []);
 
   const clearRoomSnapshot = useCallback((nextStatus: CallConnectionStatus = "idle") => {
     setStatus(nextStatus);
     setTracks([]);
+    setParticipants([]);
     setMicrophoneEnabled(false);
     setCameraEnabled(false);
     setScreenShareEnabled(false);
@@ -293,6 +522,202 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
     [dismissCall, session?.call.id],
   );
 
+  const ensureAudioContext = useCallback(async () => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    const AudioContextCtor =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+
+    if (!AudioContextCtor) {
+      return null;
+    }
+
+    if (!audioContextRef.current || audioContextRef.current.state === "closed") {
+      audioContextRef.current = new AudioContextCtor();
+    }
+
+    if (audioContextRef.current.state === "suspended") {
+      await audioContextRef.current.resume().catch(() => undefined);
+    }
+
+    return audioContextRef.current;
+  }, []);
+
+  const refreshDevices = useCallback(
+    async (currentRoom = roomRef.current) => {
+      if (!currentRoom) {
+        setInputDevices([]);
+        setOutputDevices([]);
+        return;
+      }
+
+      try {
+        const [nextInputs, nextOutputs] = await Promise.all([
+          Room.getLocalDevices("audioinput", false),
+          outputSelectionSupported
+            ? Room.getLocalDevices("audiooutput", false)
+            : Promise.resolve([]),
+        ]);
+
+        setInputDevices(nextInputs);
+        setOutputDevices(nextOutputs);
+
+        const microphoneTrack = getLocalMicrophoneTrack(currentRoom);
+        const activeInputDeviceId =
+          (await microphoneTrack?.getDeviceId(true).catch(() => undefined)) ??
+          selectedInputDeviceId ??
+          nextInputs[0]?.deviceId ??
+          null;
+
+        setSelectedInputDeviceId(activeInputDeviceId);
+
+        if (outputSelectionSupported) {
+          setSelectedOutputDeviceId(
+            (current) => current ?? nextOutputs[0]?.deviceId ?? null,
+          );
+        }
+
+        setDeviceError(null);
+      } catch (error) {
+        setDeviceError(
+          error instanceof Error
+            ? error.message
+            : "Не удалось обновить список устройств.",
+        );
+      }
+    },
+    [outputSelectionSupported, selectedInputDeviceId],
+  );
+
+  const applyVoiceEffect = useCallback(
+    async (
+      nextEffect: VoiceEffectPreset,
+      currentRoom = roomRef.current,
+      updateSelection = true,
+    ) => {
+      desiredVoiceEffectRef.current = nextEffect;
+
+      if (updateSelection) {
+        setVoiceEffectState(nextEffect);
+      }
+
+      const microphoneTrack = getLocalMicrophoneTrack(currentRoom);
+
+      if (!microphoneTrack) {
+        setEffectError(null);
+        return;
+      }
+
+      try {
+        if (nextEffect === "normal") {
+          await microphoneTrack.stopProcessor().catch(() => undefined);
+          setEffectError(null);
+          return;
+        }
+
+        const audioContext = await ensureAudioContext();
+        if (!audioContext) {
+          throw new Error(
+            "Этот браузер не поддерживает обработку голоса. Используется обычный микрофон.",
+          );
+        }
+
+        microphoneTrack.setAudioContext(audioContext);
+        await microphoneTrack.setProcessor(createVoiceEffectProcessor(nextEffect));
+        setEffectError(null);
+      } catch (error) {
+        setEffectError(
+          error instanceof Error
+            ? error.message
+            : "Не удалось включить эффект голоса. Оставляем обычный микрофон.",
+        );
+        desiredVoiceEffectRef.current = "normal";
+        setVoiceEffectState("normal");
+        await microphoneTrack.stopProcessor().catch(() => undefined);
+      }
+    },
+    [ensureAudioContext],
+  );
+
+  const setInputDevice = useCallback(
+    async (deviceId: string) => {
+      setSelectedInputDeviceId(deviceId);
+      setDeviceError(null);
+
+      const room = roomRef.current;
+      if (!room || !session?.connection.canPublishMedia || !microphoneEnabled) {
+        return;
+      }
+
+      try {
+        const switched = await room.switchActiveDevice("audioinput", deviceId, true);
+        if (!switched) {
+          throw new Error("Браузер не дал переключить микрофон.");
+        }
+
+        await refreshDevices(room);
+        await applyVoiceEffect(desiredVoiceEffectRef.current, room, false);
+      } catch (error) {
+        setDeviceError(
+          error instanceof Error
+            ? error.message
+            : "Не удалось переключить микрофон.",
+        );
+      }
+    },
+    [
+      applyVoiceEffect,
+      microphoneEnabled,
+      refreshDevices,
+      session?.connection.canPublishMedia,
+    ],
+  );
+
+  const setOutputDevice = useCallback(
+    async (deviceId: string) => {
+      setSelectedOutputDeviceId(deviceId);
+
+      if (!outputSelectionSupported) {
+        setDeviceError(
+          "Переключение вывода недоступно в этом браузере. Используем системный динамик.",
+        );
+        return;
+      }
+
+      const room = roomRef.current;
+      if (!room) {
+        return;
+      }
+
+      try {
+        const switched = await room.switchActiveDevice("audiooutput", deviceId);
+        if (!switched) {
+          throw new Error("Браузер не дал переключить устройство вывода.");
+        }
+
+        setDeviceError(null);
+      } catch (error) {
+        setDeviceError(
+          error instanceof Error
+            ? error.message
+            : "Не удалось переключить устройство вывода.",
+        );
+      }
+    },
+    [outputSelectionSupported],
+  );
+
+  const setVoiceEffect = useCallback(
+    async (effect: VoiceEffectPreset) => {
+      await applyVoiceEffect(effect);
+    },
+    [applyVoiceEffect],
+  );
+
   useEffect(() => {
     if (!latestSignal || !session || latestSignal.call.id !== session.call.id) {
       return;
@@ -334,6 +759,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
 
       const snapshot = collectTrackViews(nextRoom);
       setTracks(snapshot.items);
+      setParticipants(collectParticipantViews(nextRoom, session.call));
       setMicrophoneEnabled(snapshot.hasMicrophone);
       setCameraEnabled(snapshot.hasCamera);
       setScreenShareEnabled(snapshot.hasScreenShare);
@@ -344,17 +770,39 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       RoomEvent.Reconnected,
       RoomEvent.TrackSubscribed,
       RoomEvent.TrackUnsubscribed,
-      RoomEvent.LocalTrackPublished,
-      RoomEvent.LocalTrackUnpublished,
       RoomEvent.ParticipantConnected,
       RoomEvent.ParticipantDisconnected,
       RoomEvent.TrackMuted,
       RoomEvent.TrackUnmuted,
+      RoomEvent.ActiveSpeakersChanged,
+      RoomEvent.ConnectionQualityChanged,
     ];
 
     for (const event of trackedEvents) {
       nextRoom.on(event, syncRoomState);
     }
+
+    const handleMediaDevicesChanged = () => {
+      void refreshDevices(nextRoom);
+    };
+
+    const handleLocalTrackChanged = () => {
+      syncRoomState();
+      void refreshDevices(nextRoom);
+
+      if (desiredVoiceEffectRef.current !== "normal") {
+        void applyVoiceEffect(desiredVoiceEffectRef.current, nextRoom, false);
+      }
+    };
+
+    nextRoom.on(RoomEvent.LocalTrackPublished, handleLocalTrackChanged);
+    nextRoom.on(RoomEvent.LocalTrackUnpublished, handleLocalTrackChanged);
+    nextRoom.on(RoomEvent.MediaDevicesChanged, handleMediaDevicesChanged);
+    nextRoom.on(RoomEvent.MediaDevicesError, (error) => {
+      if (!isCancelled) {
+        setDeviceError(error.message);
+      }
+    });
 
     nextRoom.on(RoomEvent.Reconnecting, () => {
       if (!isCancelled) {
@@ -380,8 +828,24 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
         await nextRoom.connect(session.connection.url, session.connection.token);
         await nextRoom.startAudio().catch(() => undefined);
 
+        if (selectedOutputDeviceId && outputSelectionSupported) {
+          await nextRoom
+            .switchActiveDevice("audiooutput", selectedOutputDeviceId)
+            .catch(() => false);
+        }
+
         if (session.connection.canPublishMedia) {
-          await nextRoom.localParticipant.setMicrophoneEnabled(true);
+          try {
+            await nextRoom.localParticipant.setMicrophoneEnabled(
+              true,
+              selectedInputDeviceId
+                ? { deviceId: { exact: selectedInputDeviceId } }
+                : undefined,
+            );
+          } catch {
+            await nextRoom.localParticipant.setMicrophoneEnabled(true);
+          }
+
           if (session.call.mode === "VIDEO") {
             await nextRoom.localParticipant.setCameraEnabled(true);
           }
@@ -392,6 +856,8 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        await refreshDevices(nextRoom);
+        await applyVoiceEffect(desiredVoiceEffectRef.current, nextRoom, false);
         syncRoomState();
         setStatus("connected");
       } catch (error) {
@@ -400,7 +866,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
           setErrorMessage(
             error instanceof Error
               ? error.message
-              : "Unable to connect to the LiveKit room.",
+              : "Не удалось подключиться к голосовой комнате.",
           );
         }
       }
@@ -411,32 +877,67 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       for (const event of trackedEvents) {
         nextRoom.off(event, syncRoomState);
       }
+      nextRoom.off(RoomEvent.LocalTrackPublished, handleLocalTrackChanged);
+      nextRoom.off(RoomEvent.LocalTrackUnpublished, handleLocalTrackChanged);
+      nextRoom.off(RoomEvent.MediaDevicesChanged, handleMediaDevicesChanged);
       nextRoom.disconnect();
       if (roomRef.current === nextRoom) {
         roomRef.current = null;
       }
     };
   }, [
+    applyVoiceEffect,
     clearRoomSnapshot,
-    session?.call.id,
-    session?.call.mode,
-    session?.connection.canPublishMedia,
-    session?.connection.token,
-    session?.connection.url,
+    outputSelectionSupported,
+    refreshDevices,
+    selectedInputDeviceId,
+    selectedOutputDeviceId,
+    session,
   ]);
 
-  async function toggleMicrophone() {
+  useEffect(() => {
+    return () => {
+      roomRef.current?.disconnect();
+      roomRef.current = null;
+      audioContextRef.current?.close().catch(() => undefined);
+      audioContextRef.current = null;
+    };
+  }, []);
+
+  const toggleMicrophone = useCallback(async () => {
     const room = roomRef.current;
 
     if (!room || !session?.connection.canPublishMedia) {
       return;
     }
 
-    await room.localParticipant.setMicrophoneEnabled(!microphoneEnabled);
-    setMicrophoneEnabled(!microphoneEnabled);
-  }
+    if (!microphoneEnabled) {
+      try {
+        await room.localParticipant.setMicrophoneEnabled(
+          true,
+          selectedInputDeviceId ? { deviceId: { exact: selectedInputDeviceId } } : undefined,
+        );
+      } catch {
+        await room.localParticipant.setMicrophoneEnabled(true);
+      }
 
-  async function toggleCamera() {
+      setMicrophoneEnabled(true);
+      await refreshDevices(room);
+      await applyVoiceEffect(desiredVoiceEffectRef.current, room, false);
+      return;
+    }
+
+    await room.localParticipant.setMicrophoneEnabled(false);
+    setMicrophoneEnabled(false);
+  }, [
+    applyVoiceEffect,
+    microphoneEnabled,
+    refreshDevices,
+    selectedInputDeviceId,
+    session?.connection.canPublishMedia,
+  ]);
+
+  const toggleCamera = useCallback(async () => {
     const room = roomRef.current;
 
     if (!room || !session?.connection.canPublishMedia) {
@@ -445,9 +946,9 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
 
     await room.localParticipant.setCameraEnabled(!cameraEnabled);
     setCameraEnabled(!cameraEnabled);
-  }
+  }, [cameraEnabled, session?.connection.canPublishMedia]);
 
-  async function toggleScreenShare() {
+  const toggleScreenShare = useCallback(async () => {
     const room = roomRef.current;
 
     if (!room || !session?.connection.canPublishMedia) {
@@ -456,19 +957,18 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
 
     await room.localParticipant.setScreenShareEnabled(!screenShareEnabled);
     setScreenShareEnabled(!screenShareEnabled);
-  }
+  }, [screenShareEnabled, session?.connection.canPublishMedia]);
 
   const participantCount = useMemo(() => {
     if (!session) {
       return 0;
     }
 
-    const trackParticipantCount = new Set(
-      tracks.map((item) => item.participantName),
-    ).size;
+    const connectedBySnapshot = participants.filter((participant) => participant.isConnected)
+      .length;
 
-    return Math.max(trackParticipantCount, getConnectedParticipantCount(session.call), 1);
-  }, [session, tracks]);
+    return Math.max(connectedBySnapshot, getConnectedParticipantCount(session.call), 1);
+  }, [participants, session]);
 
   const value = useMemo<CallSessionContextValue>(
     () => ({
@@ -476,10 +976,19 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       status,
       errorMessage,
       tracks,
+      participants,
       participantCount,
       microphoneEnabled,
       cameraEnabled,
       screenShareEnabled,
+      inputDevices,
+      outputDevices,
+      selectedInputDeviceId,
+      selectedOutputDeviceId,
+      outputSelectionSupported,
+      deviceError,
+      voiceEffect,
+      effectError,
       connectToCall,
       syncCall,
       isActiveCall,
@@ -488,16 +997,28 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       toggleMicrophone,
       toggleCamera,
       toggleScreenShare,
+      setInputDevice,
+      setOutputDevice,
+      setVoiceEffect,
     }),
     [
       session,
       status,
       errorMessage,
       tracks,
+      participants,
       participantCount,
       microphoneEnabled,
       cameraEnabled,
       screenShareEnabled,
+      inputDevices,
+      outputDevices,
+      selectedInputDeviceId,
+      selectedOutputDeviceId,
+      outputSelectionSupported,
+      deviceError,
+      voiceEffect,
+      effectError,
       connectToCall,
       syncCall,
       isActiveCall,
@@ -506,11 +1027,17 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       toggleMicrophone,
       toggleCamera,
       toggleScreenShare,
+      setInputDevice,
+      setOutputDevice,
+      setVoiceEffect,
     ],
   );
 
   return (
-    <CallSessionContext.Provider value={value}>{children}</CallSessionContext.Provider>
+    <CallSessionContext.Provider value={value}>
+      {children}
+      <PersistentAudioSink />
+    </CallSessionContext.Provider>
   );
 }
 
@@ -522,6 +1049,125 @@ export function useCallSession() {
   }
 
   return value;
+}
+
+function AvatarOrInitials({
+  user,
+  name,
+  size = "sm",
+}: {
+  user: PublicUser | null;
+  name: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  if (user) {
+    return <UserAvatar user={user} size={size} />;
+  }
+
+  const sizeClasses = {
+    sm: "h-8 w-8 text-[10px]",
+    md: "h-9 w-9 text-[11px]",
+    lg: "h-12 w-12 text-sm",
+  } as const;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center rounded-full border border-white/8 bg-white/6 font-semibold uppercase tracking-[0.06em] text-white",
+        sizeClasses[size],
+      )}
+    >
+      {getParticipantInitials(name)}
+    </div>
+  );
+}
+
+function PersistentAudioSink() {
+  const { session, tracks, selectedOutputDeviceId } = useCallSession();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const attachedElementsRef = useRef(
+    new Map<string, { element: HTMLAudioElement; track: Track }>(),
+  );
+
+  const remoteAudioTracks = tracks.filter((item) => item.kind === "audio" && !item.isLocal);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !session) {
+      return;
+    }
+
+    let cancelled = false;
+    const activeTrackIds = new Set(remoteAudioTracks.map((track) => track.id));
+
+    void (async () => {
+      for (const [trackId, attachment] of attachedElementsRef.current.entries()) {
+        if (activeTrackIds.has(trackId)) {
+          continue;
+        }
+
+        attachment.track.detach(attachment.element);
+        attachment.element.remove();
+        attachedElementsRef.current.delete(trackId);
+      }
+
+      for (const item of remoteAudioTracks) {
+        if (cancelled) {
+          return;
+        }
+
+        const existingAttachment = attachedElementsRef.current.get(item.id);
+
+        if (!existingAttachment) {
+          const element = document.createElement("audio");
+          element.autoplay = true;
+          element.setAttribute("playsinline", "true");
+          element.className = "hidden";
+          await applySinkIdToAudioElement(element, selectedOutputDeviceId).catch(
+            () => undefined,
+          );
+          item.track.attach(element);
+          container.appendChild(element);
+          void element.play().catch(() => undefined);
+          attachedElementsRef.current.set(item.id, { element, track: item.track });
+          continue;
+        }
+
+        if (existingAttachment.track !== item.track) {
+          existingAttachment.track.detach(existingAttachment.element);
+          item.track.attach(existingAttachment.element);
+          attachedElementsRef.current.set(item.id, {
+            element: existingAttachment.element,
+            track: item.track,
+          });
+        }
+
+        await applySinkIdToAudioElement(
+          existingAttachment.element,
+          selectedOutputDeviceId,
+        ).catch(() => undefined);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [remoteAudioTracks, selectedOutputDeviceId, session]);
+
+  useEffect(() => {
+    if (session) {
+      return;
+    }
+
+    for (const attachment of attachedElementsRef.current.values()) {
+      attachment.track.detach(attachment.element);
+      attachment.element.remove();
+    }
+
+    attachedElementsRef.current.clear();
+  }, [session]);
+
+  return <div ref={containerRef} className="hidden" aria-hidden="true" />;
 }
 
 function TrackSurface({
