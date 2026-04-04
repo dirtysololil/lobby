@@ -383,6 +383,12 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
   const roomRef = useRef<Room | null>(null);
   const desiredVoiceEffectRef = useRef<VoiceEffectPreset>("normal");
   const audioContextRef = useRef<AudioContext | null>(null);
+  const sessionRef = useRef<ActiveCallSession | null>(null);
+  const statusRef = useRef<CallConnectionStatus>("idle");
+  const selectedInputDeviceIdRef = useRef<string | null>(null);
+  const selectedOutputDeviceIdRef = useRef<string | null>(null);
+  const roomStateSyncRef = useRef<(() => void) | null>(null);
+  const pendingConnectCallIdRef = useRef<string | null>(null);
   const [session, setSession] = useState<ActiveCallSession | null>(null);
   const [status, setStatus] = useState<CallConnectionStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -403,6 +409,41 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
   const [voiceEffect, setVoiceEffectState] = useState<VoiceEffectPreset>("normal");
   const [effectError, setEffectError] = useState<string | null>(null);
   const outputSelectionSupported = useMemo(() => supportsAudioOutputSelection(), []);
+  const connectionKey = useMemo(() => {
+    if (!session) {
+      return null;
+    }
+
+    return [
+      session.call.id,
+      session.connection.callId,
+      session.connection.url,
+      session.connection.roomName,
+      session.connection.token,
+    ].join(":");
+  }, [
+    session?.call.id,
+    session?.connection.callId,
+    session?.connection.roomName,
+    session?.connection.token,
+    session?.connection.url,
+  ]);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    selectedInputDeviceIdRef.current = selectedInputDeviceId;
+  }, [selectedInputDeviceId]);
+
+  useEffect(() => {
+    selectedOutputDeviceIdRef.current = selectedOutputDeviceId;
+  }, [selectedOutputDeviceId]);
 
   const clearRoomSnapshot = useCallback((nextStatus: CallConnectionStatus = "idle") => {
     setStatus(nextStatus);
@@ -431,6 +472,8 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
           return current;
         }
 
+        pendingConnectCallIdRef.current = null;
+        roomStateSyncRef.current = null;
         roomRef.current?.disconnect();
         roomRef.current = null;
         clearRoomSnapshot();
@@ -442,7 +485,13 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
 
   const connectToCall = useCallback(
     async (request: CallConnectRequest) => {
-      if (session?.call.id === request.callId && roomRef.current) {
+      const currentSession = sessionRef.current;
+      const sameCall = currentSession?.call.id === request.callId;
+      const connectionInProgress = ["connecting", "connected", "reconnecting"].includes(
+        statusRef.current,
+      );
+
+      if (sameCall && (roomRef.current || connectionInProgress)) {
         setSession((current) =>
           current && current.call.id === request.callId
             ? {
@@ -458,21 +507,33 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const payload = await apiClientFetch(`/v1/calls/${request.callId}/token`, {
-        method: "POST",
-      });
-      const parsed = callTokenResponseSchema.parse(payload);
+      if (pendingConnectCallIdRef.current === request.callId) {
+        return;
+      }
 
-      setSession({
-        scope: request.scope,
-        route: request.route,
-        title: request.title,
-        subtitle: request.subtitle,
-        call: request.call ?? parsed.call,
-        connection: parsed.connection,
-      });
+      pendingConnectCallIdRef.current = request.callId;
+
+      try {
+        const payload = await apiClientFetch(`/v1/calls/${request.callId}/token`, {
+          method: "POST",
+        });
+        const parsed = callTokenResponseSchema.parse(payload);
+
+        setSession({
+          scope: request.scope,
+          route: request.route,
+          title: request.title,
+          subtitle: request.subtitle,
+          call: request.call ?? parsed.call,
+          connection: parsed.connection,
+        });
+      } finally {
+        if (pendingConnectCallIdRef.current === request.callId) {
+          pendingConnectCallIdRef.current = null;
+        }
+      }
     },
-    [session?.call.id],
+    [],
   );
 
   const syncCall = useCallback(
@@ -568,7 +629,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
         const microphoneTrack = getLocalMicrophoneTrack(currentRoom);
         const activeInputDeviceId =
           (await microphoneTrack?.getDeviceId(true).catch(() => undefined)) ??
-          selectedInputDeviceId ??
+          selectedInputDeviceIdRef.current ??
           nextInputs[0]?.deviceId ??
           null;
 
@@ -587,7 +648,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
         );
       }
     },
-    [outputSelectionSupported, selectedInputDeviceId],
+    [outputSelectionSupported],
   );
 
   const applyVoiceEffect = useCallback(
@@ -714,7 +775,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (!latestSignal || !session || latestSignal.call.id !== session.call.id) {
+    if (!latestSignal || !session?.call.id || latestSignal.call.id !== session.call.id) {
       return;
     }
 
@@ -731,17 +792,25 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
           }
         : current,
     );
-  }, [dismissCall, latestSignal, session]);
+  }, [dismissCall, latestSignal, session?.call.id]);
 
   useEffect(() => {
-    if (!session) {
+    if (!connectionKey) {
+      roomStateSyncRef.current = null;
       roomRef.current?.disconnect();
       roomRef.current = null;
       clearRoomSnapshot();
       return;
     }
 
-    const activeSession = session;
+    const activeSession = sessionRef.current;
+    if (!activeSession) {
+      return;
+    }
+
+    const activeSessionCallId = activeSession.call.id;
+    const activeSessionMode = activeSession.call.mode;
+    const activeSessionConnection = activeSession.connection;
     let isCancelled = false;
     const nextRoom = new Room({ adaptiveStream: true, dynacast: true });
     roomRef.current = nextRoom;
@@ -753,13 +822,20 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const currentSession = sessionRef.current;
+      if (!currentSession || currentSession.call.id !== activeSessionCallId) {
+        return;
+      }
+
       const snapshot = collectTrackViews(nextRoom);
       setTracks(snapshot.items);
-      setParticipants(collectParticipantViews(nextRoom, activeSession.call));
+      setParticipants(collectParticipantViews(nextRoom, currentSession.call));
       setMicrophoneEnabled(snapshot.hasMicrophone);
       setCameraEnabled(snapshot.hasCamera);
       setScreenShareEnabled(snapshot.hasScreenShare);
     }
+
+    roomStateSyncRef.current = syncRoomState;
 
     const trackedEvents = [
       RoomEvent.Connected,
@@ -822,30 +898,30 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         await nextRoom.connect(
-          activeSession.connection.url,
-          activeSession.connection.token,
+          activeSessionConnection.url,
+          activeSessionConnection.token,
         );
         await nextRoom.startAudio().catch(() => undefined);
 
-        if (selectedOutputDeviceId && outputSelectionSupported) {
+        if (selectedOutputDeviceIdRef.current && outputSelectionSupported) {
           await nextRoom
-            .switchActiveDevice("audiooutput", selectedOutputDeviceId)
+            .switchActiveDevice("audiooutput", selectedOutputDeviceIdRef.current)
             .catch(() => false);
         }
 
-        if (activeSession.connection.canPublishMedia) {
+        if (activeSessionConnection.canPublishMedia) {
           try {
             await nextRoom.localParticipant.setMicrophoneEnabled(
               true,
-              selectedInputDeviceId
-                ? { deviceId: { exact: selectedInputDeviceId } }
+              selectedInputDeviceIdRef.current
+                ? { deviceId: { exact: selectedInputDeviceIdRef.current } }
                 : undefined,
             );
           } catch {
             await nextRoom.localParticipant.setMicrophoneEnabled(true);
           }
 
-          if (activeSession.call.mode === "VIDEO") {
+          if (activeSessionMode === "VIDEO") {
             await nextRoom.localParticipant.setCameraEnabled(true);
           }
         }
@@ -879,6 +955,9 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       nextRoom.off(RoomEvent.LocalTrackPublished, handleLocalTrackChanged);
       nextRoom.off(RoomEvent.LocalTrackUnpublished, handleLocalTrackChanged);
       nextRoom.off(RoomEvent.MediaDevicesChanged, handleMediaDevicesChanged);
+      if (roomStateSyncRef.current === syncRoomState) {
+        roomStateSyncRef.current = null;
+      }
       nextRoom.disconnect();
       if (roomRef.current === nextRoom) {
         roomRef.current = null;
@@ -887,12 +966,14 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
   }, [
     applyVoiceEffect,
     clearRoomSnapshot,
+    connectionKey,
     outputSelectionSupported,
     refreshDevices,
-    selectedInputDeviceId,
-    selectedOutputDeviceId,
-    session,
   ]);
+
+  useEffect(() => {
+    roomStateSyncRef.current?.();
+  }, [session?.call]);
 
   useEffect(() => {
     return () => {
