@@ -51,7 +51,8 @@ function getPresenceTone(presence: string | null | undefined) {
 function stripConversationMessages(
   conversation: DirectConversationDetail["conversation"],
 ): ConversationState {
-  const { messages: _messages, ...meta } = conversation;
+  const { messages: hiddenMessages, ...meta } = conversation;
+  void hiddenMessages;
   return meta;
 }
 
@@ -206,6 +207,8 @@ export function ConversationView({
         error instanceof Error ? error.message : "Не удалось загрузить диалог.",
       );
     }
+  // markConversationAsRead is intentionally called from the initial load flow.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, viewerId]);
 
   const markConversationAsRead = useCallback(

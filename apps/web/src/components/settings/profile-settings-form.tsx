@@ -11,6 +11,13 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import {
+  CompactList,
+  CompactListCount,
+  CompactListHeader,
+  CompactListRow,
+} from "@/components/ui/compact-list";
+import { SelectField } from "@/components/ui/select-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,9 +121,7 @@ export function ProfileSettingsForm({
       router.refresh();
     } catch (uploadError) {
       setError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "Unable to upload avatar.",
+        uploadError instanceof Error ? uploadError.message : "Unable to upload avatar.",
       );
     } finally {
       setIsUploadingAvatar(false);
@@ -136,9 +141,7 @@ export function ProfileSettingsForm({
       router.refresh();
     } catch (removeError) {
       setError(
-        removeError instanceof Error
-          ? removeError.message
-          : "Unable to remove avatar.",
+        removeError instanceof Error ? removeError.message : "Unable to remove avatar.",
       );
     } finally {
       setIsRemovingAvatar(false);
@@ -146,143 +149,166 @@ export function ProfileSettingsForm({
   }
 
   return (
-    <section className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <div className="premium-panel rounded-[26px] p-5">
+    <section className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <aside className="premium-panel rounded-[22px] p-4">
         <p className="section-kicker">Identity</p>
-        <div className="mt-4 rounded-[24px] border border-white/6 bg-[linear-gradient(180deg,rgba(106,168,248,0.14),transparent_38%),rgba(20,29,40,0.86)] px-5 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="mt-3 flex items-center gap-3">
           <UserAvatar user={viewer} size="lg" />
-          <p className="mt-4 text-lg font-semibold text-white">
-            {viewer.profile.displayName}
-          </p>
-          <p className="mt-1 text-sm text-[var(--text-soft)]">@{viewer.username}</p>
-          <p className="mt-4 text-sm leading-6 text-[var(--text-dim)]">
-            Upload PNG, JPEG, WEBP or GIF up to {maxAvatarMb} MB, {maxAvatarDimension}
-            px and {Math.floor(maxAvatarAnimationMs / 1000)} seconds.
-          </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <span className="status-pill">
-              <ShieldCheck size={18} strokeWidth={1.5} className="text-[var(--success)]" />
-              Public identity
-            </span>
-            <span className="status-pill">
-              <Sparkles size={18} strokeWidth={1.5} className="text-[var(--accent)]" />
-              {presetLabels[viewer.profile.avatarPreset]}
-            </span>
-          </div>
-          <div className="mt-5 grid gap-2">
-            <label className="surface-subtle cursor-pointer rounded-[18px] px-4 py-3 text-sm text-white transition hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className="hidden"
-                onChange={(event) =>
-                  void handleAvatarUpload(event.target.files?.[0] ?? null)
-                }
-                disabled={isUploadingAvatar}
-              />
-              <span className="inline-flex items-center gap-2">
-                <Camera size={18} strokeWidth={1.5} />
-                {isUploadingAvatar ? "Uploading avatar..." : "Upload avatar"}
-              </span>
-            </label>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => void handleAvatarRemove()}
-              disabled={!viewer.profile.avatar.fileKey || isRemovingAvatar}
-            >
-              {isRemovingAvatar ? "Removing..." : "Remove avatar"}
-            </Button>
+          <div className="min-w-0">
+            <p className="truncate text-base font-semibold tracking-tight text-white">
+              {viewer.profile.displayName}
+            </p>
+            <p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
+              @{viewer.username}
+            </p>
+            <p className="mt-1 text-sm text-[var(--text-dim)]">
+              {viewer.profile.bio?.trim() || "Add a short bio to show up cleanly in people and DM surfaces."}
+            </p>
           </div>
         </div>
-      </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="status-pill">
+            <ShieldCheck size={16} strokeWidth={1.5} className="text-[var(--success)]" />
+            Public identity
+          </span>
+          <span className="status-pill">
+            <Sparkles size={16} strokeWidth={1.5} className="text-[var(--accent)]" />
+            {presetLabels[viewer.profile.avatarPreset]}
+          </span>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--border-soft)]">
+          <CompactListHeader className="bg-white/[0.02]">
+            <span>Avatar limits</span>
+            <CompactListCount>Live</CompactListCount>
+          </CompactListHeader>
+          <CompactList>
+            <CompactListRow compact className="text-left">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-white">File size</p>
+                <p className="text-xs text-[var(--text-muted)]">PNG, JPG, WEBP or GIF</p>
+              </div>
+              <CompactListCount>{maxAvatarMb} MB</CompactListCount>
+            </CompactListRow>
+            <CompactListRow compact className="text-left">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-white">Max dimension</p>
+                <p className="text-xs text-[var(--text-muted)]">Keeps avatar rows crisp</p>
+              </div>
+              <CompactListCount>{maxAvatarDimension}px</CompactListCount>
+            </CompactListRow>
+            <CompactListRow compact className="text-left">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-white">Animation</p>
+                <p className="text-xs text-[var(--text-muted)]">For animated GIF uploads</p>
+              </div>
+              <CompactListCount>{Math.floor(maxAvatarAnimationMs / 1000)}s</CompactListCount>
+            </CompactListRow>
+          </CompactList>
+        </div>
+
+        <div className="mt-4 grid gap-2">
+          <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-[var(--border)] bg-white/[0.05] px-3 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(event) => void handleAvatarUpload(event.target.files?.[0] ?? null)}
+              disabled={isUploadingAvatar}
+            />
+            <Camera size={16} strokeWidth={1.5} />
+            {isUploadingAvatar ? "Uploading avatar..." : "Upload avatar"}
+          </label>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => void handleAvatarRemove()}
+            disabled={!viewer.profile.avatar.fileKey || isRemovingAvatar}
+            className="h-10"
+          >
+            {isRemovingAvatar ? "Removing..." : "Remove avatar"}
+          </Button>
+        </div>
+      </aside>
 
       <form
-        className="premium-panel rounded-[26px] p-5"
+        className="premium-panel overflow-hidden rounded-[22px]"
         onSubmit={form.handleSubmit((values) => void onSubmit(values))}
       >
-        <div className="flex flex-col gap-2">
+        <div className="border-b border-[var(--border-soft)] px-4 py-4">
           <p className="section-kicker">Profile settings</p>
-          <p className="text-sm leading-6 text-[var(--text-dim)]">
-            This identity is used across DMs, people surfaces and hubs.
+          <p className="mt-1 text-sm text-[var(--text-dim)]">
+            These values flow directly into DM headers, people rows, hub members, and
+            other identity surfaces.
           </p>
         </div>
 
-        <div className="mt-5 grid gap-4">
-          <div className="surface-subtle rounded-[18px] p-4">
+        <div className="grid">
+          <div className="border-b border-[var(--border-soft)] px-4 py-3">
             <div className="grid gap-2">
               <Label htmlFor="displayName">Display name</Label>
-              <Input id="displayName" {...form.register("displayName")} />
+              <Input id="displayName" {...form.register("displayName")} className="h-10" />
+              {form.formState.errors.displayName ? (
+                <p className="text-sm text-rose-200">
+                  {form.formState.errors.displayName.message}
+                </p>
+              ) : null}
             </div>
-            {form.formState.errors.displayName ? (
-              <p className="text-sm text-rose-200">
-                {form.formState.errors.displayName.message}
-              </p>
-            ) : null}
           </div>
 
-          <div className="surface-subtle rounded-[18px] p-4">
+          <div className="border-b border-[var(--border-soft)] px-4 py-3">
             <div className="grid gap-2">
               <Label htmlFor="bio">Bio</Label>
               <textarea
                 id="bio"
                 rows={4}
-                className="field-textarea min-h-[124px]"
+                className="field-textarea min-h-[108px] text-sm"
                 {...form.register("bio")}
               />
-            </div>
-            {form.formState.errors.bio ? (
-              <p className="text-sm text-rose-200">
-                {form.formState.errors.bio.message}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="surface-subtle rounded-[18px] p-4">
-            <div className="grid gap-4 lg:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="presence">Presence</Label>
-              <select
-                id="presence"
-                className="field-select text-sm"
-                {...form.register("presence")}
-              >
-                {presenceOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {presenceLabels[option]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="avatarPreset">Avatar style</Label>
-              <select
-                id="avatarPreset"
-                className="field-select text-sm"
-                {...form.register("avatarPreset")}
-              >
-                {presetOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {presetLabels[option]}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {form.formState.errors.bio ? (
+                <p className="text-sm text-rose-200">{form.formState.errors.bio.message}</p>
+              ) : null}
             </div>
           </div>
 
-          <div className="surface-subtle rounded-[18px] px-4 py-3 text-sm leading-6 text-[var(--text-dim)]">
-            Changes propagate directly into DM headers, people rows and hub membership
-            surfaces.
+          <div className="border-b border-[var(--border-soft)] px-4 py-3">
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="presence">Presence</Label>
+                <SelectField id="presence" {...form.register("presence")}>
+                  {presenceOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {presenceLabels[option]}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="avatarPreset">Avatar style</Label>
+                <SelectField id="avatarPreset" {...form.register("avatarPreset")}>
+                  {presetOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {presetLabels[option]}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-4 py-3 text-sm leading-6 text-[var(--text-dim)]">
+            Keep this tight and readable. The best profile state here is one that already
+            looks right in rows, not one that only works inside a big settings form.
           </div>
         </div>
 
-        {error ? <p className="mt-5 text-sm text-rose-200">{error}</p> : null}
-        {message ? <p className="mt-5 text-sm text-emerald-200">{message}</p> : null}
+        {error ? <p className="px-4 pb-1 text-sm text-rose-200">{error}</p> : null}
+        {message ? <p className="px-4 pb-1 text-sm text-emerald-200">{message}</p> : null}
 
-        <div className="mt-5 flex flex-wrap gap-2.5">
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+        <div className="flex flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3">
+          <Button type="submit" disabled={form.formState.isSubmitting} className="h-10">
             {form.formState.isSubmitting ? "Saving..." : "Save profile"}
           </Button>
           <Button
@@ -290,6 +316,7 @@ export function ProfileSettingsForm({
             variant="secondary"
             onClick={() => form.reset()}
             disabled={form.formState.isSubmitting}
+            className="h-10"
           >
             Reset
           </Button>

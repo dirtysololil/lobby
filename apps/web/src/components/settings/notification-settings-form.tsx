@@ -11,8 +11,16 @@ import type {
 } from "@lobby/shared";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  CompactList,
+  CompactListCount,
+  CompactListHeader,
+  CompactListMeta,
+  CompactListRow,
+} from "@/components/ui/compact-list";
+import { SelectField } from "@/components/ui/select-field";
+import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
 
 interface NotificationSettingsFormProps {
@@ -87,9 +95,7 @@ export function NotificationSettingsForm({
       router.refresh();
     } catch (saveError) {
       setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Unable to update the hub rule.",
+        saveError instanceof Error ? saveError.message : "Unable to update the hub rule.",
       );
     }
   }
@@ -122,54 +128,54 @@ export function NotificationSettingsForm({
   }
 
   return (
-    <div className="grid gap-4">
-      <section className="premium-panel rounded-[24px] p-5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <p className="section-kicker">Defaults</p>
-            <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-              Set the baseline notification behavior for new DMs, hubs and lobbies.
-            </p>
+    <div className="grid gap-3">
+      <section className="premium-panel overflow-hidden rounded-[22px]">
+        <div className="border-b border-[var(--border-soft)] px-4 py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <CompactListMeta>
+              <BellRing size={14} strokeWidth={1.5} />
+              Defaults
+            </CompactListMeta>
+            <CompactListMeta>Communication baseline</CompactListMeta>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="status-pill">
-              <BellRing size={18} strokeWidth={1.5} />
-              Communication defaults
-            </span>
-          </div>
+          <p className="mt-2 text-sm text-[var(--text-dim)]">
+            Set the fallback behavior for new DMs, hubs, and lobbies before any local
+            overrides kick in.
+          </p>
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        <CompactList>
           {[
             {
               key: "dmNotificationDefault" as const,
               label: "Direct messages",
-              description: "Applied when a brand-new DM thread is opened.",
+              description: "Used when a brand-new DM thread opens.",
               icon: BellRing,
             },
             {
               key: "hubNotificationDefault" as const,
               label: "Hubs",
-              description: "Baseline rule for a new hub membership.",
+              description: "Base rule for a newly joined hub.",
               icon: Layers3,
             },
             {
               key: "lobbyNotificationDefault" as const,
               label: "Lobbies",
-              description: "Fallback for lobby-level overrides inside a hub.",
+              description: "Fallback for lobby-level overrides.",
               icon: Volume2,
             },
           ].map((item) => (
-            <div key={item.key} className="surface-subtle rounded-[20px] p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white/5 text-[var(--accent)]">
-                <item.icon size={18} strokeWidth={1.5} />
+            <CompactListRow key={item.key} className="gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white/[0.04] text-[var(--accent)]">
+                <item.icon size={16} strokeWidth={1.5} />
               </div>
-              <p className="mt-4 text-sm font-medium text-white">{item.label}</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-                {item.description}
-              </p>
-              <select
-                className="field-select mt-4 text-sm"
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-white">{item.label}</p>
+                <p className="text-xs text-[var(--text-muted)]">{item.description}</p>
+              </div>
+              <SelectField
+                className="text-sm"
+                shellClassName="w-full max-w-[220px]"
                 value={defaults[item.key]}
                 onChange={(event) =>
                   setDefaults((current) => ({
@@ -183,55 +189,54 @@ export function NotificationSettingsForm({
                     {notificationLabels[option]}
                   </option>
                 ))}
-              </select>
-            </div>
+              </SelectField>
+            </CompactListRow>
           ))}
-        </div>
+        </CompactList>
 
-        <div className="mt-5 flex flex-wrap gap-2.5">
-          <Button onClick={() => void saveDefaults()} disabled={isSavingDefaults}>
+        <div className="flex flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3">
+          <Button onClick={() => void saveDefaults()} disabled={isSavingDefaults} className="h-10">
             {isSavingDefaults ? "Saving..." : "Save defaults"}
           </Button>
-          <Button type="button" variant="secondary" onClick={() => router.refresh()}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => router.refresh()}
+            className="h-10"
+          >
             Refresh
           </Button>
         </div>
-        {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
-        {message ? <p className="mt-4 text-sm text-emerald-200">{message}</p> : null}
       </section>
 
-      <section className="premium-panel rounded-[24px] p-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="section-kicker">Hub rules</p>
-          <span className="status-pill">{initialSettings.hubs.length} hubs</span>
-        </div>
+      <section className="premium-panel overflow-hidden rounded-[22px]">
+        <CompactListHeader className="border-b border-[var(--border-soft)] px-4 py-3">
+          <span>Hub rules</span>
+          <CompactListCount>{initialSettings.hubs.length}</CompactListCount>
+        </CompactListHeader>
 
-        <div className="mt-4 grid gap-2">
-          {initialSettings.hubs.length === 0 ? (
-            <EmptyState
-              title="No joined hubs"
-              description="Hub-level notification rules appear once you have access to a hub."
-            />
-          ) : (
-            initialSettings.hubs.map((hub) => (
-              <div
-                key={hub.hubId}
-                className="flex flex-col gap-3 rounded-[18px] border border-white/6 bg-white/[0.02] px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-white">{hub.hubName}</p>
-                  <p className="mt-1 text-sm text-[var(--text-dim)]">
-                    Base rule for spaces inside this hub.
+        {initialSettings.hubs.length === 0 ? (
+          <EmptyState
+            title="No joined hubs"
+            description="Hub-level notification rules appear after you join a space."
+            className="min-h-[160px]"
+          />
+        ) : (
+          <CompactList>
+            {initialSettings.hubs.map((hub) => (
+              <CompactListRow key={hub.hubId} compact className="gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-white">{hub.hubName}</p>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Base rule for channels inside this hub.
                   </p>
                 </div>
-                <select
-                  className="field-select max-w-[220px] text-sm"
+                <SelectField
+                  className="text-sm"
+                  shellClassName="w-full max-w-[220px]"
                   defaultValue={hub.setting}
                   onChange={(event) =>
-                    void updateHubSetting(
-                      hub.hubId,
-                      event.target.value as NotificationSetting,
-                    )
+                    void updateHubSetting(hub.hubId, event.target.value as NotificationSetting)
                   }
                 >
                   {notificationOptions.map((option) => (
@@ -239,43 +244,42 @@ export function NotificationSettingsForm({
                       {notificationLabels[option]}
                     </option>
                   ))}
-                </select>
-              </div>
-            ))
-          )}
-        </div>
+                </SelectField>
+              </CompactListRow>
+            ))}
+          </CompactList>
+        )}
       </section>
 
-      <section className="premium-panel rounded-[24px] p-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="section-kicker">Lobby overrides</p>
-          <span className="status-pill">{initialSettings.lobbies.length} lobbies</span>
-        </div>
+      <section className="premium-panel overflow-hidden rounded-[22px]">
+        <CompactListHeader className="border-b border-[var(--border-soft)] px-4 py-3">
+          <span>Lobby overrides</span>
+          <CompactListCount>{initialSettings.lobbies.length}</CompactListCount>
+        </CompactListHeader>
 
-        <div className="mt-4 grid gap-2">
-          {initialSettings.lobbies.length === 0 ? (
-            <EmptyState
-              title="No lobby overrides yet"
-              description="Lobby-specific notification rules appear after you join hubs with accessible spaces."
-            />
-          ) : (
-            initialSettings.lobbies.map((lobby) => (
-              <div
-                key={lobby.lobbyId}
-                className="flex flex-col gap-3 rounded-[18px] border border-white/6 bg-white/[0.02] px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-white">
+        {initialSettings.lobbies.length === 0 ? (
+          <EmptyState
+            title="No lobby overrides yet"
+            description="Lobby-specific rules appear after you join hubs with accessible spaces."
+            className="min-h-[160px]"
+          />
+        ) : (
+          <CompactList>
+            {initialSettings.lobbies.map((lobby) => (
+              <CompactListRow key={lobby.lobbyId} compact className="gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-white">
                     {lobby.hubName} / {lobby.lobbyName}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--text-dim)]">
+                  <p className="text-xs text-[var(--text-muted)]">
                     {lobby.inherited
                       ? "Currently inheriting the hub rule."
                       : "This lobby has its own override."}
                   </p>
                 </div>
-                <select
-                  className="field-select max-w-[220px] text-sm"
+                <SelectField
+                  className="text-sm"
+                  shellClassName="w-full max-w-[220px]"
                   defaultValue={lobby.setting}
                   onChange={(event) =>
                     void updateLobbySetting(
@@ -290,19 +294,22 @@ export function NotificationSettingsForm({
                       {notificationLabels[option]}
                     </option>
                   ))}
-                </select>
-              </div>
-            ))
-          )}
-        </div>
+                </SelectField>
+              </CompactListRow>
+            ))}
+          </CompactList>
+        )}
 
-        <div className="surface-subtle mt-5 rounded-[18px] px-4 py-3 text-sm leading-6 text-[var(--text-dim)]">
+        <div className="border-t border-[var(--border-soft)] px-4 py-3 text-sm text-[var(--text-dim)]">
           <span className="inline-flex items-center gap-2 text-white">
-            <Sparkles size={18} strokeWidth={1.5} className="text-[var(--accent)]" />
-            DM, hub and lobby rules can be tuned independently.
+            <Sparkles size={16} strokeWidth={1.5} className="text-[var(--accent)]" />
+            DM, hub, and lobby rules can stay independent without bloating the UI.
           </span>
         </div>
       </section>
+
+      {error ? <p className="text-sm text-rose-200">{error}</p> : null}
+      {message ? <p className="text-sm text-emerald-200">{message}</p> : null}
     </div>
   );
 }

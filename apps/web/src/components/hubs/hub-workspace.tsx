@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { LockKeyhole, Plus, Waves } from "lucide-react";
 import {
   hubListResponseSchema,
@@ -10,6 +9,14 @@ import {
   type HubSummary,
 } from "@lobby/shared";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  CompactList,
+  CompactListCount,
+  CompactListHeader,
+  CompactListLink,
+  CompactListMeta,
+  CompactListRow,
+} from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiClientFetch } from "@/lib/api-client";
@@ -20,29 +27,6 @@ const roleLabels: Record<string, string> = {
   MODERATOR: "Moderator",
   MEMBER: "Member",
 };
-
-function CountBadge({ value }: { value: number | string }) {
-  return (
-    <span className="inline-flex min-h-5 items-center rounded-full bg-[var(--bg-panel-soft)] px-2 text-[11px] font-medium text-[var(--text-dim)]">
-      {value}
-    </span>
-  );
-}
-
-function SectionHeader({
-  title,
-  count,
-}: {
-  title: string;
-  count: number;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-dim)]">
-      <span>{title}</span>
-      <CountBadge value={count} />
-    </div>
-  );
-}
 
 function EmptyView({
   title,
@@ -82,9 +66,7 @@ export function HubWorkspace() {
       setInvites(viewerHubInvitesResponseSchema.parse(invitesPayload).items);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to load hubs.",
-      );
+      setErrorMessage(error instanceof Error ? error.message : "Unable to load hubs.");
     }
   }, []);
 
@@ -115,9 +97,7 @@ export function HubWorkspace() {
       setIsPrivate(false);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to create hub.",
-      );
+      setErrorMessage(error instanceof Error ? error.message : "Unable to create hub.");
     } finally {
       setIsSubmitting(false);
     }
@@ -134,28 +114,24 @@ export function HubWorkspace() {
       await loadWorkspace();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to process the invite.",
+        error instanceof Error ? error.message : "Unable to process the invite.",
       );
     }
   }
 
   return (
-    <section className="grid h-full min-h-0 overflow-hidden p-3 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="flex min-h-0 flex-col">
-        <div className="border-b border-[var(--border)] px-3 py-3">
+    <section className="grid h-full min-h-0 grid-cols-1 gap-3 overflow-hidden px-3 py-3 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-[var(--border-soft)]">
+        <div className="border-b border-[var(--border-soft)] px-4 py-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="eyebrow-pill">
-              <Waves className="h-[18px] w-[18px]" />
+            <CompactListMeta>
+              <Waves size={14} strokeWidth={1.5} />
               Hubs
-            </span>
-            <span className="status-pill">{hubs.length} spaces</span>
-            {invites.length > 0 ? (
-              <span className="status-pill">{invites.length} invites</span>
-            ) : null}
+            </CompactListMeta>
+            <CompactListMeta>{hubs.length} spaces</CompactListMeta>
+            {invites.length > 0 ? <CompactListMeta>{invites.length} invites</CompactListMeta> : null}
           </div>
-          <h2 className="mt-1 text-base font-semibold tracking-tight text-white">
+          <h2 className="mt-2 text-base font-semibold tracking-tight text-white">
             Shared spaces
           </h2>
         </div>
@@ -169,122 +145,130 @@ export function HubWorkspace() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {invites.length > 0 ? (
             <div>
-              <SectionHeader title="Invites" count={invites.length} />
-              {invites.map((invite) => (
-                <div
-                  key={invite.id}
-                  className="flex flex-col gap-2 border-b border-[var(--border-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-hover)] lg:flex-row lg:items-center lg:justify-between"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-medium leading-tight text-white">
-                        {invite.hub.name}
+              <CompactListHeader>
+                <span>Invites</span>
+                <CompactListCount>{invites.length}</CompactListCount>
+              </CompactListHeader>
+              <CompactList>
+                {invites.map((invite) => (
+                  <CompactListRow
+                    key={invite.id}
+                    compact
+                    className="flex-col items-stretch gap-2 lg:flex-row lg:items-center lg:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium leading-tight text-white">
+                          {invite.hub.name}
+                        </p>
+                        {invite.hub.isPrivate ? <CompactListCount>Private</CompactListCount> : null}
+                      </div>
+                      <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+                        Invited by {invite.invitedBy.profile.displayName}
                       </p>
-                      {invite.hub.isPrivate ? (
-                        <CountBadge value="Private" />
-                      ) : null}
                     </div>
-                    <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
-                      Invited by {invite.invitedBy.profile.displayName}
-                    </p>
-                  </div>
 
-                  <div className="flex flex-wrap gap-1.5">
-                    <Button
-                      size="sm"
-                      onClick={() => void handleInviteAction(invite.id, "accept")}
-                      className="h-8 px-2.5"
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => void handleInviteAction(invite.id, "decline")}
-                      className="h-8 px-2.5"
-                    >
-                      Decline
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                    <div className="flex flex-wrap gap-1.5">
+                      <Button
+                        size="sm"
+                        onClick={() => void handleInviteAction(invite.id, "accept")}
+                        className="h-8 px-2.5"
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void handleInviteAction(invite.id, "decline")}
+                        className="h-8 px-2.5"
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </CompactListRow>
+                ))}
+              </CompactList>
             </div>
           ) : null}
 
           <div>
-            <SectionHeader title="Your hubs" count={hubs.length} />
+            <CompactListHeader>
+              <span>Your hubs</span>
+              <CompactListCount>{hubs.length}</CompactListCount>
+            </CompactListHeader>
             {hubs.length === 0 ? (
               <EmptyView
                 title="No hubs yet"
                 description="Create a space or accept an invite to get started."
               />
             ) : (
-              hubs.map((hub) => (
-                <Link
-                  key={hub.id}
-                  href={`/app/hubs/${hub.id}`}
-                  className="flex items-start gap-3 border-b border-[var(--border-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-hover)]"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-panel-soft)] text-[11px] font-semibold text-white">
-                    {hub.name.slice(0, 2).toUpperCase()}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-medium leading-tight text-white">
-                        {hub.name}
+              <CompactList>
+                {hubs.map((hub) => (
+                  <CompactListLink
+                    key={hub.id}
+                    href={`/app/hubs/${hub.id}`}
+                    className="gap-3"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] bg-[var(--bg-panel-soft)] text-[10px] font-semibold text-white">
+                      {hub.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium leading-tight text-white">
+                          {hub.name}
+                        </p>
+                        <CompactListCount>
+                          {roleLabels[hub.membershipRole ?? "MEMBER"] ?? "Member"}
+                        </CompactListCount>
+                        {hub.isPrivate ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                            <LockKeyhole className="h-[16px] w-[16px]" />
+                            Private
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 truncate text-xs leading-tight text-[var(--text-dim)]">
+                        {hub.description ?? "No description yet."}
                       </p>
-                      <CountBadge
-                        value={roleLabels[hub.membershipRole ?? "MEMBER"] ?? "Member"}
-                      />
-                      {hub.isPrivate ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-[var(--text-dim)]">
-                          <LockKeyhole className="h-[18px] w-[18px]" />
-                          Private
-                        </span>
-                      ) : null}
                     </div>
-                    <p className="mt-1 truncate text-xs leading-tight text-[var(--text-dim)]">
-                      {hub.description ?? "No description yet."}
-                    </p>
-                  </div>
-                </Link>
-              ))
+                  </CompactListLink>
+                ))}
+              </CompactList>
             )}
           </div>
         </div>
       </div>
 
-      <aside className="min-h-0 overflow-y-auto rounded-[22px] border border-[var(--border)] bg-[rgba(14,21,30,0.72)] xl:border">
-        <div className="border-b border-[var(--border)] px-3 py-3">
-          <div className="flex items-center gap-2">
-            <span className="eyebrow-pill">
-              <Plus className="h-[18px] w-[18px]" />
-              New hub
-            </span>
-          </div>
-          <h3 className="mt-1 text-base font-semibold tracking-tight text-white">
-            Create space
-          </h3>
+      <aside className="premium-panel min-h-0 overflow-y-auto rounded-[22px] p-4">
+        <div className="flex items-center gap-2">
+          <CompactListMeta>
+            <Plus size={14} strokeWidth={1.5} />
+            New hub
+          </CompactListMeta>
         </div>
+        <h3 className="mt-2 text-base font-semibold tracking-tight text-white">Create space</h3>
+        <p className="mt-1 text-sm text-[var(--text-dim)]">
+          Keep it lightweight. Name it, slug it, and move into conversation.
+        </p>
 
-        <form className="grid gap-2 px-3 py-3" onSubmit={handleCreateHub}>
+        <form className="mt-4 grid gap-2" onSubmit={handleCreateHub}>
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Hub name"
-            className="h-9"
+            className="h-10"
           />
           <Input
             value={slug}
             onChange={(event) => setSlug(event.target.value)}
             placeholder="slug"
-            className="h-9"
+            className="h-10"
           />
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Short description"
-            className="field-textarea min-h-24 text-sm"
+            className="field-textarea min-h-[100px] text-sm"
           />
           <label className="field-checkbox text-sm">
             <input
@@ -294,7 +278,7 @@ export function HubWorkspace() {
             />
             Private hub
           </label>
-          <Button type="submit" disabled={isSubmitting} className="h-9 w-full">
+          <Button type="submit" disabled={isSubmitting} className="h-10 w-full">
             {isSubmitting ? "Creating..." : "Create hub"}
           </Button>
         </form>

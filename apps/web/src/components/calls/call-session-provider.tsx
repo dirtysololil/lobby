@@ -218,9 +218,6 @@ function isScreenShareTrack(item: TrackView) {
   return item.source.toLowerCase().includes("screen");
 }
 
-function isMicrophoneTrack(item: TrackView) {
-  return item.source.toLowerCase().includes("microphone");
-}
 
 function getConnectionQualityLabel(value: string) {
   return connectionQualityLabels[value] ?? "Статус неизвестен";
