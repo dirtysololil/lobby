@@ -24,6 +24,7 @@ import {
   toDirectConversationDetail,
   toDirectConversationSummary,
   toDirectMessage,
+  type MessageWithAuthor,
   type ParticipantWithUser,
 } from './direct-messages.mapper';
 

@@ -137,7 +137,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
 
   return (
     <div className="grid gap-4">
-      <section className="premium-panel rounded-[24px] p-5">
+      <section className="premium-panel rounded-[26px] p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -195,12 +195,12 @@ export function HubOverview({ hubId }: HubOverviewProps) {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid gap-4">
-          <section className="premium-panel rounded-[24px] p-4">
+          <section className="premium-panel rounded-[26px] p-4">
             <SectionTitle
               title="Channels and spaces"
               meta={<CountBadge value={hub.lobbies.length} />}
             />
-            <div className="mt-4 grid gap-2">
+            <div className="mt-4 grid gap-1.5">
               {hub.lobbies.length === 0 ? (
                 <EmptyState
                   title="No accessible spaces yet"
@@ -211,7 +211,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   <Link
                     key={lobby.id}
                     href={buildHubLobbyHref(hub.id, lobby.id, lobby.type)}
-                    className="flex min-h-14 items-start gap-3 rounded-[18px] border border-transparent px-3 py-3 transition-colors hover:border-[var(--border)] hover:bg-[var(--bg-hover)]"
+                    className="flex min-h-14 items-start gap-3 rounded-[18px] border border-transparent px-3 py-3 transition-colors hover:border-white/6 hover:bg-[var(--bg-hover)]"
                   >
                     <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--bg-panel-soft)] text-[11px] font-semibold text-white">
                       {lobby.name.slice(0, 2).toUpperCase()}
@@ -235,7 +235,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
           </section>
 
           {hub.permissions.canCreateLobby ? (
-            <section className="premium-panel rounded-[24px] p-4">
+            <section className="premium-panel rounded-[26px] p-4">
               <SectionTitle title="Create lobby" />
               <form
                 className="mt-4 grid gap-3"
@@ -320,7 +320,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
 
         <div className="grid gap-4">
           {hub.permissions.canInviteMembers ? (
-            <section className="premium-panel rounded-[24px] p-4">
+            <section className="premium-panel rounded-[26px] p-4">
               <SectionTitle
                 title="Invite member"
                 meta={<CountBadge value={`${hub.pendingInvites.length} pending`} />}
@@ -352,7 +352,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 </Button>
               </form>
 
-              <div className="mt-4 grid gap-2">
+              <div className="mt-4 grid gap-1.5">
                 {hub.pendingInvites.length === 0 ? (
                   <EmptyState
                     title="No pending invites"
@@ -362,14 +362,17 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   hub.pendingInvites.map((invite) => (
                     <div
                       key={invite.id}
-                      className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] px-3 py-3"
+                      className="flex min-h-14 items-center justify-between gap-3 rounded-[18px] border border-transparent px-3 py-3 transition-colors hover:bg-[var(--bg-hover)]"
                     >
-                      <p className="text-sm font-medium text-white">
-                        {invite.invitee.profile.displayName}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--text-dim)]">
-                        @{invite.invitee.username}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-white">
+                          {invite.invitee.profile.displayName}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+                          @{invite.invitee.username}
+                        </p>
+                      </div>
+                      <span className="glass-badge">Pending</span>
                     </div>
                   ))
                 )}
@@ -377,16 +380,16 @@ export function HubOverview({ hubId }: HubOverviewProps) {
             </section>
           ) : null}
 
-          <section className="premium-panel rounded-[24px] p-4">
+          <section className="premium-panel rounded-[26px] p-4">
             <SectionTitle title="Members" meta={<CountBadge value={hub.members.length} />} />
-            <div className="mt-4 grid gap-2">
+            <div className="mt-4 grid gap-1.5">
               {hub.members.map((member) => {
                 const roleDraft = roleDrafts[member.user.username] ?? member.role;
 
                 return (
                   <div
                     key={member.id}
-                    className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] px-3 py-3"
+                    className="rounded-[18px] border border-transparent px-3 py-3 transition-colors hover:bg-[var(--bg-hover)]"
                   >
                     <div className="flex items-start gap-3">
                       <UserAvatar user={member.user} size="sm" />
@@ -512,7 +515,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
 
           {(hub.activeMutes.length > 0 || hub.activeBans.length > 0) &&
           hub.permissions.canManageMembers ? (
-            <section className="premium-panel rounded-[24px] p-4">
+            <section className="premium-panel rounded-[26px] p-4">
               <SectionTitle
                 title="Restrictions"
                 meta={<CountBadge value={hub.activeMutes.length + hub.activeBans.length} />}
@@ -521,7 +524,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 {hub.activeMutes.map((mute) => (
                   <div
                     key={mute.id}
-                    className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] px-3 py-3"
+                    className="rounded-[18px] border border-transparent px-3 py-3 transition-colors hover:bg-[var(--bg-hover)]"
                   >
                     <p className="text-sm font-medium text-white">
                       {mute.user.profile.displayName}
@@ -550,7 +553,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 {hub.activeBans.map((ban) => (
                   <div
                     key={ban.id}
-                    className="rounded-[18px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] px-3 py-3"
+                    className="rounded-[18px] border border-transparent px-3 py-3 transition-colors hover:bg-[var(--bg-hover)]"
                   >
                     <p className="text-sm font-medium text-white">
                       {ban.user.profile.displayName}

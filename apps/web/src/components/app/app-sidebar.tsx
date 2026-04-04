@@ -63,7 +63,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
         <div className="flex items-center gap-1 md:w-full md:flex-col md:gap-2">
           <Link
             href="/app/messages"
-            className="hidden h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent)] text-sm font-semibold tracking-tight text-white md:flex"
+            className="hidden h-11 w-11 items-center justify-center rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)),rgba(106,168,248,0.18)] text-sm font-semibold tracking-tight text-white shadow-[0_12px_28px_rgba(5,10,18,0.28)] md:flex"
             aria-label="Lobby"
             title="Lobby"
           >
@@ -112,7 +112,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
                   title={hub.name}
                   aria-label={hub.name}
                   className={cn(
-                    "circle-chip flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-[10px] font-semibold text-zinc-300",
+                    "circle-chip flex h-10 w-10 items-center justify-center rounded-[16px] bg-white/5 text-[10px] font-semibold text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
                     active && "circle-chip-active bg-white/10 text-white",
                   )}
                 >
@@ -125,7 +125,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
               href="/app/hubs"
               aria-label="Open hubs"
               title="Open hubs"
-              className="circle-chip mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-zinc-400"
+              className="circle-chip mt-1 flex h-10 w-10 items-center justify-center rounded-[16px] bg-white/5 text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
             >
               <Plus {...railIconProps} />
             </Link>
@@ -161,7 +161,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
             href="/app/settings/profile"
             title="Profile"
             aria-label="Profile"
-            className="ml-1 flex items-center justify-center md:ml-0"
+            className="ml-1 flex items-center justify-center rounded-[16px] border border-transparent p-0.5 transition-colors hover:border-white/10 md:ml-0"
           >
             <UserAvatar user={viewer} size="sm" />
           </Link>

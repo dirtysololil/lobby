@@ -78,8 +78,10 @@ function RailRow({
     <Link
       href={href}
       className={cn(
-        "flex min-h-11 items-center gap-3 border-b border-white/5 px-3 text-sm transition-colors hover:bg-white/5",
-        active ? "bg-white/5 text-white" : "text-zinc-400",
+        "mx-2 my-1 flex min-h-[52px] items-center gap-3 rounded-[16px] border border-transparent px-3 text-sm transition-colors",
+        active
+          ? "border-[rgba(106,168,248,0.18)] bg-[rgba(106,168,248,0.12)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+          : "text-zinc-400 hover:border-white/6 hover:bg-white/5 hover:text-white",
       )}
     >
       {leading}
@@ -249,20 +251,23 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
   return (
     <aside className="context-rail hidden min-h-screen w-60 border-r border-white/5 bg-[#121214] md:flex md:flex-col">
-      <div className="flex h-12 items-center gap-2 border-b border-white/5 px-3">
-        <UserAvatar user={viewer} size="sm" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-white">
-            {viewer.profile.displayName}
-          </p>
-          <p className="truncate text-xs text-zinc-500">@{viewer.username}</p>
+      <div className="border-b border-white/5 px-3 py-3">
+        <div className="flex items-center gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <UserAvatar user={viewer} size="sm" />
+          <span className="status-dot bg-emerald-400" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-white">
+              {viewer.profile.displayName}
+            </p>
+            <p className="truncate text-xs text-zinc-500">@{viewer.username}</p>
+          </div>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {route.section === "messages" ? (
           <div>
-            <div className="flex h-10 items-center justify-between border-b border-white/5 px-3 text-xs text-zinc-500">
+            <div className="flex h-10 items-center justify-between px-3 pt-2 text-xs text-zinc-500">
               <span>Conversations</span>
               <Link href="/app/people?view=discover" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
                 <UserRoundPlus {...railIconProps} />
@@ -310,7 +315,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "hubs" && !route.hubId ? (
           <div>
-            <div className="flex h-10 items-center justify-between border-b border-white/5 px-3 text-xs text-zinc-500">
+            <div className="flex h-10 items-center justify-between px-3 pt-2 text-xs text-zinc-500">
               <span>Hubs</span>
               <Link href="/app/hubs" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
                 <Layers3 {...railIconProps} />
@@ -352,7 +357,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "hubs" && route.hubId ? (
           <div>
-            <div className="border-b border-white/5 px-3 py-3">
+            <div className="px-3 py-3">
               <p className="truncate text-sm font-medium text-white">
                 {hub?.name ?? "Hub"}
               </p>
@@ -406,7 +411,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "people" ? (
           <div>
-            <div className="flex h-10 items-center justify-between border-b border-white/5 px-3 text-xs text-zinc-500">
+            <div className="flex h-10 items-center justify-between px-3 pt-2 text-xs text-zinc-500">
               <span>People</span>
               <Link href="/app/messages" className="inline-flex items-center gap-1 text-zinc-400 hover:text-white">
                 <MessageSquareMore {...railIconProps} />
@@ -448,7 +453,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "settings" ? (
           <div>
-            <div className="px-3 py-2 text-xs text-zinc-500">Settings</div>
+            <div className="px-3 py-3 text-xs text-zinc-500">Settings</div>
             {settingsLinks.map((item) => (
               <RailRow
                 key={item.href}
@@ -463,7 +468,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "admin" ? (
           <div>
-            <div className="px-3 py-2 text-xs text-zinc-500">Control</div>
+            <div className="px-3 py-3 text-xs text-zinc-500">Control</div>
             {adminLinks.map((item) => (
               <RailRow
                 key={item.href}
@@ -477,14 +482,16 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         ) : null}
       </div>
 
-      <div className="border-t border-white/5 px-3 py-2">
+      <div className="border-t border-white/5 px-3 py-3">
         <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
           <span>Realtime</span>
           <span>{incomingCalls.length} active</span>
         </div>
-        <p className="mt-1 truncate text-sm text-zinc-200">
-          {latestSignal ? latestSignal.call.status : "Connected"}
-        </p>
+        <div className="mt-2 rounded-[16px] border border-white/6 bg-white/[0.03] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <p className="truncate text-sm text-zinc-200">
+            {latestSignal ? latestSignal.call.status : "Connected"}
+          </p>
+        </div>
       </div>
     </aside>
   );

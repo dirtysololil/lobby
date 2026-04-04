@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 
-export interface ThreadMessageItem
-  extends DirectConversationDetail["conversation"]["messages"][number] {
-  localState?: "sending" | "failed";
-}
+export type ThreadMessageItem =
+  DirectConversationDetail["conversation"]["messages"][number] & {
+    localState?: "sending" | "failed";
+  };
 
 interface MessageThreadProps {
   viewerId: string;
@@ -90,7 +90,7 @@ export function MessageThread({
         );
 
   return (
-    <div className="min-h-0 overflow-y-auto bg-[var(--bg-app)]">
+    <div className="min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.06),transparent_18%),transparent]">
       {messages.length === 0 ? (
         <div className="empty-state-minimal text-[var(--text-muted)]">
           <p className="text-sm">No messages yet.</p>
@@ -99,7 +99,7 @@ export function MessageThread({
           </p>
         </div>
       ) : (
-        <div className="space-y-3 px-4 py-4">
+        <div className="space-y-4 px-4 py-4">
           {groupedMessages.map((group) => (
             <div key={group.label} className="space-y-1">
               <div className="flex items-center gap-3 py-1">
@@ -132,7 +132,7 @@ export function MessageThread({
                     <div
                       className={cn(
                         "group flex gap-2 py-1",
-                        continuation && "mt-[-2px]",
+                        continuation && "mt-[-3px]",
                         isOwn && "flex-row-reverse",
                       )}
                     >
@@ -166,12 +166,12 @@ export function MessageThread({
                               {formatThreadTime(message.createdAt)}
                             </span>
                             {message.localState === "sending" ? (
-                              <span className="text-[11px] text-[var(--text-muted)]">
-                                Sending...
+                              <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                                Sending
                               </span>
                             ) : null}
                             {message.localState === "failed" ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-amber-300">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[11px] text-amber-300">
                                 <AlertCircle size={14} strokeWidth={1.5} />
                                 Failed
                               </span>
@@ -192,7 +192,7 @@ export function MessageThread({
 
                         <div
                           className={cn(
-                            "rounded-[18px] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]",
+                            "rounded-[18px] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_12px_22px_rgba(5,10,18,0.08)]",
                             isOwn ? "message-bubble-own ml-auto" : "message-bubble",
                             continuation && "rounded-[16px] py-1.5",
                             message.localState === "failed" &&

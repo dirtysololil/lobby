@@ -17,23 +17,28 @@ export function IncomingCallBanner() {
   }
 
   const call = incomingCalls[0];
-  if (!call) {
+  const callId = call?.id ?? null;
+  const conversationId = call?.dmConversationId ?? null;
+  const caller = call?.initiatedBy ?? null;
+
+  if (!call || !callId || !caller) {
     return null;
   }
 
-  const caller = call.initiatedBy;
+  const resolvedCallId: string = callId;
+  const resolvedConversationId = conversationId;
 
   async function acceptCall() {
     setPendingAction("accept");
 
     try {
-      await apiClientFetch(`/v1/calls/${call.id}/accept`, {
+      await apiClientFetch(`/v1/calls/${resolvedCallId}/accept`, {
         method: "POST",
       });
-      clearIncomingCall(call.id);
+      clearIncomingCall(resolvedCallId);
 
-      if (call.dmConversationId) {
-        router.push(`/app/messages/${call.dmConversationId}`);
+      if (resolvedConversationId) {
+        router.push(`/app/messages/${resolvedConversationId}`);
         router.refresh();
       }
     } finally {
@@ -45,17 +50,17 @@ export function IncomingCallBanner() {
     setPendingAction("decline");
 
     try {
-      await apiClientFetch(`/v1/calls/${call.id}/decline`, {
+      await apiClientFetch(`/v1/calls/${resolvedCallId}/decline`, {
         method: "POST",
       });
-      clearIncomingCall(call.id);
+      clearIncomingCall(resolvedCallId);
     } finally {
       setPendingAction(null);
     }
   }
 
   return (
-    <div className="border-b border-white/5 bg-[linear-gradient(90deg,rgba(124,140,255,0.18),rgba(124,140,255,0.08))] px-4 py-3 text-white">
+    <div className="border-b border-white/5 bg-[linear-gradient(90deg,rgba(106,168,248,0.16),rgba(17,25,34,0.88)_28%,rgba(17,25,34,0.98))] px-4 py-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
