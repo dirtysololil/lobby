@@ -17,18 +17,25 @@ interface LiveKitCallRoomProps {
   callId: string | null;
   title: string;
   description: string;
+  variant?: "default" | "conversation";
 }
 
 export function LiveKitCallRoom({
   callId,
   title,
   description,
+  variant = "default",
 }: LiveKitCallRoomProps) {
   if (!callId) {
     return null;
   }
 
   return (
-    <DynamicCallRoomCanvas callId={callId} title={title} description={description} />
+    <DynamicCallRoomCanvas
+      callId={callId}
+      title={title}
+      description={description}
+      variant={variant}
+    />
   );
 }

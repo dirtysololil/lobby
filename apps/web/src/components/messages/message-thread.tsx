@@ -116,7 +116,7 @@ export function MessageThread({
   return (
     <div
       ref={viewportRef}
-      className="min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.05),transparent_18%),transparent]"
+      className="h-full min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.05),transparent_18%),transparent]"
     >
       {messages.length === 0 ? (
         <div className="empty-state-minimal text-[var(--text-muted)]">

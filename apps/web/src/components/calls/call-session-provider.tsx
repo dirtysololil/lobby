@@ -1255,7 +1255,7 @@ function TrackSurface({
   emphasis = "tile",
 }: {
   item: TrackView;
-  emphasis?: "stage" | "tile";
+  emphasis?: "stage" | "conversation" | "tile";
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isScreen = isScreenShareTrack(item);
@@ -1296,6 +1296,8 @@ function TrackSurface({
         "relative overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_48%),rgba(8,12,18,0.96)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
         emphasis === "stage"
           ? "min-h-[300px] rounded-[22px] xl:min-h-[420px]"
+          : emphasis === "conversation"
+            ? "min-h-[180px] rounded-[20px] lg:min-h-[240px]"
           : "min-h-[170px] rounded-[18px]",
       )}
     >
@@ -1400,13 +1402,24 @@ function ParticipantRow({ participant }: { participant: ParticipantPresenceView 
 function VoicePresenceStage({
   participants,
   participantCount,
+  variant = "default",
 }: {
   participants: ParticipantPresenceView[];
   participantCount: number;
+  variant?: "default" | "conversation";
 }) {
+  const isConversation = variant === "conversation";
+
   if (participants.length === 0) {
     return (
-      <div className="flex min-h-[300px] flex-col items-center justify-center rounded-[22px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_28%),rgba(12,18,24,0.96)] px-6 text-center xl:min-h-[420px]">
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_28%),rgba(12,18,24,0.96)] text-center",
+          isConversation
+            ? "min-h-[180px] rounded-[20px] px-5 py-8"
+            : "min-h-[300px] rounded-[22px] px-6 xl:min-h-[420px]",
+        )}
+      >
         <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/8 bg-white/5 text-[var(--accent)]">
           <Waves size={24} strokeWidth={1.5} />
         </div>
@@ -1419,7 +1432,12 @@ function VoicePresenceStage({
   }
 
   return (
-    <div className="rounded-[22px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_26%),rgba(12,18,24,0.96)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <div
+      className={cn(
+        "border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_26%),rgba(12,18,24,0.96)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+        isConversation ? "rounded-[20px] p-3.5" : "rounded-[22px] p-4",
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-white">Голосовая сцена</p>
@@ -1433,12 +1451,20 @@ function VoicePresenceStage({
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div
+        className={cn(
+          "grid gap-3",
+          isConversation
+            ? "mt-3 sm:grid-cols-2 xl:grid-cols-2"
+            : "mt-4 sm:grid-cols-2 xl:grid-cols-3",
+        )}
+      >
         {participants.map((participant) => (
           <div
             key={participant.id}
             className={cn(
-              "rounded-[18px] border border-white/6 bg-black/12 px-4 py-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+              "border border-white/6 bg-black/12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+              isConversation ? "rounded-[16px] px-3 py-3" : "rounded-[18px] px-4 py-4",
               participant.isSpeaking && "border-emerald-400/25 bg-emerald-400/8",
             )}
           >
@@ -1799,10 +1825,12 @@ export function CallRoomCanvas({
   callId,
   title,
   description,
+  variant = "default",
 }: {
   callId: string | null;
   title: string;
   description: string;
+  variant?: "default" | "conversation";
 }) {
   const {
     session,
@@ -1841,13 +1869,19 @@ export function CallRoomCanvas({
   const secondaryVideoTracks = [...screenTracks, ...cameraTracks].filter(
     (item) => item.id !== primaryTrack?.id,
   );
+  const isConversation = variant === "conversation";
 
   const stageSubtitle = screenTracks.length > 0
     ? "Демонстрация экрана получает главный экран, а участники уходят в боковую колонку."
     : description;
 
   return (
-    <div className="premium-panel flex min-h-0 flex-1 flex-col rounded-[24px] p-3">
+    <div
+      className={cn(
+        "premium-panel flex min-h-0 flex-col p-3",
+        isConversation ? "shrink-0 rounded-[20px]" : "flex-1 rounded-[24px]",
+      )}
+    >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -1927,19 +1961,35 @@ export function CallRoomCanvas({
         </div>
       ) : null}
 
-      <div className="mt-3 grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div
+        className={cn(
+          "mt-3 grid min-h-0 gap-3",
+          isConversation
+            ? "lg:grid-cols-[minmax(0,1fr)_280px]"
+            : "flex-1 xl:grid-cols-[minmax(0,1fr)_320px]",
+        )}
+      >
         <div className="min-h-0 space-y-3">
           {primaryTrack ? (
-            <TrackSurface item={primaryTrack} emphasis="stage" />
+            <TrackSurface
+              item={primaryTrack}
+              emphasis={isConversation ? "conversation" : "stage"}
+            />
           ) : (
             <VoicePresenceStage
               participants={participants.filter((participant) => participant.isConnected)}
               participantCount={participantCount}
+              variant={variant}
             />
           )}
 
           {secondaryVideoTracks.length > 0 ? (
-            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            <div
+              className={cn(
+                "grid gap-2 md:grid-cols-2",
+                isConversation ? "xl:grid-cols-2" : "xl:grid-cols-3",
+              )}
+            >
               {secondaryVideoTracks.map((item) => (
                 <TrackSurface key={item.id} item={item} />
               ))}
