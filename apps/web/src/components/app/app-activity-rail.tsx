@@ -10,12 +10,23 @@ import {
 import { BellRing, LockKeyhole, PhoneCall, UsersRound, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import {
+  CompactList,
+  CompactListCount,
+  CompactListHeader,
+  CompactListMeta,
+  CompactListRow,
+} from "@/components/ui/compact-list";
 import { apiClientFetch } from "@/lib/api-client";
 import { parseAppPath } from "@/lib/app-shell";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { ConversationSettings } from "@/components/messages/conversation-settings";
 import { useRealtime } from "@/components/realtime/realtime-provider";
-import { callStatusLabels, dmNotificationLabels, dmRetentionLabels } from "@/lib/ui-labels";
+import {
+  callStatusLabels,
+  dmNotificationLabels,
+  dmRetentionLabels,
+} from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
 interface AppActivityRailProps {
@@ -30,15 +41,15 @@ const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 function formatRole(role: string | null | undefined) {
   switch (role) {
     case "OWNER":
-      return "Владелец";
+      return "Owner";
     case "ADMIN":
-      return "Админ";
+      return "Admin";
     case "MEMBER":
-      return "Участник";
+      return "Member";
     case "GUEST":
-      return "Гость";
+      return "Guest";
     default:
-      return role ?? "Участник";
+      return role ?? "Member";
   }
 }
 
@@ -92,9 +103,7 @@ export function AppActivityRail({
     void (async () => {
       try {
         if (route.section === "messages" && route.conversationId) {
-          const payload = await apiClientFetch(
-            `/v1/direct-messages/${route.conversationId}`,
-          );
+          const payload = await apiClientFetch(`/v1/direct-messages/${route.conversationId}`);
 
           if (active) {
             setConversation(directConversationDetailSchema.parse(payload).conversation);
@@ -161,10 +170,8 @@ export function AppActivityRail({
   const panel = (
     <aside
       className={cn(
-        "activity-rail flex w-64 min-w-64 flex-col border-l border-white/5 bg-[#121214]",
-        mode === "overlay"
-          ? "absolute inset-y-0 right-0 z-50 h-full"
-          : "h-full",
+        "activity-rail flex w-72 min-w-72 flex-col border-l border-white/5 bg-[#10161f]",
+        mode === "overlay" ? "absolute inset-y-0 right-0 z-50 h-full" : "h-full",
       )}
       onClick={(event) => {
         if (mode === "overlay") {
@@ -174,18 +181,18 @@ export function AppActivityRail({
     >
       <div className="flex h-12 items-center justify-between border-b border-white/5 px-3">
         <div>
-          <p className="text-xs text-zinc-500">
-            {route.section === "messages" ? "Диалог" : "Хаб"}
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-muted)]">
+            {route.section === "messages" ? "Conversation" : "Hub"}
           </p>
           <p className="text-sm font-medium text-white">
-            {route.section === "messages" ? "Детали" : "Контекст"}
+            {route.section === "messages" ? "Details" : "Members"}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-white/5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
-          aria-label="Закрыть панель"
+          aria-label="Close panel"
         >
           <X {...iconProps} />
         </button>
@@ -193,8 +200,8 @@ export function AppActivityRail({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="px-3 py-6 text-center text-sm text-zinc-500">
-            Загружаем детали...
+          <div className="px-3 py-6 text-center text-sm text-[var(--text-muted)]">
+            Loading details...
           </div>
         ) : null}
 
@@ -215,29 +222,29 @@ export function AppActivityRail({
                       {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-white">
-                          {counterpart?.profile.displayName ?? "Диалог"}
+                          {counterpart?.profile.displayName ?? "Conversation"}
                         </p>
-                        <p className="truncate text-xs text-zinc-500">
-                          {counterpart ? `@${counterpart.username}` : "Личная ветка"}
+                        <p className="truncate text-xs text-[var(--text-muted)]">
+                          {counterpart ? `@${counterpart.username}` : "Direct thread"}
                         </p>
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      <span className="status-pill">
+                      <CompactListMeta>
                         <BellRing {...iconProps} />
                         {dmNotificationLabels[viewerSettings?.notificationSetting ?? "ALL"]}
-                      </span>
-                      <span className="status-pill">
+                      </CompactListMeta>
+                      <CompactListMeta>
                         <PhoneCall {...iconProps} />
                         {latestSignal?.call.dmConversationId === route.conversationId
                           ? callStatusLabels[latestSignal.call.status]
-                          : "Звонок готов"}
-                      </span>
+                          : "Call ready"}
+                      </CompactListMeta>
                       {conversation.retentionMode !== "OFF" ? (
-                        <span className="status-pill">
+                        <CompactListMeta>
                           <LockKeyhole {...iconProps} />
                           {dmRetentionLabels[conversation.retentionMode]}
-                        </span>
+                        </CompactListMeta>
                       ) : null}
                     </div>
                   </div>
@@ -263,44 +270,45 @@ export function AppActivityRail({
           <div>
             <div className="border-b border-white/5 px-3 py-3">
               <p className="truncate text-sm font-medium text-white">{hubInfo.name}</p>
-              <p className="mt-1 text-sm text-zinc-400">
-                {hubInfo.description ?? "Общее пространство"}
+              <p className="mt-1 text-sm text-[var(--text-dim)]">
+                {hubInfo.description ?? "Shared communication space"}
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                <span className="status-pill">
+                <CompactListMeta>
                   <UsersRound {...iconProps} />
-                  {hubInfo.members.length} участников
-                </span>
-                <span className="status-pill">{formatRole(hubInfo.membershipRole)}</span>
+                  {hubInfo.members.length} members
+                </CompactListMeta>
+                <CompactListMeta>{formatRole(hubInfo.membershipRole)}</CompactListMeta>
               </div>
             </div>
 
-            <div>
+            <CompactListHeader>
+              <span>Members</span>
+              <CompactListCount>{hubInfo.members.length}</CompactListCount>
+            </CompactListHeader>
+            <CompactList>
               {hubInfo.members.slice(0, 12).map((member) => (
-                <div
-                  key={member.id}
-                  className="flex min-h-11 items-center gap-3 border-b border-white/5 px-3 text-zinc-400 transition-colors hover:bg-white/5"
-                >
+                <CompactListRow key={member.id} compact className="gap-3">
                   <UserAvatar user={member.user} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-white">
                       {member.user.profile.displayName}
                     </p>
-                    <p className="truncate text-xs text-zinc-500">
-                      @{member.user.username} - {formatRole(member.role)}
+                    <p className="truncate text-xs text-[var(--text-muted)]">
+                      @{member.user.username} · {formatRole(member.role)}
                     </p>
                   </div>
-                </div>
+                </CompactListRow>
               ))}
-            </div>
+            </CompactList>
           </div>
         ) : null}
 
         {!isLoading &&
         ((route.section === "messages" && !conversation) ||
           (route.section === "hubs" && !hubInfo)) ? (
-          <div className="px-3 py-6 text-center text-sm text-zinc-500">
-            Здесь пока нечего показывать.
+          <div className="px-3 py-6 text-center text-sm text-[var(--text-muted)]">
+            Nothing to show here yet.
           </div>
         ) : null}
       </div>

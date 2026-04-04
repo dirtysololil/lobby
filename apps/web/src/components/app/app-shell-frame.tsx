@@ -28,16 +28,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
     (route.section === "hubs" && Boolean(route.hubId));
   const [activityOpen, setActivityOpen] = useState(false);
   const [isWideScreen, setIsWideScreen] = useState(false);
-
-  useEffect(() => {
-    setActivityOpen(false);
-  }, [safePathname]);
-
-  useEffect(() => {
-    if (!activityAvailable) {
-      setActivityOpen(false);
-    }
-  }, [activityAvailable]);
+  const effectiveActivityOpen = activityAvailable && activityOpen;
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -58,15 +49,15 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
     };
   }, []);
 
-  const showDockedActivityRail = activityAvailable && activityOpen && isWideScreen;
+  const showDockedActivityRail = effectiveActivityOpen && isWideScreen;
 
   return (
     <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-app)] text-[var(--text)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(106,168,248,0.08),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_20%)]" />
       <div
         className={cn(
-          "relative z-10 grid h-full min-h-0 grid-cols-1 md:grid-cols-[72px_15rem_minmax(0,1fr)]",
-          showDockedActivityRail && "2xl:grid-cols-[72px_15rem_minmax(0,1fr)_16rem]",
+          "relative z-10 grid h-full min-h-0 grid-cols-1 md:grid-cols-[64px_14rem_minmax(0,1fr)]",
+          showDockedActivityRail && "2xl:grid-cols-[64px_14rem_minmax(0,1fr)_18rem]",
         )}
       >
         <AppSidebar viewer={viewer} />
@@ -79,11 +70,12 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
               onClick={() => setActivityOpen((current) => !current)}
               className={cn(
                 "absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-[var(--bg-sidebar)]/92 text-[var(--text-muted)] backdrop-blur-md transition-colors hover:bg-white/5 hover:text-white",
-                activityOpen && "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-white",
+                effectiveActivityOpen &&
+                  "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-white",
               )}
-              aria-label={activityOpen ? "Hide details" : "Show details"}
+              aria-label={effectiveActivityOpen ? "Hide details" : "Show details"}
             >
-              {activityOpen ? (
+              {effectiveActivityOpen ? (
                 <PanelRightClose {...panelIconProps} />
               ) : (
                 <PanelRightOpen {...panelIconProps} />
@@ -93,8 +85,8 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
 
           <IncomingCallBanner />
 
-          <div className="min-h-0 flex-1 overflow-hidden p-2 md:p-3 lg:p-4">
-            <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[26px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_18%),rgba(9,15,22,0.88)]">
+          <div className="min-h-0 flex-1 overflow-hidden p-1.5 md:p-2 lg:p-2.5">
+            <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_16%),rgba(8,13,20,0.92)]">
               {children}
             </div>
           </div>
@@ -103,17 +95,17 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
         {showDockedActivityRail ? (
           <AppActivityRail
             viewer={viewer}
-            open={activityOpen}
+            open={effectiveActivityOpen}
             onClose={() => setActivityOpen(false)}
             mode="docked"
           />
         ) : null}
       </div>
 
-      {activityAvailable && activityOpen && !showDockedActivityRail ? (
+      {effectiveActivityOpen && !showDockedActivityRail ? (
         <AppActivityRail
           viewer={viewer}
-          open={activityOpen}
+          open={effectiveActivityOpen}
           onClose={() => setActivityOpen(false)}
           mode="overlay"
         />

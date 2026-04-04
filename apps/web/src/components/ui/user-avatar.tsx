@@ -1,5 +1,8 @@
+"use client";
+
 /* eslint-disable @next/next/no-img-element */
 import type { PublicUser } from "@lobby/shared";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { getAvatarInitials, getAvatarUrl } from "@/lib/avatar";
 
@@ -25,6 +28,8 @@ const presenceDotClasses: Record<PublicUser["profile"]["presence"], string> = {
 export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
   const avatarUrl = getAvatarUrl(user);
   const initials = getAvatarInitials(user.profile.displayName || user.username);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showImage = Boolean(avatarUrl) && avatarUrl !== failedUrl;
 
   return (
     <div
@@ -34,15 +39,18 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
         className,
       )}
     >
-      <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[var(--bg-panel-soft)] text-center font-semibold uppercase tracking-[0.06em] text-white">
-        {avatarUrl ? (
+      <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.22),transparent_70%),rgba(255,255,255,0.06)] text-center font-semibold uppercase tracking-[0.06em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        {showImage ? (
           <img
             src={avatarUrl}
             alt={user.profile.displayName}
             className="h-full w-full rounded-full object-cover"
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailedUrl(avatarUrl)}
           />
         ) : (
-          <span>{initials}</span>
+          <span className="select-none">{initials}</span>
         )}
       </div>
 

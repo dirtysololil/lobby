@@ -19,6 +19,13 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  CompactList,
+  CompactListCount,
+  CompactListHeader,
+  CompactListMeta,
+  CompactListRow,
+} from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -42,14 +49,6 @@ interface RelationshipRowProps {
   actions: ReactNode;
 }
 
-function CountBadge({ value }: { value: number | string }) {
-  return (
-    <span className="inline-flex min-h-5 items-center rounded-full bg-[var(--bg-panel-soft)] px-2 text-[11px] font-medium text-[var(--text-dim)]">
-      {value}
-    </span>
-  );
-}
-
 function ViewTabs({
   activeView,
   onSelect,
@@ -58,13 +57,16 @@ function ViewTabs({
   onSelect: (view: PeopleView) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 overflow-x-auto px-3 py-2 lg:hidden">
+    <div className="flex items-center gap-1 overflow-x-auto border-b border-[var(--border-soft)] px-3 py-2 lg:hidden">
       {peopleViews.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onSelect(item.id)}
-          className={cn("segment-chip whitespace-nowrap", activeView === item.id && "segment-chip-active")}
+          className={cn(
+            "segment-chip whitespace-nowrap",
+            activeView === item.id && "segment-chip-active",
+          )}
         >
           {item.label}
         </button>
@@ -93,21 +95,6 @@ function EmptyView({
   );
 }
 
-function SectionHeader({
-  title,
-  count,
-}: {
-  title: string;
-  count: number;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-dim)]">
-      <span>{title}</span>
-      <CountBadge value={count} />
-    </div>
-  );
-}
-
 function RelationshipRow({
   user,
   subtitle,
@@ -116,9 +103,9 @@ function RelationshipRow({
   actions,
 }: RelationshipRowProps) {
   return (
-    <div
+    <CompactListRow
       className={cn(
-        "group flex flex-col gap-2 border-b border-[var(--border-soft)] px-3 py-2.5 transition-colors hover:bg-[var(--bg-hover)] lg:flex-row lg:items-center lg:justify-between",
+        "group flex-col items-stretch gap-2 lg:flex-row lg:items-center lg:justify-between",
         busy && "opacity-70",
       )}
     >
@@ -143,7 +130,7 @@ function RelationshipRow({
       <div className="flex flex-wrap gap-1.5 lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
         {actions}
       </div>
-    </div>
+    </CompactListRow>
   );
 }
 
@@ -180,9 +167,7 @@ export function PeopleWorkspace() {
       setBlocks(blocksResponseSchema.parse(blocksPayload).items);
       setPanelError(null);
     } catch (error) {
-      setPanelError(
-        error instanceof Error ? error.message : "Unable to load people right now.",
-      );
+      setPanelError(error instanceof Error ? error.message : "Unable to load people right now.");
     }
   }
 
@@ -204,9 +189,7 @@ export function PeopleWorkspace() {
       setResults(userSearchResponseSchema.parse(payload).items);
       setSearchError(null);
     } catch (error) {
-      setSearchError(
-        error instanceof Error ? error.message : "Unable to search people.",
-      );
+      setSearchError(error instanceof Error ? error.message : "Unable to search people.");
     } finally {
       setIsSearching(false);
     }
@@ -264,20 +247,15 @@ export function PeopleWorkspace() {
 
   return (
     <section className="flex min-h-full flex-col">
-      <div className="border-b border-[var(--border)] px-3 py-3">
+      <div className="border-b border-[var(--border-soft)] px-3 py-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="eyebrow-pill">
-                <Users2 className="h-[18px] w-[18px]" />
-                People
-              </span>
-              <span className="status-pill">{friends.length} friends</span>
-              <span className="status-pill">
-                {incoming.length + outgoing.length} requests
-              </span>
+              <CompactListMeta>People</CompactListMeta>
+              <CompactListMeta>{friends.length} friends</CompactListMeta>
+              <CompactListMeta>{incoming.length + outgoing.length} requests</CompactListMeta>
             </div>
-            <h2 className="mt-1 text-base font-semibold tracking-tight text-white">
+            <h2 className="mt-2 text-base font-semibold tracking-tight text-white">
               Social graph
             </h2>
           </div>
@@ -293,14 +271,14 @@ export function PeopleWorkspace() {
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--text-muted)]" />
               <Input
-                className="h-9 pl-9"
+                className="h-10 pl-9"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search by username"
                 autoComplete="off"
               />
             </div>
-            <Button type="submit" size="sm" disabled={isSearching} className="h-9 px-3">
+            <Button type="submit" disabled={isSearching} className="h-10 px-3">
               {isSearching ? "Searching..." : "Search"}
             </Button>
           </form>
@@ -324,7 +302,10 @@ export function PeopleWorkspace() {
       <div className="min-h-0 flex-1 overflow-y-auto">
         {activeView === "friends" ? (
           <div>
-            <SectionHeader title="Friends" count={friends.length} />
+            <CompactListHeader>
+              <span>Friends</span>
+              <CompactListCount>{friends.length}</CompactListCount>
+            </CompactListHeader>
             {friends.length === 0 ? (
               <EmptyView
                 icon={Users2}
@@ -332,73 +313,78 @@ export function PeopleWorkspace() {
                 description="Search for someone and send a request."
               />
             ) : (
-              friends.map((item) => {
-                const removeKey = `ACCEPTED:${item.otherUser.username}`;
-                const messageKey = `SEARCH:${item.otherUser.username}`;
+              <CompactList>
+                {friends.map((item) => {
+                  const removeKey = `ACCEPTED:${item.otherUser.username}`;
+                  const messageKey = `SEARCH:${item.otherUser.username}`;
 
-                return (
-                  <RelationshipRow
-                    key={item.id}
-                    user={item.otherUser}
-                    subtitle={item.otherUser.profile.bio ?? "No bio yet."}
-                    busy={actionKey === removeKey || actionKey === messageKey}
-                    actions={
-                      <>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => void openDm(item.otherUser.username)}
-                          disabled={actionKey === messageKey}
-                          className="h-8 px-2.5"
-                        >
-                          <MessageSquareMore className="h-[18px] w-[18px]" />
-                          Message
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            void withAction(removeKey, async () => {
-                              await apiClientFetch("/v1/relationships/friends/remove", {
-                                method: "POST",
-                                body: JSON.stringify({ username: item.otherUser.username }),
-                              });
-                            })
-                          }
-                          disabled={actionKey === removeKey}
-                          className="h-8 px-2.5"
-                        >
-                          Remove
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() =>
-                            void withAction(removeKey, async () => {
-                              await apiClientFetch("/v1/relationships/blocks", {
-                                method: "POST",
-                                body: JSON.stringify({ username: item.otherUser.username }),
-                              });
-                            })
-                          }
-                          disabled={actionKey === removeKey}
-                          className="h-8 px-2.5"
-                        >
-                          <ShieldBan className="h-[18px] w-[18px]" />
-                          Block
-                        </Button>
-                      </>
-                    }
-                  />
-                );
-              })
+                  return (
+                    <RelationshipRow
+                      key={item.id}
+                      user={item.otherUser}
+                      subtitle={item.otherUser.profile.bio ?? "No bio yet."}
+                      busy={actionKey === removeKey || actionKey === messageKey}
+                      actions={
+                        <>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => void openDm(item.otherUser.username)}
+                            disabled={actionKey === messageKey}
+                            className="h-8 px-2.5"
+                          >
+                            <MessageSquareMore className="h-[18px] w-[18px]" />
+                            Message
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              void withAction(removeKey, async () => {
+                                await apiClientFetch("/v1/relationships/friends/remove", {
+                                  method: "POST",
+                                  body: JSON.stringify({ username: item.otherUser.username }),
+                                });
+                              })
+                            }
+                            disabled={actionKey === removeKey}
+                            className="h-8 px-2.5"
+                          >
+                            Remove
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() =>
+                              void withAction(removeKey, async () => {
+                                await apiClientFetch("/v1/relationships/blocks", {
+                                  method: "POST",
+                                  body: JSON.stringify({ username: item.otherUser.username }),
+                                });
+                              })
+                            }
+                            disabled={actionKey === removeKey}
+                            className="h-8 px-2.5"
+                          >
+                            <ShieldBan className="h-[18px] w-[18px]" />
+                            Block
+                          </Button>
+                        </>
+                      }
+                    />
+                  );
+                })}
+              </CompactList>
             )}
           </div>
         ) : null}
 
         {activeView === "requests" ? (
           <div>
-            <SectionHeader title="Incoming requests" count={incoming.length} />
+            <CompactListHeader>
+              <span>Incoming requests</span>
+              <CompactListCount>{incoming.length}</CompactListCount>
+            </CompactListHeader>
             {incoming.length === 0 ? (
               <EmptyView
                 icon={Users2}
@@ -406,32 +392,79 @@ export function PeopleWorkspace() {
                 description="New requests will show up here."
               />
             ) : (
-              incoming.map((item) => {
-                const busyKey = `INCOMING_REQUEST:${item.otherUser.username}`;
+              <CompactList>
+                {incoming.map((item) => {
+                  const busyKey = `INCOMING_REQUEST:${item.otherUser.username}`;
 
-                return (
-                  <RelationshipRow
-                    key={item.id}
-                    user={item.otherUser}
-                    subtitle="Wants to connect with you."
-                    busy={actionKey === busyKey}
-                    actions={
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            void withAction(busyKey, async () => {
-                              await apiClientFetch("/v1/relationships/friends/accept", {
-                                method: "POST",
-                                body: JSON.stringify({ username: item.otherUser.username }),
-                              });
-                            })
-                          }
-                          disabled={actionKey === busyKey}
-                          className="h-8 px-2.5"
-                        >
-                          Accept
-                        </Button>
+                  return (
+                    <RelationshipRow
+                      key={item.id}
+                      user={item.otherUser}
+                      subtitle="Wants to connect with you."
+                      busy={actionKey === busyKey}
+                      actions={
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              void withAction(busyKey, async () => {
+                                await apiClientFetch("/v1/relationships/friends/accept", {
+                                  method: "POST",
+                                  body: JSON.stringify({ username: item.otherUser.username }),
+                                });
+                              })
+                            }
+                            disabled={actionKey === busyKey}
+                            className="h-8 px-2.5"
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              void withAction(busyKey, async () => {
+                                await apiClientFetch("/v1/relationships/friends/remove", {
+                                  method: "POST",
+                                  body: JSON.stringify({ username: item.otherUser.username }),
+                                });
+                              })
+                            }
+                            disabled={actionKey === busyKey}
+                            className="h-8 px-2.5"
+                          >
+                            Dismiss
+                          </Button>
+                        </>
+                      }
+                    />
+                  );
+                })}
+              </CompactList>
+            )}
+
+            <CompactListHeader>
+              <span>Outgoing requests</span>
+              <CompactListCount>{outgoing.length}</CompactListCount>
+            </CompactListHeader>
+            {outgoing.length === 0 ? (
+              <EmptyView
+                icon={Users2}
+                title="No outgoing requests"
+                description="Pending requests will show up here."
+              />
+            ) : (
+              <CompactList>
+                {outgoing.map((item) => {
+                  const busyKey = `OUTGOING_REQUEST:${item.otherUser.username}`;
+
+                  return (
+                    <RelationshipRow
+                      key={item.id}
+                      user={item.otherUser}
+                      subtitle="Waiting for a reply."
+                      busy={actionKey === busyKey}
+                      actions={
                         <Button
                           size="sm"
                           variant="secondary"
@@ -446,60 +479,23 @@ export function PeopleWorkspace() {
                           disabled={actionKey === busyKey}
                           className="h-8 px-2.5"
                         >
-                          Dismiss
+                          Cancel
                         </Button>
-                      </>
-                    }
-                  />
-                );
-              })
-            )}
-
-            <SectionHeader title="Outgoing requests" count={outgoing.length} />
-            {outgoing.length === 0 ? (
-              <EmptyView
-                icon={Users2}
-                title="No outgoing requests"
-                description="Pending requests will show up here."
-              />
-            ) : (
-              outgoing.map((item) => {
-                const busyKey = `OUTGOING_REQUEST:${item.otherUser.username}`;
-
-                return (
-                  <RelationshipRow
-                    key={item.id}
-                    user={item.otherUser}
-                    subtitle="Waiting for a reply."
-                    busy={actionKey === busyKey}
-                    actions={
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() =>
-                          void withAction(busyKey, async () => {
-                            await apiClientFetch("/v1/relationships/friends/remove", {
-                              method: "POST",
-                              body: JSON.stringify({ username: item.otherUser.username }),
-                            });
-                          })
-                        }
-                        disabled={actionKey === busyKey}
-                        className="h-8 px-2.5"
-                      >
-                        Cancel
-                      </Button>
-                    }
-                  />
-                );
-              })
+                      }
+                    />
+                  );
+                })}
+              </CompactList>
             )}
           </div>
         ) : null}
 
         {activeView === "discover" ? (
           <div>
-            <SectionHeader title="Discover" count={results.length} />
+            <CompactListHeader>
+              <span>Discover</span>
+              <CompactListCount>{results.length}</CompactListCount>
+            </CompactListHeader>
             {query.trim().length === 0 ? (
               <EmptyView
                 icon={Search}
@@ -507,119 +503,34 @@ export function PeopleWorkspace() {
                 description="Type a username to find people."
               />
             ) : results.length === 0 ? (
-              <EmptyView
-                icon={Search}
-                title="No matches"
-                description="Try another username."
-              />
+              <EmptyView icon={Search} title="No matches" description="Try another username." />
             ) : (
-              results.map((item) => {
-                const busyKey = `SEARCH:${item.user.username}`;
-                const friendshipState = item.relationship.friendshipState;
+              <CompactList>
+                {results.map((item) => {
+                  const busyKey = `SEARCH:${item.user.username}`;
+                  const friendshipState = item.relationship.friendshipState;
 
-                return (
-                  <RelationshipRow
-                    key={item.user.id}
-                    user={item.user}
-                    subtitle={item.user.profile.bio ?? "No bio yet."}
-                    busy={actionKey === busyKey}
-                    meta={
-                      friendshipState === "ACCEPTED" ? (
-                        <CountBadge value="Friend" />
-                      ) : item.relationship.isBlockedByViewer ? (
-                        <CountBadge value="Blocked" />
-                      ) : null
-                    }
-                    actions={
-                      item.relationship.isBlockedByViewer ? (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            void withAction(busyKey, async () => {
-                              await apiClientFetch("/v1/relationships/blocks/unblock", {
-                                method: "POST",
-                                body: JSON.stringify({ username: item.user.username }),
-                              });
-                            })
-                          }
-                          disabled={actionKey === busyKey}
-                          className="h-8 px-2.5"
-                        >
-                          Unblock
-                        </Button>
-                      ) : (
-                        <>
-                          {(friendshipState === "NONE" || friendshipState === "REMOVED") && (
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                void withAction(busyKey, async () => {
-                                  await apiClientFetch("/v1/relationships/friends/request", {
-                                    method: "POST",
-                                    body: JSON.stringify({ username: item.user.username }),
-                                  });
-                                })
-                              }
-                              disabled={actionKey === busyKey || item.relationship.hasBlockedViewer}
-                              className="h-8 px-2.5"
-                            >
-                              <UserPlus2 className="h-[18px] w-[18px]" />
-                              Add
-                            </Button>
-                          )}
-                          {friendshipState === "INCOMING_REQUEST" && (
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                void withAction(busyKey, async () => {
-                                  await apiClientFetch("/v1/relationships/friends/accept", {
-                                    method: "POST",
-                                    body: JSON.stringify({ username: item.user.username }),
-                                  });
-                                })
-                              }
-                              disabled={actionKey === busyKey}
-                              className="h-8 px-2.5"
-                            >
-                              Accept
-                            </Button>
-                          )}
-                          {(friendshipState === "OUTGOING_REQUEST" ||
-                            friendshipState === "ACCEPTED") && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() =>
-                                void withAction(busyKey, async () => {
-                                  await apiClientFetch("/v1/relationships/friends/remove", {
-                                    method: "POST",
-                                    body: JSON.stringify({ username: item.user.username }),
-                                  });
-                                })
-                              }
-                              disabled={actionKey === busyKey}
-                              className="h-8 px-2.5"
-                            >
-                              Remove
-                            </Button>
-                          )}
+                  return (
+                    <RelationshipRow
+                      key={item.user.id}
+                      user={item.user}
+                      subtitle={item.user.profile.bio ?? "No bio yet."}
+                      busy={actionKey === busyKey}
+                      meta={
+                        friendshipState === "ACCEPTED" ? (
+                          <CompactListCount>Friend</CompactListCount>
+                        ) : item.relationship.isBlockedByViewer ? (
+                          <CompactListCount>Blocked</CompactListCount>
+                        ) : null
+                      }
+                      actions={
+                        item.relationship.isBlockedByViewer ? (
                           <Button
                             size="sm"
                             variant="secondary"
-                            onClick={() => void openDm(item.user.username)}
-                            disabled={actionKey === busyKey || item.relationship.hasBlockedViewer}
-                            className="h-8 px-2.5"
-                          >
-                            <MessageSquareMore className="h-[18px] w-[18px]" />
-                            {item.relationship.dmConversationId ? "Open chat" : "Message"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
                             onClick={() =>
                               void withAction(busyKey, async () => {
-                                await apiClientFetch("/v1/relationships/blocks", {
+                                await apiClientFetch("/v1/relationships/blocks/unblock", {
                                   method: "POST",
                                   body: JSON.stringify({ username: item.user.username }),
                                 });
@@ -628,22 +539,112 @@ export function PeopleWorkspace() {
                             disabled={actionKey === busyKey}
                             className="h-8 px-2.5"
                           >
-                            <ShieldBan className="h-[18px] w-[18px]" />
-                            Block
+                            Unblock
                           </Button>
-                        </>
-                      )
-                    }
-                  />
-                );
-              })
+                        ) : (
+                          <>
+                            {(friendshipState === "NONE" || friendshipState === "REMOVED") && (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  void withAction(busyKey, async () => {
+                                    await apiClientFetch("/v1/relationships/friends/request", {
+                                      method: "POST",
+                                      body: JSON.stringify({ username: item.user.username }),
+                                    });
+                                  })
+                                }
+                                disabled={
+                                  actionKey === busyKey || item.relationship.hasBlockedViewer
+                                }
+                                className="h-8 px-2.5"
+                              >
+                                <UserPlus2 className="h-[18px] w-[18px]" />
+                                Add
+                              </Button>
+                            )}
+                            {friendshipState === "INCOMING_REQUEST" && (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  void withAction(busyKey, async () => {
+                                    await apiClientFetch("/v1/relationships/friends/accept", {
+                                      method: "POST",
+                                      body: JSON.stringify({ username: item.user.username }),
+                                    });
+                                  })
+                                }
+                                disabled={actionKey === busyKey}
+                                className="h-8 px-2.5"
+                              >
+                                Accept
+                              </Button>
+                            )}
+                            {(friendshipState === "OUTGOING_REQUEST" ||
+                              friendshipState === "ACCEPTED") && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() =>
+                                  void withAction(busyKey, async () => {
+                                    await apiClientFetch("/v1/relationships/friends/remove", {
+                                      method: "POST",
+                                      body: JSON.stringify({ username: item.user.username }),
+                                    });
+                                  })
+                                }
+                                disabled={actionKey === busyKey}
+                                className="h-8 px-2.5"
+                              >
+                                Remove
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => void openDm(item.user.username)}
+                              disabled={
+                                actionKey === busyKey || item.relationship.hasBlockedViewer
+                              }
+                              className="h-8 px-2.5"
+                            >
+                              <MessageSquareMore className="h-[18px] w-[18px]" />
+                              {item.relationship.dmConversationId ? "Open chat" : "Message"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() =>
+                                void withAction(busyKey, async () => {
+                                  await apiClientFetch("/v1/relationships/blocks", {
+                                    method: "POST",
+                                    body: JSON.stringify({ username: item.user.username }),
+                                  });
+                                })
+                              }
+                              disabled={actionKey === busyKey}
+                              className="h-8 px-2.5"
+                            >
+                              <ShieldBan className="h-[18px] w-[18px]" />
+                              Block
+                            </Button>
+                          </>
+                        )
+                      }
+                    />
+                  );
+                })}
+              </CompactList>
             )}
           </div>
         ) : null}
 
         {activeView === "blocked" ? (
           <div>
-            <SectionHeader title="Blocked" count={blocks.length} />
+            <CompactListHeader>
+              <span>Blocked</span>
+              <CompactListCount>{blocks.length}</CompactListCount>
+            </CompactListHeader>
             {blocks.length === 0 ? (
               <EmptyView
                 icon={ShieldBan}
@@ -651,36 +652,40 @@ export function PeopleWorkspace() {
                 description="Blocked accounts will appear here."
               />
             ) : (
-              blocks.map((block) => {
-                const busyKey = `UNBLOCK:${block.blockedUser.username}`;
+              <CompactList>
+                {blocks.map((block) => {
+                  const busyKey = `UNBLOCK:${block.blockedUser.username}`;
 
-                return (
-                  <RelationshipRow
-                    key={block.id}
-                    user={block.blockedUser}
-                    subtitle="Messages and calls are blocked."
-                    busy={actionKey === busyKey}
-                    actions={
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() =>
-                          void withAction(busyKey, async () => {
-                            await apiClientFetch("/v1/relationships/blocks/unblock", {
-                              method: "POST",
-                              body: JSON.stringify({ username: block.blockedUser.username }),
-                            });
-                          })
-                        }
-                        disabled={actionKey === busyKey}
-                        className="h-8 px-2.5"
-                      >
-                        Unblock
-                      </Button>
-                    }
-                  />
-                );
-              })
+                  return (
+                    <RelationshipRow
+                      key={block.id}
+                      user={block.blockedUser}
+                      subtitle="Messages and calls are blocked."
+                      busy={actionKey === busyKey}
+                      actions={
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            void withAction(busyKey, async () => {
+                              await apiClientFetch("/v1/relationships/blocks/unblock", {
+                                method: "POST",
+                                body: JSON.stringify({
+                                  username: block.blockedUser.username,
+                                }),
+                              });
+                            })
+                          }
+                          disabled={actionKey === busyKey}
+                          className="h-8 px-2.5"
+                        >
+                          Unblock
+                        </Button>
+                      }
+                    />
+                  );
+                })}
+              </CompactList>
             )}
           </div>
         ) : null}

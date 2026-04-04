@@ -17,7 +17,7 @@ export function EmptyState({
   return (
     <div className={cn("empty-state-minimal", className)}>
       <div>
-        <p className="text-base font-semibold tracking-[-0.03em] text-white">{title}</p>
+        <p className="text-sm font-semibold tracking-[-0.03em] text-white">{title}</p>
         <p className="mt-1 text-sm leading-5 text-[var(--text-dim)]">{description}</p>
       </div>
       {action ? <div className="flex justify-center">{action}</div> : null}

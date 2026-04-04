@@ -9,14 +9,21 @@ import {
 } from "@lobby/shared";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  CompactList,
+  CompactListCount,
+  CompactListHeader,
+  CompactListLink,
+  CompactListMeta,
+} from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import { apiClientFetch } from "@/lib/api-client";
 import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
-import { UserAvatar } from "@/components/ui/user-avatar";
-import { cn } from "@/lib/utils";
 import { dmRetentionLabels } from "@/lib/ui-labels";
+import { cn } from "@/lib/utils";
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
@@ -34,11 +41,11 @@ function formatConversationTime(value: string | null) {
   const sameDay = date.toDateString() === now.toDateString();
 
   return sameDay
-    ? date.toLocaleTimeString("ru-RU", {
+    ? date.toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
       })
-    : date.toLocaleDateString("ru-RU", {
+    : date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
       });
@@ -74,9 +81,7 @@ export function ConversationList() {
       setConversations(directConversationListResponseSchema.parse(payload).items);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось загрузить диалоги.",
-      );
+      setErrorMessage(error instanceof Error ? error.message : "Unable to load conversations.");
     } finally {
       setIsLoading(false);
     }
@@ -104,9 +109,7 @@ export function ConversationList() {
       router.push(`/app/messages/${conversation.id}`);
       router.refresh();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось открыть диалог.",
-      );
+      setErrorMessage(error instanceof Error ? error.message : "Unable to open conversation.");
     } finally {
       setIsOpening(false);
     }
@@ -127,121 +130,125 @@ export function ConversationList() {
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-[var(--bg-app)]">
-      <div className="flex h-11 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(12,15,20,0.84)] px-3 backdrop-blur-md">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium tracking-tight text-white">Диалоги</span>
-            <span className="text-xs text-zinc-500">{conversations.length} чатов</span>
-            <span className="text-xs text-zinc-500">
-              {getUnreadTotal(conversations)} непрочитанных
-            </span>
+      <div className="border-b border-[var(--border-soft)] px-3 py-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <CompactListMeta>Messages</CompactListMeta>
+              <CompactListMeta>{conversations.length} threads</CompactListMeta>
+              <CompactListMeta>{getUnreadTotal(conversations)} unread</CompactListMeta>
+            </div>
+            <h2 className="mt-2 text-base font-semibold tracking-tight text-white">
+              Direct conversations
+            </h2>
           </div>
-        </div>
 
-        <form
-          className="flex w-full max-w-[360px] gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleOpenConversation();
-          }}
-        >
-          <div className="relative min-w-0 flex-1">
-            <Search
-              {...iconProps}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-            />
-            <Input
-              className="h-9 border-white/6 bg-[var(--bg-panel-muted)] pl-9 text-sm text-white placeholder:text-[var(--text-muted)]"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder="@username"
-              autoComplete="off"
-            />
-          </div>
-          <Button type="submit" disabled={isOpening} size="sm" className="shrink-0">
-            <UserRoundPlus {...iconProps} />
-            {isOpening ? "Открываем..." : "Новый диалог"}
-          </Button>
-        </form>
+          <form
+            className="flex w-full max-w-[420px] gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleOpenConversation();
+            }}
+          >
+            <div className="relative min-w-0 flex-1">
+              <Search
+                {...iconProps}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+              />
+              <Input
+                className="h-10 border-white/6 bg-[var(--bg-panel-muted)] pl-9 text-sm text-white placeholder:text-[var(--text-muted)]"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="@username"
+                autoComplete="off"
+              />
+            </div>
+            <Button type="submit" disabled={isOpening} className="h-10 shrink-0 px-3">
+              <UserRoundPlus {...iconProps} />
+              {isOpening ? "Opening..." : "New DM"}
+            </Button>
+          </form>
+        </div>
       </div>
 
       {errorMessage ? (
-        <div className="border-b border-white/5 px-4 py-2 text-sm text-rose-200">
+        <div className="border-b border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
           {errorMessage}
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between border-b border-white/5 px-3 py-2 text-xs text-zinc-500">
-        <span>{orderedConversations.length} веток</span>
+      <CompactListHeader className="border-b border-[var(--border-soft)] px-3 py-2">
+        <span>Threads</span>
         <Link
           href="/app/people?view=discover"
-          className="inline-flex items-center gap-1 text-zinc-400 hover:text-white"
+          className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
         >
           <UserRoundPlus {...iconProps} />
-          Найти людей
+          Find people
         </Link>
-      </div>
+      </CompactListHeader>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="empty-state-minimal text-zinc-500">
+          <div className="empty-state-minimal text-[var(--text-muted)]">
             <MessageSquareMore {...iconProps} />
-            <p className="text-sm">Загружаем диалоги...</p>
+            <p className="text-sm">Loading conversations...</p>
           </div>
         ) : orderedConversations.length === 0 ? (
-          <div className="empty-state-minimal text-zinc-500">
+          <div className="empty-state-minimal text-[var(--text-muted)]">
             <MessageSquareMore size={20} strokeWidth={1.5} />
             <div>
-              <p className="text-sm font-medium text-white">Диалогов пока нет</p>
-              <p className="mt-1 text-xs text-zinc-500">
-                Откройте диалог по имени пользователя или через раздел «Люди».
+              <p className="text-sm font-medium text-white">No conversations yet</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Start one from a username or open a DM from the people list.
               </p>
             </div>
           </div>
         ) : (
-          orderedConversations.map((conversation) => (
-            <Link
-              key={conversation.id}
-              href={`/app/messages/${conversation.id}`}
-              className="flex min-h-12 items-center gap-3 border-b border-white/5 px-3 py-2 transition-colors hover:bg-white/5"
-            >
-              <UserAvatar user={conversation.counterpart} size="sm" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-medium tracking-tight text-white">
-                    {conversation.counterpart.profile.displayName}
+          <CompactList>
+            {orderedConversations.map((conversation) => (
+              <CompactListLink
+                key={conversation.id}
+                href={`/app/messages/${conversation.id}`}
+                unread={conversation.unreadCount > 0}
+                className="gap-3"
+              >
+                <UserAvatar user={conversation.counterpart} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium tracking-tight text-white">
+                      {conversation.counterpart.profile.displayName}
+                    </p>
+                    {conversation.unreadCount > 0 ? (
+                      <CompactListCount>{conversation.unreadCount}</CompactListCount>
+                    ) : null}
+                    {conversation.retentionMode !== "OFF" ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                        <Clock3 {...iconProps} />
+                        {dmRetentionLabels[conversation.retentionMode]}
+                      </span>
+                    ) : null}
+                    <span className="ml-auto shrink-0 text-[11px] text-[var(--text-muted)]">
+                      {formatConversationTime(conversation.lastMessageAt)}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                    @{conversation.counterpart.username}
                   </p>
-                  {conversation.unreadCount > 0 ? (
-                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[11px] text-white">
-                      {conversation.unreadCount}
-                    </span>
-                  ) : null}
-                  {conversation.retentionMode !== "OFF" ? (
-                    <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                      <Clock3 {...iconProps} />
-                      {dmRetentionLabels[conversation.retentionMode]}
-                    </span>
-                  ) : null}
-                  <span className="ml-auto shrink-0 text-xs text-zinc-500">
-                    {formatConversationTime(conversation.lastMessageAt)}
-                  </span>
+                  <p
+                    className={cn(
+                      "mt-1 truncate text-[13px] leading-tight",
+                      conversation.unreadCount > 0 ? "text-zinc-100" : "text-zinc-400",
+                    )}
+                  >
+                    {conversation.lastMessage?.isDeleted
+                      ? "Last message deleted"
+                      : (conversation.lastMessage?.content ?? "Say hello first")}
+                  </p>
                 </div>
-                <p className="mt-0.5 truncate text-xs text-zinc-500">
-                  @{conversation.counterpart.username}
-                </p>
-                <p
-                  className={cn(
-                    "mt-0.5 truncate text-[13px] leading-tight",
-                    conversation.unreadCount > 0 ? "text-zinc-200" : "text-zinc-400",
-                  )}
-                >
-                  {conversation.lastMessage?.isDeleted
-                    ? "Последнее сообщение удалено"
-                    : (conversation.lastMessage?.content ?? "Напишите первым")}
-                </p>
-              </div>
-            </Link>
-          ))
+              </CompactListLink>
+            ))}
+          </CompactList>
         )}
       </div>
     </section>
