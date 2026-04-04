@@ -6,7 +6,7 @@ import {
   type CallStateResponse,
   type CallSummary,
 } from "@lobby/shared";
-import { Phone, PhoneCall, Users2, Video } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneCall, Users2, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
@@ -37,11 +37,20 @@ export function DmCallPanel({
   counterpartUsername,
 }: DmCallPanelProps) {
   const { socket, latestSignal, clearIncomingCall } = useRealtime();
-  const { connectToCall, dismissCall, isActiveCall, leaveCall, syncCall } =
-    useCallSession();
+  const {
+    connectToCall,
+    dismissCall,
+    isActiveCall,
+    leaveCall,
+    syncCall,
+    tracks,
+    microphoneEnabled,
+    toggleMicrophone,
+  } = useCallSession();
   const [state, setState] = useState<CallStateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [showExpandedCallView, setShowExpandedCallView] = useState(false);
 
   const callRoute = `/app/messages/${conversationId}`;
   const callTitle = `Звонок с ${counterpartName}`;
@@ -246,137 +255,203 @@ export function DmCallPanel({
       ["ACCEPTED", "JOINED"].includes(participant.state),
     ).length ?? 0;
   const isCurrentSession = isActiveCall(activeCall?.id ?? null);
-  const metrics = useMemo(
-    () => [
-      {
-        label: "Сеанс",
-        value: activeCall ? "Уже открыт" : "Готов к старту",
-      },
-      {
-        label: "Участники",
-        value: `${connectedParticipants} на связи`,
-      },
-      {
-        label: "История",
-        value: `${state?.history.length ?? 0} вызовов`,
-      },
-    ],
-    [activeCall, connectedParticipants, state?.history.length],
+  const visualTracks = useMemo(
+    () =>
+      isCurrentSession
+        ? tracks.filter((item) => item.kind === "video")
+        : [],
+    [isCurrentSession, tracks],
   );
+  const hasVisualTracks = visualTracks.length > 0;
+  const canToggleExpandedStage = isCurrentSession && !hasVisualTracks;
+  const showExpandedStage = Boolean(
+    activeCall && isCurrentSession && (hasVisualTracks || showExpandedCallView),
+  );
+  const expandedCallId = showExpandedStage ? activeCall?.id ?? null : null;
+  const participantPreview = useMemo(() => {
+    if (!activeCall) {
+      return null;
+    }
+
+    const names = activeCall.participants
+      .filter((participant) => ["ACCEPTED", "JOINED"].includes(participant.state))
+      .map((participant) => participant.user.profile.displayName)
+      .slice(0, 3);
+
+    if (names.length === 0) {
+      return null;
+    }
+
+    return names.join(", ");
+  }, [activeCall]);
+  const summaryText = activeCall
+    ? showExpandedStage
+      ? "Сцена открыта, чат остается главным контентом ниже."
+      : hasVisualTracks
+        ? "Видео или screen-share активны, сцену можно открыть без потери чата."
+        : "Аудиозвонок остается компактным и не вытесняет переписку."
+    : "Запуск звонка не забирает экран у переписки.";
+
+  useEffect(() => {
+    setShowExpandedCallView(false);
+  }, [activeCall?.id]);
+
+  useEffect(() => {
+    if (!activeCall || !isCurrentSession) {
+      setShowExpandedCallView(false);
+    }
+  }, [activeCall, isCurrentSession]);
 
   return (
-    <div className="grid gap-2.5">
-      <div className="premium-panel rounded-[20px] p-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="eyebrow-pill">Личный звонок</span>
-              <span className="status-pill">
-                <PhoneCall {...iconProps} />
-                {activeCall ? callStatusLabels[activeCall.status] : "Готов"}
-              </span>
-              {activeCall ? (
-                <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
-              ) : null}
-              {viewerParticipant ? (
+    <div className="grid gap-2">
+      <div className="premium-panel rounded-[18px] px-3 py-2.5">
+        <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="eyebrow-pill">Личный звонок</span>
                 <span className="status-pill">
-                  Вы: {callParticipantStateLabels[viewerParticipant.state]}
+                  <PhoneCall {...iconProps} />
+                  {activeCall ? callStatusLabels[activeCall.status] : "Готов"}
                 </span>
-              ) : null}
-              {isCurrentSession ? <span className="status-pill">Закреплён</span> : null}
-            </div>
+                {activeCall ? (
+                  <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
+                ) : null}
+                {viewerParticipant ? (
+                  <span className="status-pill">
+                    Вы: {callParticipantStateLabels[viewerParticipant.state]}
+                  </span>
+                ) : null}
+                {activeCall ? (
+                  <span className="status-pill">
+                    <Users2 {...iconProps} />
+                    {connectedParticipants}
+                  </span>
+                ) : null}
+                {isCurrentSession ? <span className="status-pill">Закреплен</span> : null}
+              </div>
 
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {metrics.map((metric) => (
-                <div key={metric.label} className="surface-subtle rounded-[16px] px-3 py-2.5">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                    {metric.label}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-white">{metric.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {errorMessage ? <p className="mt-2 text-sm text-rose-200">{errorMessage}</p> : null}
-            {!errorMessage && isBlocked ? (
-              <p className="mt-2 text-sm text-amber-100">
-                Звонки недоступны в этом диалоге.
+              <p className="mt-1.5 text-sm text-[var(--text-dim)]">
+                {participantPreview ? `${participantPreview}. ` : null}
+                {summaryText}
               </p>
-            ) : null}
-          </div>
 
-          <div className="flex flex-wrap gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-            {!activeCall ? (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => void startCall("AUDIO")}
-                  disabled={isBlocked || pendingAction !== null}
-                >
-                  <Phone {...iconProps} />
-                  {pendingAction === "start:AUDIO" ? "Запускаем..." : "Голос"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void startCall("VIDEO")}
-                  disabled={isBlocked || pendingAction !== null}
-                >
-                  <Video {...iconProps} />
-                  {pendingAction === "start:VIDEO" ? "Запускаем..." : "Видео"}
-                </Button>
-              </>
-            ) : isIncomingCall ? (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => void acceptCall()}
-                  disabled={pendingAction !== null || isBlocked}
-                >
-                  {pendingAction === "accept" ? "Принимаем..." : "Принять"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void declineCall()}
-                  disabled={pendingAction !== null}
-                >
-                  {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => void joinCall()}
-                  disabled={pendingAction !== null || isBlocked}
-                >
-                  <Users2 {...iconProps} />
-                  {pendingAction === "join"
-                    ? "Подключаем..."
-                    : isCurrentSession
-                      ? "Вернуться в комнату"
-                      : "Подключиться"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void endCall()}
-                  disabled={pendingAction !== null}
-                >
-                  {pendingAction === "end" ? "Завершаем..." : "Выйти"}
-                </Button>
-              </>
-            )}
+              {errorMessage ? <p className="mt-2 text-sm text-rose-200">{errorMessage}</p> : null}
+              {!errorMessage && isBlocked ? (
+                <p className="mt-2 text-sm text-amber-100">
+                  Звонки недоступны в этом диалоге.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {!activeCall ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => void startCall("AUDIO")}
+                    disabled={isBlocked || pendingAction !== null}
+                  >
+                    <Phone {...iconProps} />
+                    {pendingAction === "start:AUDIO" ? "Запускаем..." : "Голос"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void startCall("VIDEO")}
+                    disabled={isBlocked || pendingAction !== null}
+                  >
+                    <Video {...iconProps} />
+                    {pendingAction === "start:VIDEO" ? "Запускаем..." : "Видео"}
+                  </Button>
+                </>
+              ) : isIncomingCall ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => void acceptCall()}
+                    disabled={pendingAction !== null || isBlocked}
+                  >
+                    {pendingAction === "accept" ? "Принимаем..." : "Принять"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void declineCall()}
+                    disabled={pendingAction !== null}
+                  >
+                    {pendingAction === "decline" ? "Отклоняем..." : "Отклонить"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (canToggleExpandedStage) {
+                        setShowExpandedCallView((value) => !value);
+                        return;
+                      }
+
+                      if (!isCurrentSession) {
+                        void joinCall();
+                      }
+                    }}
+                    disabled={
+                      pendingAction !== null ||
+                      isBlocked ||
+                      (isCurrentSession && hasVisualTracks)
+                    }
+                  >
+                    <PhoneCall {...iconProps} />
+                    {pendingAction === "join"
+                      ? "Подключаем..."
+                      : isCurrentSession
+                        ? hasVisualTracks
+                          ? "Комната открыта"
+                          : showExpandedStage
+                            ? "Свернуть комнату"
+                            : "Открыть комнату"
+                        : "Подключиться"}
+                  </Button>
+                  {isCurrentSession ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void toggleMicrophone()}
+                      disabled={pendingAction !== null}
+                    >
+                      {microphoneEnabled ? (
+                        <Mic {...iconProps} />
+                      ) : (
+                        <MicOff {...iconProps} />
+                      )}
+                      {microphoneEnabled ? "Mute" : "Unmute"}
+                    </Button>
+                  ) : null}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void endCall()}
+                    disabled={pendingAction !== null}
+                  >
+                    {pendingAction === "end" ? "Завершаем..." : "Выйти"}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <LiveKitCallRoom
-        callId={activeCall?.id ?? null}
-        title="Комната ЛС"
-        description="Сеанс остаётся активным во всём приложении и не рвётся при навигации."
-      />
+      {expandedCallId ? (
+        <LiveKitCallRoom
+          callId={expandedCallId}
+          title="Комната ЛС"
+          description="Сцена раскрывается только когда это действительно нужно и не отнимает экран у переписки."
+          variant="conversation"
+        />
+      ) : null}
     </div>
   );
 }
