@@ -193,7 +193,7 @@ export function MessageThread({
                               {formatThreadTime(message.createdAt)}
                             </span>
                             {message.localState === "sending" ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
                                 Отправляем
                               </span>
                             ) : null}

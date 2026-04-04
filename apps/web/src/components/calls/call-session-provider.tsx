@@ -306,7 +306,7 @@ function collectParticipantViews(room: Room, call: CallSummary) {
       hasCamera: Boolean(cameraPublication?.track),
       hasScreenShare: Boolean(screenPublication?.track),
       audioLevel: participant.audioLevel,
-      connectionQuality: participant.connectionQuality,
+      connectionQuality: String(participant.connectionQuality ?? "unknown").toLowerCase(),
     });
   }
 
@@ -414,8 +414,12 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
     setMicrophoneEnabled(false);
     setCameraEnabled(false);
     setScreenShareEnabled(false);
+    setInputDevices([]);
+    setOutputDevices([]);
     if (nextStatus !== "error") {
       setErrorMessage(null);
+      setDeviceError(null);
+      setEffectError(null);
     }
   }, []);
 
@@ -499,9 +503,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const isActiveCall = useCallback(
-    (callId: string | null | undefined) => {
-      return Boolean(callId) && session?.call.id === callId;
-    },
+    (callId: string | null | undefined) => Boolean(callId) && session?.call.id === callId,
     [session?.call.id],
   );
 
@@ -576,9 +578,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
         setSelectedInputDeviceId(activeInputDeviceId);
 
         if (outputSelectionSupported) {
-          setSelectedOutputDeviceId(
-            (current) => current ?? nextOutputs[0]?.deviceId ?? null,
-          );
+          setSelectedOutputDeviceId((current) => current ?? nextOutputs[0]?.deviceId ?? null);
         }
 
         setDeviceError(null);
@@ -663,9 +663,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
         await applyVoiceEffect(desiredVoiceEffectRef.current, room, false);
       } catch (error) {
         setDeviceError(
-          error instanceof Error
-            ? error.message
-            : "Не удалось переключить микрофон.",
+          error instanceof Error ? error.message : "Не удалось переключить микрофон.",
         );
       }
     },
@@ -736,7 +734,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
           }
         : current,
     );
-  }, [dismissCall, latestSignal, session?.call.id]);
+  }, [dismissCall, latestSignal, session]);
 
   useEffect(() => {
     if (!session) {
@@ -746,6 +744,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const activeSession = session;
     let isCancelled = false;
     const nextRoom = new Room({ adaptiveStream: true, dynacast: true });
     roomRef.current = nextRoom;
@@ -759,7 +758,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
 
       const snapshot = collectTrackViews(nextRoom);
       setTracks(snapshot.items);
-      setParticipants(collectParticipantViews(nextRoom, session.call));
+      setParticipants(collectParticipantViews(nextRoom, activeSession.call));
       setMicrophoneEnabled(snapshot.hasMicrophone);
       setCameraEnabled(snapshot.hasCamera);
       setScreenShareEnabled(snapshot.hasScreenShare);
@@ -825,7 +824,10 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
 
     void (async () => {
       try {
-        await nextRoom.connect(session.connection.url, session.connection.token);
+        await nextRoom.connect(
+          activeSession.connection.url,
+          activeSession.connection.token,
+        );
         await nextRoom.startAudio().catch(() => undefined);
 
         if (selectedOutputDeviceId && outputSelectionSupported) {
@@ -834,7 +836,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
             .catch(() => false);
         }
 
-        if (session.connection.canPublishMedia) {
+        if (activeSession.connection.canPublishMedia) {
           try {
             await nextRoom.localParticipant.setMicrophoneEnabled(
               true,
@@ -846,7 +848,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
             await nextRoom.localParticipant.setMicrophoneEnabled(true);
           }
 
-          if (session.call.mode === "VIDEO") {
+          if (activeSession.call.mode === "VIDEO") {
             await nextRoom.localParticipant.setCameraEnabled(true);
           }
         }
@@ -1178,34 +1180,27 @@ function TrackSurface({
   emphasis?: "stage" | "tile";
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const isScreen = isScreenShareTrack(item);
+  const isVideoTrack = item.kind === "video";
 
   useEffect(() => {
     const container = containerRef.current;
 
-    if (!container) {
+    if (!container || !isVideoTrack) {
       return;
     }
 
-    const element =
-      item.kind === "video"
-        ? document.createElement("video")
-        : document.createElement("audio");
-
+    const element = document.createElement("video");
     element.autoplay = true;
     element.setAttribute("playsinline", "true");
     element.muted = item.isLocal;
     element.defaultMuted = item.isLocal;
     element.volume = item.isLocal ? 0 : 1;
-
-    if (element instanceof HTMLVideoElement) {
-      element.className =
-        emphasis === "stage"
-          ? "h-full w-full object-cover"
-          : "h-full w-full rounded-[16px] object-cover";
-      element.playsInline = true;
-    } else {
-      element.className = "hidden";
-    }
+    element.playsInline = true;
+    element.className =
+      emphasis === "stage"
+        ? "h-full w-full object-cover"
+        : "h-full w-full rounded-[16px] object-cover";
 
     item.track.attach(element);
     container.appendChild(element);
@@ -1215,49 +1210,418 @@ function TrackSurface({
       item.track.detach(element);
       element.remove();
     };
-  }, [emphasis, item]);
-
-  const isScreen = isScreenShareTrack(item);
+  }, [emphasis, isVideoTrack, item]);
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden border border-white/6 bg-[var(--bg-panel-muted)]",
-        emphasis === "stage" ? "min-h-[240px] rounded-[20px]" : "rounded-[18px]",
+        "relative overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_48%),rgba(8,12,18,0.96)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+        emphasis === "stage"
+          ? "min-h-[300px] rounded-[22px] xl:min-h-[420px]"
+          : "min-h-[170px] rounded-[18px]",
       )}
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      {isVideoTrack ? <div ref={containerRef} className="absolute inset-0" /> : null}
 
-      {item.kind === "audio" ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.14),transparent_42%),rgba(10,13,18,0.84)]">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/8 bg-white/5 text-sm font-semibold text-white">
-            {getParticipantInitials(item.participantName)}
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-white">{item.participantName}</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Voice stream live</p>
+      {!isVideoTrack ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.16),transparent_42%),rgba(9,14,20,0.96)] px-5 text-center">
+          <AvatarOrInitials user={null} name={item.participantName} size="lg" />
+          <div>
+            <p className="text-base font-semibold text-white">{item.participantName}</p>
+            <p className="mt-1 text-sm text-[var(--text-dim)]">Голосовой поток активен</p>
           </div>
         </div>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-[linear-gradient(180deg,transparent,rgba(5,8,12,0.84))] px-3 pb-3 pt-8">
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-[linear-gradient(180deg,transparent,rgba(5,8,12,0.88))] px-3 pb-3 pt-10">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-white">{item.participantName}</p>
           <p className="truncate text-xs text-[var(--text-soft)]">
-            {item.isLocal ? "You" : "Remote"} ·{" "}
-            {isScreen ? "Screen share" : item.kind === "video" ? "Camera" : "Audio"}
+            {item.isLocal ? "Вы" : "Участник"} ·{" "}
+            {isScreen ? "Демонстрация экрана" : isVideoTrack ? "Камера" : "Голос"}
           </p>
         </div>
         <span className="inline-flex items-center gap-1 rounded-full border border-white/8 bg-black/30 px-2 py-1 text-[11px] text-[var(--text-soft)] backdrop-blur-sm">
           {isScreen ? (
             <Monitor size={13} strokeWidth={1.5} />
-          ) : item.kind === "video" ? (
+          ) : isVideoTrack ? (
             <Video size={13} strokeWidth={1.5} />
           ) : (
             <Mic size={13} strokeWidth={1.5} />
           )}
-          {isScreen ? "Share" : item.kind}
+          {isScreen ? "Экран" : isVideoTrack ? "Видео" : "Аудио"}
         </span>
+      </div>
+    </div>
+  );
+}
+
+function ParticipantRow({ participant }: { participant: ParticipantPresenceView }) {
+  const secondaryLabel = participant.isConnected
+    ? participant.isSpeaking
+      ? "Говорит сейчас"
+      : participant.isLocal
+        ? "Вы в комнате"
+        : getConnectionQualityLabel(participant.connectionQuality)
+    : participant.state
+      ? callParticipantStateLabels[participant.state]
+      : "Ожидает подключения";
+
+  return (
+    <div className="rounded-[16px] border border-white/6 bg-black/10 px-3 py-2.5">
+      <div className="flex items-start gap-3">
+        <AvatarOrInitials user={participant.user} name={participant.name} size="sm" />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="truncate text-sm font-medium text-white">{participant.name}</p>
+            {participant.isLocal ? <span className="status-pill">Вы</span> : null}
+            {participant.isSpeaking ? (
+              <span className="status-pill border-emerald-400/20 bg-emerald-400/10 text-emerald-200">
+                Говорит
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-xs text-[var(--text-dim)]">{secondaryLabel}</p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span
+              className={cn(
+                "status-pill",
+                participant.hasAudio && !participant.isMuted
+                  ? "text-emerald-200"
+                  : "text-[var(--text-muted)]",
+              )}
+            >
+              {participant.hasAudio && !participant.isMuted ? (
+                <Mic size={13} strokeWidth={1.5} />
+              ) : (
+                <MicOff size={13} strokeWidth={1.5} />
+              )}
+              {participant.hasAudio && !participant.isMuted ? "Микрофон" : "Без микрофона"}
+            </span>
+            {participant.hasCamera ? (
+              <span className="status-pill">
+                <Video size={13} strokeWidth={1.5} />
+                Камера
+              </span>
+            ) : null}
+            {participant.hasScreenShare ? (
+              <span className="status-pill">
+                <Monitor size={13} strokeWidth={1.5} />
+                Экран
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VoicePresenceStage({
+  participants,
+  participantCount,
+}: {
+  participants: ParticipantPresenceView[];
+  participantCount: number;
+}) {
+  if (participants.length === 0) {
+    return (
+      <div className="flex min-h-[300px] flex-col items-center justify-center rounded-[22px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_28%),rgba(12,18,24,0.96)] px-6 text-center xl:min-h-[420px]">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/8 bg-white/5 text-[var(--accent)]">
+          <Waves size={24} strokeWidth={1.5} />
+        </div>
+        <p className="mt-3 text-base font-semibold text-white">Комната готова</p>
+        <p className="mt-1.5 max-w-sm text-sm text-[var(--text-dim)]">
+          Подключение уже живёт на уровне приложения. Ждём участников или видео.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[22px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_26%),rgba(12,18,24,0.96)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-white">Голосовая сцена</p>
+          <p className="mt-1 text-xs text-[var(--text-dim)]">
+            {participantCount} участников в комнате
+          </p>
+        </div>
+        <span className="status-pill">
+          <Waves size={13} strokeWidth={1.5} />
+          Активный звук
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {participants.map((participant) => (
+          <div
+            key={participant.id}
+            className={cn(
+              "rounded-[18px] border border-white/6 bg-black/12 px-4 py-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+              participant.isSpeaking && "border-emerald-400/25 bg-emerald-400/8",
+            )}
+          >
+            <div className="mx-auto flex w-fit flex-col items-center">
+              <div
+                className={cn(
+                  "rounded-full p-1.5",
+                  participant.isSpeaking && "bg-emerald-400/10 shadow-[0_0_0_6px_rgba(16,185,129,0.08)]",
+                )}
+              >
+                <AvatarOrInitials
+                  user={participant.user}
+                  name={participant.name}
+                  size="lg"
+                />
+              </div>
+            </div>
+            <p className="mt-3 truncate text-sm font-medium text-white">{participant.name}</p>
+            <p className="mt-1 text-xs text-[var(--text-dim)]">
+              {participant.isSpeaking
+                ? "Говорит"
+                : participant.isConnected
+                  ? participant.isLocal
+                    ? "Вы в комнате"
+                    : getConnectionQualityLabel(participant.connectionQuality)
+                  : participant.state
+                    ? callParticipantStateLabels[participant.state]
+                    : "Ожидает подключения"}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AudioAndDeviceCard() {
+  const {
+    session,
+    status,
+    microphoneEnabled,
+    inputDevices,
+    outputDevices,
+    selectedInputDeviceId,
+    selectedOutputDeviceId,
+    outputSelectionSupported,
+    deviceError,
+    voiceEffect,
+    effectError,
+    setInputDevice,
+    setOutputDevice,
+    setVoiceEffect,
+  } = useCallSession();
+  const [pendingAction, setPendingAction] = useState<"input" | "output" | "effect" | null>(
+    null,
+  );
+
+  if (!session) {
+    return null;
+  }
+
+  async function handleInputChange(deviceId: string) {
+    setPendingAction("input");
+    try {
+      await setInputDevice(deviceId);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleOutputChange(deviceId: string) {
+    setPendingAction("output");
+    try {
+      await setOutputDevice(deviceId);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleEffectChange(effect: VoiceEffectPreset) {
+    setPendingAction("effect");
+    try {
+      await setVoiceEffect(effect);
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  return (
+    <div className="surface-subtle rounded-[20px] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-white">Звук и устройства</p>
+          <p className="mt-1 text-xs text-[var(--text-dim)]">
+            Меняются без выхода из комнаты
+          </p>
+        </div>
+        {pendingAction ? (
+          <LoaderCircle className="h-4 w-4 animate-spin text-[var(--text-muted)]" />
+        ) : (
+          <Settings2 className="h-4 w-4 text-[var(--text-muted)]" />
+        )}
+      </div>
+
+      <div className="mt-3 grid gap-2 text-sm">
+        <div className="rounded-[14px] border border-white/6 bg-black/10 px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[var(--text-dim)]">Связь</span>
+            <span className="text-xs text-white">{connectionStatusLabels[status]}</span>
+          </div>
+        </div>
+        <div className="rounded-[14px] border border-white/6 bg-black/10 px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[var(--text-dim)]">Микрофон</span>
+            <span className="inline-flex items-center gap-1 text-xs text-white">
+              {microphoneEnabled ? (
+                <Mic size={13} strokeWidth={1.5} />
+              ) : (
+                <MicOff size={13} strokeWidth={1.5} />
+              )}
+              {microphoneEnabled ? "Включён" : "Выключен"}
+            </span>
+          </div>
+        </div>
+        <div className="rounded-[14px] border border-white/6 bg-black/10 px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[var(--text-dim)]">Вывод</span>
+            <span className="inline-flex items-center gap-1 text-xs text-white">
+              <Volume2 size={13} strokeWidth={1.5} />
+              {outputSelectionSupported ? "Управляется из приложения" : "Системный"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-3">
+        <div className="grid gap-1.5">
+          <label className="section-kicker">Вход</label>
+          <select
+            className="field-select text-sm"
+            value={selectedInputDeviceId ?? ""}
+            onChange={(event) => void handleInputChange(event.target.value)}
+            disabled={!session.connection.canPublishMedia || inputDevices.length === 0}
+          >
+            {inputDevices.length === 0 ? (
+              <option value="">Микрофоны не найдены</option>
+            ) : null}
+            {inputDevices.map((device, index) => (
+              <option key={device.deviceId} value={device.deviceId}>
+                {getDeviceLabel(device, "Микрофон", index)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="section-kicker">Вывод</label>
+          <select
+            className="field-select text-sm"
+            value={selectedOutputDeviceId ?? ""}
+            onChange={(event) => void handleOutputChange(event.target.value)}
+            disabled={!outputSelectionSupported || outputDevices.length === 0}
+          >
+            {outputDevices.length === 0 ? (
+              <option value="">
+                {outputSelectionSupported
+                  ? "Устройства вывода не найдены"
+                  : "Используется системный динамик"}
+              </option>
+            ) : null}
+            {outputDevices.map((device, index) => (
+              <option key={device.deviceId} value={device.deviceId}>
+                {getDeviceLabel(device, "Вывод", index)}
+              </option>
+            ))}
+          </select>
+          {!outputSelectionSupported ? (
+            <p className="text-xs text-[var(--text-dim)]">
+              Этот браузер не даёт выбрать устройство вывода. Звук идёт через системный
+              динамик.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="grid gap-1.5">
+          <label className="section-kicker">Эффект голоса</label>
+          <select
+            className="field-select text-sm"
+            value={voiceEffect}
+            onChange={(event) =>
+              void handleEffectChange(event.target.value as VoiceEffectPreset)
+            }
+            disabled={!session.connection.canPublishMedia}
+          >
+            {(Object.keys(voiceEffectLabels) as VoiceEffectPreset[]).map((effect) => (
+              <option key={effect} value={effect}>
+                {voiceEffectLabels[effect]}
+              </option>
+            ))}
+          </select>
+          <div className="inline-flex items-center gap-2 rounded-[14px] border border-white/6 bg-black/10 px-3 py-2 text-xs text-[var(--text-dim)]">
+            <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
+            {voiceEffect === "normal"
+              ? "Обычный голос без обработки."
+              : `Активен пресет «${voiceEffectLabels[voiceEffect]}».`}
+          </div>
+        </div>
+      </div>
+
+      {deviceError ? (
+        <div className="mt-3 rounded-[14px] border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
+          {deviceError}
+        </div>
+      ) : null}
+
+      {effectError ? (
+        <div className="mt-2 rounded-[14px] border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
+          {effectError}
+        </div>
+      ) : voiceEffect === "normal" ? (
+        <div className="mt-2 inline-flex items-center gap-2 rounded-[14px] border border-emerald-400/15 bg-emerald-400/8 px-3 py-2 text-xs text-emerald-100">
+          <Check className="h-3.5 w-3.5" />
+          Базовый микрофон работает без эффектов.
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ParticipantsCard({
+  participants,
+  participantCount,
+}: {
+  participants: ParticipantPresenceView[];
+  participantCount: number;
+}) {
+  return (
+    <div className="surface-subtle flex min-h-0 flex-col rounded-[20px] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-white">Участники</p>
+          <p className="mt-1 text-xs text-[var(--text-dim)]">
+            {participantCount} в голосовой комнате
+          </p>
+        </div>
+        <span className="status-pill">
+          <Users2 size={13} strokeWidth={1.5} />
+          Онлайн
+        </span>
+      </div>
+
+      <div className="mt-3 min-h-0 space-y-2 overflow-y-auto">
+        {participants.length === 0 ? (
+          <div className="rounded-[16px] border border-white/6 bg-black/10 px-3 py-4 text-center text-sm text-[var(--text-dim)]">
+            Пока никого не видно. Подключение уже поднято, ждём участников.
+          </div>
+        ) : (
+          participants.map((participant) => (
+            <ParticipantRow key={participant.id} participant={participant} />
+          ))
+        )}
       </div>
     </div>
   );
@@ -1287,7 +1651,7 @@ export function PersistentCallDock() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-20 z-40 flex justify-end px-3 md:bottom-4 md:px-4">
-      <div className="pointer-events-auto w-full max-w-[420px] rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_34%),rgba(11,16,24,0.94)] p-3 shadow-[0_24px_60px_rgba(4,8,16,0.42)] backdrop-blur-xl">
+      <div className="pointer-events-auto w-full max-w-[430px] rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_34%),rgba(11,16,24,0.94)] p-3 shadow-[0_24px_60px_rgba(4,8,16,0.42)] backdrop-blur-xl">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.24)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)]">
             <PhoneCall size={18} strokeWidth={1.5} />
@@ -1296,13 +1660,22 @@ export function PersistentCallDock() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="truncate text-sm font-semibold text-white">{session.title}</p>
-              <span className="status-pill">{status}</span>
+              <span className="status-pill">{connectionStatusLabels[status]}</span>
+              <span className="status-pill">{callModeLabels[session.call.mode]}</span>
               <span className="status-pill">
                 <Users2 size={14} strokeWidth={1.5} />
                 {participantCount}
               </span>
             </div>
             <p className="mt-1 truncate text-xs text-[var(--text-dim)]">{session.subtitle}</p>
+            <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-1 text-[11px] text-[var(--text-soft)]">
+              {microphoneEnabled ? (
+                <Mic size={13} strokeWidth={1.5} />
+              ) : (
+                <MicOff size={13} strokeWidth={1.5} />
+              )}
+              {microphoneEnabled ? "Микрофон включён" : "Микрофон выключен"}
+            </div>
           </div>
         </div>
 
@@ -1318,7 +1691,7 @@ export function PersistentCallDock() {
             ) : (
               <MicOff size={15} strokeWidth={1.5} />
             )}
-            {microphoneEnabled ? "Mute" : "Unmute"}
+            Микрофон
           </Button>
 
           <Link
@@ -1326,7 +1699,7 @@ export function PersistentCallDock() {
             className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-white/8 bg-white/5 px-3 text-xs font-medium text-white transition-colors hover:bg-white/10"
           >
             <ArrowUpRight size={15} strokeWidth={1.5} />
-            Return to call
+            Вернуться в звонок
           </Link>
 
           <Button
@@ -1336,7 +1709,7 @@ export function PersistentCallDock() {
             className="ml-auto"
           >
             <PhoneOff size={15} strokeWidth={1.5} />
-            Leave
+            Выйти
           </Button>
         </div>
       </div>
@@ -1358,6 +1731,7 @@ export function CallRoomCanvas({
     status,
     errorMessage,
     tracks,
+    participants,
     participantCount,
     microphoneEnabled,
     cameraEnabled,
@@ -1378,11 +1752,6 @@ export function CallRoomCanvas({
   const cameraTracks = tracks.filter(
     (item) => item.kind === "video" && !isScreenShareTrack(item),
   );
-  const audioTracks = tracks.filter(
-    (item) =>
-      item.kind === "audio" &&
-      (isMicrophoneTrack(item) || !item.source.toLowerCase().includes("screen")),
-  );
 
   const primaryTrack =
     screenTracks.find((item) => !item.isLocal) ??
@@ -1395,23 +1764,28 @@ export function CallRoomCanvas({
     (item) => item.id !== primaryTrack?.id,
   );
 
+  const stageSubtitle = screenTracks.length > 0
+    ? "Демонстрация экрана получает главный экран, а участники уходят в боковую колонку."
+    : description;
+
   return (
     <div className="premium-panel flex min-h-0 flex-1 flex-col rounded-[24px] p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="eyebrow-pill">{title}</span>
-            <span className="status-pill">{session.call.mode}</span>
-            <span className="status-pill">{status}</span>
+            <span className="status-pill">{callModeLabels[session.call.mode]}</span>
+            <span className="status-pill">{callStatusLabels[session.call.status]}</span>
+            <span className="status-pill">{connectionStatusLabels[status]}</span>
             <span className="status-pill">
               <Users2 size={14} strokeWidth={1.5} />
               {participantCount}
             </span>
             {!session.connection.canPublishMedia ? (
-              <span className="status-pill">Listen only</span>
+              <span className="status-pill">Только прослушивание</span>
             ) : null}
           </div>
-          <p className="mt-2 text-sm text-[var(--text-dim)]">{description}</p>
+          <p className="mt-2 text-sm text-[var(--text-dim)]">{stageSubtitle}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:grid-cols-4">
@@ -1422,8 +1796,12 @@ export function CallRoomCanvas({
             disabled={!session.connection.canPublishMedia}
             className="justify-start"
           >
-            {microphoneEnabled ? <Mic size={15} strokeWidth={1.5} /> : <MicOff size={15} strokeWidth={1.5} />}
-            {microphoneEnabled ? "Mic on" : "Mic off"}
+            {microphoneEnabled ? (
+              <Mic size={15} strokeWidth={1.5} />
+            ) : (
+              <MicOff size={15} strokeWidth={1.5} />
+            )}
+            {microphoneEnabled ? "Микрофон" : "Включить микрофон"}
           </Button>
           <Button
             size="sm"
@@ -1432,8 +1810,12 @@ export function CallRoomCanvas({
             disabled={!session.connection.canPublishMedia}
             className="justify-start"
           >
-            {cameraEnabled ? <Video size={15} strokeWidth={1.5} /> : <VideoOff size={15} strokeWidth={1.5} />}
-            {cameraEnabled ? "Camera" : "Camera off"}
+            {cameraEnabled ? (
+              <Video size={15} strokeWidth={1.5} />
+            ) : (
+              <VideoOff size={15} strokeWidth={1.5} />
+            )}
+            {cameraEnabled ? "Камера" : "Включить камеру"}
           </Button>
           <Button
             size="sm"
@@ -1447,7 +1829,7 @@ export function CallRoomCanvas({
             ) : (
               <MonitorUp size={15} strokeWidth={1.5} />
             )}
-            {screenShareEnabled ? "Stop share" : "Share"}
+            {screenShareEnabled ? "Остановить показ" : "Показать экран"}
           </Button>
           <Button
             size="sm"
@@ -1456,7 +1838,7 @@ export function CallRoomCanvas({
             className="justify-start"
           >
             <PhoneOff size={15} strokeWidth={1.5} />
-            Leave
+            Выйти
           </Button>
         </div>
       </div>
@@ -1467,24 +1849,19 @@ export function CallRoomCanvas({
         </div>
       ) : null}
 
-      <div className="mt-3 grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.2fr)_280px]">
+      <div className="mt-3 grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-h-0 space-y-3">
           {primaryTrack ? (
             <TrackSurface item={primaryTrack} emphasis="stage" />
           ) : (
-            <div className="flex min-h-[240px] flex-col items-center justify-center rounded-[20px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.1),transparent_28%),var(--bg-panel-muted)] px-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/8 bg-white/5 text-[var(--accent)]">
-                <Waves size={22} strokeWidth={1.5} />
-              </div>
-              <p className="mt-3 text-sm font-medium text-white">Call scene is ready</p>
-              <p className="mt-2 max-w-sm text-sm text-[var(--text-dim)]">
-                Camera and screen-share tracks will appear here without dropping the active session.
-              </p>
-            </div>
+            <VoicePresenceStage
+              participants={participants.filter((participant) => participant.isConnected)}
+              participantCount={participantCount}
+            />
           )}
 
           {secondaryVideoTracks.length > 0 ? (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
               {secondaryVideoTracks.map((item) => (
                 <TrackSurface key={item.id} item={item} />
               ))}
@@ -1492,50 +1869,9 @@ export function CallRoomCanvas({
           ) : null}
         </div>
 
-        <div className="min-h-0 space-y-3">
-          <div className="surface-subtle rounded-[20px] p-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-white">Participants</p>
-              <span className="text-xs text-[var(--text-muted)]">{participantCount} live</span>
-            </div>
-            <div className="mt-3 grid gap-2">
-              {audioTracks.length === 0 && cameraTracks.length === 0 && screenTracks.length === 0 ? (
-                <div className="rounded-[16px] border border-white/6 bg-black/10 px-3 py-4 text-center text-sm text-[var(--text-dim)]">
-                  Waiting for participants...
-                </div>
-              ) : (
-                audioTracks.map((item) => <TrackSurface key={item.id} item={item} />)
-              )}
-            </div>
-          </div>
-
-          <div className="surface-subtle rounded-[20px] p-3">
-            <p className="text-sm font-medium text-white">Live state</p>
-            <div className="mt-3 grid gap-2 text-sm text-[var(--text-dim)]">
-              <div className="flex items-center justify-between gap-3 rounded-[14px] border border-white/6 bg-black/10 px-3 py-2">
-                <span>Connection</span>
-                <span className="text-[var(--text-soft)]">{status}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-[14px] border border-white/6 bg-black/10 px-3 py-2">
-                <span>Microphone</span>
-                <span className="text-[var(--text-soft)]">
-                  {microphoneEnabled ? "Live" : "Muted"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-[14px] border border-white/6 bg-black/10 px-3 py-2">
-                <span>Camera</span>
-                <span className="text-[var(--text-soft)]">
-                  {cameraEnabled ? "Publishing" : "Off"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-[14px] border border-white/6 bg-black/10 px-3 py-2">
-                <span>Screen share</span>
-                <span className="text-[var(--text-soft)]">
-                  {screenShareEnabled ? "Publishing" : "Inactive"}
-                </span>
-              </div>
-            </div>
-          </div>
+        <div className="flex min-h-0 flex-col gap-3">
+          <AudioAndDeviceCard />
+          <ParticipantsCard participants={participants} participantCount={participantCount} />
         </div>
       </div>
     </div>

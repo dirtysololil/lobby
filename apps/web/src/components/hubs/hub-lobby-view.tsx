@@ -17,7 +17,7 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
   if (!lobby) {
     return (
       <div className="rounded-[16px] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-        Р›РѕР±Р±Рё РЅРµРґРѕСЃС‚СѓРїРЅРѕ СЃ РІР°С€РёРјРё С‚РµРєСѓС‰РёРјРё РїСЂР°РІР°РјРё.
+        Лобби не найдено или у вас нет доступа к этой рабочей зоне.
       </div>
     );
   }
@@ -34,13 +34,19 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
                 ) : (
                   <Hash className="h-3.5 w-3.5" />
                 )}
-                {lobby.type === "VOICE" ? "Voice" : "Channel"}
+                {lobby.type === "VOICE" ? "Голос" : "Канал"}
               </span>
-              <span className="status-pill">{lobby.type}</span>
+              <span className="status-pill">
+                {lobby.type === "VOICE"
+                  ? "Голосовой"
+                  : lobby.type === "TEXT"
+                    ? "Текстовый"
+                    : "Форум"}
+              </span>
               {lobby.isPrivate ? (
                 <span className="status-pill">
                   <LockKeyhole className="h-3.5 w-3.5 text-[var(--accent)]" />
-                  Private
+                  Приватный
                 </span>
               ) : null}
             </div>
@@ -48,7 +54,12 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
               {lobby.name}
             </h1>
             <p className="mt-1 truncate text-sm text-[var(--text-dim)]">
-              {lobby.description ?? lobby.type}
+              {lobby.description ??
+                (lobby.type === "VOICE"
+                  ? "Голосовая сцена"
+                  : lobby.type === "TEXT"
+                    ? "Текстовый канал"
+                    : "Форум")}
             </p>
           </div>
         </div>
@@ -58,7 +69,8 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
         <div className="grid gap-3">
           {hub.isViewerMuted ? (
             <div className="rounded-[16px] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-              Р’С‹ РѕРіСЂР°РЅРёС‡РµРЅС‹ РІ СЌС‚РѕРј С…Р°Р±Рµ. Р§Р°СЃС‚СЊ Р°РєС‚РёРІРЅС‹С… РґРµР№СЃС‚РІРёР№ РјРѕР¶РµС‚ Р±С‹С‚СЊ РЅРµРґРѕСЃС‚СѓРїРЅР°.
+              Для этого аккаунта публикация медиа ограничена. Слушать комнату можно, но
+              говорить и показывать экран не получится.
             </div>
           ) : null}
 
@@ -73,8 +85,8 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
           ) : (
             <div className="premium-panel rounded-[20px] p-3">
               <EmptyState
-                title="РўРµРєСЃС‚РѕРІС‹Р№ РєР°РЅР°Р»"
-                description="РџРµСЂРµС…РѕРґРёС‚Рµ РІ СЃРІСЏР·Р°РЅРЅС‹Рµ С„РѕСЂСѓРјС‹ РёР»Рё РґСЂСѓРіРёРµ РєР°РЅР°Р»С‹."
+                title="Текстовый канал"
+                description="Переходите в связанные форумы или другие каналы хаба."
               />
             </div>
           )}
@@ -83,7 +95,7 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
             <div className="premium-panel rounded-[20px] p-3">
               <div className="compact-toolbar">
                 <div>
-                  <p className="section-kicker">Related forums</p>
+                  <p className="section-kicker">Связанные форумы</p>
                 </div>
               </div>
 

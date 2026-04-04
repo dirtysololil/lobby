@@ -65,7 +65,9 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         value={content}
         onChange={(event) => setContent(event.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={disabled ? "В этом диалоге нельзя отправлять сообщения." : "Сообщение"}
+        placeholder={
+          disabled ? "В этом диалоге нельзя отправлять сообщения." : "Сообщение"
+        }
         disabled={disabled || isSending}
         rows={1}
         className="block min-h-9 max-h-28 flex-1 resize-none rounded-[18px] border-none bg-transparent px-3 py-2 text-sm leading-tight text-white outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60"

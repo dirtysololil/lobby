@@ -15,6 +15,7 @@ import { parseAppPath } from "@/lib/app-shell";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ConversationSettings } from "@/components/messages/conversation-settings";
 import { useRealtime } from "@/components/realtime/realtime-provider";
+import { callStatusLabels, dmNotificationLabels, dmRetentionLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
 interface AppActivityRailProps {
@@ -25,6 +26,21 @@ interface AppActivityRailProps {
 }
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
+function formatRole(role: string | null | undefined) {
+  switch (role) {
+    case "OWNER":
+      return "Владелец";
+    case "ADMIN":
+      return "Админ";
+    case "MEMBER":
+      return "Участник";
+    case "GUEST":
+      return "Гость";
+    default:
+      return role ?? "Участник";
+  }
+}
 
 export function AppActivityRail({
   viewer,
@@ -159,17 +175,17 @@ export function AppActivityRail({
       <div className="flex h-12 items-center justify-between border-b border-white/5 px-3">
         <div>
           <p className="text-xs text-zinc-500">
-            {route.section === "messages" ? "Conversation" : "Hub"}
+            {route.section === "messages" ? "Диалог" : "Хаб"}
           </p>
           <p className="text-sm font-medium text-white">
-            {route.section === "messages" ? "Details" : "Context"}
+            {route.section === "messages" ? "Детали" : "Контекст"}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-white/5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
-          aria-label="Close details"
+          aria-label="Закрыть панель"
         >
           <X {...iconProps} />
         </button>
@@ -178,7 +194,7 @@ export function AppActivityRail({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="px-3 py-6 text-center text-sm text-zinc-500">
-            Loading details...
+            Загружаем детали...
           </div>
         ) : null}
 
@@ -199,28 +215,28 @@ export function AppActivityRail({
                       {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-white">
-                          {counterpart?.profile.displayName ?? "Conversation"}
+                          {counterpart?.profile.displayName ?? "Диалог"}
                         </p>
                         <p className="truncate text-xs text-zinc-500">
-                          {counterpart ? `@${counterpart.username}` : "Private thread"}
+                          {counterpart ? `@${counterpart.username}` : "Личная ветка"}
                         </p>
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       <span className="status-pill">
                         <BellRing {...iconProps} />
-                        {viewerSettings?.notificationSetting ?? "ALL"}
+                        {dmNotificationLabels[viewerSettings?.notificationSetting ?? "ALL"]}
                       </span>
                       <span className="status-pill">
                         <PhoneCall {...iconProps} />
                         {latestSignal?.call.dmConversationId === route.conversationId
-                          ? latestSignal.call.status
-                          : "Call ready"}
+                          ? callStatusLabels[latestSignal.call.status]
+                          : "Звонок готов"}
                       </span>
                       {conversation.retentionMode !== "OFF" ? (
                         <span className="status-pill">
                           <LockKeyhole {...iconProps} />
-                          {conversation.retentionMode}
+                          {dmRetentionLabels[conversation.retentionMode]}
                         </span>
                       ) : null}
                     </div>
@@ -248,14 +264,14 @@ export function AppActivityRail({
             <div className="border-b border-white/5 px-3 py-3">
               <p className="truncate text-sm font-medium text-white">{hubInfo.name}</p>
               <p className="mt-1 text-sm text-zinc-400">
-                {hubInfo.description ?? "Shared space"}
+                {hubInfo.description ?? "Общее пространство"}
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <span className="status-pill">
                   <UsersRound {...iconProps} />
-                  {hubInfo.members.length} members
+                  {hubInfo.members.length} участников
                 </span>
-                <span className="status-pill">{hubInfo.membershipRole ?? "Guest"}</span>
+                <span className="status-pill">{formatRole(hubInfo.membershipRole)}</span>
               </div>
             </div>
 
@@ -271,7 +287,7 @@ export function AppActivityRail({
                       {member.user.profile.displayName}
                     </p>
                     <p className="truncate text-xs text-zinc-500">
-                      @{member.user.username} - {member.role}
+                      @{member.user.username} - {formatRole(member.role)}
                     </p>
                   </div>
                 </div>
@@ -284,7 +300,7 @@ export function AppActivityRail({
         ((route.section === "messages" && !conversation) ||
           (route.section === "hubs" && !hubInfo)) ? (
           <div className="px-3 py-6 text-center text-sm text-zinc-500">
-            Nothing to show here yet.
+            Здесь пока нечего показывать.
           </div>
         ) : null}
       </div>

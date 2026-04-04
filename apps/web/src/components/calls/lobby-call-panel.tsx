@@ -10,6 +10,7 @@ import { Phone, Users2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
+import { callModeLabels, callStatusLabels } from "@/lib/ui-labels";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
 import { useCallSession } from "./call-session-provider";
@@ -40,7 +41,7 @@ export function LobbyCallPanel({
 
   const callRoute = `/app/hubs/${hubId}/lobbies/${lobbyId}`;
   const callTitle = lobbyName;
-  const callSubtitle = `${hubName} · Voice lobby`;
+  const callSubtitle = `${hubName} · голосовая комната`;
 
   const connectToResolvedCall = useCallback(
     async (call: CallSummary) => {
@@ -71,7 +72,7 @@ export function LobbyCallPanel({
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to load the voice lobby.",
+        error instanceof Error ? error.message : "Не удалось загрузить голосовую комнату.",
       );
     }
   }, [callRoute, callSubtitle, callTitle, hubId, lobbyId, syncCall]);
@@ -167,16 +168,16 @@ export function LobbyCallPanel({
   const metrics = useMemo(
     () => [
       {
-        label: "Session",
-        value: activeCall ? "Persistent room live" : "Ready to open",
+        label: "Сеанс",
+        value: activeCall ? "Уже открыт" : "Готов к запуску",
       },
       {
-        label: "Participants",
-        value: `${activeParticipants} connected`,
+        label: "Участники",
+        value: `${activeParticipants} на связи`,
       },
       {
-        label: "History",
-        value: `${state?.history.length ?? 0} sessions`,
+        label: "История",
+        value: `${state?.history.length ?? 0} сессий`,
       },
     ],
     [activeCall, activeParticipants, state?.history.length],
@@ -188,10 +189,14 @@ export function LobbyCallPanel({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="eyebrow-pill">Voice lobby</span>
-              <span className="status-pill">{activeCall ? activeCall.status : "Ready"}</span>
-              {activeCall ? <span className="status-pill">{activeCall.mode}</span> : null}
-              {isCurrentSession ? <span className="status-pill">Persistent</span> : null}
+              <span className="eyebrow-pill">Голосовая комната</span>
+              <span className="status-pill">
+                {activeCall ? callStatusLabels[activeCall.status] : "Готова"}
+              </span>
+              {activeCall ? (
+                <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
+              ) : null}
+              {isCurrentSession ? <span className="status-pill">Закреплена</span> : null}
             </div>
 
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -208,7 +213,7 @@ export function LobbyCallPanel({
             {errorMessage ? <p className="mt-2 text-sm text-rose-200">{errorMessage}</p> : null}
             {!errorMessage && isViewerMuted ? (
               <p className="mt-2 text-sm text-amber-100">
-                You can stay connected, but publishing media is disabled for this account.
+                Можно слушать комнату, но публикация медиа отключена для этого аккаунта.
               </p>
             ) : null}
           </div>
@@ -217,7 +222,7 @@ export function LobbyCallPanel({
             {!activeCall ? (
               <Button size="sm" onClick={() => void startCall()} disabled={pendingAction !== null}>
                 <Phone {...iconProps} />
-                {pendingAction === "start" ? "Starting..." : "Start room"}
+                {pendingAction === "start" ? "Запускаем..." : "Открыть комнату"}
               </Button>
             ) : (
               <>
@@ -228,10 +233,10 @@ export function LobbyCallPanel({
                 >
                   <Users2 {...iconProps} />
                   {pendingAction === "join"
-                    ? "Joining..."
+                    ? "Подключаем..."
                     : isCurrentSession
-                      ? "Return to room"
-                      : "Join"}
+                      ? "Вернуться в комнату"
+                      : "Подключиться"}
                 </Button>
                 <Button
                   size="sm"
@@ -239,28 +244,18 @@ export function LobbyCallPanel({
                   onClick={() => void leaveLobbyCall()}
                   disabled={pendingAction !== null}
                 >
-                  {pendingAction === "leave" ? "Leaving..." : "Leave room"}
+                  {pendingAction === "leave" ? "Выходим..." : "Выйти"}
                 </Button>
               </>
             )}
           </div>
         </div>
-
-        {state?.history.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {state.history.slice(0, 4).map((item) => (
-              <span key={item.id} className="glass-badge">
-                {item.mode} · {item.status}
-              </span>
-            ))}
-          </div>
-        ) : null}
       </div>
 
       <LiveKitCallRoom
         callId={activeCall?.id ?? null}
-        title="Lobby room"
-        description="This room now survives route transitions and stays available through the compact call dock."
+        title="Голосовая сцена"
+        description="Комната переживает переходы по маршрутам и остаётся доступной через call dock."
       />
     </div>
   );
