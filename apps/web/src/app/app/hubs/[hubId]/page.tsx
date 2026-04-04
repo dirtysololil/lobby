@@ -1,4 +1,5 @@
-import { HubOverview } from "@/components/hubs/hub-overview";
+import { HubOverviewShell } from "@/components/hubs/hub-overview-shell";
+import { fetchServerHub } from "@/lib/server-hub";
 
 interface HubPageProps {
   params: Promise<{
@@ -8,6 +9,7 @@ interface HubPageProps {
 
 export default async function HubPage({ params }: HubPageProps) {
   const { hubId } = await params;
+  const hub = await fetchServerHub(hubId);
 
-  return <HubOverview hubId={hubId} />;
+  return <HubOverviewShell hub={hub} />;
 }

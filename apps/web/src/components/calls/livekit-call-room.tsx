@@ -1,6 +1,17 @@
 "use client";
 
-import { CallRoomCanvas } from "./call-session-provider";
+import dynamic from "next/dynamic";
+
+const DynamicCallRoomCanvas = dynamic(
+  () => import("./call-session-provider").then((module) => module.CallRoomCanvas),
+  {
+    loading: () => (
+      <div className="rounded-[20px] border border-[var(--border)] bg-white/[0.03] px-4 py-4 text-sm text-[var(--text-dim)]">
+        Preparing call canvas...
+      </div>
+    ),
+  },
+);
 
 interface LiveKitCallRoomProps {
   callId: string | null;
@@ -13,5 +24,11 @@ export function LiveKitCallRoom({
   title,
   description,
 }: LiveKitCallRoomProps) {
-  return <CallRoomCanvas callId={callId} title={title} description={description} />;
+  if (!callId) {
+    return null;
+  }
+
+  return (
+    <DynamicCallRoomCanvas callId={callId} title={title} description={description} />
+  );
 }

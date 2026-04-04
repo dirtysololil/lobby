@@ -38,6 +38,11 @@ import { apiClientFetch } from "@/lib/api-client";
 import { matchesPath, parseAppPath } from "@/lib/app-shell";
 import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
+import {
+  getCachedHubShell,
+  primeHubShellCache,
+  subscribeToHubShellCache,
+} from "@/lib/hub-shell-cache";
 import { callStatusLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 import { useRealtime } from "@/components/realtime/realtime-provider";
@@ -168,6 +173,8 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
   useEffect(() => {
     let active = true;
+    let deferredHubFetch: number | null = null;
+    let unsubscribeFromHubCache: (() => void) | null = null;
 
     setLoadingLabel(route.section);
 
@@ -188,15 +195,61 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         if (route.section === "hubs") {
           if (route.hubId) {
-            const payload = await apiClientFetch(`/v1/hubs/${route.hubId}`);
-            if (!active) {
-              return;
-            }
+            const cachedHub = getCachedHubShell(route.hubId);
 
-            setHub(hubShellResponseSchema.parse(payload).hub);
+            unsubscribeFromHubCache = subscribeToHubShellCache(
+              route.hubId,
+              (nextHub) => {
+                if (!active) {
+                  return;
+                }
+
+                setHub(nextHub);
+                setHubs([]);
+                setConversations([]);
+                setPeopleSummary(null);
+                setLoadingLabel(null);
+
+                if (deferredHubFetch !== null) {
+                  window.clearTimeout(deferredHubFetch);
+                  deferredHubFetch = null;
+                }
+              },
+            );
+
+            setHub(cachedHub);
             setHubs([]);
             setConversations([]);
             setPeopleSummary(null);
+
+            if (cachedHub) {
+              setLoadingLabel(null);
+              return;
+            }
+
+            deferredHubFetch = window.setTimeout(() => {
+              void (async () => {
+                try {
+                  const payload = await apiClientFetch(`/v1/hubs/${route.hubId}`);
+                  if (!active) {
+                    return;
+                  }
+
+                  const nextHub = hubShellResponseSchema.parse(payload).hub;
+                  primeHubShellCache(nextHub);
+                  setHub(nextHub);
+                } catch {
+                  if (active) {
+                    setHub(null);
+                  }
+                } finally {
+                  if (active) {
+                    setLoadingLabel(null);
+                  }
+                }
+              })();
+            }, 160);
+
             return;
           }
 
@@ -259,6 +312,11 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
     return () => {
       active = false;
+      unsubscribeFromHubCache?.();
+
+      if (deferredHubFetch !== null) {
+        window.clearTimeout(deferredHubFetch);
+      }
     };
   }, [route.section, route.hubId]);
 

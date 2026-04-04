@@ -5,38 +5,41 @@ import { MessageSquareQuote, Pin, Tags, Waves } from "lucide-react";
 import {
   forumTopicListResponseSchema,
   forumTopicResponseSchema,
-  hubShellResponseSchema,
   type ForumTopic,
+  type HubShell,
 } from "@lobby/shared";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { HubShellBootstrap } from "@/components/hubs/hub-shell-bootstrap";
 import { apiClientFetch } from "@/lib/api-client";
 
 interface ForumLobbyViewProps {
+  hub: HubShell["hub"];
   hubId: string;
   lobbyId: string;
+  initialTopics: ForumTopic[];
 }
 
-export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
-  const [hub, setHub] = useState<
-    ReturnType<typeof hubShellResponseSchema.parse>["hub"] | null
-  >(null);
-  const [topics, setTopics] = useState<ForumTopic[]>([]);
+export function ForumLobbyView({
+  hub,
+  hubId,
+  lobbyId,
+  initialTopics,
+}: ForumLobbyViewProps) {
+  const [topics, setTopics] = useState<ForumTopic[]>(initialTopics);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadData = useCallback(async () => {
+  const loadTopics = useCallback(async () => {
     try {
-      const [hubPayload, topicsPayload] = await Promise.all([
-        apiClientFetch(`/v1/hubs/${hubId}`),
-        apiClientFetch(`/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics`),
-      ]);
-      setHub(hubShellResponseSchema.parse(hubPayload).hub);
+      const topicsPayload = await apiClientFetch(
+        `/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics`,
+      );
       setTopics(forumTopicListResponseSchema.parse(topicsPayload).items);
       setErrorMessage(null);
     } catch (error) {
@@ -45,10 +48,6 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
       );
     }
   }, [hubId, lobbyId]);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
 
   async function handleCreateTopic(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,7 +71,7 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
       setTitle("");
       setContent("");
       setTags("");
-      await loadData();
+      await loadTopics();
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось создать тему",
@@ -90,18 +89,11 @@ export function ForumLobbyView({ hubId, lobbyId }: ForumLobbyViewProps) {
     );
   }
 
-  if (!hub) {
-    return (
-      <div className="rounded-[18px] border border-[var(--border)] bg-white/[0.03] p-4 text-sm text-[var(--text-dim)]">
-        Загружаем форум...
-      </div>
-    );
-  }
-
   const lobby = hub.lobbies.find((item) => item.id === lobbyId);
 
   return (
     <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
+      <HubShellBootstrap hub={hub} />
       <div className="grid gap-3">
       <div className="social-shell rounded-[20px] p-3">
         <div className="compact-toolbar">
