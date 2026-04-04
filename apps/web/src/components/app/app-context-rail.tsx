@@ -250,7 +250,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   }, [hub]);
 
   return (
-    <aside className="context-rail hidden min-h-screen w-60 border-r border-white/5 bg-[#121214] md:flex md:flex-col">
+    <aside className="context-rail relative hidden h-full w-60 shrink-0 border-r border-white/5 bg-[#121214] shadow-[12px_0_32px_rgba(4,8,16,0.18)] md:flex md:flex-col">
       <div className="border-b border-white/5 px-3 py-3">
         <div className="flex items-center gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <UserAvatar user={viewer} size="sm" />

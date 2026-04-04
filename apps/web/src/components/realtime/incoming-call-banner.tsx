@@ -60,8 +60,8 @@ export function IncomingCallBanner() {
   }
 
   return (
-    <div className="border-b border-white/5 bg-[linear-gradient(90deg,rgba(106,168,248,0.16),rgba(17,25,34,0.88)_28%,rgba(17,25,34,0.98))] px-4 py-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="border-b border-white/5 bg-[linear-gradient(90deg,rgba(106,168,248,0.16),rgba(17,25,34,0.88)_28%,rgba(17,25,34,0.98))] px-3 py-2.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="eyebrow-pill">Incoming call</span>
@@ -74,7 +74,7 @@ export function IncomingCallBanner() {
               {call.mode === "VIDEO" ? "Video" : "Audio"}
             </span>
           </div>
-          <p className="mt-2 text-sm font-medium text-white">
+          <p className="mt-1.5 text-sm font-medium text-white">
             {caller.profile.displayName} is calling you
           </p>
           <p className="mt-1 text-xs text-[var(--text-soft)]">@{caller.username}</p>

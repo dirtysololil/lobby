@@ -3,50 +3,78 @@
 import {
   callResponseSchema,
   callStateResponseSchema,
-  callTokenResponseSchema,
   type CallStateResponse,
+  type CallSummary,
 } from "@lobby/shared";
-import { Phone } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Phone, Users2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
+import { useCallSession } from "./call-session-provider";
 
 interface LobbyCallPanelProps {
   hubId: string;
+  hubName: string;
   lobbyId: string;
+  lobbyName: string;
   isViewerMuted: boolean;
 }
 
+const iconProps = { size: 16, strokeWidth: 1.5 } as const;
+
 export function LobbyCallPanel({
   hubId,
+  hubName,
   lobbyId,
+  lobbyName,
   isViewerMuted,
 }: LobbyCallPanelProps) {
   const { socket, latestSignal } = useRealtime();
+  const { connectToCall, dismissCall, isActiveCall, leaveCall, syncCall } =
+    useCallSession();
   const [state, setState] = useState<CallStateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [connection, setConnection] = useState<{
-    callId: string;
-    url: string;
-    roomName: string;
-    token: string;
-    canPublishMedia: boolean;
-  } | null>(null);
+
+  const callRoute = `/app/hubs/${hubId}/lobbies/${lobbyId}`;
+  const callTitle = lobbyName;
+  const callSubtitle = `${hubName} · Voice lobby`;
+
+  const connectToResolvedCall = useCallback(
+    async (call: CallSummary) => {
+      await connectToCall({
+        callId: call.id,
+        scope: "HUB_LOBBY",
+        route: callRoute,
+        title: callTitle,
+        subtitle: callSubtitle,
+        call,
+      });
+    },
+    [callRoute, callSubtitle, callTitle, connectToCall],
+  );
 
   const loadState = useCallback(async () => {
     try {
       const payload = await apiClientFetch(`/v1/calls/hubs/${hubId}/lobbies/${lobbyId}`);
-      setState(callStateResponseSchema.parse(payload));
+      const parsed = callStateResponseSchema.parse(payload);
+      setState(parsed);
+      if (parsed.activeCall) {
+        syncCall(parsed.activeCall, {
+          route: callRoute,
+          title: callTitle,
+          subtitle: callSubtitle,
+        });
+      }
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось загрузить звонок",
+        error instanceof Error ? error.message : "Unable to load the voice lobby.",
       );
     }
-  }, [hubId, lobbyId]);
+  }, [callRoute, callSubtitle, callTitle, hubId, lobbyId, syncCall]);
 
   useEffect(() => {
     void loadState();
@@ -77,11 +105,11 @@ export function LobbyCallPanel({
     }
 
     if (["DECLINED", "ENDED", "MISSED"].includes(latestSignal.call.status)) {
-      setConnection(null);
+      dismissCall(latestSignal.call.id);
     }
 
     void loadState();
-  }, [latestSignal, lobbyId, loadState]);
+  }, [dismissCall, latestSignal, lobbyId, loadState]);
 
   async function startCall() {
     setPendingAction("start");
@@ -92,7 +120,8 @@ export function LobbyCallPanel({
         { method: "POST" },
       );
 
-      callResponseSchema.parse(payload);
+      const parsed = callResponseSchema.parse(payload);
+      await connectToResolvedCall(parsed.call);
       await loadState();
     } finally {
       setPendingAction(null);
@@ -107,19 +136,14 @@ export function LobbyCallPanel({
     setPendingAction("join");
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/token`, {
-        method: "POST",
-      });
-
-      const parsed = callTokenResponseSchema.parse(payload);
-      setConnection(parsed.connection);
+      await connectToResolvedCall(state.activeCall);
       await loadState();
     } finally {
       setPendingAction(null);
     }
   }
 
-  async function leaveCall() {
+  async function leaveLobbyCall() {
     if (!state?.activeCall) {
       return;
     }
@@ -127,53 +151,95 @@ export function LobbyCallPanel({
     setPendingAction("leave");
 
     try {
-      const payload = await apiClientFetch(`/v1/calls/${state.activeCall.id}/end`, {
-        method: "POST",
-      });
-
-      callResponseSchema.parse(payload);
-      setConnection(null);
+      await leaveCall(state.activeCall.id);
       await loadState();
     } finally {
       setPendingAction(null);
     }
   }
 
+  const activeCall = state?.activeCall ?? null;
+  const activeParticipants =
+    activeCall?.participants.filter((participant) =>
+      ["ACCEPTED", "JOINED"].includes(participant.state),
+    ).length ?? 0;
+  const isCurrentSession = isActiveCall(activeCall?.id ?? null);
+  const metrics = useMemo(
+    () => [
+      {
+        label: "Session",
+        value: activeCall ? "Persistent room live" : "Ready to open",
+      },
+      {
+        label: "Participants",
+        value: `${activeParticipants} connected`,
+      },
+      {
+        label: "History",
+        value: `${state?.history.length ?? 0} sessions`,
+      },
+    ],
+    [activeCall, activeParticipants, state?.history.length],
+  );
+
   return (
     <div className="grid gap-2.5">
-      <div className="rounded-[16px] border border-[var(--border)] bg-white/[0.03] px-3 py-2.5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
+      <div className="rounded-[20px] border border-[var(--border)] bg-white/[0.03] px-3 py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span className="eyebrow-pill">Voice lobby</span>
-              <span className="status-pill">
-                {state?.activeCall ? state.activeCall.status : "Ready"}
-              </span>
+              <span className="status-pill">{activeCall ? activeCall.status : "Ready"}</span>
+              {activeCall ? <span className="status-pill">{activeCall.mode}</span> : null}
+              {isCurrentSession ? <span className="status-pill">Persistent</span> : null}
             </div>
-            {errorMessage ? <p className="mt-1.5 text-sm text-rose-200">{errorMessage}</p> : null}
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {metrics.map((metric) => (
+                <div key={metric.label} className="surface-subtle rounded-[16px] px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    {metric.label}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white">{metric.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {errorMessage ? <p className="mt-2 text-sm text-rose-200">{errorMessage}</p> : null}
             {!errorMessage && isViewerMuted ? (
-              <p className="mt-1.5 text-sm text-amber-100">Можно только слушать.</p>
+              <p className="mt-2 text-sm text-amber-100">
+                You can stay connected, but publishing media is disabled for this account.
+              </p>
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {!state?.activeCall ? (
+          <div className="flex flex-wrap gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            {!activeCall ? (
               <Button size="sm" onClick={() => void startCall()} disabled={pendingAction !== null}>
-                <Phone className="h-4 w-4" />
-                {pendingAction === "start" ? "Запускаем..." : "Начать"}
+                <Phone {...iconProps} />
+                {pendingAction === "start" ? "Starting..." : "Start room"}
               </Button>
             ) : (
               <>
-                <Button size="sm" onClick={() => void joinCall()} disabled={pendingAction !== null}>
-                  {pendingAction === "join" ? "Подключаем..." : "Подключиться"}
+                <Button
+                  size="sm"
+                  onClick={() => void joinCall()}
+                  disabled={pendingAction !== null}
+                >
+                  <Users2 {...iconProps} />
+                  {pendingAction === "join"
+                    ? "Joining..."
+                    : isCurrentSession
+                      ? "Return to room"
+                      : "Join"}
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => void leaveCall()}
+                  onClick={() => void leaveLobbyCall()}
                   disabled={pendingAction !== null}
                 >
-                  {pendingAction === "leave" ? "Завершаем..." : "Завершить"}
+                  {pendingAction === "leave" ? "Leaving..." : "Leave room"}
                 </Button>
               </>
             )}
@@ -181,7 +247,7 @@ export function LobbyCallPanel({
         </div>
 
         {state?.history.length ? (
-          <div className="mt-2.5 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {state.history.slice(0, 4).map((item) => (
               <span key={item.id} className="glass-badge">
                 {item.mode} · {item.status}
@@ -192,13 +258,9 @@ export function LobbyCallPanel({
       </div>
 
       <LiveKitCallRoom
-        connection={connection}
-        mode={state?.activeCall?.mode ?? "AUDIO"}
-        title="Lobby call"
-        description="Голос внутри канала."
-        onLeave={async () => {
-          await leaveCall();
-        }}
+        callId={activeCall?.id ?? null}
+        title="Lobby room"
+        description="This room now survives route transitions and stays available through the compact call dock."
       />
     </div>
   );

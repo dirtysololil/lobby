@@ -136,7 +136,8 @@ export function HubOverview({ hubId }: HubOverviewProps) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
+      <div className="grid gap-4">
       <section className="premium-panel rounded-[26px] p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
@@ -582,6 +583,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
             </section>
           ) : null}
         </div>
+      </div>
       </div>
     </div>
   );

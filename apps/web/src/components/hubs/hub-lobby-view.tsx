@@ -17,14 +17,14 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
   if (!lobby) {
     return (
       <div className="rounded-[16px] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-        Лобби недоступно с вашими текущими правами.
+        Р›РѕР±Р±Рё РЅРµРґРѕСЃС‚СѓРїРЅРѕ СЃ РІР°С€РёРјРё С‚РµРєСѓС‰РёРјРё РїСЂР°РІР°РјРё.
       </div>
     );
   }
 
   return (
-    <div className="grid gap-3">
-      <div className="social-shell rounded-[20px] p-3">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-white/5 px-3 py-3">
         <div className="compact-toolbar">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -54,52 +54,58 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
         </div>
       </div>
 
-      {hub.isViewerMuted ? (
-        <div className="rounded-[16px] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-          Вы ограничены в этом хабе. Часть активных действий может быть недоступна.
-        </div>
-      ) : null}
-
-      {lobby.type === "VOICE" ? (
-        <LobbyCallPanel
-          hubId={hub.id}
-          lobbyId={lobby.id}
-          isViewerMuted={hub.isViewerMuted}
-        />
-      ) : (
-        <div className="premium-panel rounded-[20px] p-3">
-          <EmptyState
-            title="Текстовый канал"
-            description="Переходите в связанные форумы или другие каналы."
-          />
-        </div>
-      )}
-
-      {hub.lobbies.filter((item) => item.type === "FORUM").length > 0 ? (
-        <div className="premium-panel rounded-[20px] p-3">
-          <div className="compact-toolbar">
-            <div>
-              <p className="section-kicker">Related forums</p>
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <div className="grid gap-3">
+          {hub.isViewerMuted ? (
+            <div className="rounded-[16px] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+              Р’С‹ РѕРіСЂР°РЅРёС‡РµРЅС‹ РІ СЌС‚РѕРј С…Р°Р±Рµ. Р§Р°СЃС‚СЊ Р°РєС‚РёРІРЅС‹С… РґРµР№СЃС‚РІРёР№ РјРѕР¶РµС‚ Р±С‹С‚СЊ РЅРµРґРѕСЃС‚СѓРїРЅР°.
             </div>
-          </div>
+          ) : null}
 
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {hub.lobbies
-              .filter((item) => item.type === "FORUM")
-              .map((item) => (
-                <Link
-                  key={item.id}
-                  href={buildHubLobbyHref(hub.id, item.id, item.type)}
-                >
-                  <Button size="sm" variant="secondary">
-                    <Waves className="h-4 w-4" />
-                    {item.name}
-                  </Button>
-                </Link>
-              ))}
-          </div>
+          {lobby.type === "VOICE" ? (
+            <LobbyCallPanel
+              hubId={hub.id}
+              hubName={hub.name}
+              lobbyId={lobby.id}
+              lobbyName={lobby.name}
+              isViewerMuted={hub.isViewerMuted}
+            />
+          ) : (
+            <div className="premium-panel rounded-[20px] p-3">
+              <EmptyState
+                title="РўРµРєСЃС‚РѕРІС‹Р№ РєР°РЅР°Р»"
+                description="РџРµСЂРµС…РѕРґРёС‚Рµ РІ СЃРІСЏР·Р°РЅРЅС‹Рµ С„РѕСЂСѓРјС‹ РёР»Рё РґСЂСѓРіРёРµ РєР°РЅР°Р»С‹."
+              />
+            </div>
+          )}
+
+          {hub.lobbies.filter((item) => item.type === "FORUM").length > 0 ? (
+            <div className="premium-panel rounded-[20px] p-3">
+              <div className="compact-toolbar">
+                <div>
+                  <p className="section-kicker">Related forums</p>
+                </div>
+              </div>
+
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {hub.lobbies
+                  .filter((item) => item.type === "FORUM")
+                  .map((item) => (
+                    <Link
+                      key={item.id}
+                      href={buildHubLobbyHref(hub.id, item.id, item.type)}
+                    >
+                      <Button size="sm" variant="secondary">
+                        <Waves className="h-4 w-4" />
+                        {item.name}
+                      </Button>
+                    </Link>
+                  ))}
+              </div>
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

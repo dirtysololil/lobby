@@ -122,7 +122,8 @@ export function ForumTopicView({
     !topic.archived;
 
   return (
-    <div className="grid gap-3">
+    <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
+      <div className="grid gap-3">
       <div className="social-shell rounded-[20px] p-3">
         <div className="compact-toolbar">
           <div>
@@ -263,6 +264,7 @@ export function ForumTopicView({
             ))
           )}
         </div>
+      </div>
       </div>
     </div>
   );

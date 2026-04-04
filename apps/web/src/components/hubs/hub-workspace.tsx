@@ -142,7 +142,7 @@ export function HubWorkspace() {
   }
 
   return (
-    <section className="grid min-h-full grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <section className="grid h-full min-h-0 overflow-hidden p-3 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex min-h-0 flex-col">
         <div className="border-b border-[var(--border)] px-3 py-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -254,7 +254,7 @@ export function HubWorkspace() {
         </div>
       </div>
 
-      <aside className="border-t border-[var(--border)] xl:border-l xl:border-t-0">
+      <aside className="min-h-0 overflow-y-auto rounded-[22px] border border-[var(--border)] bg-[rgba(14,21,30,0.72)] xl:border">
         <div className="border-b border-[var(--border)] px-3 py-3">
           <div className="flex items-center gap-2">
             <span className="eyebrow-pill">
