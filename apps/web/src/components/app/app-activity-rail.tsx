@@ -23,6 +23,11 @@ import { parseAppPath } from "@/lib/app-shell";
 import { ConversationSettings } from "@/components/messages/conversation-settings";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import {
+  getCachedHubShell,
+  primeHubShellCache,
+  subscribeToHubShellCache,
+} from "@/lib/hub-shell-cache";
+import {
   callStatusLabels,
   dmNotificationLabels,
   dmRetentionLabels,
@@ -98,6 +103,7 @@ export function AppActivityRail({
     }
 
     let active = true;
+    let unsubscribeFromHubCache: (() => void) | null = null;
     setIsLoading(true);
 
     void (async () => {
@@ -113,10 +119,30 @@ export function AppActivityRail({
         }
 
         if (route.section === "hubs" && route.hubId) {
+          const cachedHub = getCachedHubShell(route.hubId);
+
+          unsubscribeFromHubCache = subscribeToHubShellCache(route.hubId, (nextHub) => {
+            if (!active) {
+              return;
+            }
+
+            setHubInfo(nextHub);
+            setConversation(null);
+            setIsLoading(false);
+          });
+
+          if (cachedHub) {
+            setHubInfo(cachedHub);
+            setConversation(null);
+            return;
+          }
+
           const payload = await apiClientFetch(`/v1/hubs/${route.hubId}`);
 
           if (active) {
-            setHubInfo(hubShellResponseSchema.parse(payload).hub);
+            const nextHub = hubShellResponseSchema.parse(payload).hub;
+            primeHubShellCache(nextHub);
+            setHubInfo(nextHub);
             setConversation(null);
           }
         }
@@ -134,6 +160,7 @@ export function AppActivityRail({
 
     return () => {
       active = false;
+      unsubscribeFromHubCache?.();
     };
   }, [available, open, route.conversationId, route.hubId, route.section]);
 

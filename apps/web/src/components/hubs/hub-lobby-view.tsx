@@ -1,10 +1,22 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Hash, LockKeyhole, Mic, Waves } from "lucide-react";
 import type { HubShell } from "@lobby/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
-import { LobbyCallPanel } from "@/components/calls/lobby-call-panel";
+import { HubShellBootstrap } from "./hub-shell-bootstrap";
+
+const DeferredLobbyCallPanel = dynamic(
+  () => import("@/components/calls/lobby-call-panel").then((module) => module.LobbyCallPanel),
+  {
+    loading: () => (
+      <div className="rounded-[20px] border border-[var(--border)] bg-white/[0.03] px-4 py-4 text-sm text-[var(--text-dim)]">
+        Preparing voice room...
+      </div>
+    ),
+  },
+);
 
 interface HubLobbyViewProps {
   hub: HubShell["hub"];
@@ -24,6 +36,7 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <HubShellBootstrap hub={hub} />
       <div className="border-b border-white/5 px-3 py-3">
         <div className="compact-toolbar">
           <div>
@@ -75,7 +88,7 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
           ) : null}
 
           {lobby.type === "VOICE" ? (
-            <LobbyCallPanel
+            <DeferredLobbyCallPanel
               hubId={hub.id}
               hubName={hub.name}
               lobbyId={lobby.id}

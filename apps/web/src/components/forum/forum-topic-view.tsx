@@ -5,44 +5,42 @@ import {
   forumReplyResponseSchema,
   forumTopicDetailSchema,
   forumTopicResponseSchema,
-  hubShellResponseSchema,
+  type HubShell,
 } from "@lobby/shared";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { HubShellBootstrap } from "@/components/hubs/hub-shell-bootstrap";
 import { apiClientFetch } from "@/lib/api-client";
 
 interface ForumTopicViewProps {
+  hub: HubShell["hub"];
   hubId: string;
   lobbyId: string;
   topicId: string;
+  initialTopic: ReturnType<typeof forumTopicDetailSchema.parse>["topic"];
 }
 
 export function ForumTopicView({
+  hub,
   hubId,
   lobbyId,
   topicId,
+  initialTopic,
 }: ForumTopicViewProps) {
-  const [hub, setHub] = useState<
-    ReturnType<typeof hubShellResponseSchema.parse>["hub"] | null
-  >(null);
   const [topic, setTopic] = useState<
     ReturnType<typeof forumTopicDetailSchema.parse>["topic"] | null
-  >(null);
+  >(initialTopic);
   const [replyContent, setReplyContent] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [actionKey, setActionKey] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
+  const loadTopic = useCallback(async () => {
     try {
-      const [hubPayload, topicPayload] = await Promise.all([
-        apiClientFetch(`/v1/hubs/${hubId}`),
-        apiClientFetch(
-          `/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics/${topicId}`,
-        ),
-      ]);
-      setHub(hubShellResponseSchema.parse(hubPayload).hub);
+      const topicPayload = await apiClientFetch(
+        `/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics/${topicId}`,
+      );
       setTopic(forumTopicDetailSchema.parse(topicPayload).topic);
       setErrorMessage(null);
     } catch (error) {
@@ -51,10 +49,6 @@ export function ForumTopicView({
       );
     }
   }, [hubId, lobbyId, topicId]);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
 
   async function handleReply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,7 +60,7 @@ export function ForumTopicView({
       );
       forumReplyResponseSchema.parse(payload);
       setReplyContent("");
-      await loadData();
+      await loadTopic();
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось отправить ответ",
@@ -87,7 +81,7 @@ export function ForumTopicView({
         { method: "PATCH", body: JSON.stringify({ [key]: value }) },
       );
       forumTopicResponseSchema.parse(payload);
-      await loadData();
+      await loadTopic();
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -107,7 +101,7 @@ export function ForumTopicView({
     );
   }
 
-  if (!hub || !topic) {
+  if (!topic) {
     return (
       <div className="rounded-[18px] border border-[var(--border)] bg-white/[0.03] p-4 text-sm text-[var(--text-dim)]">
         Загружаем тему...
@@ -123,6 +117,7 @@ export function ForumTopicView({
 
   return (
     <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
+      <HubShellBootstrap hub={hub} />
       <div className="grid gap-3">
       <div className="social-shell rounded-[20px] p-3">
         <div className="compact-toolbar">
