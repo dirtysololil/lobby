@@ -16,7 +16,6 @@ import type { RequestMetadata } from '../../common/interfaces/request-metadata.i
 import { AuditService } from '../audit/audit.service';
 import { EnvService } from '../env/env.service';
 import { InvitesService } from '../invites/invites.service';
-import { UsersService } from '../users/users.service';
 import { publicUserSelect, toPublicUser } from './auth.mapper';
 import { SessionService } from './session.service';
 
@@ -27,7 +26,6 @@ export class AuthService {
     private readonly auditService: AuditService,
     private readonly envService: EnvService,
     private readonly invitesService: InvitesService,
-    private readonly usersService: UsersService,
     private readonly sessionService: SessionService,
   ) {}
 
@@ -121,10 +119,7 @@ export class AuthService {
 
     return {
       session: result.session,
-      user: toPublicUser({
-        ...result.user,
-        sessions: [{ expiresAt: result.session.expiresAt }],
-      }),
+      user: toPublicUser(result.user),
     };
   }
 
@@ -174,7 +169,6 @@ export class AuthService {
       user.id,
       requestMetadata,
     );
-    await this.usersService.setPresence(user.id, PresenceStatus.ONLINE);
     await this.sessionService.scheduleSessionExpiry(
       session.sessionId,
       session.expiresAt,
@@ -199,10 +193,8 @@ export class AuthService {
         email: user.email,
         role: user.role,
         createdAt: user.createdAt,
-        sessions: [{ expiresAt: session.expiresAt }],
         profile: {
           ...user.profile!,
-          presence: PresenceStatus.ONLINE,
         },
       }),
     };

@@ -20,7 +20,6 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { toPublicUser, publicUserSelect } from '../auth/auth.mapper';
 import { InvitesService } from '../invites/invites.service';
-import { UsersService } from '../users/users.service';
 
 const userAdminInclude = {
   profile: {
@@ -45,7 +44,6 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly invitesService: InvitesService,
-    private readonly usersService: UsersService,
   ) {}
 
   public async getOverview(): Promise<AdminOverview> {
@@ -229,7 +227,6 @@ export class AdminService {
       return result;
     });
 
-    await this.usersService.setOfflineIfNoActiveSessions(userId);
     await this.auditService.write({
       action: 'admin.user.block',
       entityType: 'PlatformBlock',
