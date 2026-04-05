@@ -1,16 +1,88 @@
 import { Injectable } from '@nestjs/common';
-import type { CallSignal, DmSignal } from '@lobby/shared';
-import type { Server } from 'socket.io';
+import type {
+  CallSignal,
+  DmSignal,
+  PresenceSnapshot,
+  PresenceUpdate,
+} from '@lobby/shared';
+import type { Server, Socket } from 'socket.io';
 
 const CALL_SIGNAL_EVENT = 'calls.signal';
 const DM_SIGNAL_EVENT = 'dm.signal';
+const PRESENCE_SNAPSHOT_EVENT = 'presence.snapshot';
+const PRESENCE_UPDATE_EVENT = 'presence.updated';
 
 @Injectable()
 export class CallsRealtimeService {
   private server: Server | null = null;
+  private readonly socketUserIds = new Map<string, string>();
+  private readonly activeSocketsByUserId = new Map<string, Set<string>>();
 
   public attachServer(server: Server): void {
     this.server = server;
+  }
+
+  public registerPresence(client: Socket, userId: string): void {
+    const currentUserId = this.socketUserIds.get(client.id);
+
+    if (currentUserId === userId) {
+      this.emitPresenceSnapshot(client);
+      return;
+    }
+
+    if (currentUserId) {
+      this.unregisterPresence(client.id);
+    }
+
+    const sockets = this.activeSocketsByUserId.get(userId) ?? new Set<string>();
+    const wasOffline = sockets.size === 0;
+
+    sockets.add(client.id);
+    this.activeSocketsByUserId.set(userId, sockets);
+    this.socketUserIds.set(client.id, userId);
+
+    this.emitPresenceSnapshot(client);
+
+    if (wasOffline) {
+      this.emitPresenceUpdate({ userId, isOnline: true });
+    }
+  }
+
+  public unregisterPresence(socketId: string): void {
+    const userId = this.socketUserIds.get(socketId);
+
+    if (!userId) {
+      return;
+    }
+
+    this.socketUserIds.delete(socketId);
+
+    const sockets = this.activeSocketsByUserId.get(userId);
+
+    if (!sockets) {
+      return;
+    }
+
+    sockets.delete(socketId);
+
+    if (sockets.size > 0) {
+      return;
+    }
+
+    this.activeSocketsByUserId.delete(userId);
+    this.emitPresenceUpdate({ userId, isOnline: false });
+  }
+
+  public emitPresenceSnapshot(client: Socket): void {
+    const payload: PresenceSnapshot = {
+      onlineUserIds: [...this.activeSocketsByUserId.keys()],
+    };
+
+    client.emit(PRESENCE_SNAPSHOT_EVENT, payload);
+  }
+
+  public emitPresenceUpdate(payload: PresenceUpdate): void {
+    this.server?.emit(PRESENCE_UPDATE_EVENT, payload);
   }
 
   public emitToUsers(userIds: string[], payload: CallSignal): void {

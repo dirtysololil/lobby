@@ -8,7 +8,6 @@ import {
 } from '../../common/utils/opaque-token.util';
 import { EnvService } from '../env/env.service';
 import { QueueService } from '../queue/queue.service';
-import { UsersService } from '../users/users.service';
 import { publicUserSelect, toPublicUser } from './auth.mapper';
 import type { ResolvedSession } from './auth.types';
 
@@ -20,7 +19,6 @@ export class SessionService {
     private readonly prisma: PrismaService,
     private readonly envService: EnvService,
     private readonly queueService: QueueService,
-    private readonly usersService: UsersService,
   ) {}
 
   public async createSessionRecord(
@@ -110,7 +108,6 @@ export class SessionService {
           revokedAt: now,
         },
       });
-      await this.usersService.setOfflineIfNoActiveSessions(session.userId);
 
       return null;
     }
@@ -159,8 +156,6 @@ export class SessionService {
         revokedAt: new Date(),
       },
     });
-
-    await this.usersService.setOfflineIfNoActiveSessions(session.userId);
   }
 
   public async revokeExpiredSessionById(sessionId: string): Promise<void> {
@@ -188,7 +183,5 @@ export class SessionService {
         revokedAt: new Date(),
       },
     });
-
-    await this.usersService.setOfflineIfNoActiveSessions(session.userId);
   }
 }

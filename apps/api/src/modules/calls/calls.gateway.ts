@@ -189,12 +189,14 @@ export class CallsGateway
       userId: resolvedSession.user.id,
       transport: getTransportName(client),
     });
+    this.realtimeService.registerPresence(client, resolvedSession.user.id);
     await client.join(
       this.realtimeService.getUserRoom(resolvedSession.user.id),
     );
   }
 
   public handleDisconnect(client: Socket): void {
+    this.realtimeService.unregisterPresence(client.id);
     console.info('[realtime/server] handleDisconnect', {
       socketId: client.id,
       transport: getTransportName(client),
@@ -222,6 +224,19 @@ export class CallsGateway
     );
     await client.join(this.realtimeService.getDmRoom(parsed.conversationId));
 
+    return { ok: true };
+  }
+
+  @SubscribeMessage('presence.sync')
+  public syncPresence(@ConnectedSocket() client: Socket) {
+    const currentUser = (client.data as { currentUser?: PublicUser }).currentUser;
+
+    if (!currentUser) {
+      client.disconnect();
+      return;
+    }
+
+    this.realtimeService.emitPresenceSnapshot(client);
     return { ok: true };
   }
 

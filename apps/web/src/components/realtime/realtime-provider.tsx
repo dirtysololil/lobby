@@ -3,6 +3,8 @@
 import {
   callSignalSchema,
   dmSignalSchema,
+  presenceSnapshotSchema,
+  presenceUpdateSchema,
   type CallSignal,
   type CallSummary,
   type DmSignal,
@@ -20,6 +22,7 @@ interface RealtimeContextValue {
   latestSignal: CallSignal | null;
   latestDmSignal: DmSignal | null;
   incomingCalls: CallSummary[];
+  presenceByUserId: Record<string, boolean>;
   clearIncomingCall: (callId: string) => void;
 }
 
@@ -109,6 +112,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
   const [latestSignal, setLatestSignal] = useState<CallSignal | null>(null);
   const [latestDmSignal, setLatestDmSignal] = useState<DmSignal | null>(null);
   const [incomingCalls, setIncomingCalls] = useState<CallSummary[]>([]);
+  const [presenceByUserId, setPresenceByUserId] = useState<Record<string, boolean>>({});
   const clearIncomingCall = useCallback((callId: string) => {
     setIncomingCalls((current) => current.filter((item) => item.id !== callId));
   }, []);
@@ -120,6 +124,12 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
         transport: getTransportName(socket),
         connected: socket.connected,
       });
+
+      setPresenceByUserId((current) => ({
+        ...current,
+        [viewer.id]: true,
+      }));
+      socket.emit("presence.sync");
     };
 
     const handleEngineUpgrade = (transport: { name: string }) => {
@@ -153,6 +163,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
         details,
         transport: getTransportName(socket),
       });
+      setPresenceByUserId({});
     };
 
     function handleSignal(rawPayload: unknown) {
@@ -179,16 +190,45 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       setLatestDmSignal(dmSignalSchema.parse(rawPayload));
     }
 
+    function handlePresenceSnapshot(rawPayload: unknown) {
+      const payload = presenceSnapshotSchema.parse(rawPayload);
+      setPresenceByUserId(
+        Object.fromEntries(payload.onlineUserIds.map((userId) => [userId, true])),
+      );
+    }
+
+    function handlePresenceUpdate(rawPayload: unknown) {
+      const payload = presenceUpdateSchema.parse(rawPayload);
+      setPresenceByUserId((current) => {
+        if (payload.isOnline) {
+          return {
+            ...current,
+            [payload.userId]: true,
+          };
+        }
+
+        const next = { ...current };
+        delete next[payload.userId];
+        return next;
+      });
+    }
+
     socket.on("connect", handleConnect);
     socket.on("connect_error", handleConnectError);
     socket.on("disconnect", handleDisconnect);
     socket.on("calls.signal", handleSignal);
     socket.on("dm.signal", handleDmSignal);
+    socket.on("presence.snapshot", handlePresenceSnapshot);
+    socket.on("presence.updated", handlePresenceUpdate);
     socket.io.engine.on("upgrade", handleEngineUpgrade);
     socket.io.engine.on("upgradeError", handleEngineUpgradeError);
 
     if (typeof window !== "undefined") {
       window.__lobbySocket = socket;
+    }
+
+    if (socket.connected) {
+      handleConnect();
     }
 
     return () => {
@@ -197,6 +237,8 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       socket.off("disconnect", handleDisconnect);
       socket.off("calls.signal", handleSignal);
       socket.off("dm.signal", handleDmSignal);
+      socket.off("presence.snapshot", handlePresenceSnapshot);
+      socket.off("presence.updated", handlePresenceUpdate);
       socket.io.engine.off("upgrade", handleEngineUpgrade);
       socket.io.engine.off("upgradeError", handleEngineUpgradeError);
 
@@ -215,6 +257,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
         latestSignal,
         latestDmSignal,
         incomingCalls,
+        presenceByUserId,
         clearIncomingCall,
       }}
     >
@@ -231,4 +274,8 @@ export function useRealtime() {
   }
 
   return value;
+}
+
+export function useOptionalRealtimePresence() {
+  return useContext(RealtimeContext)?.presenceByUserId ?? null;
 }

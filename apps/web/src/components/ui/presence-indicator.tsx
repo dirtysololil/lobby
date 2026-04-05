@@ -1,6 +1,7 @@
 "use client";
 
 import type { PublicUser } from "@lobby/shared";
+import { useOptionalRealtimePresence } from "@/components/realtime/realtime-provider";
 import { cn } from "@/lib/utils";
 import {
   getPresenceDotClass,
@@ -23,7 +24,19 @@ export function PresenceIndicator({
   dotClassName,
   compact = false,
 }: PresenceIndicatorProps) {
-  const resolvedPresence = user ? resolveUserPresence(user) : (presence ?? "OFFLINE");
+  const realtimePresence = useOptionalRealtimePresence();
+  const liveUser = user
+    ? {
+        ...user,
+        isOnline:
+          realtimePresence !== null
+            ? Boolean(realtimePresence[user.id])
+            : user.isOnline,
+      }
+    : null;
+  const resolvedPresence = liveUser
+    ? resolveUserPresence(liveUser)
+    : (presence ?? "OFFLINE");
 
   return (
     <span

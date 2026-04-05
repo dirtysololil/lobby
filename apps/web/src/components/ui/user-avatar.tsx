@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import type { PublicUser } from "@lobby/shared";
 import { useState } from "react";
+import { useOptionalRealtimePresence } from "@/components/realtime/realtime-provider";
 import { cn } from "@/lib/utils";
 import { getAvatarInitials, getAvatarUrl } from "@/lib/avatar";
 import { getResolvedPresenceDotClass } from "@/lib/presence";
@@ -20,11 +21,19 @@ const sizeClasses = {
 } as const;
 
 export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
+  const realtimePresence = useOptionalRealtimePresence();
   const avatarUrl = getAvatarUrl(user);
   const initials = getAvatarInitials(user.profile.displayName || user.username);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const imageSrc =
     avatarUrl && avatarUrl.trim().length > 0 && avatarUrl !== failedUrl ? avatarUrl : null;
+  const liveUser =
+    realtimePresence !== null
+      ? {
+          ...user,
+          isOnline: Boolean(realtimePresence[user.id]),
+        }
+      : user;
 
   return (
     <div
@@ -52,7 +61,7 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
       <span
         className={cn(
           "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-app)]",
-          getResolvedPresenceDotClass(user),
+          getResolvedPresenceDotClass(liveUser),
         )}
       />
     </div>

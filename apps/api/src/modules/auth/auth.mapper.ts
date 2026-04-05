@@ -7,18 +7,6 @@ export const publicUserSelect = {
   email: true,
   role: true,
   createdAt: true,
-  sessions: {
-    where: {
-      revokedAt: null,
-    },
-    select: {
-      expiresAt: true,
-    },
-    orderBy: {
-      expiresAt: 'desc',
-    },
-    take: 1,
-  },
   profile: {
     select: {
       displayName: true,
@@ -48,15 +36,12 @@ export function toPublicUser(user: PublicUserRecord): PublicUser {
     throw new Error(`Profile is missing for user ${user.id}`);
   }
 
-  const now = new Date();
-  const isOnline = user.sessions.some((session) => session.expiresAt > now);
-
   return publicUserSchema.parse({
     id: user.id,
     username: user.username,
     email: user.email,
     role: user.role,
-    isOnline,
+    isOnline: false,
     createdAt: user.createdAt.toISOString(),
     profile: {
       displayName: user.profile.displayName,

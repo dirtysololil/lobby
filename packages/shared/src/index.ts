@@ -7,5 +7,6 @@ export * from "./lib/forum";
 export * from "./lib/hubs";
 export * from "./lib/invites";
 export * from "./lib/notifications";
+export * from "./lib/presence";
 export * from "./lib/relationships";
 export * from "./lib/users";
