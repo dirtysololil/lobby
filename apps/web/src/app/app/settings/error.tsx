@@ -19,11 +19,11 @@ export default function SettingsError({
 
   return (
     <ErrorState
-      title="Settings are temporarily unavailable"
+      title="Настройки временно недоступны"
       description={
         error.digest
-          ? `The settings workspace could not be rendered. Reference: ${error.digest}`
-          : "The settings workspace could not be rendered right now."
+          ? `Не удалось отрисовать раздел настроек. Код: ${error.digest}`
+          : "Сейчас не удалось отрисовать раздел настроек."
       }
       onRetry={reset}
     />

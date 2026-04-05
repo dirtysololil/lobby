@@ -34,10 +34,10 @@ const notificationOptions: NotificationSetting[] = [
   "OFF",
 ];
 const notificationLabels: Record<NotificationSetting, string> = {
-  ALL: "All activity",
-  MENTIONS_ONLY: "Mentions only",
-  MUTED: "Muted",
-  OFF: "Off",
+  ALL: "Все события",
+  MENTIONS_ONLY: "Только упоминания",
+  MUTED: "Без звука",
+  OFF: "Выключено",
 };
 
 export function NotificationSettingsForm({
@@ -63,13 +63,13 @@ export function NotificationSettingsForm({
           body: JSON.stringify(defaults),
         },
       );
-      setMessage("Default notification rules saved.");
+      setMessage("Базовые правила уведомлений сохранены.");
       router.refresh();
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Unable to save notification settings.",
+          : "Не удалось сохранить настройки уведомлений.",
       );
     } finally {
       setIsSavingDefaults(false);
@@ -91,11 +91,11 @@ export function NotificationSettingsForm({
           body: JSON.stringify({ notificationSetting }),
         },
       );
-      setMessage("Hub rule updated.");
+      setMessage("Правило для хаба обновлено.");
       router.refresh();
     } catch (saveError) {
       setError(
-        saveError instanceof Error ? saveError.message : "Unable to update the hub rule.",
+        saveError instanceof Error ? saveError.message : "Не удалось обновить правило хаба.",
       );
     }
   }
@@ -116,13 +116,13 @@ export function NotificationSettingsForm({
           body: JSON.stringify({ notificationSetting }),
         },
       );
-      setMessage("Lobby rule updated.");
+      setMessage("Правило для канала обновлено.");
       router.refresh();
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Unable to update the lobby rule.",
+          : "Не удалось обновить правило канала.",
       );
     }
   }
@@ -134,13 +134,13 @@ export function NotificationSettingsForm({
           <div className="flex flex-wrap items-center gap-2">
             <CompactListMeta>
               <BellRing size={14} strokeWidth={1.5} />
-              Defaults
+              По умолчанию
             </CompactListMeta>
-            <CompactListMeta>Communication baseline</CompactListMeta>
+            <CompactListMeta>Базовые правила</CompactListMeta>
           </div>
           <p className="mt-2 text-sm text-[var(--text-dim)]">
-            Set the fallback behavior for new DMs, hubs, and lobbies before any local
-            overrides kick in.
+            Настройте стандартное поведение для новых диалогов, хабов и каналов до
+            локальных переопределений.
           </p>
         </div>
 
@@ -148,20 +148,20 @@ export function NotificationSettingsForm({
           {[
             {
               key: "dmNotificationDefault" as const,
-              label: "Direct messages",
-              description: "Used when a brand-new DM thread opens.",
+              label: "Личные сообщения",
+              description: "Применяется при открытии нового диалога.",
               icon: BellRing,
             },
             {
               key: "hubNotificationDefault" as const,
-              label: "Hubs",
-              description: "Base rule for a newly joined hub.",
+              label: "Хабы",
+              description: "Базовое правило для нового хаба.",
               icon: Layers3,
             },
             {
               key: "lobbyNotificationDefault" as const,
-              label: "Lobbies",
-              description: "Fallback for lobby-level overrides.",
+              label: "Каналы",
+              description: "Резервное правило для настроек канала.",
               icon: Volume2,
             },
           ].map((item) => (
@@ -196,7 +196,7 @@ export function NotificationSettingsForm({
 
         <div className="flex flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3">
           <Button onClick={() => void saveDefaults()} disabled={isSavingDefaults} className="h-10">
-            {isSavingDefaults ? "Saving..." : "Save defaults"}
+            {isSavingDefaults ? "Сохраняем..." : "Сохранить по умолчанию"}
           </Button>
           <Button
             type="button"
@@ -204,21 +204,21 @@ export function NotificationSettingsForm({
             onClick={() => router.refresh()}
             className="h-10"
           >
-            Refresh
+            Обновить
           </Button>
         </div>
       </section>
 
       <section className="premium-panel overflow-hidden rounded-[22px]">
         <CompactListHeader className="border-b border-[var(--border-soft)] px-4 py-3">
-          <span>Hub rules</span>
+          <span>Правила хабов</span>
           <CompactListCount>{initialSettings.hubs.length}</CompactListCount>
         </CompactListHeader>
 
         {initialSettings.hubs.length === 0 ? (
           <EmptyState
-            title="No joined hubs"
-            description="Hub-level notification rules appear after you join a space."
+            title="Нет подключённых хабов"
+            description="Правила хаба появятся после вступления в пространство."
             className="min-h-[160px]"
           />
         ) : (
@@ -228,7 +228,7 @@ export function NotificationSettingsForm({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-white">{hub.hubName}</p>
                   <p className="text-xs text-[var(--text-muted)]">
-                    Base rule for channels inside this hub.
+                    Базовое правило для каналов внутри этого хаба.
                   </p>
                 </div>
                 <SelectField
@@ -253,14 +253,14 @@ export function NotificationSettingsForm({
 
       <section className="premium-panel overflow-hidden rounded-[22px]">
         <CompactListHeader className="border-b border-[var(--border-soft)] px-4 py-3">
-          <span>Lobby overrides</span>
+          <span>Переопределения каналов</span>
           <CompactListCount>{initialSettings.lobbies.length}</CompactListCount>
         </CompactListHeader>
 
         {initialSettings.lobbies.length === 0 ? (
           <EmptyState
-            title="No lobby overrides yet"
-            description="Lobby-specific rules appear after you join hubs with accessible spaces."
+            title="Переопределений пока нет"
+            description="Настройки канала появятся после вступления в хаб с доступными пространствами."
             className="min-h-[160px]"
           />
         ) : (
@@ -273,8 +273,8 @@ export function NotificationSettingsForm({
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">
                     {lobby.inherited
-                      ? "Currently inheriting the hub rule."
-                      : "This lobby has its own override."}
+                      ? "Сейчас наследует правило хаба."
+                      : "Для этого канала задано своё правило."}
                   </p>
                 </div>
                 <SelectField
@@ -303,7 +303,7 @@ export function NotificationSettingsForm({
         <div className="border-t border-[var(--border-soft)] px-4 py-3 text-sm text-[var(--text-dim)]">
           <span className="inline-flex items-center gap-2 text-white">
             <Sparkles size={16} strokeWidth={1.5} className="text-[var(--accent)]" />
-            DM, hub, and lobby rules can stay independent without bloating the UI.
+            Правила диалогов, хабов и каналов работают отдельно и не раздувают интерфейс.
           </span>
         </div>
       </section>

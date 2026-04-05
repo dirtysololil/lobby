@@ -22,10 +22,10 @@ import { Input } from "@/components/ui/input";
 import { apiClientFetch } from "@/lib/api-client";
 
 const roleLabels: Record<string, string> = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  MODERATOR: "Moderator",
-  MEMBER: "Member",
+  OWNER: "Владелец",
+  ADMIN: "Администратор",
+  MODERATOR: "Модератор",
+  MEMBER: "Участник",
 };
 
 function EmptyView({
@@ -66,7 +66,7 @@ export function HubWorkspace() {
       setInvites(viewerHubInvitesResponseSchema.parse(invitesPayload).items);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to load hubs.");
+      setErrorMessage(error instanceof Error ? error.message : "Не удалось загрузить хабы.");
     }
   }, []);
 
@@ -97,7 +97,7 @@ export function HubWorkspace() {
       setIsPrivate(false);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to create hub.");
+      setErrorMessage(error instanceof Error ? error.message : "Не удалось создать хаб.");
     } finally {
       setIsSubmitting(false);
     }
@@ -114,7 +114,7 @@ export function HubWorkspace() {
       await loadWorkspace();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to process the invite.",
+        error instanceof Error ? error.message : "Не удалось обработать инвайт.",
       );
     }
   }
@@ -126,13 +126,13 @@ export function HubWorkspace() {
           <div className="flex flex-wrap items-center gap-2">
             <CompactListMeta>
               <Waves size={14} strokeWidth={1.5} />
-              Hubs
+              Хабы
             </CompactListMeta>
-            <CompactListMeta>{hubs.length} spaces</CompactListMeta>
-            {invites.length > 0 ? <CompactListMeta>{invites.length} invites</CompactListMeta> : null}
+            <CompactListMeta>{hubs.length} пространств</CompactListMeta>
+            {invites.length > 0 ? <CompactListMeta>{invites.length} инвайтов</CompactListMeta> : null}
           </div>
           <h2 className="mt-2 text-base font-semibold tracking-tight text-white">
-            Shared spaces
+            Пространства
           </h2>
         </div>
 
@@ -146,7 +146,7 @@ export function HubWorkspace() {
           {invites.length > 0 ? (
             <div>
               <CompactListHeader>
-                <span>Invites</span>
+                <span>Инвайты</span>
                 <CompactListCount>{invites.length}</CompactListCount>
               </CompactListHeader>
               <CompactList>
@@ -161,10 +161,10 @@ export function HubWorkspace() {
                         <p className="truncate text-sm font-medium leading-tight text-white">
                           {invite.hub.name}
                         </p>
-                        {invite.hub.isPrivate ? <CompactListCount>Private</CompactListCount> : null}
+                        {invite.hub.isPrivate ? <CompactListCount>Приватный</CompactListCount> : null}
                       </div>
                       <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
-                        Invited by {invite.invitedBy.profile.displayName}
+                        Пригласил {invite.invitedBy.profile.displayName}
                       </p>
                     </div>
 
@@ -174,7 +174,7 @@ export function HubWorkspace() {
                         onClick={() => void handleInviteAction(invite.id, "accept")}
                         className="h-8 px-2.5"
                       >
-                        Accept
+                        Принять
                       </Button>
                       <Button
                         size="sm"
@@ -182,7 +182,7 @@ export function HubWorkspace() {
                         onClick={() => void handleInviteAction(invite.id, "decline")}
                         className="h-8 px-2.5"
                       >
-                        Decline
+                        Отклонить
                       </Button>
                     </div>
                   </CompactListRow>
@@ -193,13 +193,13 @@ export function HubWorkspace() {
 
           <div>
             <CompactListHeader>
-              <span>Your hubs</span>
+              <span>Ваши хабы</span>
               <CompactListCount>{hubs.length}</CompactListCount>
             </CompactListHeader>
             {hubs.length === 0 ? (
               <EmptyView
-                title="No hubs yet"
-                description="Create a space or accept an invite to get started."
+                title="Хабов пока нет"
+                description="Создайте пространство или примите инвайт, чтобы начать."
               />
             ) : (
               <CompactList>
@@ -218,17 +218,17 @@ export function HubWorkspace() {
                           {hub.name}
                         </p>
                         <CompactListCount>
-                          {roleLabels[hub.membershipRole ?? "MEMBER"] ?? "Member"}
+                          {roleLabels[hub.membershipRole ?? "MEMBER"] ?? "Участник"}
                         </CompactListCount>
                         {hub.isPrivate ? (
                           <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                             <LockKeyhole className="h-[16px] w-[16px]" />
-                            Private
+                            Приватный
                           </span>
                         ) : null}
                       </div>
                       <p className="mt-1 truncate text-xs leading-tight text-[var(--text-dim)]">
-                        {hub.description ?? "No description yet."}
+                        {hub.description ?? "Описания пока нет."}
                       </p>
                     </div>
                   </CompactListLink>
@@ -243,19 +243,19 @@ export function HubWorkspace() {
         <div className="flex items-center gap-2">
           <CompactListMeta>
             <Plus size={14} strokeWidth={1.5} />
-            New hub
+            Новый хаб
           </CompactListMeta>
         </div>
-        <h3 className="mt-2 text-base font-semibold tracking-tight text-white">Create space</h3>
+        <h3 className="mt-2 text-base font-semibold tracking-tight text-white">Создать пространство</h3>
         <p className="mt-1 text-sm text-[var(--text-dim)]">
-          Keep it lightweight. Name it, slug it, and move into conversation.
+          Короткое имя, понятный slug и сразу в общение.
         </p>
 
         <form className="mt-4 grid gap-2" onSubmit={handleCreateHub}>
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Hub name"
+            placeholder="Название хаба"
             className="h-10"
           />
           <Input
@@ -267,7 +267,7 @@ export function HubWorkspace() {
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Short description"
+            placeholder="Короткое описание"
             className="field-textarea min-h-[100px] text-sm"
           />
           <label className="field-checkbox text-sm">
@@ -276,10 +276,10 @@ export function HubWorkspace() {
               checked={isPrivate}
               onChange={(event) => setIsPrivate(event.target.checked)}
             />
-            Private hub
+            Приватный хаб
           </label>
           <Button type="submit" disabled={isSubmitting} className="h-10 w-full">
-            {isSubmitting ? "Creating..." : "Create hub"}
+            {isSubmitting ? "Создаём..." : "Создать хаб"}
           </Button>
         </form>
       </aside>

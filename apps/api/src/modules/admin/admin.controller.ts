@@ -1,17 +1,20 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import {
   actionMessageSchema,
   adminAuditLogListResponseSchema,
   adminOverviewResponseSchema,
+  adminUserSummarySchema,
   adminUserDetailResponseSchema,
   adminUserListResponseSchema,
   inviteListResponseSchema,
   listAdminAuditQuerySchema,
   listAdminUsersQuerySchema,
   platformBlockSchema,
+  updateAdminUserRoleSchema,
   type ListAdminAuditQuery,
   type ListAdminUsersQuery,
   type PublicUser,
+  type UpdateAdminUserRoleInput,
   type UpsertPlatformBlockInput,
   upsertPlatformBlockSchema,
 } from '@lobby/shared';
@@ -48,6 +51,24 @@ export class AdminController {
   public async getUserDetail(@Param('userId') userId: string) {
     return adminUserDetailResponseSchema.parse(
       await this.adminService.getUserDetail(userId),
+    );
+  }
+
+  @Patch('users/:userId/role')
+  public async updateUserRole(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('userId') userId: string,
+    @Body(new ZodValidationPipe(updateAdminUserRoleSchema))
+    body: UpdateAdminUserRoleInput,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return adminUserSummarySchema.parse(
+      await this.adminService.updateUserRole(
+        currentUser,
+        userId,
+        body,
+        getRequestMetadata(request),
+      ),
     );
   }
 

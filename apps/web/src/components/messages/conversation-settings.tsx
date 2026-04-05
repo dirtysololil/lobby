@@ -78,12 +78,12 @@ export function ConversationSettings({
   return (
     <div className="grid gap-3">
       <div className="rounded-[14px] border border-[var(--border-soft)] bg-white/[0.03] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-        These controls only affect this conversation.
+        Эти параметры влияют только на этот диалог.
       </div>
 
       <div className="grid gap-3">
         <div className="grid gap-1.5">
-          <label className="section-kicker">Notifications</label>
+          <label className="section-kicker">Уведомления</label>
           <SelectField
             value={localNotificationSetting}
             onChange={(event) =>
@@ -100,7 +100,7 @@ export function ConversationSettings({
         </div>
 
         <div className="grid gap-1.5">
-          <label className="section-kicker">History</label>
+          <label className="section-kicker">История</label>
           <SelectField
             value={localRetentionMode}
             onChange={(event) => setLocalRetentionMode(event.target.value as DmRetentionMode)}
@@ -116,7 +116,7 @@ export function ConversationSettings({
 
         {localRetentionMode === "CUSTOM" ? (
           <div className="grid gap-1.5">
-            <label className="section-kicker">Custom hours</label>
+            <label className="section-kicker">Свои часы</label>
             <Input
               value={customHours}
               onChange={(event) => setCustomHours(event.target.value)}
@@ -136,7 +136,7 @@ export function ConversationSettings({
         disabled={disabled || isSaving}
         className="h-9"
       >
-        {isSaving ? "Saving..." : "Save settings"}
+        {isSaving ? "Сохраняем..." : "Сохранить настройки"}
       </Button>
     </div>
   );

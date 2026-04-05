@@ -18,32 +18,32 @@ type LauncherItem = {
 const staticItems: LauncherItem[] = [
   {
     id: "route:messages",
-    label: "Messages",
-    description: "Recent conversations and inbox",
+    label: "Сообщения",
+    description: "Недавние диалоги и входящие",
     href: "/app/messages",
     icon: MessageSquareMore,
     type: "route",
   },
   {
     id: "route:people",
-    label: "People",
-    description: "Friends, requests and discovery",
+    label: "Люди",
+    description: "Друзья, заявки и поиск",
     href: "/app/people?view=friends",
     icon: Users2,
     type: "route",
   },
   {
     id: "route:hubs",
-    label: "Hubs",
-    description: "Community spaces",
+    label: "Хабы",
+    description: "Общие пространства",
     href: "/app/hubs",
     icon: Layers3,
     type: "route",
   },
   {
     id: "route:settings",
-    label: "Settings",
-    description: "Profile and notifications",
+    label: "Настройки",
+    description: "Профиль и уведомления",
     href: "/app/settings/profile",
     icon: Settings2,
     type: "route",
@@ -100,11 +100,11 @@ export function QuickLauncher() {
         ]);
 
         const hubs = hubListResponseSchema.parse(hubsPayload).items.map(
-          (hub) =>
+            (hub) =>
             ({
               id: `hub:${hub.id}`,
               label: hub.name,
-              description: hub.description ?? "Hub",
+              description: hub.description ?? "Хаб",
               href: `/app/hubs/${hub.id}`,
               icon: Layers3,
               type: "hub",
@@ -169,7 +169,7 @@ export function QuickLauncher() {
       <button type="button" onClick={() => setOpen(true)} className="topbar-search">
         <span className="inline-flex items-center gap-2">
           <Search className="h-4 w-4" />
-          Jump to chat or hub
+          Перейти к диалогу или хабу
         </span>
         <span className="glass-badge">Ctrl K</span>
       </button>
@@ -183,7 +183,7 @@ export function QuickLauncher() {
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search chats, people, or hubs"
+                placeholder="Поиск по чатам, людям и хабам"
                 className="h-10 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
               />
               <button type="button" onClick={() => setOpen(false)} className="glass-badge">
@@ -194,11 +194,11 @@ export function QuickLauncher() {
             <div className="mt-2.5 grid gap-1">
               {isLoading ? (
                 <div className="surface-subtle rounded-[12px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
-                  Loading results...
+                  Загружаем результаты...
                 </div>
               ) : filteredItems.length === 0 ? (
                 <div className="surface-subtle rounded-[12px] px-3 py-2.5 text-sm text-[var(--text-muted)]">
-                  No matches found.
+                  Ничего не найдено.
                 </div>
               ) : (
                 filteredItems.map((item) => (
@@ -221,7 +221,7 @@ export function QuickLauncher() {
                     </span>
                     <span className="glass-badge">
                       <CornerDownLeft className="h-3 w-3" />
-                      Open
+                      Открыть
                     </span>
                   </button>
                 ))

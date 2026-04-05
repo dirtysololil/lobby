@@ -10,6 +10,7 @@ import {
 import { BellRing, LockKeyhole, PhoneCall, UsersRound, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   CompactList,
@@ -46,15 +47,15 @@ const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 function formatRole(role: string | null | undefined) {
   switch (role) {
     case "OWNER":
-      return "Owner";
+      return "Владелец";
     case "ADMIN":
-      return "Admin";
+      return "Администратор";
     case "MEMBER":
-      return "Member";
+      return "Участник";
     case "GUEST":
-      return "Guest";
+      return "Гость";
     default:
-      return role ?? "Member";
+      return role ?? "Участник";
   }
 }
 
@@ -209,17 +210,17 @@ export function AppActivityRail({
       <div className="flex h-12 items-center justify-between border-b border-white/5 px-3">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-muted)]">
-            {route.section === "messages" ? "Conversation" : "Hub"}
+            {route.section === "messages" ? "Диалог" : "Хаб"}
           </p>
           <p className="text-sm font-medium text-white">
-            {route.section === "messages" ? "Details" : "Members"}
+            {route.section === "messages" ? "Детали" : "Участники"}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-white/5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
-          aria-label="Close panel"
+          aria-label="Закрыть панель"
         >
           <X {...iconProps} />
         </button>
@@ -228,7 +229,7 @@ export function AppActivityRail({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="px-3 py-6 text-center text-sm text-[var(--text-muted)]">
-            Loading details...
+            Загружаем детали...
           </div>
         ) : null}
 
@@ -248,11 +249,16 @@ export function AppActivityRail({
                     <div className="flex items-center gap-3">
                       {counterpart ? <UserAvatar user={counterpart} size="md" /> : null}
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-white">
-                          {counterpart?.profile.displayName ?? "Conversation"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-medium text-white">
+                            {counterpart?.profile.displayName ?? "Диалог"}
+                          </p>
+                          {counterpart ? (
+                            <PresenceIndicator presence={counterpart.profile.presence} compact />
+                          ) : null}
+                        </div>
                         <p className="truncate text-xs text-[var(--text-muted)]">
-                          {counterpart ? `@${counterpart.username}` : "Direct thread"}
+                          {counterpart ? `@${counterpart.username}` : "Личная переписка"}
                         </p>
                       </div>
                     </div>
@@ -265,7 +271,7 @@ export function AppActivityRail({
                         <PhoneCall {...iconProps} />
                         {latestSignal?.call.dmConversationId === route.conversationId
                           ? callStatusLabels[latestSignal.call.status]
-                          : "Call ready"}
+                          : "Готов к звонку"}
                       </CompactListMeta>
                       {conversation.retentionMode !== "OFF" ? (
                         <CompactListMeta>
@@ -298,19 +304,19 @@ export function AppActivityRail({
             <div className="border-b border-white/5 px-3 py-3">
               <p className="truncate text-sm font-medium text-white">{hubInfo.name}</p>
               <p className="mt-1 text-sm text-[var(--text-dim)]">
-                {hubInfo.description ?? "Shared communication space"}
+                {hubInfo.description ?? "Общее пространство для общения"}
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <CompactListMeta>
                   <UsersRound {...iconProps} />
-                  {hubInfo.members.length} members
+                  {hubInfo.members.length} участников
                 </CompactListMeta>
                 <CompactListMeta>{formatRole(hubInfo.membershipRole)}</CompactListMeta>
               </div>
             </div>
 
             <CompactListHeader>
-              <span>Members</span>
+              <span>Участники</span>
               <CompactListCount>{hubInfo.members.length}</CompactListCount>
             </CompactListHeader>
             <CompactList>
@@ -318,9 +324,12 @@ export function AppActivityRail({
                 <CompactListRow key={member.id} compact className="gap-3">
                   <UserAvatar user={member.user} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-white">
-                      {member.user.profile.displayName}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm text-white">
+                        {member.user.profile.displayName}
+                      </p>
+                      <PresenceIndicator presence={member.user.profile.presence} compact />
+                    </div>
                     <p className="truncate text-xs text-[var(--text-muted)]">
                       @{member.user.username} · {formatRole(member.role)}
                     </p>
@@ -335,7 +344,7 @@ export function AppActivityRail({
         ((route.section === "messages" && !conversation) ||
           (route.section === "hubs" && !hubInfo)) ? (
           <div className="px-3 py-6 text-center text-sm text-[var(--text-muted)]">
-            Nothing to show here yet.
+            Пока нечего показывать.
           </div>
         ) : null}
       </div>

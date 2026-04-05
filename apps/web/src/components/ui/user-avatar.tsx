@@ -5,6 +5,7 @@ import type { PublicUser } from "@lobby/shared";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { getAvatarInitials, getAvatarUrl } from "@/lib/avatar";
+import { getPresenceDotClass } from "@/lib/presence";
 
 interface UserAvatarProps {
   user: PublicUser;
@@ -17,13 +18,6 @@ const sizeClasses = {
   md: "h-9 w-9 text-[11px]",
   lg: "h-12 w-12 text-sm",
 } as const;
-
-const presenceDotClasses: Record<PublicUser["profile"]["presence"], string> = {
-  ONLINE: "bg-[var(--success)]",
-  IDLE: "bg-[var(--warning)]",
-  DND: "bg-[var(--danger)]",
-  OFFLINE: "bg-[var(--text-muted)]",
-};
 
 export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
   const avatarUrl = getAvatarUrl(user);
@@ -58,7 +52,7 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
       <span
         className={cn(
           "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-app)]",
-          presenceDotClasses[user.profile.presence],
+          getPresenceDotClass(user.profile.presence),
         )}
       />
     </div>

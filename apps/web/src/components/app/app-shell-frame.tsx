@@ -73,7 +73,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
                 effectiveActivityOpen &&
                   "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-white",
               )}
-              aria-label={effectiveActivityOpen ? "Hide details" : "Show details"}
+              aria-label={effectiveActivityOpen ? "Скрыть детали" : "Показать детали"}
             >
               {effectiveActivityOpen ? (
                 <PanelRightClose {...panelIconProps} />

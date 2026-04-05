@@ -5,12 +5,16 @@ import type { ReactNode } from "react";
 import {
   ArrowUpRight,
   Check,
+  Maximize2,
   LoaderCircle,
   Mic,
   MicOff,
+  Minimize2,
   Monitor,
   MonitorUp,
   MonitorX,
+  PanelRightClose,
+  PanelRightOpen,
   PhoneCall,
   PhoneOff,
   Settings2,
@@ -49,6 +53,7 @@ import {
 } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { SelectField } from "@/components/ui/select-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import {
@@ -1253,9 +1258,11 @@ function PersistentAudioSink() {
 function TrackSurface({
   item,
   emphasis = "tile",
+  expanded = false,
 }: {
   item: TrackView;
   emphasis?: "stage" | "conversation" | "tile";
+  expanded?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isScreen = isScreenShareTrack(item);
@@ -1276,8 +1283,10 @@ function TrackSurface({
     element.volume = item.isLocal ? 0 : 1;
     element.playsInline = true;
     element.className =
-      emphasis === "stage"
-        ? "h-full w-full object-cover"
+      isScreen
+        ? "h-full w-full bg-[#04070b] object-contain"
+        : emphasis === "stage"
+          ? "h-full w-full object-cover"
         : "h-full w-full rounded-[16px] object-cover";
 
     item.track.attach(element);
@@ -1295,9 +1304,19 @@ function TrackSurface({
       className={cn(
         "relative overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_48%),rgba(8,12,18,0.96)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
         emphasis === "stage"
-          ? "min-h-[300px] rounded-[22px] xl:min-h-[420px]"
+          ? cn(
+              "rounded-[22px]",
+              expanded
+                ? "min-h-[420px] xl:min-h-[620px]"
+                : "min-h-[300px] xl:min-h-[420px]",
+            )
           : emphasis === "conversation"
-            ? "min-h-[180px] rounded-[20px] lg:min-h-[240px]"
+            ? cn(
+                "rounded-[20px]",
+                expanded
+                  ? "min-h-[260px] lg:min-h-[340px]"
+                  : "min-h-[180px] lg:min-h-[240px]",
+              )
           : "min-h-[170px] rounded-[18px]",
       )}
     >
@@ -1603,8 +1622,7 @@ function AudioAndDeviceCard() {
       <div className="mt-3 grid gap-3">
         <div className="grid gap-1.5">
           <label className="section-kicker">Вход</label>
-          <select
-            className="field-select text-sm"
+          <SelectField
             value={selectedInputDeviceId ?? ""}
             onChange={(event) => void handleInputChange(event.target.value)}
             disabled={!session.connection.canPublishMedia || inputDevices.length === 0}
@@ -1617,13 +1635,12 @@ function AudioAndDeviceCard() {
                 {getDeviceLabel(device, "Микрофон", index)}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
 
         <div className="grid gap-1.5">
           <label className="section-kicker">Вывод</label>
-          <select
-            className="field-select text-sm"
+          <SelectField
             value={selectedOutputDeviceId ?? ""}
             onChange={(event) => void handleOutputChange(event.target.value)}
             disabled={!outputSelectionSupported || outputDevices.length === 0}
@@ -1640,7 +1657,7 @@ function AudioAndDeviceCard() {
                 {getDeviceLabel(device, "Вывод", index)}
               </option>
             ))}
-          </select>
+          </SelectField>
           {!outputSelectionSupported ? (
             <p className="text-xs text-[var(--text-dim)]">
               Этот браузер не даёт выбрать устройство вывода. Звук идёт через системный
@@ -1651,8 +1668,7 @@ function AudioAndDeviceCard() {
 
         <div className="grid gap-1.5">
           <label className="section-kicker">Эффект голоса</label>
-          <select
-            className="field-select text-sm"
+          <SelectField
             value={voiceEffect}
             onChange={(event) =>
               void handleEffectChange(event.target.value as VoiceEffectPreset)
@@ -1664,7 +1680,7 @@ function AudioAndDeviceCard() {
                 {voiceEffectLabels[effect]}
               </option>
             ))}
-          </select>
+          </SelectField>
           <div className="inline-flex items-center gap-2 rounded-[14px] border border-white/6 bg-black/10 px-3 py-2 text-xs text-[var(--text-dim)]">
             <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
             {voiceEffect === "normal"
@@ -1847,6 +1863,11 @@ export function CallRoomCanvas({
     toggleCamera,
     toggleScreenShare,
   } = useCallSession();
+  const stageHostRef = useRef<HTMLDivElement | null>(null);
+  const [isScreenStageExpanded, setIsScreenStageExpanded] = useState(false);
+  const [isScreenFocusMode, setIsScreenFocusMode] = useState(false);
+  const [isStageFullscreen, setIsStageFullscreen] = useState(false);
+  const [secondaryPanelsVisible, setSecondaryPanelsVisible] = useState(true);
 
   if (!callId || !session || session.call.id !== callId) {
     return null;
@@ -1870,10 +1891,49 @@ export function CallRoomCanvas({
     (item) => item.id !== primaryTrack?.id,
   );
   const isConversation = variant === "conversation";
+  const hasScreenShare = screenTracks.length > 0;
+  const stageExpanded = hasScreenShare && (isScreenStageExpanded || isScreenFocusMode);
+  const showFocusedStage = hasScreenShare && isScreenFocusMode;
 
   const stageSubtitle = screenTracks.length > 0
-    ? "Демонстрация экрана получает главный экран, а участники уходят в боковую колонку."
+    ? "Демонстрация экрана становится главным контентом сцены, а участники и сервисные панели уходят во вторичную область."
     : description;
+
+  useEffect(() => {
+    if (!hasScreenShare) {
+      setIsScreenStageExpanded(false);
+      setIsScreenFocusMode(false);
+      setSecondaryPanelsVisible(true);
+    }
+  }, [hasScreenShare]);
+
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsStageFullscreen(document.fullscreenElement === stageHostRef.current);
+    }
+
+    handleFullscreenChange();
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  async function toggleStageFullscreen() {
+    const stageHost = stageHostRef.current;
+
+    if (!stageHost) {
+      return;
+    }
+
+    if (document.fullscreenElement === stageHost) {
+      await document.exitFullscreen().catch(() => undefined);
+      return;
+    }
+
+    await stageHost.requestFullscreen().catch(() => undefined);
+  }
 
   return (
     <div
@@ -1964,16 +2024,71 @@ export function CallRoomCanvas({
       <div
         className={cn(
           "mt-3 grid min-h-0 gap-3",
-          isConversation
+          showFocusedStage
+            ? "grid-cols-1"
+            : isConversation
             ? "lg:grid-cols-[minmax(0,1fr)_280px]"
+            : hasScreenShare
+              ? "flex-1 xl:grid-cols-[minmax(0,1.45fr)_300px]"
             : "flex-1 xl:grid-cols-[minmax(0,1fr)_320px]",
         )}
       >
         <div className="min-h-0 space-y-3">
+          {hasScreenShare ? (
+            <div className="flex flex-col gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-white">Демонстрация экрана</p>
+                <p className="mt-1 text-xs text-[var(--text-dim)]">
+                  Экран можно сделать главным content-блоком или развернуть во весь доступный stage.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={isScreenStageExpanded ? "secondary" : "ghost"}
+                  onClick={() => setIsScreenStageExpanded((current) => !current)}
+                >
+                  {isScreenStageExpanded ? (
+                    <Minimize2 size={15} strokeWidth={1.5} />
+                  ) : (
+                    <Maximize2 size={15} strokeWidth={1.5} />
+                  )}
+                  {isScreenStageExpanded ? "Сжать сцену" : "Развернуть сцену"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={showFocusedStage ? "secondary" : "ghost"}
+                  onClick={() => setIsScreenFocusMode((current) => !current)}
+                >
+                  {showFocusedStage ? (
+                    <PanelRightOpen size={15} strokeWidth={1.5} />
+                  ) : (
+                    <PanelRightClose size={15} strokeWidth={1.5} />
+                  )}
+                  {showFocusedStage ? "Вернуть колонку" : "Во весь блок"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={isStageFullscreen ? "secondary" : "ghost"}
+                  onClick={() => void toggleStageFullscreen()}
+                >
+                  {isStageFullscreen ? (
+                    <Minimize2 size={15} strokeWidth={1.5} />
+                  ) : (
+                    <Maximize2 size={15} strokeWidth={1.5} />
+                  )}
+                  {isStageFullscreen ? "Выйти из полного экрана" : "Полный экран"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          <div ref={stageHostRef} className={cn(isStageFullscreen && "bg-[#05080d] p-3")}>
           {primaryTrack ? (
             <TrackSurface
               item={primaryTrack}
               emphasis={isConversation ? "conversation" : "stage"}
+              expanded={stageExpanded}
             />
           ) : (
             <VoicePresenceStage
@@ -1982,6 +2097,7 @@ export function CallRoomCanvas({
               variant={variant}
             />
           )}
+          </div>
 
           {secondaryVideoTracks.length > 0 ? (
             <div
@@ -1995,12 +2111,44 @@ export function CallRoomCanvas({
               ))}
             </div>
           ) : null}
+
+          {showFocusedStage ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
+                <div>
+                  <p className="text-sm font-medium text-white">Вторичные панели</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-dim)]">
+                    Настройки и участники не мешают экрану и раскрываются только когда нужны.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setSecondaryPanelsVisible((current) => !current)}
+                >
+                  {secondaryPanelsVisible ? "Скрыть панели" : "Показать панели"}
+                </Button>
+              </div>
+
+              {secondaryPanelsVisible ? (
+                <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
+                  <AudioAndDeviceCard />
+                  <ParticipantsCard
+                    participants={participants}
+                    participantCount={participantCount}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
-        <div className="flex min-h-0 flex-col gap-3">
-          <AudioAndDeviceCard />
-          <ParticipantsCard participants={participants} participantCount={participantCount} />
-        </div>
+        {!showFocusedStage ? (
+          <div className="flex min-h-0 flex-col gap-3">
+            <AudioAndDeviceCard />
+            <ParticipantsCard participants={participants} participantCount={participantCount} />
+          </div>
+        ) : null}
       </div>
     </div>
   );

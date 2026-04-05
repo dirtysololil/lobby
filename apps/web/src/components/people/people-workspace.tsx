@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -35,10 +36,10 @@ import { cn } from "@/lib/utils";
 type PeopleView = "friends" | "requests" | "discover" | "blocked";
 
 const peopleViews: Array<{ id: PeopleView; label: string }> = [
-  { id: "friends", label: "Friends" },
-  { id: "requests", label: "Requests" },
-  { id: "discover", label: "Discover" },
-  { id: "blocked", label: "Blocked" },
+  { id: "friends", label: "Друзья" },
+  { id: "requests", label: "Заявки" },
+  { id: "discover", label: "Поиск" },
+  { id: "blocked", label: "Блокировки" },
 ];
 
 interface RelationshipRowProps {
@@ -116,6 +117,7 @@ function RelationshipRow({
             <p className="truncate text-sm font-medium leading-tight text-white">
               {user.profile.displayName}
             </p>
+            <PresenceIndicator presence={user.profile.presence} compact />
             {meta}
           </div>
           <p className="mt-0.5 truncate text-xs leading-tight text-[var(--text-muted)]">
@@ -167,7 +169,7 @@ export function PeopleWorkspace() {
       setBlocks(blocksResponseSchema.parse(blocksPayload).items);
       setPanelError(null);
     } catch (error) {
-      setPanelError(error instanceof Error ? error.message : "Unable to load people right now.");
+      setPanelError(error instanceof Error ? error.message : "Не удалось загрузить людей.");
     }
   }
 
@@ -189,7 +191,7 @@ export function PeopleWorkspace() {
       setResults(userSearchResponseSchema.parse(payload).items);
       setSearchError(null);
     } catch (error) {
-      setSearchError(error instanceof Error ? error.message : "Unable to search people.");
+      setSearchError(error instanceof Error ? error.message : "Не удалось выполнить поиск.");
     } finally {
       setIsSearching(false);
     }
@@ -204,7 +206,7 @@ export function PeopleWorkspace() {
       await refreshSearch();
     } catch (error) {
       setSearchError(
-        error instanceof Error ? error.message : "Unable to complete that action.",
+        error instanceof Error ? error.message : "Не удалось выполнить это действие.",
       );
     } finally {
       setActionKey(null);
@@ -251,12 +253,12 @@ export function PeopleWorkspace() {
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <CompactListMeta>People</CompactListMeta>
-              <CompactListMeta>{friends.length} friends</CompactListMeta>
-              <CompactListMeta>{incoming.length + outgoing.length} requests</CompactListMeta>
+              <CompactListMeta>Люди</CompactListMeta>
+              <CompactListMeta>{friends.length} друзей</CompactListMeta>
+              <CompactListMeta>{incoming.length + outgoing.length} заявок</CompactListMeta>
             </div>
             <h2 className="mt-2 text-base font-semibold tracking-tight text-white">
-              Social graph
+              Социальный граф
             </h2>
           </div>
 
@@ -274,12 +276,12 @@ export function PeopleWorkspace() {
                 className="h-10 pl-9"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by username"
+                placeholder="Поиск по нику"
                 autoComplete="off"
               />
             </div>
             <Button type="submit" disabled={isSearching} className="h-10 px-3">
-              {isSearching ? "Searching..." : "Search"}
+              {isSearching ? "Ищем..." : "Найти"}
             </Button>
           </form>
         </div>
@@ -303,14 +305,14 @@ export function PeopleWorkspace() {
         {activeView === "friends" ? (
           <div>
             <CompactListHeader>
-              <span>Friends</span>
+              <span>Друзья</span>
               <CompactListCount>{friends.length}</CompactListCount>
             </CompactListHeader>
             {friends.length === 0 ? (
               <EmptyView
                 icon={Users2}
-                title="No friends yet"
-                description="Search for someone and send a request."
+                title="Друзей пока нет"
+                description="Найдите кого-нибудь и отправьте заявку."
               />
             ) : (
               <CompactList>
@@ -322,7 +324,7 @@ export function PeopleWorkspace() {
                     <RelationshipRow
                       key={item.id}
                       user={item.otherUser}
-                      subtitle={item.otherUser.profile.bio ?? "No bio yet."}
+                      subtitle={item.otherUser.profile.bio ?? "Описания пока нет."}
                       busy={actionKey === removeKey || actionKey === messageKey}
                       actions={
                         <>
@@ -334,7 +336,7 @@ export function PeopleWorkspace() {
                             className="h-8 px-2.5"
                           >
                             <MessageSquareMore className="h-[18px] w-[18px]" />
-                            Message
+                            Написать
                           </Button>
                           <Button
                             size="sm"
@@ -350,7 +352,7 @@ export function PeopleWorkspace() {
                             disabled={actionKey === removeKey}
                             className="h-8 px-2.5"
                           >
-                            Remove
+                            Удалить
                           </Button>
                           <Button
                             size="sm"
@@ -367,7 +369,7 @@ export function PeopleWorkspace() {
                             className="h-8 px-2.5"
                           >
                             <ShieldBan className="h-[18px] w-[18px]" />
-                            Block
+                            Заблокировать
                           </Button>
                         </>
                       }
@@ -382,14 +384,14 @@ export function PeopleWorkspace() {
         {activeView === "requests" ? (
           <div>
             <CompactListHeader>
-              <span>Incoming requests</span>
+              <span>Входящие заявки</span>
               <CompactListCount>{incoming.length}</CompactListCount>
             </CompactListHeader>
             {incoming.length === 0 ? (
               <EmptyView
                 icon={Users2}
-                title="No incoming requests"
-                description="New requests will show up here."
+                title="Входящих заявок нет"
+                description="Новые заявки появятся здесь."
               />
             ) : (
               <CompactList>
@@ -400,7 +402,7 @@ export function PeopleWorkspace() {
                     <RelationshipRow
                       key={item.id}
                       user={item.otherUser}
-                      subtitle="Wants to connect with you."
+                      subtitle="Хочет добавить вас в контакты."
                       busy={actionKey === busyKey}
                       actions={
                         <>
@@ -417,7 +419,7 @@ export function PeopleWorkspace() {
                             disabled={actionKey === busyKey}
                             className="h-8 px-2.5"
                           >
-                            Accept
+                            Принять
                           </Button>
                           <Button
                             size="sm"
@@ -433,7 +435,7 @@ export function PeopleWorkspace() {
                             disabled={actionKey === busyKey}
                             className="h-8 px-2.5"
                           >
-                            Dismiss
+                            Отклонить
                           </Button>
                         </>
                       }
@@ -444,14 +446,14 @@ export function PeopleWorkspace() {
             )}
 
             <CompactListHeader>
-              <span>Outgoing requests</span>
+              <span>Исходящие заявки</span>
               <CompactListCount>{outgoing.length}</CompactListCount>
             </CompactListHeader>
             {outgoing.length === 0 ? (
               <EmptyView
                 icon={Users2}
-                title="No outgoing requests"
-                description="Pending requests will show up here."
+                title="Исходящих заявок нет"
+                description="Ожидающие заявки появятся здесь."
               />
             ) : (
               <CompactList>
@@ -462,7 +464,7 @@ export function PeopleWorkspace() {
                     <RelationshipRow
                       key={item.id}
                       user={item.otherUser}
-                      subtitle="Waiting for a reply."
+                      subtitle="Ожидает ответа."
                       busy={actionKey === busyKey}
                       actions={
                         <Button
@@ -479,7 +481,7 @@ export function PeopleWorkspace() {
                           disabled={actionKey === busyKey}
                           className="h-8 px-2.5"
                         >
-                          Cancel
+                          Отменить
                         </Button>
                       }
                     />
@@ -493,17 +495,17 @@ export function PeopleWorkspace() {
         {activeView === "discover" ? (
           <div>
             <CompactListHeader>
-              <span>Discover</span>
+              <span>Поиск</span>
               <CompactListCount>{results.length}</CompactListCount>
             </CompactListHeader>
             {query.trim().length === 0 ? (
               <EmptyView
                 icon={Search}
-                title="Search by username"
-                description="Type a username to find people."
+                title="Поиск по нику"
+                description="Введите ник, чтобы найти людей."
               />
             ) : results.length === 0 ? (
-              <EmptyView icon={Search} title="No matches" description="Try another username." />
+              <EmptyView icon={Search} title="Ничего не найдено" description="Попробуйте другой ник." />
             ) : (
               <CompactList>
                 {results.map((item) => {
@@ -514,13 +516,13 @@ export function PeopleWorkspace() {
                     <RelationshipRow
                       key={item.user.id}
                       user={item.user}
-                      subtitle={item.user.profile.bio ?? "No bio yet."}
+                      subtitle={item.user.profile.bio ?? "Описания пока нет."}
                       busy={actionKey === busyKey}
                       meta={
                         friendshipState === "ACCEPTED" ? (
-                          <CompactListCount>Friend</CompactListCount>
+                          <CompactListCount>Друг</CompactListCount>
                         ) : item.relationship.isBlockedByViewer ? (
-                          <CompactListCount>Blocked</CompactListCount>
+                          <CompactListCount>Заблокирован</CompactListCount>
                         ) : null
                       }
                       actions={
@@ -539,7 +541,7 @@ export function PeopleWorkspace() {
                             disabled={actionKey === busyKey}
                             className="h-8 px-2.5"
                           >
-                            Unblock
+                            Разблокировать
                           </Button>
                         ) : (
                           <>
@@ -560,7 +562,7 @@ export function PeopleWorkspace() {
                                 className="h-8 px-2.5"
                               >
                                 <UserPlus2 className="h-[18px] w-[18px]" />
-                                Add
+                                Добавить
                               </Button>
                             )}
                             {friendshipState === "INCOMING_REQUEST" && (
@@ -577,7 +579,7 @@ export function PeopleWorkspace() {
                                 disabled={actionKey === busyKey}
                                 className="h-8 px-2.5"
                               >
-                                Accept
+                                Принять
                               </Button>
                             )}
                             {(friendshipState === "OUTGOING_REQUEST" ||
@@ -596,7 +598,7 @@ export function PeopleWorkspace() {
                                 disabled={actionKey === busyKey}
                                 className="h-8 px-2.5"
                               >
-                                Remove
+                                Удалить
                               </Button>
                             )}
                             <Button
@@ -609,7 +611,7 @@ export function PeopleWorkspace() {
                               className="h-8 px-2.5"
                             >
                               <MessageSquareMore className="h-[18px] w-[18px]" />
-                              {item.relationship.dmConversationId ? "Open chat" : "Message"}
+                              {item.relationship.dmConversationId ? "Открыть чат" : "Написать"}
                             </Button>
                             <Button
                               size="sm"
@@ -626,7 +628,7 @@ export function PeopleWorkspace() {
                               className="h-8 px-2.5"
                             >
                               <ShieldBan className="h-[18px] w-[18px]" />
-                              Block
+                              Заблокировать
                             </Button>
                           </>
                         )
@@ -642,14 +644,14 @@ export function PeopleWorkspace() {
         {activeView === "blocked" ? (
           <div>
             <CompactListHeader>
-              <span>Blocked</span>
+              <span>Блокировки</span>
               <CompactListCount>{blocks.length}</CompactListCount>
             </CompactListHeader>
             {blocks.length === 0 ? (
               <EmptyView
                 icon={ShieldBan}
-                title="Nobody is blocked"
-                description="Blocked accounts will appear here."
+                title="Никто не заблокирован"
+                description="Заблокированные аккаунты появятся здесь."
               />
             ) : (
               <CompactList>
@@ -660,7 +662,7 @@ export function PeopleWorkspace() {
                     <RelationshipRow
                       key={block.id}
                       user={block.blockedUser}
-                      subtitle="Messages and calls are blocked."
+                      subtitle="Сообщения и звонки заблокированы."
                       busy={actionKey === busyKey}
                       actions={
                         <Button
@@ -679,7 +681,7 @@ export function PeopleWorkspace() {
                           disabled={actionKey === busyKey}
                           className="h-8 px-2.5"
                         >
-                          Unblock
+                          Разблокировать
                         </Button>
                       }
                     />

@@ -7,7 +7,7 @@ const DynamicCallRoomCanvas = dynamic(
   {
     loading: () => (
       <div className="rounded-[20px] border border-[var(--border)] bg-white/[0.03] px-4 py-4 text-sm text-[var(--text-dim)]">
-        Preparing call canvas...
+        Подготавливаем сцену звонка...
       </div>
     ),
   },

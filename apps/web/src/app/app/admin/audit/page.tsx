@@ -34,22 +34,22 @@ export default async function AdminAuditPage({
       <section className="premium-panel rounded-[24px] p-5">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="section-kicker">Audit filters</p>
+            <p className="section-kicker">Фильтры аудита</p>
             <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-              Narrow the stream by action or entity type without leaving the admin rail.
+              Сузьте поток по действию или типу сущности, не покидая админ-панель.
             </p>
           </div>
         </div>
 
         <form className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <Input name="action" placeholder="Action contains..." defaultValue={action} />
+          <Input name="action" placeholder="Действие содержит..." defaultValue={action} />
           <Input
             name="entityType"
-            placeholder="Entity type..."
+            placeholder="Тип сущности..."
             defaultValue={entityType}
           />
           <Button type="submit" variant="secondary">
-            Apply
+            Применить
           </Button>
         </form>
       </section>

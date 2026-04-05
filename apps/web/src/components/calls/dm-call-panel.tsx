@@ -426,7 +426,7 @@ export function DmCallPanel({
                       ) : (
                         <MicOff {...iconProps} />
                       )}
-                      {microphoneEnabled ? "Mute" : "Unmute"}
+                      {microphoneEnabled ? "Выключить микрофон" : "Включить микрофон"}
                     </Button>
                   ) : null}
                   <Button
