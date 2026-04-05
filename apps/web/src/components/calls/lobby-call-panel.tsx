@@ -6,7 +6,7 @@ import {
   type CallStateResponse,
   type CallSummary,
 } from "@lobby/shared";
-import { Phone, Users2 } from "lucide-react";
+import { Mic, Phone, PhoneCall, Users2, Waves } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
@@ -62,6 +62,7 @@ export function LobbyCallPanel({
       const payload = await apiClientFetch(`/v1/calls/hubs/${hubId}/lobbies/${lobbyId}`);
       const parsed = callStateResponseSchema.parse(payload);
       setState(parsed);
+
       if (parsed.activeCall) {
         syncCall(parsed.activeCall, {
           route: callRoute,
@@ -69,6 +70,7 @@ export function LobbyCallPanel({
           subtitle: callSubtitle,
         });
       }
+
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
@@ -98,7 +100,7 @@ export function LobbyCallPanel({
     return () => {
       currentSocket.off("connect", subscribe);
     };
-  }, [socket, hubId, lobbyId]);
+  }, [hubId, lobbyId, socket]);
 
   useEffect(() => {
     if (latestSignal?.call.lobbyId !== lobbyId) {
@@ -165,19 +167,34 @@ export function LobbyCallPanel({
       ["ACCEPTED", "JOINED"].includes(participant.state),
     ).length ?? 0;
   const isCurrentSession = isActiveCall(activeCall?.id ?? null);
+  const summaryLabel = !activeCall
+    ? `Голосовая комната ${lobbyName}`
+    : isCurrentSession
+      ? "Вы уже в голосовой комнате"
+      : "Голосовая комната открыта";
+  const helperText = errorMessage
+    ? errorMessage
+    : isViewerMuted
+      ? "Для этого аккаунта доступно только прослушивание: микрофон, камера и экран не публикуются."
+      : `${hubName} · голосовой лобби-канал`;
+  const helperToneClassName = errorMessage
+    ? "text-rose-200"
+    : isViewerMuted
+      ? "text-amber-100"
+      : "text-[var(--text-dim)]";
   const metrics = useMemo(
     () => [
       {
-        label: "Сеанс",
-        value: activeCall ? "Уже открыт" : "Готов к запуску",
+        label: "На связи",
+        value: `${activeParticipants}`,
       },
       {
-        label: "Участники",
-        value: `${activeParticipants} на связи`,
+        label: "Сеансы",
+        value: `${state?.history.length ?? 0}`,
       },
       {
-        label: "История",
-        value: `${state?.history.length ?? 0} сессий`,
+        label: "Режим",
+        value: activeCall ? callModeLabels[activeCall.mode] : "Готова к запуску",
       },
     ],
     [activeCall, activeParticipants, state?.history.length],
@@ -185,40 +202,41 @@ export function LobbyCallPanel({
 
   return (
     <div className="grid gap-2.5">
-      <div className="rounded-[20px] border border-[var(--border)] bg-white/[0.03] px-3 py-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="eyebrow-pill">Голосовая комната</span>
-              <span className="status-pill">
-                {activeCall ? callStatusLabels[activeCall.status] : "Готова"}
-              </span>
-              {activeCall ? (
-                <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
-              ) : null}
-              {isCurrentSession ? <span className="status-pill">Закреплена</span> : null}
+      <section className="premium-panel rounded-[22px] px-3 py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="call-summary-leading">
+            <div className="call-summary-icon">
+              {isCurrentSession ? <Waves {...iconProps} /> : <PhoneCall {...iconProps} />}
             </div>
 
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {metrics.map((metric) => (
-                <div key={metric.label} className="surface-subtle rounded-[16px] px-3 py-2.5">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                    {metric.label}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-white">{metric.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {errorMessage ? <p className="mt-2 text-sm text-rose-200">{errorMessage}</p> : null}
-            {!errorMessage && isViewerMuted ? (
-              <p className="mt-2 text-sm text-amber-100">
-                Можно слушать комнату, но публикация медиа отключена для этого аккаунта.
+            <div className="call-summary-body">
+              <p className="call-summary-title text-sm font-medium tracking-tight text-white">
+                <span className="truncate">{summaryLabel}</span>
               </p>
-            ) : null}
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="eyebrow-pill">
+                  <Mic className="h-3.5 w-3.5" />
+                  Голос
+                </span>
+                <span className="status-pill">
+                  {activeCall ? callStatusLabels[activeCall.status] : "Готова"}
+                </span>
+                {activeCall ? (
+                  <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
+                ) : null}
+                <span className="status-pill">
+                  <Users2 {...iconProps} />
+                  {activeParticipants}
+                </span>
+                {isCurrentSession ? <span className="status-pill">Закреплена</span> : null}
+              </div>
+
+              <p className={`text-sm ${helperToneClassName}`}>{helperText}</p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="flex flex-wrap gap-1.5 rounded-[18px] border border-white/6 bg-white/[0.03] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             {!activeCall ? (
               <Button size="sm" onClick={() => void startCall()} disabled={pendingAction !== null}>
                 <Phone {...iconProps} />
@@ -235,12 +253,13 @@ export function LobbyCallPanel({
                   {pendingAction === "join"
                     ? "Подключаем..."
                     : isCurrentSession
-                      ? "Вернуться в комнату"
+                      ? "Вернуться к сцене"
                       : "Подключиться"}
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
+                  className="call-danger-button"
                   onClick={() => void leaveLobbyCall()}
                   disabled={pendingAction !== null}
                 >
@@ -250,12 +269,23 @@ export function LobbyCallPanel({
             )}
           </div>
         </div>
-      </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {metrics.map((metric) => (
+            <div key={metric.label} className="surface-subtle rounded-[16px] px-3 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                {metric.label}
+              </p>
+              <p className="mt-1 text-sm font-medium text-white">{metric.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <LiveKitCallRoom
         callId={activeCall?.id ?? null}
         title="Голосовая сцена"
-        description="Комната переживает переходы по маршрутам и остаётся доступной через call dock."
+        description="Комната остаётся доступной между переходами и продолжает жить через call dock."
       />
     </div>
   );

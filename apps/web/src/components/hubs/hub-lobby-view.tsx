@@ -14,8 +14,8 @@ const DeferredLobbyCallPanel = dynamic(
   () => import("@/components/calls/lobby-call-panel").then((module) => module.LobbyCallPanel),
   {
     loading: () => (
-      <div className="rounded-[20px] border border-[var(--border)] bg-white/[0.03] px-4 py-4 text-sm text-[var(--text-dim)]">
-        Preparing voice room...
+      <div className="premium-panel rounded-[22px] px-4 py-4 text-sm text-[var(--text-dim)]">
+        Подготавливаем голосовую комнату...
       </div>
     ),
   },

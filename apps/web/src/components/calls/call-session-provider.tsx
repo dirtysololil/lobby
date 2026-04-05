@@ -1278,7 +1278,6 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
               audio: false,
               video: true,
               contentHint: "detail",
-              preferCurrentTab: true,
               selfBrowserSurface: "include",
               surfaceSwitching: "include",
               systemAudio: "exclude",
@@ -2415,7 +2414,7 @@ export function CallRoomCanvas({
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="eyebrow-pill">{title}</span>
@@ -2433,13 +2432,13 @@ export function CallRoomCanvas({
             <p className="mt-2 text-sm text-[var(--text-dim)]">{stageSubtitle}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:grid-cols-4">
+          <div className="flex flex-wrap gap-1.5 rounded-[18px] border border-white/6 bg-white/[0.03] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <Button
               size="sm"
               variant={microphoneEnabled ? "secondary" : "ghost"}
               onClick={() => void toggleMicrophone()}
               disabled={!activeSession.connection.canPublishMedia}
-              className="justify-start"
+              className="h-9 px-3"
             >
               {microphoneEnabled ? (
                 <Mic size={15} strokeWidth={1.5} />
@@ -2453,7 +2452,7 @@ export function CallRoomCanvas({
               variant={cameraEnabled ? "secondary" : "ghost"}
               onClick={() => void toggleCamera()}
               disabled={!activeSession.connection.canPublishMedia}
-              className="justify-start"
+              className="h-9 px-3"
             >
               {cameraEnabled ? (
                 <Video size={15} strokeWidth={1.5} />
@@ -2467,7 +2466,7 @@ export function CallRoomCanvas({
               variant={screenShareEnabled ? "secondary" : "ghost"}
               onClick={() => void toggleScreenShare()}
               disabled={!activeSession.connection.canPublishMedia}
-              className="justify-start"
+              className="h-9 px-3"
             >
               {screenShareEnabled ? (
                 <MonitorX size={15} strokeWidth={1.5} />
@@ -2479,7 +2478,7 @@ export function CallRoomCanvas({
             <Button
               size="sm"
               variant="secondary"
-              className="justify-start call-danger-button"
+              className="h-9 px-3 call-danger-button"
               onClick={() => void leaveCall(activeSession.call.id)}
             >
               <PhoneOff size={15} strokeWidth={1.5} />
@@ -2505,8 +2504,8 @@ export function CallRoomCanvas({
               ? "lg:grid-cols-[minmax(0,1fr)_248px]"
               : "grid-cols-1"
             : screenShareVisible
-              ? "flex-1 xl:grid-cols-[minmax(0,1.45fr)_300px]"
-              : "flex-1 xl:grid-cols-[minmax(0,1fr)_320px]",
+              ? "flex-1 xl:grid-cols-[minmax(0,1.32fr)_288px]"
+              : "flex-1 xl:grid-cols-[minmax(0,1fr)_304px]",
         )}
       >
         <div className={cn("min-h-0", isConversation ? "space-y-2.5" : "space-y-3")}>

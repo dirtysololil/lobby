@@ -12,8 +12,11 @@ import {
   type UserSearchResult,
 } from "@lobby/shared";
 import {
+  Clock3,
+  Inbox,
   MessageSquareMore,
   Search,
+  Send,
   ShieldBan,
   UserPlus2,
   Users2,
@@ -97,6 +100,76 @@ function EmptyView({
   );
 }
 
+function CompactEmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Users2;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex min-h-[144px] flex-col items-center justify-center gap-2 px-4 py-5 text-center">
+      <div className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-white/[0.04] text-[var(--text-muted)]">
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-white">{title}</p>
+        <p className="text-xs leading-5 text-[var(--text-dim)]">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function RequestPanel({
+  title,
+  description,
+  count,
+  icon: Icon,
+  emptyTitle,
+  emptyDescription,
+  children,
+}: {
+  title: string;
+  description: string;
+  count: number;
+  icon: typeof Users2;
+  emptyTitle: string;
+  emptyDescription: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="premium-panel rounded-[22px] p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-white/[0.04] text-[var(--accent-strong)]">
+            <Icon className="h-4.5 w-4.5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium tracking-tight text-white">{title}</p>
+            <p className="mt-1 text-sm text-[var(--text-dim)]">{description}</p>
+          </div>
+        </div>
+
+        <CompactListCount>{count}</CompactListCount>
+      </div>
+
+      <div className="mt-3 overflow-hidden rounded-[18px] border border-[var(--border-soft)] bg-white/[0.02]">
+        {count === 0 ? (
+          <CompactEmptyState
+            icon={Icon}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        ) : (
+          children
+        )}
+      </div>
+    </section>
+  );
+}
+
 function RelationshipRow({
   user,
   subtitle,
@@ -133,9 +206,7 @@ function RelationshipRow({
         </div>
       </Link>
 
-      <div className="flex flex-wrap gap-1.5">
-        {actions}
-      </div>
+      <div className="flex flex-wrap gap-1.5">{actions}</div>
     </CompactListRow>
   );
 }
@@ -248,7 +319,7 @@ export function PeopleWorkspace() {
         .sort((left, right) =>
           left.otherUser.profile.displayName.localeCompare(
             right.otherUser.profile.displayName,
-            "en",
+            "ru",
           ),
         ),
     [friendships],
@@ -395,45 +466,124 @@ export function PeopleWorkspace() {
         ) : null}
 
         {activeView === "requests" ? (
-          <div>
-            <CompactListHeader>
-              <span>Входящие заявки</span>
-              <CompactListCount>{incoming.length}</CompactListCount>
-            </CompactListHeader>
-            {incoming.length === 0 ? (
-              <EmptyView
-                icon={Users2}
-                title="Входящих заявок нет"
-                description="Новые заявки появятся здесь."
-              />
-            ) : (
-              <CompactList>
-                {incoming.map((item) => {
-                  const busyKey = `INCOMING_REQUEST:${item.otherUser.username}`;
+          <div className="grid gap-3 px-3 py-3">
+            <section className="premium-panel rounded-[22px] p-3">
+              <div className="compact-toolbar gap-3">
+                <div className="min-w-0">
+                  <p className="section-kicker">Заявки</p>
+                  <p className="mt-2 text-base font-semibold tracking-tight text-white">
+                    Очередь контактов
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--text-dim)]">
+                    Здесь собраны новые запросы и ожидающие ответы без пустых заглушек и лишних служебных блоков.
+                  </p>
+                </div>
 
-                  return (
-                    <RelationshipRow
-                      key={item.id}
-                      user={item.otherUser}
-                      subtitle="Хочет добавить вас в контакты."
-                      busy={actionKey === busyKey}
-                      actions={
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              void withAction(busyKey, async () => {
-                                await apiClientFetch("/v1/relationships/friends/accept", {
-                                  method: "POST",
-                                  body: JSON.stringify({ username: item.otherUser.username }),
-                                });
-                              })
-                            }
-                            disabled={actionKey === busyKey}
-                            className="h-8 px-2.5"
-                          >
-                            Принять
-                          </Button>
+                <div className="flex flex-wrap gap-2">
+                  <div className="surface-subtle rounded-[16px] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                      Входящие
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-white">{incoming.length}</p>
+                  </div>
+                  <div className="surface-subtle rounded-[16px] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                      Исходящие
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-white">{outgoing.length}</p>
+                  </div>
+                  <div className="surface-subtle rounded-[16px] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                      Обновлено
+                    </p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-white">
+                      <Clock3 className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                      Сейчас
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="grid gap-3 xl:grid-cols-2">
+              <RequestPanel
+                title="Входящие заявки"
+                description="Новые люди, которые хотят добавить вас в контакты."
+                count={incoming.length}
+                icon={Inbox}
+                emptyTitle="Пока ничего нового"
+                emptyDescription="Новые входящие заявки появятся здесь, когда кто-то запросит контакт."
+              >
+                <CompactList>
+                  {incoming.map((item) => {
+                    const busyKey = `INCOMING_REQUEST:${item.otherUser.username}`;
+
+                    return (
+                      <RelationshipRow
+                        key={item.id}
+                        user={item.otherUser}
+                        subtitle="Хочет добавить вас в контакты."
+                        busy={actionKey === busyKey}
+                        actions={
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                void withAction(busyKey, async () => {
+                                  await apiClientFetch("/v1/relationships/friends/accept", {
+                                    method: "POST",
+                                    body: JSON.stringify({ username: item.otherUser.username }),
+                                  });
+                                })
+                              }
+                              disabled={actionKey === busyKey}
+                              className="h-8 px-2.5"
+                            >
+                              Принять
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() =>
+                                void withAction(busyKey, async () => {
+                                  await apiClientFetch("/v1/relationships/friends/remove", {
+                                    method: "POST",
+                                    body: JSON.stringify({ username: item.otherUser.username }),
+                                  });
+                                })
+                              }
+                              disabled={actionKey === busyKey}
+                              className="h-8 px-2.5"
+                            >
+                              Отклонить
+                            </Button>
+                          </>
+                        }
+                      />
+                    );
+                  })}
+                </CompactList>
+              </RequestPanel>
+
+              <RequestPanel
+                title="Исходящие заявки"
+                description="Запросы, которые уже отправлены и ждут ответа."
+                count={outgoing.length}
+                icon={Send}
+                emptyTitle="Нет ожидающих запросов"
+                emptyDescription="Когда вы отправите новую заявку, она появится здесь до ответа."
+              >
+                <CompactList>
+                  {outgoing.map((item) => {
+                    const busyKey = `OUTGOING_REQUEST:${item.otherUser.username}`;
+
+                    return (
+                      <RelationshipRow
+                        key={item.id}
+                        user={item.otherUser}
+                        subtitle="Ожидает ответа."
+                        busy={actionKey === busyKey}
+                        actions={
                           <Button
                             size="sm"
                             variant="secondary"
@@ -448,60 +598,15 @@ export function PeopleWorkspace() {
                             disabled={actionKey === busyKey}
                             className="h-8 px-2.5"
                           >
-                            Отклонить
+                            Отменить
                           </Button>
-                        </>
-                      }
-                    />
-                  );
-                })}
-              </CompactList>
-            )}
-
-            <CompactListHeader>
-              <span>Исходящие заявки</span>
-              <CompactListCount>{outgoing.length}</CompactListCount>
-            </CompactListHeader>
-            {outgoing.length === 0 ? (
-              <EmptyView
-                icon={Users2}
-                title="Исходящих заявок нет"
-                description="Ожидающие заявки появятся здесь."
-              />
-            ) : (
-              <CompactList>
-                {outgoing.map((item) => {
-                  const busyKey = `OUTGOING_REQUEST:${item.otherUser.username}`;
-
-                  return (
-                    <RelationshipRow
-                      key={item.id}
-                      user={item.otherUser}
-                      subtitle="Ожидает ответа."
-                      busy={actionKey === busyKey}
-                      actions={
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            void withAction(busyKey, async () => {
-                              await apiClientFetch("/v1/relationships/friends/remove", {
-                                method: "POST",
-                                body: JSON.stringify({ username: item.otherUser.username }),
-                              });
-                            })
-                          }
-                          disabled={actionKey === busyKey}
-                          className="h-8 px-2.5"
-                        >
-                          Отменить
-                        </Button>
-                      }
-                    />
-                  );
-                })}
-              </CompactList>
-            )}
+                        }
+                      />
+                    );
+                  })}
+                </CompactList>
+              </RequestPanel>
+            </div>
           </div>
         ) : null}
 
@@ -518,7 +623,11 @@ export function PeopleWorkspace() {
                 description="Введите ник, чтобы найти людей."
               />
             ) : results.length === 0 ? (
-              <EmptyView icon={Search} title="Ничего не найдено" description="Попробуйте другой ник." />
+              <EmptyView
+                icon={Search}
+                title="Ничего не найдено"
+                description="Попробуйте другой ник."
+              />
             ) : (
               <CompactList>
                 {results.map((item) => {

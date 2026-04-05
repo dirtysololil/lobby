@@ -308,14 +308,14 @@ export function DmCallPanel({
       <div className="premium-panel rounded-[18px] px-3 py-2">
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.2)] bg-[rgba(106,168,248,0.12)] text-[var(--accent-strong)]">
+            <div className="call-summary-leading">
+              <div className="call-summary-icon">
                 {screenShareVisible ? <Monitor {...iconProps} /> : <PhoneCall {...iconProps} />}
               </div>
 
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium tracking-tight text-white">
-                  {summaryLabel}
+              <div className="call-summary-body">
+                <p className="call-summary-title text-sm font-medium tracking-tight text-white">
+                  <span className="truncate">{summaryLabel}</span>
                 </p>
 
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
