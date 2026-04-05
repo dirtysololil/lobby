@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ShieldBan, ShieldCheck, UsersRound } from "lucide-react";
 import type { AdminUserListResponse, PublicUser, UserRole } from "@lobby/shared";
 import { useRouter } from "next/navigation";
@@ -11,6 +12,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiClientFetch } from "@/lib/api-client";
+import { buildUserProfileHref } from "@/lib/profile-routes";
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
@@ -265,7 +267,7 @@ export function UsersAdminPanel({
                     </div>
                   </div>
 
-                  <div className="flex w-full flex-col gap-2 xl:w-[320px] xl:opacity-0 xl:transition-opacity xl:group-hover:opacity-100 xl:group-focus-within:opacity-100">
+                  <div className="flex w-full flex-col gap-2 rounded-[18px] border border-[var(--border-soft)] bg-white/[0.03] p-2.5 xl:w-[340px]">
                     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                       <SelectField
                         value={draftRole}
@@ -299,6 +301,11 @@ export function UsersAdminPanel({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
+                      <Link href={buildUserProfileHref(item.user.username)}>
+                        <Button size="sm" variant="secondary">
+                          Профиль
+                        </Button>
+                      </Link>
                       <Button
                         size="sm"
                         variant={item.platformBlock ? "secondary" : "destructive"}
@@ -323,8 +330,7 @@ export function UsersAdminPanel({
           )}
         </div>
 
-        <div className="flex flex-col gap-3 px-4 py-3 text-sm text-[var(--text-dim)] sm:flex-row sm:items-center sm:justify-between">
-          <span>Переходите по списку, не выпадая из текущего админ-контекста.</span>
+        <div className="flex justify-end gap-2 px-4 py-3">
           <div className="flex gap-2">
             <Button
               variant="secondary"

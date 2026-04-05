@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { ShieldBan, UserRoundPlus } from "lucide-react";
 import {
@@ -20,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { getCachedHubShell, primeHubShellCache } from "@/lib/hub-shell-cache";
+import { buildUserProfileHref } from "@/lib/profile-routes";
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
@@ -309,7 +311,10 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 key={member.id}
                 className="flex-col items-stretch gap-3 lg:flex-col lg:items-stretch"
               >
-                <div className="flex items-start gap-3">
+                <Link
+                  href={buildUserProfileHref(member.user.username)}
+                  className="identity-link items-start rounded-[16px]"
+                >
                   <UserAvatar user={member.user} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -322,7 +327,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                       @{member.user.username}
                     </p>
                   </div>
-                </div>
+                </Link>
 
                 {(hub.permissions.canManageHub || hub.permissions.canManageMembers) &&
                 member.canManage ? (

@@ -9,11 +9,11 @@ import {
   CompactListCount,
   CompactListLink,
   CompactListMeta,
-  CompactListRow,
 } from "@/components/ui/compact-list";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
+import { buildUserProfileHref } from "@/lib/profile-routes";
 import { HubOverviewLauncher } from "./hub-overview-launcher";
 import { HubShellBootstrap } from "./hub-shell-bootstrap";
 
@@ -144,7 +144,12 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
               </div>
               <CompactList>
                 {memberPreview.map((member) => (
-                  <CompactListRow key={member.id} compact className="gap-3">
+                  <CompactListLink
+                    key={member.id}
+                    href={buildUserProfileHref(member.user.username)}
+                    compact
+                    className="gap-3"
+                  >
                     <UserAvatar user={member.user} size="sm" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -157,7 +162,7 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
                         @{member.user.username} · {roleLabels[member.role] ?? member.role}
                       </p>
                     </div>
-                  </CompactListRow>
+                  </CompactListLink>
                 ))}
               </CompactList>
             </section>

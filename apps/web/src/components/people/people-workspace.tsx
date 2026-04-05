@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   blocksResponseSchema,
   directConversationSummaryResponseSchema,
@@ -27,10 +28,10 @@ import {
   CompactListRow,
 } from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
+import { buildUserProfileHref } from "@/lib/profile-routes";
 import { cn } from "@/lib/utils";
 
 type PeopleView = "friends" | "requests" | "discover" | "blocked";
@@ -106,11 +107,14 @@ function RelationshipRow({
   return (
     <CompactListRow
       className={cn(
-        "group flex-col items-stretch gap-2 lg:flex-row lg:items-center lg:justify-between",
+        "group flex-col items-stretch gap-3 lg:flex-row lg:items-center lg:justify-between",
         busy && "opacity-70",
       )}
     >
-      <div className="flex min-w-0 items-start gap-3">
+      <Link
+        href={buildUserProfileHref(user.username)}
+        className="identity-link rounded-[16px] sm:max-w-[min(100%,420px)]"
+      >
         <UserAvatar user={user} size="sm" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -127,9 +131,9 @@ function RelationshipRow({
             {subtitle}
           </p>
         </div>
-      </div>
+      </Link>
 
-      <div className="flex flex-wrap gap-1.5 lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
+      <div className="flex flex-wrap gap-1.5">
         {actions}
       </div>
     </CompactListRow>
@@ -260,6 +264,9 @@ export function PeopleWorkspace() {
             <h2 className="mt-2 text-base font-semibold tracking-tight text-white">
               Социальный граф
             </h2>
+            <p className="mt-1 text-sm text-[var(--text-dim)]">
+              Быстрый доступ к контактам, заявкам и открытому профилю любого человека.
+            </p>
           </div>
 
           <form
@@ -270,10 +277,10 @@ export function PeopleWorkspace() {
               void refreshSearch();
             }}
           >
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--text-muted)]" />
-              <Input
-                className="h-10 pl-9"
+            <div className="search-shell">
+              <Search className="search-shell-icon h-[18px] w-[18px]" />
+              <input
+                className="search-shell-input text-sm"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Поиск по нику"

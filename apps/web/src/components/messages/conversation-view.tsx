@@ -15,6 +15,7 @@ import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { DmCallPanel } from "@/components/calls/dm-call-panel";
+import { buildUserProfileHref } from "@/lib/profile-routes";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import { sortDirectMessages } from "@/lib/direct-message-state";
 import { dmRetentionLabels } from "@/lib/ui-labels";
@@ -435,7 +436,10 @@ export function ConversationView({
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(11,16,24,0.88)] px-3 backdrop-blur-xl">
-          <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href={buildUserProfileHref(counterpart.username)}
+            className="identity-link min-w-0 rounded-[16px] px-1.5 py-1"
+          >
             <UserAvatar user={counterpart} size="sm" />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -464,14 +468,23 @@ export function ConversationView({
                 @{counterpart.username}
               </p>
             </div>
-          </div>
+          </Link>
 
+          <div className="flex items-center gap-2">
+          <Link href={buildUserProfileHref(counterpart.username)}>
+            <Button size="sm" variant="ghost">
+              <UserRound {...iconProps} />
+              Профиль
+            </Button>
+          </Link>
           <Link href="/app/messages">
             <Button size="sm" variant="ghost">
               <ArrowLeft {...iconProps} />
               Назад
             </Button>
           </Link>
+        </div>
+
         </div>
 
         <div className="shrink-0 border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_48%),rgba(20,29,40,0.72)] px-3 py-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquareQuote, Pin, Tags, Waves } from "lucide-react";
+import { Clock3, MessageSquareQuote, Pin, Tags, Waves } from "lucide-react";
 import {
   forumTopicListResponseSchema,
   forumTopicResponseSchema,
@@ -20,6 +20,15 @@ interface ForumLobbyViewProps {
   hubId: string;
   lobbyId: string;
   initialTopics: ForumTopic[];
+}
+
+function formatTopicDate(value: string) {
+  return new Date(value).toLocaleString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function ForumLobbyView({
@@ -44,7 +53,7 @@ export function ForumLobbyView({
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось загрузить форум",
+        error instanceof Error ? error.message : "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С„РѕСЂСѓРј",
       );
     }
   }, [hubId, lobbyId]);
@@ -74,7 +83,7 @@ export function ForumLobbyView({
       await loadTopics();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось создать тему",
+        error instanceof Error ? error.message : "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ С‚РµРјСѓ",
       );
     } finally {
       setIsSubmitting(false);
@@ -90,128 +99,141 @@ export function ForumLobbyView({
   }
 
   const lobby = hub.lobbies.find((item) => item.id === lobbyId);
+  const canCreateTopic = Boolean(hub.membershipRole) && !hub.isViewerMuted;
 
   return (
     <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
       <HubShellBootstrap hub={hub} />
-      <div className="grid gap-3">
-      <div className="social-shell rounded-[20px] p-3">
-        <div className="compact-toolbar">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="eyebrow-pill">
-                <Waves className="h-3.5 w-3.5" />
-                Forum
-              </span>
-              <span className="status-pill">{topics.length} topics</span>
-              <span className="status-pill">
-                {topics.filter((topic) => topic.pinned).length} pinned
-              </span>
-            </div>
-            <h1 className="mt-1.5 font-[var(--font-heading)] text-[1.15rem] font-semibold tracking-[-0.04em] text-white">
-              {lobby?.name ?? "Форум"}
-            </h1>
+      <div className="mx-auto grid max-w-[1120px] gap-3">
+        <section className="social-shell rounded-[24px] p-4 sm:p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="eyebrow-pill">
+              <Waves className="h-3.5 w-3.5" />
+              Forum
+            </span>
+            <span className="status-pill">{topics.length} topics</span>
+            <span className="status-pill">
+              {topics.filter((topic) => topic.pinned).length} pinned
+            </span>
           </div>
-        </div>
-      </div>
+          <h1 className="mt-3 text-xl font-semibold tracking-[-0.04em] text-white">
+            {lobby?.name ?? "Р¤РѕСЂСѓРј"}
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
+            РљРѕРјРїР°РєС‚РЅС‹Р№ thread-based СЃРїРёСЃРѕРє С‚РµРј СЃ РѕС‚РІРµС‚Р°РјРё, С‚РµРіР°РјРё Рё РїРѕРЅСЏС‚РЅС‹Рј РёРµСЂР°СЂС…РёС‡РµСЃРєРёРј СЂРёС‚РјРѕРј.
+          </p>
+        </section>
 
-      {hub.membershipRole && !hub.isViewerMuted ? (
-        <div className="premium-panel rounded-[20px] p-3.5">
-          <div className="compact-toolbar">
-            <div>
-              <p className="section-kicker">New topic</p>
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="premium-panel rounded-[24px] p-4">
+            <div className="compact-toolbar">
+              <div>
+                <p className="section-kicker">Темы</p>
+                <p className="mt-2 text-sm text-[var(--text-dim)]">
+                  Последняя активность и статус каждой темы считываются с одного взгляда.
+                </p>
+              </div>
+              <span className="glass-badge">{topics.length}</span>
             </div>
-          </div>
 
-          <form className="mt-3 grid gap-2.5" onSubmit={handleCreateTopic}>
-            <Input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Заголовок темы"
-            />
-            <textarea
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              placeholder="Описание темы"
-              className="field-textarea"
-            />
-            <Input
-              value={tags}
-              onChange={(event) => setTags(event.target.value)}
-              placeholder="теги через запятую"
-            />
-            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-              {isSubmitting ? "Публикуем..." : "Создать тему"}
-            </Button>
-          </form>
-        </div>
-      ) : (
-        <div className="surface-subtle rounded-[16px] px-3 py-3 text-sm text-[var(--text-dim)]">
-          {hub.isViewerMuted
-            ? "Вы ограничены в этом хабе и не можете создавать темы."
-            : "Вступите в хаб, чтобы создавать темы."}
-        </div>
-      )}
+            <div className="mt-4 grid gap-2">
+              {topics.length === 0 ? (
+                <EmptyState
+                  title="РўРµРј РїРѕРєР° РЅРµС‚"
+                  description="РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІСѓСЋ С‚РµРјСѓ РёР»Рё РґРѕР¶РґРёС‚РµСЃСЊ РЅРѕРІРѕР№ Р°РєС‚РёРІРЅРѕСЃС‚Рё РІ СЌС‚РѕРј С„РѕСЂСѓРјРµ."
+                />
+              ) : (
+                topics.map((topic) => (
+                  <Link
+                    key={topic.id}
+                    href={`/app/hubs/${hubId}/forum/${lobbyId}/topics/${topic.id}`}
+                    className="rounded-[18px] border border-[var(--border-soft)] bg-white/[0.03] px-4 py-3 transition-colors hover:border-[var(--border)] hover:bg-white/[0.05]"
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-white">
+                            {topic.title}
+                          </p>
+                          {topic.pinned ? (
+                            <span className="glass-badge">
+                              <Pin className="h-3 w-3" />
+                              Pinned
+                            </span>
+                          ) : null}
+                          {topic.locked ? <span className="glass-badge">Locked</span> : null}
+                          {topic.archived ? <span className="glass-badge">Archived</span> : null}
+                        </div>
 
-      <div className="premium-panel rounded-[20px] p-3">
-        <div className="compact-toolbar px-1">
-          <p className="section-kicker">Topics</p>
-          <span className="glass-badge">{topics.length}</span>
-        </div>
+                        <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-[var(--text-soft)]">
+                          {topic.content}
+                        </p>
 
-        <div className="mt-2 grid gap-2">
-          {topics.length === 0 ? (
-            <EmptyState
-              title="Тем пока нет"
-              description="Создайте первую тему или дождитесь новой активности в этом форуме."
-            />
-          ) : (
-            topics.map((topic) => (
-              <Link
-                key={topic.id}
-                href={`/app/hubs/${hubId}/forum/${lobbyId}/topics/${topic.id}`}
-                className="list-row rounded-[16px] px-3 py-2.5"
-              >
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-semibold text-white">
-                        {topic.title}
-                      </p>
-                      {topic.pinned ? (
-                        <span className="glass-badge">
-                          <Pin className="h-3 w-3" />
-                          Pinned
-                        </span>
-                      ) : null}
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
+                          <span>{topic.author.profile.displayName}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock3 className="h-3.5 w-3.5" />
+                            {formatTopicDate(topic.lastActivityAt)}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <MessageSquareQuote className="h-3.5 w-3.5" />
+                            {topic.repliesCount}
+                          </span>
+                        </div>
+
+                        {topic.tags.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {topic.tags.map((tag) => (
+                              <span key={tag.id} className="glass-badge">
+                                <Tags className="h-3 w-3" />
+                                {tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--text-dim)]">
-                      {topic.content}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {topic.tags.map((tag) => (
-                        <span key={tag.id} className="glass-badge">
-                          <Tags className="h-3 w-3" />
-                          {tag.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </section>
 
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {topic.locked ? <span className="glass-badge">Locked</span> : null}
-                    {topic.archived ? <span className="glass-badge">Archived</span> : null}
-                    <span className="glass-badge">
-                      <MessageSquareQuote className="h-3 w-3" />
-                      {topic.repliesCount}
-                    </span>
-                  </div>
+          <aside className="grid gap-3">
+            <section className="premium-panel rounded-[24px] p-4">
+              <p className="section-kicker">Новая тема</p>
+              {canCreateTopic ? (
+                <form className="mt-3 grid gap-2.5" onSubmit={handleCreateTopic}>
+                  <Input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="Р—Р°РіРѕР»РѕРІРѕРє С‚РµРјС‹"
+                  />
+                  <textarea
+                    value={content}
+                    onChange={(event) => setContent(event.target.value)}
+                    placeholder="РћСЃРЅРѕРІРЅР°СЏ РјС‹СЃР»СЊ, РєРѕРЅС‚РµРєСЃС‚ Рё РІРѕРїСЂРѕСЃ"
+                    className="field-textarea min-h-[120px]"
+                  />
+                  <Input
+                    value={tags}
+                    onChange={(event) => setTags(event.target.value)}
+                    placeholder="Теги через запятую"
+                  />
+                  <Button type="submit" disabled={isSubmitting} className="h-10 w-full">
+                    {isSubmitting ? "РџСѓР±Р»РёРєСѓРµРј..." : "РЎРѕР·РґР°С‚СЊ С‚РµРјСѓ"}
+                  </Button>
+                </form>
+              ) : (
+                <div className="mt-3 rounded-[18px] border border-[var(--border-soft)] bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[var(--text-soft)]">
+                  {hub.isViewerMuted
+                    ? "Р’С‹ РѕРіСЂР°РЅРёС‡РµРЅС‹ РІ СЌС‚РѕРј С…Р°Р±Рµ Рё РЅРµ РјРѕР¶РµС‚Рµ СЃРѕР·РґР°РІР°С‚СЊ С‚РµРјС‹."
+                    : "Р’СЃС‚СѓРїРёС‚Рµ РІ С…Р°Р±, С‡С‚РѕР±С‹ СЃРѕР·РґР°РІР°С‚СЊ С‚РµРјС‹ Рё СѓС‡Р°СЃС‚РІРѕРІР°С‚СЊ РІ РѕР±СЃСѓР¶РґРµРЅРёРё."}
                 </div>
-              </Link>
-            ))
-          )}
+              )}
+            </section>
+          </aside>
         </div>
-      </div>
       </div>
     </div>
   );

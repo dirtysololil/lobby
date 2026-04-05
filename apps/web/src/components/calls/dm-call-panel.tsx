@@ -290,7 +290,17 @@ export function DmCallPanel({
       : hasVisualTracks
         ? "Видео или screen-share активны, сцену можно открыть без потери чата."
         : "Аудиозвонок остается компактным и не вытесняет переписку."
-    : "Запуск звонка не забирает экран у переписки.";
+    : null;
+
+  const detailText = errorMessage
+    ? errorMessage
+    : isBlocked
+      ? "Звонки недоступны в этом диалоге."
+      : activeCall
+        ? participantPreview
+          ? `${participantPreview}. ${summaryText}`
+          : summaryText
+        : null;
 
   useEffect(() => {
     setShowExpandedCallView(false);
@@ -331,13 +341,14 @@ export function DmCallPanel({
                 {isCurrentSession ? <span className="status-pill">Закреплен</span> : null}
               </div>
 
-              <p className="mt-1.5 text-sm text-[var(--text-dim)]">
-                {participantPreview ? `${participantPreview}. ` : null}
-                {summaryText}
-              </p>
+              {detailText ? (
+                <p className="mt-1.5 text-sm text-[var(--text-dim)]">{detailText}</p>
+              ) : null}
 
-              {errorMessage ? <p className="mt-2 text-sm text-rose-200">{errorMessage}</p> : null}
-              {!errorMessage && isBlocked ? (
+              {!detailText && errorMessage ? (
+                <p className="mt-2 text-sm text-rose-200">{errorMessage}</p>
+              ) : null}
+              {!detailText && !errorMessage && isBlocked ? (
                 <p className="mt-2 text-sm text-amber-100">
                   Звонки недоступны в этом диалоге.
                 </p>
@@ -455,3 +466,4 @@ export function DmCallPanel({
     </div>
   );
 }
+
