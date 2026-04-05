@@ -30,29 +30,31 @@ export default async function AdminAuditPage({
   const response = adminAuditLogListResponseSchema.parse(payload);
 
   return (
-    <div className="grid gap-4">
-      <section className="premium-panel rounded-[24px] p-5">
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
+      <section className="premium-panel shrink-0 rounded-[24px] p-5">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="section-kicker">Фильтры аудита</p>
+            <p className="section-kicker">Р¤РёР»СЊС‚СЂС‹ Р°СѓРґРёС‚Р°</p>
             <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-              Сузьте поток по действию или типу сущности, не покидая админ-панель.
+              РЎСѓР·СЊС‚Рµ РїРѕС‚РѕРє РїРѕ РґРµР№СЃС‚РІРёСЋ РёР»Рё С‚РёРїСѓ СЃСѓС‰РЅРѕСЃС‚Рё. РЎРїРёСЃРѕРє Р·Р°РїРёСЃРµР№ РЅРёР¶Рµ СЃРєСЂРѕР»Р»РёС‚СЃСЏ
+              РІ РѕС‚РґРµР»СЊРЅРѕРј viewport Рё РЅРµ Р»РѕРјР°РµС‚ РІС‹СЃРѕС‚Сѓ route.
             </p>
           </div>
         </div>
 
         <form className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <Input name="action" placeholder="Действие содержит..." defaultValue={action} />
+          <Input name="action" placeholder="Р”РµР№СЃС‚РІРёРµ СЃРѕРґРµСЂР¶РёС‚..." defaultValue={action} />
           <Input
             name="entityType"
-            placeholder="Тип сущности..."
+            placeholder="РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё..."
             defaultValue={entityType}
           />
           <Button type="submit" variant="secondary">
-            Применить
+            РџСЂРёРјРµРЅРёС‚СЊ
           </Button>
         </form>
       </section>
+
       <AuditLogPanel response={response} />
     </div>
   );

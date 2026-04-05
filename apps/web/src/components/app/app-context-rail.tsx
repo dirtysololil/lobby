@@ -513,6 +513,38 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "people" ? (
           <div>
+            {route.peopleUsername ? (
+              <>
+                <CompactListHeader>
+                  <span>Profile</span>
+                  <Link
+                    href="/app/people?view=discover"
+                    className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
+                  >
+                    <Users2 {...railIconProps} />
+                    People
+                  </Link>
+                </CompactListHeader>
+
+                <CompactList>
+                  <RailRow
+                    href="/app/people?view=discover"
+                    active={false}
+                    leading={<Users2 {...railIconProps} className="text-zinc-400" />}
+                    label={`@${route.peopleUsername}`}
+                    detail="Открыт публичный профиль"
+                  />
+                  <RailRow
+                    href="/app/messages"
+                    active={false}
+                    leading={<MessageSquareMore {...railIconProps} className="text-zinc-400" />}
+                    label="Диалоги"
+                    detail="Быстрый возврат к переписке"
+                  />
+                </CompactList>
+              </>
+            ) : (
+              <>
             <CompactListHeader>
               <span>Люди</span>
               <Link
@@ -551,6 +583,8 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                 );
               })}
             </CompactList>
+              </>
+            )}
           </div>
         ) : null}
 
@@ -583,7 +617,11 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                 <RailRow
                   key={item.href}
                   href={item.href}
-                  active={matchesPath(safePathname, item.href)}
+                  active={
+                    item.href === "/app/admin"
+                      ? route.adminSection === "overview"
+                      : safePathname === item.href
+                  }
                   leading={<ShieldCheck {...railIconProps} className="text-zinc-400" />}
                   label={item.label}
                 />

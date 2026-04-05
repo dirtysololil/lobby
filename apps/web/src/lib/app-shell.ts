@@ -6,6 +6,7 @@ export interface AppRouteState {
   lobbyId: string | null;
   topicId: string | null;
   conversationId: string | null;
+  peopleUsername: string | null;
   settingsSection: string | null;
   adminSection: string | null;
 }
@@ -22,6 +23,7 @@ export function parseAppPath(pathname: string | null | undefined): AppRouteState
       lobbyId: null,
       topicId: null,
       conversationId: segments[2] ?? null,
+      peopleUsername: null,
       settingsSection: null,
       adminSection: null,
     };
@@ -40,6 +42,20 @@ export function parseAppPath(pathname: string | null | undefined): AppRouteState
         (segments[3] ? segments[3] : null),
       topicId: isForum && segments[5] === "topics" ? (segments[6] ?? null) : null,
       conversationId: null,
+      peopleUsername: null,
+      settingsSection: null,
+      adminSection: null,
+    };
+  }
+
+  if (section === "people") {
+    return {
+      section,
+      hubId: null,
+      lobbyId: null,
+      topicId: null,
+      conversationId: null,
+      peopleUsername: segments[2] ?? null,
       settingsSection: null,
       adminSection: null,
     };
@@ -52,6 +68,7 @@ export function parseAppPath(pathname: string | null | undefined): AppRouteState
       lobbyId: null,
       topicId: null,
       conversationId: null,
+      peopleUsername: null,
       settingsSection: segments[2] ?? "profile",
       adminSection: null,
     };
@@ -64,6 +81,7 @@ export function parseAppPath(pathname: string | null | undefined): AppRouteState
       lobbyId: null,
       topicId: null,
       conversationId: null,
+      peopleUsername: null,
       settingsSection: null,
       adminSection: segments[2] ?? "overview",
     };
@@ -75,6 +93,7 @@ export function parseAppPath(pathname: string | null | undefined): AppRouteState
     lobbyId: null,
     topicId: null,
     conversationId: null,
+    peopleUsername: null,
     settingsSection: null,
     adminSection: null,
   };
@@ -83,6 +102,14 @@ export function parseAppPath(pathname: string | null | undefined): AppRouteState
 export function getSectionMeta(route: AppRouteState) {
   switch (route.section) {
     case "people":
+      if (route.peopleUsername) {
+        return {
+          label: "Profile",
+          title: `@${route.peopleUsername}`,
+          description: "Public profile, quick social actions and direct-message entry point.",
+        };
+      }
+
       return {
         label: "Люди",
         title: "Люди",
