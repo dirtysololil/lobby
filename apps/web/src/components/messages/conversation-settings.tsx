@@ -1,6 +1,7 @@
 "use client";
 
 import type { DmNotificationSetting, DmRetentionMode } from "@lobby/shared";
+import { BellRing, Clock3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SelectField } from "@/components/ui/select-field";
 import { Button } from "@/components/ui/button";
@@ -26,13 +27,7 @@ const notificationOptions: DmNotificationSetting[] = [
   "OFF",
 ];
 
-const retentionOptions: DmRetentionMode[] = [
-  "OFF",
-  "H24",
-  "D7",
-  "D30",
-  "CUSTOM",
-];
+const retentionOptions: DmRetentionMode[] = ["OFF", "H24", "D7", "D30", "CUSTOM"];
 
 export function ConversationSettings({
   notificationSetting,
@@ -63,6 +58,7 @@ export function ConversationSettings({
 
   async function handleSave() {
     setIsSaving(true);
+
     try {
       await onSave({
         notificationSetting: localNotificationSetting,
@@ -77,13 +73,16 @@ export function ConversationSettings({
 
   return (
     <div className="grid gap-3">
-      <div className="rounded-[14px] border border-[var(--border-soft)] bg-white/[0.03] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-        Эти параметры влияют только на этот диалог.
+      <div className="rounded-[16px] border border-[var(--border-soft)] bg-white/[0.03] px-3 py-2.5 text-sm text-[var(--text-dim)]">
+        Эти параметры относятся только к текущему диалогу и не меняют остальные ЛС.
       </div>
 
       <div className="grid gap-3">
         <div className="grid gap-1.5">
-          <label className="section-kicker">Уведомления</label>
+          <label className="section-kicker inline-flex items-center gap-1.5">
+            <BellRing className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+            Уведомления
+          </label>
           <SelectField
             value={localNotificationSetting}
             onChange={(event) =>
@@ -100,7 +99,10 @@ export function ConversationSettings({
         </div>
 
         <div className="grid gap-1.5">
-          <label className="section-kicker">История</label>
+          <label className="section-kicker inline-flex items-center gap-1.5">
+            <Clock3 className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+            История
+          </label>
           <SelectField
             value={localRetentionMode}
             onChange={(event) => setLocalRetentionMode(event.target.value as DmRetentionMode)}
@@ -116,7 +118,7 @@ export function ConversationSettings({
 
         {localRetentionMode === "CUSTOM" ? (
           <div className="grid gap-1.5">
-            <label className="section-kicker">Свои часы</label>
+            <label className="section-kicker">Свой срок</label>
             <Input
               value={customHours}
               onChange={(event) => setCustomHours(event.target.value)}

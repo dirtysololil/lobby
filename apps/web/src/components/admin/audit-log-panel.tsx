@@ -24,14 +24,15 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
     <section className="premium-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] p-0">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
         <div>
-          <p className="text-sm font-medium text-white">РџРѕС‚РѕРє Р°СѓРґРёС‚Р°</p>
+          <p className="text-sm font-medium text-white">Лента аудита</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Р›РѕРіРё Р¶РёРІСѓС‚ РІРЅСѓС‚СЂРё РѕС‚РґРµР»СЊРЅРѕРіРѕ viewport, С‡С‚РѕР±С‹ С„РёР»СЊС‚СЂС‹ Рё С…РµРґРµСЂ РѕСЃС‚Р°РІР°Р»РёСЃСЊ РЅР° РјРµСЃС‚Рµ.
+            Записи прокручиваются внутри собственной области, поэтому фильтры и
+            заголовок остаются на месте.
           </p>
         </div>
         <span className="status-pill">
           <ScrollText {...iconProps} />
-          {response.items.length} СЃРѕР±С‹С‚РёР№
+          {response.total} событий
         </span>
       </div>
 
@@ -39,8 +40,8 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
         {response.items.length === 0 ? (
           <EmptyState
             className="py-10"
-            title="Р—Р°РїРёСЃРµР№ Р°СѓРґРёС‚Р° РЅРµ РЅР°Р№РґРµРЅРѕ"
-            description="РР·РјРµРЅРёС‚Рµ С„РёР»СЊС‚СЂС‹, С‡С‚РѕР±С‹ РїРѕРєР°Р·Р°С‚СЊ Р±РѕР»СЊС€Рµ СЃРѕР±С‹С‚РёР№."
+            title="Записи аудита не найдены"
+            description="Измените фильтры, чтобы показать больше событий."
           />
         ) : (
           <div className="grid gap-0">
@@ -70,10 +71,10 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
                       <span className="text-[var(--text-muted)]">@{item.actor.username}</span>
                     </Link>
                   ) : (
-                    <span className="font-medium text-white">РЎРёСЃС‚РµРјР°</span>
+                    <span className="font-medium text-white">Система</span>
                   )}
                   <span className="text-xs text-[var(--text-muted)]">
-                    entityId {item.entityId ?? "РЅ/Рґ"} / ip {item.ipAddress ?? "РЅ/Рґ"}
+                    entityId {item.entityId ?? "н/д"} / ip {item.ipAddress ?? "н/д"}
                   </span>
                 </div>
 

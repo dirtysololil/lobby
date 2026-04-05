@@ -23,34 +23,52 @@ export default async function AdminAuditPage({
   const params = new URLSearchParams({
     page: String(Number.isFinite(page) && page > 0 ? page : 1),
   });
-  if (action) params.set("action", action);
-  if (entityType) params.set("entityType", entityType);
+
+  if (action) {
+    params.set("action", action);
+  }
+
+  if (entityType) {
+    params.set("entityType", entityType);
+  }
 
   const payload = await fetchServerApi(`/v1/admin/audit?${params.toString()}`);
   const response = adminAuditLogListResponseSchema.parse(payload);
+  const pageStart = response.total === 0 ? 0 : (response.page - 1) * response.pageSize + 1;
+  const pageEnd = Math.min(response.total, response.page * response.pageSize);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
       <section className="premium-panel shrink-0 rounded-[24px] p-5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <p className="section-kicker">Р¤РёР»СЊС‚СЂС‹ Р°СѓРґРёС‚Р°</p>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="section-kicker">Фильтры аудита</p>
             <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-              РЎСѓР·СЊС‚Рµ РїРѕС‚РѕРє РїРѕ РґРµР№СЃС‚РІРёСЋ РёР»Рё С‚РёРїСѓ СЃСѓС‰РЅРѕСЃС‚Рё. РЎРїРёСЃРѕРє Р·Р°РїРёСЃРµР№ РЅРёР¶Рµ СЃРєСЂРѕР»Р»РёС‚СЃСЏ
-              РІ РѕС‚РґРµР»СЊРЅРѕРј viewport Рё РЅРµ Р»РѕРјР°РµС‚ РІС‹СЃРѕС‚Сѓ route.
+              Сужайте поток по действию и типу сущности. Список ниже прокручивается
+              отдельно и не ломает высоту страницы.
             </p>
+          </div>
+          <div className="grid gap-2 text-sm text-[var(--text-muted)] xl:text-right">
+            <span className="status-pill justify-center xl:justify-end">
+              Строки {pageStart}-{pageEnd} из {response.total}
+            </span>
+            <span>Страница {response.page}</span>
           </div>
         </div>
 
         <form className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <Input name="action" placeholder="Р”РµР№СЃС‚РІРёРµ СЃРѕРґРµСЂР¶РёС‚..." defaultValue={action} />
+          <Input
+            name="action"
+            placeholder="Действие содержит..."
+            defaultValue={action}
+          />
           <Input
             name="entityType"
-            placeholder="РўРёРї СЃСѓС‰РЅРѕСЃС‚Рё..."
+            placeholder="Тип сущности..."
             defaultValue={entityType}
           />
           <Button type="submit" variant="secondary">
-            РџСЂРёРјРµРЅРёС‚СЊ
+            Применить
           </Button>
         </form>
       </section>

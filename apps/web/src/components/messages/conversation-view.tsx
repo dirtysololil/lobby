@@ -21,6 +21,7 @@ import { sortDirectMessages } from "@/lib/direct-message-state";
 import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
 import { dmRetentionLabels } from "@/lib/ui-labels";
 import { ConversationSettings } from "./conversation-settings";
+import { MovableConversationInfoPanel } from "./movable-conversation-info-panel";
 import { MessageComposer } from "./message-composer";
 import { MessageThread, type ThreadMessageItem } from "./message-thread";
 
@@ -162,6 +163,7 @@ export function ConversationView({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const readInFlightRef = useRef(false);
+  const messageViewportRef = useRef<HTMLDivElement | null>(null);
   const pendingReadRef = useRef<PendingReadState>({
     lastReadMessageId: null,
     lastReadAt: null,
@@ -477,19 +479,19 @@ export function ConversationView({
           </Link>
 
           <div className="utility-action-row md:ml-auto">
-          <Link href={buildUserProfileHref(counterpart.username)}>
-            <Button size="sm" variant="ghost" className="h-9 px-3">
-              <UserRound {...iconProps} />
-              Профиль
-            </Button>
-          </Link>
-          <Link href="/app/messages">
-            <Button size="sm" variant="ghost" className="h-9 px-3">
-              <ArrowLeft {...iconProps} />
-              Назад
-            </Button>
-          </Link>
-        </div>
+            <Link href={buildUserProfileHref(counterpart.username)}>
+              <Button size="sm" variant="ghost" className="h-9 px-3">
+                <UserRound {...iconProps} />
+                Профиль
+              </Button>
+            </Link>
+            <Link href="/app/messages">
+              <Button size="sm" variant="ghost" className="h-9 px-3">
+                <ArrowLeft {...iconProps} />
+                Назад
+              </Button>
+            </Link>
+          </div>
 
         </div>
 
@@ -509,7 +511,7 @@ export function ConversationView({
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1">
+        <div ref={messageViewportRef} className="relative min-h-0 flex-1">
           <MessageThread
             viewerId={viewerId}
             messages={messages}
@@ -518,6 +520,15 @@ export function ConversationView({
             onDelete={deleteMessage}
             onRetry={retryMessage}
           />
+          <MovableConversationInfoPanel
+            containerRef={messageViewportRef}
+            conversationId={conversationId}
+            counterpart={counterpart}
+            notificationSetting={viewerParticipant.notificationSetting}
+            retentionMode={conversation.retentionMode}
+            retentionSeconds={conversation.retentionSeconds}
+            onSave={saveSettings}
+          />
         </div>
 
         <div className="shrink-0 border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 py-2.5 backdrop-blur-xl">
@@ -525,7 +536,7 @@ export function ConversationView({
         </div>
       </section>
 
-      <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-3 py-2.5 2xl:hidden">
+      <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-3 py-2.5 md:hidden 2xl:hidden">
         <ConversationSettings
           notificationSetting={viewerParticipant.notificationSetting}
           retentionMode={conversation.retentionMode}
