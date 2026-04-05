@@ -24,7 +24,6 @@ export default async function ProfileSettingsPage() {
     <ProfileSettingsForm
       viewer={viewer}
       maxAvatarMb={getPositiveNumberEnv("MAX_AVATAR_MB", 10)}
-      maxAvatarDimension={getPositiveNumberEnv("MAX_AVATAR_DIMENSION", 1024)}
       maxAvatarAnimationMs={getPositiveNumberEnv("MAX_AVATAR_ANIMATION_MS", 15_000)}
     />
   );

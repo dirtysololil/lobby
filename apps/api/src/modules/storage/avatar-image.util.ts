@@ -1,5 +1,4 @@
 export interface AvatarImageLimits {
-  maxDimension: number;
   maxFrames: number;
   maxAnimationMs: number;
 }
@@ -30,25 +29,25 @@ export function parseAvatarImageMetadata(
   }
 
   if (buffer.subarray(0, 8).equals(pngSignature)) {
-    return validateDimensions(parsePng(buffer), limits);
+    return validateMetadata(parsePng(buffer), limits);
   }
 
   if (buffer[0] === 0xff && buffer[1] === 0xd8) {
-    return validateDimensions(parseJpeg(buffer), limits);
+    return validateMetadata(parseJpeg(buffer), limits);
   }
 
   if (
     buffer.subarray(0, 6).equals(gif87a) ||
     buffer.subarray(0, 6).equals(gif89a)
   ) {
-    return validateDimensions(parseGif(buffer, limits), limits);
+    return validateMetadata(parseGif(buffer, limits), limits);
   }
 
   if (
     buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
     buffer.subarray(8, 12).toString('ascii') === 'WEBP'
   ) {
-    return validateDimensions(parseWebp(buffer), limits);
+    return validateMetadata(parseWebp(buffer), limits);
   }
 
   throw new Error(
@@ -56,21 +55,12 @@ export function parseAvatarImageMetadata(
   );
 }
 
-function validateDimensions(
+function validateMetadata(
   metadata: AvatarImageMetadata,
   limits: AvatarImageLimits,
 ): AvatarImageMetadata {
   if (metadata.width <= 0 || metadata.height <= 0) {
     throw new Error('Avatar image dimensions could not be resolved');
-  }
-
-  if (
-    metadata.width > limits.maxDimension ||
-    metadata.height > limits.maxDimension
-  ) {
-    throw new Error(
-      `Avatar image dimensions must be at most ${limits.maxDimension}px`,
-    );
   }
 
   if (
