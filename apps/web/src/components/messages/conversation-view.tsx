@@ -441,10 +441,10 @@ export function ConversationView({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(11,16,24,0.88)] px-3 backdrop-blur-xl">
+        <div className="flex min-h-[56px] shrink-0 flex-col gap-2 border-b border-white/5 bg-[rgba(11,16,24,0.88)] px-3 py-2 backdrop-blur-xl md:min-h-12 md:flex-row md:items-center md:justify-between md:gap-3">
           <Link
             href={buildUserProfileHref(counterpart.username)}
-            className="identity-link min-w-0 rounded-[16px] px-1.5 py-1"
+            className="identity-link min-w-0 flex-1 rounded-[16px] px-1.5 py-1"
           >
             <UserAvatar user={counterpart} size="sm" />
             <div className="min-w-0">
@@ -476,15 +476,15 @@ export function ConversationView({
             </div>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="utility-action-row md:ml-auto">
           <Link href={buildUserProfileHref(counterpart.username)}>
-            <Button size="sm" variant="ghost">
+            <Button size="sm" variant="ghost" className="h-9 px-3">
               <UserRound {...iconProps} />
               Профиль
             </Button>
           </Link>
           <Link href="/app/messages">
-            <Button size="sm" variant="ghost">
+            <Button size="sm" variant="ghost" className="h-9 px-3">
               <ArrowLeft {...iconProps} />
               Назад
             </Button>
