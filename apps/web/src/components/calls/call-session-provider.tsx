@@ -69,6 +69,7 @@ type CallConnectionStatus =
   | "connected"
   | "reconnecting"
   | "error";
+type ScreenShareFitMode = "contain" | "cover";
 
 interface CallConnection {
   callId: string;
@@ -1259,10 +1260,12 @@ function TrackSurface({
   item,
   emphasis = "tile",
   expanded = false,
+  screenFitMode = "contain",
 }: {
   item: TrackView;
   emphasis?: "stage" | "conversation" | "tile";
   expanded?: boolean;
+  screenFitMode?: ScreenShareFitMode;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isScreen = isScreenShareTrack(item);
@@ -1284,7 +1287,9 @@ function TrackSurface({
     element.playsInline = true;
     element.className =
       isScreen
-        ? "h-full w-full bg-[#04070b] object-contain"
+        ? screenFitMode === "cover"
+          ? "h-full w-full bg-[#04070b] object-cover object-top"
+          : "h-full w-full bg-[#04070b] object-contain"
         : emphasis === "stage"
           ? "h-full w-full object-cover"
         : "h-full w-full rounded-[16px] object-cover";
@@ -1297,7 +1302,7 @@ function TrackSurface({
       item.track.detach(element);
       element.remove();
     };
-  }, [emphasis, isVideoTrack, item]);
+  }, [emphasis, isVideoTrack, item, isScreen, screenFitMode]);
 
   return (
     <div
@@ -1868,6 +1873,7 @@ export function CallRoomCanvas({
   const [isScreenFocusMode, setIsScreenFocusMode] = useState(false);
   const [isStageFullscreen, setIsStageFullscreen] = useState(false);
   const [secondaryPanelsVisible, setSecondaryPanelsVisible] = useState(true);
+  const [screenFitMode, setScreenFitMode] = useState<ScreenShareFitMode>("cover");
   const activeSession = callId && session && session.call.id === callId ? session : null;
   const screenTracks = activeSession
     ? tracks.filter((item) => item.kind === "video" && isScreenShareTrack(item))
@@ -1900,6 +1906,7 @@ export function CallRoomCanvas({
       setIsScreenStageExpanded(false);
       setIsScreenFocusMode(false);
       setSecondaryPanelsVisible(true);
+      setScreenFitMode("cover");
     }
   }, [activeSession, hasScreenShare]);
 
@@ -2043,6 +2050,22 @@ export function CallRoomCanvas({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
+                  <Button
+                    size="sm"
+                    variant={screenFitMode === "cover" ? "secondary" : "ghost"}
+                    onClick={() => setScreenFitMode("cover")}
+                  >
+                    Заполнить
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={screenFitMode === "contain" ? "secondary" : "ghost"}
+                    onClick={() => setScreenFitMode("contain")}
+                  >
+                    Вписать
+                  </Button>
+                </div>
                 <Button
                   size="sm"
                   variant={isScreenStageExpanded ? "secondary" : "ghost"}
@@ -2089,6 +2112,7 @@ export function CallRoomCanvas({
               item={primaryTrack}
               emphasis={isConversation ? "conversation" : "stage"}
               expanded={stageExpanded}
+              screenFitMode={isScreenShareTrack(primaryTrack) ? screenFitMode : "contain"}
             />
           ) : (
             <VoicePresenceStage
