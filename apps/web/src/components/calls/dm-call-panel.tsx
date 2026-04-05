@@ -258,12 +258,12 @@ export function DmCallPanel({
   );
   const hasVisualTracks = visualTracks.length > 0;
   const hasParticipantScreenShare = participants.some((participant) => participant.hasScreenShare);
-  const hasScreenShare =
+  const screenShareVisible =
     screenShareEnabled ||
     hasParticipantScreenShare ||
     visualTracks.some((item) => item.source.toLowerCase().includes("screen"));
   const showExpandedStage = Boolean(
-    activeCall && isCurrentSession && (hasVisualTracks || hasScreenShare),
+    activeCall && isCurrentSession && (hasVisualTracks || screenShareVisible),
   );
   const expandedCallId = showExpandedStage ? activeCall?.id ?? null : null;
   const infoText = errorMessage
@@ -280,7 +280,7 @@ export function DmCallPanel({
     ? `Звонок с ${counterpartName}`
     : isIncomingCall
       ? `Входящий вызов от ${counterpartName}`
-      : hasScreenShare
+      : screenShareVisible
         ? "Показ экрана в звонке"
         : activeCall.mode === "VIDEO"
           ? "Видео-звонок"
@@ -293,7 +293,7 @@ export function DmCallPanel({
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.2)] bg-[rgba(106,168,248,0.12)] text-[var(--accent-strong)]">
-                {hasScreenShare ? <Monitor {...iconProps} /> : <PhoneCall {...iconProps} />}
+                {screenShareVisible ? <Monitor {...iconProps} /> : <PhoneCall {...iconProps} />}
               </div>
 
               <div className="min-w-0">
@@ -314,7 +314,7 @@ export function DmCallPanel({
                     {connectedParticipants}
                   </span>
                 ) : null}
-                {hasScreenShare ? (
+                {screenShareVisible ? (
                   <span className="status-pill">
                     <Monitor {...iconProps} />
                     Экран

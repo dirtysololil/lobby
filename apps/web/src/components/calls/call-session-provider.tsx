@@ -97,7 +97,7 @@ interface CallConnectRequest {
   call?: CallSummary | null;
 }
 
-interface TrackView {
+export interface TrackView {
   id: string;
   participantId: string;
   participantName: string;
@@ -202,6 +202,31 @@ const connectionQualityLabels: Record<string, string> = {
   unknown: "Статус неизвестен",
   offline: "Не в комнате",
 };
+
+const screenShareDebugStorageKey = "lobby:debug-screen-share";
+
+function isScreenShareDebugEnabled() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    return (
+      new URLSearchParams(window.location.search).get("debugScreenShare") === "1" ||
+      window.localStorage.getItem(screenShareDebugStorageKey) === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function logScreenShareDebug(message: string, payload?: Record<string, unknown>) {
+  if (!isScreenShareDebugEnabled()) {
+    return;
+  }
+
+  console.info("[screen-share]", message, payload ?? {});
+}
 
 function collectTrackViews(room: Room) {
   const items: TrackView[] = [];
@@ -336,8 +361,8 @@ function collectParticipantViews(room: Room, call: CallSummary) {
       isSpeaking: participant.isSpeaking,
       isMuted: microphonePublication?.isMuted ?? !microphonePublication?.track,
       hasAudio: Boolean(microphonePublication?.track),
-      hasCamera: Boolean(cameraPublication?.track),
-      hasScreenShare: Boolean(screenPublication?.track),
+      hasCamera: participant.isCameraEnabled || Boolean(cameraPublication),
+      hasScreenShare: participant.isScreenShareEnabled || Boolean(screenPublication),
       audioLevel: participant.audioLevel,
       connectionQuality: String(participant.connectionQuality ?? "unknown").toLowerCase(),
     });
@@ -464,6 +489,61 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
     session?.connection.token,
     session?.connection.url,
   ]);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
+      return;
+    }
+
+    const mediaDevices = navigator.mediaDevices as MediaDevices & {
+      __lobbyOriginalGetDisplayMedia?: typeof navigator.mediaDevices.getDisplayMedia;
+      __lobbyWrappedGetDisplayMedia?: boolean;
+    };
+
+    if (mediaDevices.__lobbyWrappedGetDisplayMedia) {
+      return;
+    }
+
+    const originalGetDisplayMedia = mediaDevices.getDisplayMedia.bind(mediaDevices);
+    mediaDevices.__lobbyOriginalGetDisplayMedia = originalGetDisplayMedia;
+    mediaDevices.__lobbyWrappedGetDisplayMedia = true;
+
+    mediaDevices.getDisplayMedia = async (constraints?: DisplayMediaStreamOptions) => {
+      logScreenShareDebug("get-display-media-requested", {
+        constraints: constraints ?? null,
+      });
+
+      try {
+        const stream = await originalGetDisplayMedia(constraints);
+        logScreenShareDebug("get-display-media-success", {
+          videoTracks: stream.getVideoTracks().map((track) => ({
+            id: track.id,
+            label: track.label,
+            readyState: track.readyState,
+          })),
+          audioTracks: stream.getAudioTracks().map((track) => ({
+            id: track.id,
+            label: track.label,
+            readyState: track.readyState,
+          })),
+        });
+        return stream;
+      } catch (error) {
+        logScreenShareDebug("get-display-media-failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
+    };
+
+    return () => {
+      if (mediaDevices.__lobbyOriginalGetDisplayMedia) {
+        mediaDevices.getDisplayMedia = mediaDevices.__lobbyOriginalGetDisplayMedia;
+      }
+      mediaDevices.__lobbyWrappedGetDisplayMedia = false;
+      delete mediaDevices.__lobbyOriginalGetDisplayMedia;
+    };
+  }, []);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -863,9 +943,44 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      for (const participant of nextRoom.remoteParticipants.values()) {
+        const screenPublication = participant.getTrackPublication(Track.Source.ScreenShare);
+
+        if (
+          screenPublication &&
+          !screenPublication.isSubscribed &&
+          "setSubscribed" in screenPublication &&
+          typeof screenPublication.setSubscribed === "function"
+        ) {
+          screenPublication.setSubscribed(true);
+          logScreenShareDebug("force-subscribe-screen-publication", {
+            participant: participant.identity,
+            source: String(screenPublication.source),
+            trackSid: screenPublication.trackSid,
+          });
+        }
+      }
+
       const snapshot = collectTrackViews(nextRoom);
+      const participantViews = collectParticipantViews(nextRoom, currentSession.call);
+      logScreenShareDebug("sync-room-state", {
+        callId: currentSession.call.id,
+        items: snapshot.items.map((item) => ({
+          id: item.id,
+          source: item.source,
+          kind: item.kind,
+          isLocal: item.isLocal,
+        })),
+        hasScreenShare: snapshot.hasScreenShare,
+        participants: participantViews.map((participant) => ({
+          id: participant.id,
+          isLocal: participant.isLocal,
+          hasScreenShare: participant.hasScreenShare,
+          hasCamera: participant.hasCamera,
+        })),
+      });
       setTracks(snapshot.items);
-      setParticipants(collectParticipantViews(nextRoom, currentSession.call));
+      setParticipants(participantViews);
       setMicrophoneEnabled(snapshot.hasMicrophone);
       setCameraEnabled(snapshot.hasCamera);
       setScreenShareEnabled(snapshot.hasScreenShare);
@@ -892,11 +1007,67 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       nextRoom.on(event, syncRoomState);
     }
 
+    const handleTrackPublished = (publication: { source: unknown; trackSid: string; isSubscribed: boolean }, participant: Participant) => {
+      logScreenShareDebug("room-track-published", {
+        participant: participant.identity,
+        source: String(publication.source),
+        trackSid: publication.trackSid,
+        isSubscribed: publication.isSubscribed,
+      });
+    };
+
+    const handleTrackSubscribed = (
+      track: Track,
+      publication: { trackSid: string; source: unknown },
+      participant: Participant,
+    ) => {
+      logScreenShareDebug("room-track-subscribed", {
+        participant: participant.identity,
+        trackSid: publication.trackSid,
+        source: String(publication.source),
+        kind: track.kind,
+      });
+    };
+
+    const handleTrackUnsubscribed = (
+      track: Track,
+      publication: { trackSid: string; source: unknown },
+      participant: Participant,
+    ) => {
+      logScreenShareDebug("room-track-unsubscribed", {
+        participant: participant.identity,
+        trackSid: publication.trackSid,
+        source: String(publication.source),
+        kind: track.kind,
+      });
+    };
+
+    const handleTrackUnpublished = (
+      publication: { source: unknown; trackSid: string },
+      participant: Participant,
+    ) => {
+      logScreenShareDebug("room-track-unpublished", {
+        participant: participant.identity,
+        source: String(publication.source),
+        trackSid: publication.trackSid,
+      });
+    };
+
+    nextRoom.on(RoomEvent.TrackPublished, handleTrackPublished);
+    nextRoom.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+    nextRoom.on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+    nextRoom.on(RoomEvent.TrackUnpublished, handleTrackUnpublished);
+
     const handleMediaDevicesChanged = () => {
       void refreshDevices(nextRoom);
     };
 
     const handleLocalTrackChanged = () => {
+      logScreenShareDebug("local-track-changed", {
+        hasScreenSharePublication: Boolean(
+          nextRoom.localParticipant.getTrackPublication(Track.Source.ScreenShare),
+        ),
+      });
       syncRoomState();
       void refreshDevices(nextRoom);
 
@@ -905,8 +1076,23 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    nextRoom.on(RoomEvent.LocalTrackPublished, handleLocalTrackChanged);
-    nextRoom.on(RoomEvent.LocalTrackUnpublished, handleLocalTrackChanged);
+    const handleLocalTrackPublished = (publication: { source: unknown; trackSid: string }) => {
+      logScreenShareDebug("local-track-published", {
+        source: String(publication.source),
+        trackSid: publication.trackSid,
+      });
+      handleLocalTrackChanged();
+    };
+    const handleLocalTrackUnpublished = (publication: { source: unknown; trackSid: string }) => {
+      logScreenShareDebug("local-track-unpublished", {
+        source: String(publication.source),
+        trackSid: publication.trackSid,
+      });
+      handleLocalTrackChanged();
+    };
+
+    nextRoom.on(RoomEvent.LocalTrackPublished, handleLocalTrackPublished);
+    nextRoom.on(RoomEvent.LocalTrackUnpublished, handleLocalTrackUnpublished);
     nextRoom.on(RoomEvent.MediaDevicesChanged, handleMediaDevicesChanged);
     nextRoom.on(RoomEvent.MediaDevicesError, (error) => {
       if (!isCancelled) {
@@ -990,8 +1176,12 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       for (const event of trackedEvents) {
         nextRoom.off(event, syncRoomState);
       }
-      nextRoom.off(RoomEvent.LocalTrackPublished, handleLocalTrackChanged);
-      nextRoom.off(RoomEvent.LocalTrackUnpublished, handleLocalTrackChanged);
+      nextRoom.off(RoomEvent.TrackPublished, handleTrackPublished);
+      nextRoom.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+      nextRoom.off(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+      nextRoom.off(RoomEvent.TrackUnpublished, handleTrackUnpublished);
+      nextRoom.off(RoomEvent.LocalTrackPublished, handleLocalTrackPublished);
+      nextRoom.off(RoomEvent.LocalTrackUnpublished, handleLocalTrackUnpublished);
       nextRoom.off(RoomEvent.MediaDevicesChanged, handleMediaDevicesChanged);
       if (roomStateSyncRef.current === syncRoomState) {
         roomStateSyncRef.current = null;
@@ -1074,13 +1264,42 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
     }
 
     const nextScreenShareEnabled = !screenShareEnabled;
+    logScreenShareDebug("toggle-screen-share-click", {
+      current: screenShareEnabled,
+      next: nextScreenShareEnabled,
+      callId: session.call.id,
+    });
 
     try {
-      await room.localParticipant.setScreenShareEnabled(nextScreenShareEnabled);
+      await room.localParticipant.setScreenShareEnabled(
+        nextScreenShareEnabled,
+        nextScreenShareEnabled
+          ? {
+              audio: false,
+              video: true,
+              contentHint: "detail",
+              preferCurrentTab: true,
+              selfBrowserSurface: "include",
+              surfaceSwitching: "include",
+              systemAudio: "exclude",
+            }
+          : undefined,
+      );
       setScreenShareEnabled(nextScreenShareEnabled);
+      logScreenShareDebug("toggle-screen-share-success", {
+        next: nextScreenShareEnabled,
+        localPublication: Boolean(
+          room.localParticipant.getTrackPublication(Track.Source.ScreenShare),
+        ),
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Не удалось изменить показ экрана.";
+
+      logScreenShareDebug("toggle-screen-share-failed", {
+        next: nextScreenShareEnabled,
+        error: message,
+      });
 
       if (!/cancel|abort|denied|permission/i.test(message)) {
         setErrorMessage(message);
@@ -1301,7 +1520,7 @@ function PersistentAudioSink() {
   return <div ref={containerRef} className="hidden" aria-hidden="true" />;
 }
 
-function TrackSurface({
+export function TrackSurface({
   item,
   emphasis = "tile",
   expanded = false,
@@ -1354,6 +1573,15 @@ function TrackSurface({
       return;
     }
 
+    logScreenShareDebug("track-surface-mounted", {
+      trackId: item.id,
+      source: item.source,
+      isLocal: item.isLocal,
+      emphasis,
+      expanded,
+      screenFitMode,
+    });
+
     const element = document.createElement("video");
     element.autoplay = true;
     element.setAttribute("playsinline", "true");
@@ -1372,9 +1600,32 @@ function TrackSurface({
 
     item.track.attach(element);
     container.appendChild(element);
-    void element.play().catch(() => undefined);
+    logScreenShareDebug("track-surface-attached", {
+      trackId: item.id,
+      source: item.source,
+      srcObjectTracks:
+        element.srcObject instanceof MediaStream
+          ? element.srcObject.getTracks().map((track) => ({
+              id: track.id,
+              kind: track.kind,
+              readyState: track.readyState,
+            }))
+          : null,
+    });
+    void element.play().catch((error) => {
+      logScreenShareDebug("track-surface-play-failed", {
+        trackId: item.id,
+        source: item.source,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    });
 
     return () => {
+      logScreenShareDebug("track-surface-unmounted", {
+        trackId: item.id,
+        source: item.source,
+      });
       item.track.detach(element);
       element.remove();
     };
@@ -1953,9 +2204,12 @@ export function CallRoomCanvas({
     ? tracks.filter((item) => item.kind === "video" && !isScreenShareTrack(item))
     : [];
 
-  const primaryTrack =
+  const screenTrackToRender =
     screenTracks.find((item) => !item.isLocal) ??
     screenTracks[0] ??
+    null;
+  const primaryTrack =
+    screenTrackToRender ??
     cameraTracks.find((item) => !item.isLocal) ??
     cameraTracks[0] ??
     null;
@@ -1964,23 +2218,22 @@ export function CallRoomCanvas({
     (item) => item.id !== primaryTrack?.id,
   );
   const isConversation = variant === "conversation";
-  const hasScreenShare = screenTracks.length > 0;
-  const screenShareActive =
-    hasScreenShare ||
-    screenShareEnabled ||
-    participants.some((participant) => participant.hasScreenShare);
+  const pendingScreenShareStage =
+    !screenTrackToRender &&
+    (screenShareEnabled || participants.some((participant) => participant.hasScreenShare));
+  const screenShareVisible = Boolean(screenTrackToRender) || pendingScreenShareStage;
   const stageExpanded =
-    screenShareActive && (isConversation || isScreenStageExpanded || isScreenFocusMode);
-  const showFocusedStage = !isConversation && screenShareActive && isScreenFocusMode;
+    screenShareVisible && (isConversation || isScreenStageExpanded || isScreenFocusMode);
+  const showFocusedStage = !isConversation && screenShareVisible && isScreenFocusMode;
   const showConversationPanels =
-    !isConversation || !screenShareActive || secondaryPanelsVisible;
+    !isConversation || !screenShareVisible || secondaryPanelsVisible;
 
-  const stageSubtitle = screenShareActive
+  const stageSubtitle = screenShareVisible
     ? "Идёт показ экрана."
     : description;
 
   useEffect(() => {
-    if (!activeSession || !screenShareActive) {
+    if (!activeSession || !screenShareVisible) {
       setIsScreenStageExpanded(false);
       setIsScreenFocusMode(false);
       setSecondaryPanelsVisible(true);
@@ -1994,7 +2247,36 @@ export function CallRoomCanvas({
       setIsScreenFocusMode(false);
       setSecondaryPanelsVisible(false);
     }
-  }, [activeSession, isConversation, screenShareActive]);
+  }, [activeSession, isConversation, screenShareVisible]);
+
+  useEffect(() => {
+    logScreenShareDebug("call-room-canvas-state", {
+      callId: activeSession?.call.id ?? null,
+      variant,
+      screenTrackToRenderId: screenTrackToRender?.id ?? null,
+      pendingScreenShareStage,
+      screenShareEnabled,
+      screenShareVisible,
+      stageExpanded,
+      isScreenFocusMode,
+      secondaryPanelsVisible,
+      participantScreenShare: participants.map((participant) => ({
+        id: participant.id,
+        hasScreenShare: participant.hasScreenShare,
+      })),
+    });
+  }, [
+    activeSession?.call.id,
+    isScreenFocusMode,
+    participants,
+    pendingScreenShareStage,
+    screenShareEnabled,
+    screenShareVisible,
+    secondaryPanelsVisible,
+    stageExpanded,
+    screenTrackToRender?.id,
+    variant,
+  ]);
 
   useEffect(() => {
     function handleFullscreenChange() {
@@ -2038,7 +2320,7 @@ export function CallRoomCanvas({
       {isConversation ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <div className="flex flex-wrap items-center gap-1.5">
-            {screenShareActive ? (
+            {screenShareVisible ? (
               <span className="status-pill">
                 <Monitor size={14} strokeWidth={1.5} />
                 Экран
@@ -2086,7 +2368,7 @@ export function CallRoomCanvas({
               )}
               Экран
             </Button>
-            {screenShareActive ? (
+            {screenShareVisible ? (
               <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
                 <Button
                   size="sm"
@@ -2104,7 +2386,7 @@ export function CallRoomCanvas({
                 </Button>
               </div>
             ) : null}
-            {screenShareActive ? (
+            {screenShareVisible ? (
               <Button
                 size="sm"
                 variant={secondaryPanelsVisible ? "secondary" : "ghost"}
@@ -2222,13 +2504,13 @@ export function CallRoomCanvas({
             ? showConversationPanels
               ? "lg:grid-cols-[minmax(0,1fr)_248px]"
               : "grid-cols-1"
-            : screenShareActive
+            : screenShareVisible
               ? "flex-1 xl:grid-cols-[minmax(0,1.45fr)_300px]"
               : "flex-1 xl:grid-cols-[minmax(0,1fr)_320px]",
         )}
       >
         <div className={cn("min-h-0", isConversation ? "space-y-2.5" : "space-y-3")}>
-          {!isConversation && screenShareActive ? (
+          {!isConversation && screenShareVisible ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
               <span className="status-pill">
                 <Monitor size={14} strokeWidth={1.5} />
@@ -2299,6 +2581,18 @@ export function CallRoomCanvas({
                 expanded={stageExpanded}
                 screenFitMode={isScreenShareTrack(primaryTrack) ? screenFitMode : "contain"}
               />
+            ) : pendingScreenShareStage ? (
+              <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[20px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_30%),rgba(8,12,18,0.94)] px-5 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-[var(--accent-strong)]">
+                  <Monitor size={24} strokeWidth={1.5} />
+                </div>
+                <div className="max-w-[34rem]">
+                  <p className="text-sm font-semibold text-white">Подключаем демонстрацию экрана</p>
+                  <p className="mt-1 text-xs text-[var(--text-dim)]">
+                    Сцена уже закреплена под screen share и ждёт видео-трек.
+                  </p>
+                </div>
+              </div>
             ) : (
               <VoicePresenceStage
                 participants={participants.filter((participant) => participant.isConnected)}
