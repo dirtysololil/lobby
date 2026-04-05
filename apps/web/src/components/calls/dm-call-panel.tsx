@@ -39,6 +39,8 @@ export function DmCallPanel({
     dismissCall,
     isActiveCall,
     leaveCall,
+    participants,
+    screenShareEnabled,
     syncCall,
     tracks,
     microphoneEnabled,
@@ -255,10 +257,14 @@ export function DmCallPanel({
     [isCurrentSession, tracks],
   );
   const hasVisualTracks = visualTracks.length > 0;
-  const hasScreenShare = visualTracks.some((item) =>
-    item.source.toLowerCase().includes("screen"),
+  const hasParticipantScreenShare = participants.some((participant) => participant.hasScreenShare);
+  const hasScreenShare =
+    screenShareEnabled ||
+    hasParticipantScreenShare ||
+    visualTracks.some((item) => item.source.toLowerCase().includes("screen"));
+  const showExpandedStage = Boolean(
+    activeCall && isCurrentSession && (hasVisualTracks || hasScreenShare),
   );
-  const showExpandedStage = Boolean(activeCall && isCurrentSession && hasVisualTracks);
   const expandedCallId = showExpandedStage ? activeCall?.id ?? null : null;
   const infoText = errorMessage
     ? errorMessage
