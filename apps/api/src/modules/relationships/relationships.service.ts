@@ -400,51 +400,124 @@ export class RelationshipsService {
     viewerId: string,
     targetUserId: string,
   ): Promise<UserRelationshipSummary> {
-    const pairKey = buildUserPairKey(viewerId, targetUserId);
+    return (
+      (await this.getRelationshipSummaries(viewerId, [targetUserId])).get(
+        targetUserId,
+      ) ?? {
+        friendshipId: null,
+        blockId: null,
+        friendshipState: 'NONE',
+        isBlockedByViewer: false,
+        hasBlockedViewer: false,
+        dmConversationId: null,
+      }
+    );
+  }
 
-    const [friendship, viewerBlock, reverseBlock, dmConversation] =
+  public async getRelationshipSummaries(
+    viewerId: string,
+    targetUserIds: string[],
+  ): Promise<Map<string, UserRelationshipSummary>> {
+    const uniqueTargetUserIds = [...new Set(targetUserIds)].filter(
+      (userId) => userId && userId !== viewerId,
+    );
+
+    if (uniqueTargetUserIds.length === 0) {
+      return new Map();
+    }
+
+    const pairKeyEntries: Array<[string, string]> = uniqueTargetUserIds.map(
+      (targetUserId) => [
+        targetUserId,
+        buildUserPairKey(viewerId, targetUserId),
+      ],
+    );
+    const pairKeyByTargetUserId = new Map(pairKeyEntries);
+    const targetUserIdByPairKey = new Map(
+      pairKeyEntries.map(([targetUserId, pairKey]) => [pairKey, targetUserId]),
+    );
+
+    const [friendships, viewerBlocks, reverseBlocks, dmConversations] =
       await Promise.all([
-        this.prisma.friendship.findUnique({
+        this.prisma.friendship.findMany({
           where: {
-            pairKey,
-          },
-        }),
-        this.prisma.block.findUnique({
-          where: {
-            blockerId_blockedId: {
-              blockerId: viewerId,
-              blockedId: targetUserId,
+            pairKey: {
+              in: pairKeyEntries.map(([, pairKey]) => pairKey),
             },
           },
         }),
-        this.prisma.block.findUnique({
+        this.prisma.block.findMany({
           where: {
-            blockerId_blockedId: {
-              blockerId: targetUserId,
-              blockedId: viewerId,
+            blockerId: viewerId,
+            blockedId: {
+              in: uniqueTargetUserIds,
             },
           },
         }),
-        this.prisma.directConversation.findUnique({
+        this.prisma.block.findMany({
           where: {
-            pairKey,
+            blockerId: {
+              in: uniqueTargetUserIds,
+            },
+            blockedId: viewerId,
+          },
+        }),
+        this.prisma.directConversation.findMany({
+          where: {
+            pairKey: {
+              in: pairKeyEntries.map(([, pairKey]) => pairKey),
+            },
           },
           select: {
             id: true,
+            pairKey: true,
           },
         }),
       ]);
 
-    return {
-      friendshipId: friendship?.id ?? null,
-      blockId: viewerBlock?.id ?? null,
-      friendshipState: friendship
-        ? toFriendshipState(friendship, viewerId)
-        : 'NONE',
-      isBlockedByViewer: Boolean(viewerBlock),
-      hasBlockedViewer: Boolean(reverseBlock),
-      dmConversationId: dmConversation?.id ?? null,
-    };
+    const friendshipByPairKey = new Map(
+      friendships.map((friendship) => [friendship.pairKey, friendship]),
+    );
+    const viewerBlockByTargetUserId = new Map(
+      viewerBlocks.map((block) => [block.blockedId, block]),
+    );
+    const reverseBlockByTargetUserId = new Map(
+      reverseBlocks.map((block) => [block.blockerId, block]),
+    );
+    const conversationIdByTargetUserId = new Map(
+      dmConversations
+        .map((conversation) => [
+          targetUserIdByPairKey.get(conversation.pairKey),
+          conversation.id,
+        ])
+        .filter(
+          (entry): entry is [string, string] => typeof entry[0] === 'string',
+        ),
+    );
+
+    return new Map(
+      uniqueTargetUserIds.map((targetUserId) => {
+        const pairKey = pairKeyByTargetUserId.get(targetUserId)!;
+        const friendship = friendshipByPairKey.get(pairKey);
+        const viewerBlock = viewerBlockByTargetUserId.get(targetUserId);
+        const reverseBlock = reverseBlockByTargetUserId.get(targetUserId);
+
+        return [
+          targetUserId,
+          {
+            friendshipId: friendship?.id ?? null,
+            blockId: viewerBlock?.id ?? null,
+            friendshipState: friendship
+              ? toFriendshipState(friendship, viewerId)
+              : 'NONE',
+            isBlockedByViewer: Boolean(viewerBlock),
+            hasBlockedViewer: Boolean(reverseBlock),
+            dmConversationId:
+              conversationIdByTargetUserId.get(targetUserId) ?? null,
+          },
+        ];
+      }),
+    );
   }
 
   private async getBlockStatus(viewerId: string, targetUserId: string) {

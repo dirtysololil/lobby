@@ -153,7 +153,6 @@ export function UserProfileView({
       const conversation =
         directConversationSummaryResponseSchema.parse(payload).conversation;
       router.push(`/app/messages/${conversation.id}`);
-      router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Не удалось открыть диалог.");
       setActionKey(null);

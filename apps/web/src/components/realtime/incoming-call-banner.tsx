@@ -38,7 +38,6 @@ export function IncomingCallBanner() {
 
       if (conversationId) {
         router.push(`/app/messages/${conversationId}`);
-        router.refresh();
       }
     } finally {
       setPendingAction(null);

@@ -621,15 +621,23 @@ export class UsersService {
       },
     });
 
-    const items = await Promise.all(
-      users.map(async (user) => ({
-        user: toPublicUser(user),
-        relationship: await this.relationshipsService.getRelationshipSummary(
-          viewerId,
-          user.id,
-        ),
-      })),
-    );
+    const relationshipSummaries =
+      await this.relationshipsService.getRelationshipSummaries(
+        viewerId,
+        users.map((user) => user.id),
+      );
+
+    const items = users.map((user) => ({
+      user: toPublicUser(user),
+      relationship: relationshipSummaries.get(user.id) ?? {
+        friendshipId: null,
+        blockId: null,
+        friendshipState: 'NONE',
+        isBlockedByViewer: false,
+        hasBlockedViewer: false,
+        dmConversationId: null,
+      },
+    }));
 
     return items.sort((left, right) => {
       const leftExact = left.user.username === query ? 0 : 1;

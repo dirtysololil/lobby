@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { ShieldBan, ShieldCheck, UsersRound } from "lucide-react";
-import type { AdminUserListResponse, PublicUser, UserRole } from "@lobby/shared";
+import {
+  actionMessageSchema,
+  adminUserSummarySchema,
+  platformBlockSchema,
+  type AdminUserListResponse,
+  type PublicUser,
+  type UserRole,
+} from "@lobby/shared";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { SelectField } from "@/components/ui/select-field";
@@ -65,6 +72,7 @@ export function UsersAdminPanel({
   const [query, setQuery] = useState(filters.query);
   const [role, setRole] = useState(filters.role);
   const [blocked, setBlocked] = useState(filters.blocked);
+  const [items, setItems] = useState(response.items);
   const [error, setError] = useState<string | null>(null);
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [pendingAction, startTransition] = useTransition();
@@ -73,6 +81,7 @@ export function UsersAdminPanel({
   );
 
   useEffect(() => {
+    setItems(response.items);
     setRoleDrafts(
       Object.fromEntries(response.items.map((item) => [item.user.id, item.user.role])),
     );
@@ -99,7 +108,7 @@ export function UsersAdminPanel({
     setActionKey(`moderation:${userId}`);
 
     try {
-      await apiClientFetch(
+      const payload = await apiClientFetch(
         blockedState
           ? `/v1/admin/users/${userId}/unblock`
           : `/v1/admin/users/${userId}/block`,
@@ -112,7 +121,22 @@ export function UsersAdminPanel({
               }),
         },
       );
-      router.refresh();
+      const nextPlatformBlock = blockedState ? null : platformBlockSchema.parse(payload);
+      if (blockedState) {
+        actionMessageSchema.parse(payload);
+      }
+
+      setItems((current) =>
+        current.map((item) =>
+          item.user.id === userId
+            ? {
+                ...item,
+                activeSessionCount: blockedState ? item.activeSessionCount : 0,
+                platformBlock: nextPlatformBlock,
+              }
+            : item,
+        ),
+      );
     } catch (moderationError) {
       setError(
         moderationError instanceof Error
@@ -135,11 +159,18 @@ export function UsersAdminPanel({
     setActionKey(`role:${userId}`);
 
     try {
-      await apiClientFetch(`/v1/admin/users/${userId}/role`, {
+      const payload = await apiClientFetch(`/v1/admin/users/${userId}/role`, {
         method: "PATCH",
         body: JSON.stringify({ role: nextRole }),
       });
-      router.refresh();
+      const updatedUser = adminUserSummarySchema.parse(payload);
+      setItems((current) =>
+        current.map((item) => (item.user.id === userId ? updatedUser : item)),
+      );
+      setRoleDrafts((current) => ({
+        ...current,
+        [userId]: updatedUser.user.role,
+      }));
     } catch (roleError) {
       setError(roleError instanceof Error ? roleError.message : "Не удалось сменить роль.");
     } finally {
@@ -211,14 +242,14 @@ export function UsersAdminPanel({
         </div>
 
         <div className="min-h-0 overflow-y-auto">
-          {response.items.length === 0 ? (
+          {items.length === 0 ? (
             <EmptyState
               className="py-10"
               title="Ничего не найдено"
               description="Измените фильтры или расширьте запрос, чтобы увидеть больше пользователей."
             />
           ) : (
-            response.items.map((item) => {
+            items.map((item) => {
               const canManageUser =
                 viewer.id !== item.user.id &&
                 getRoleRank(viewer.role) > getRoleRank(item.user.role);

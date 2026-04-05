@@ -6,15 +6,26 @@ import {
   type CallStateResponse,
   type CallSummary,
 } from "@lobby/shared";
-import { Mic, MicOff, Monitor, Phone, PhoneCall, Users2, Video } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  Monitor,
+  MonitorUp,
+  MonitorX,
+  Phone,
+  PhoneCall,
+  Users2,
+  Video,
+  VideoOff,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
 import { callModeLabels, callStatusLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
+import { useCallSession } from "./call-session-provider";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
-import { useCallSession } from "./call-session-provider";
 
 interface DmCallPanelProps {
   conversationId: string;
@@ -35,16 +46,20 @@ export function DmCallPanel({
 }: DmCallPanelProps) {
   const { socket, latestSignal, clearIncomingCall } = useRealtime();
   const {
+    cameraEnabled,
     connectToCall,
     dismissCall,
     isActiveCall,
     leaveCall,
+    microphoneEnabled,
     participants,
     screenShareEnabled,
+    session,
     syncCall,
-    tracks,
-    microphoneEnabled,
+    toggleCamera,
     toggleMicrophone,
+    toggleScreenShare,
+    tracks,
   } = useCallSession();
   const [state, setState] = useState<CallStateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -73,6 +88,7 @@ export function DmCallPanel({
       const payload = await apiClientFetch(`/v1/calls/dm/${conversationId}`);
       const parsed = callStateResponseSchema.parse(payload);
       setState(parsed);
+
       if (parsed.activeCall) {
         syncCall(parsed.activeCall, {
           route: callRoute,
@@ -80,6 +96,7 @@ export function DmCallPanel({
           subtitle: callSubtitle,
         });
       }
+
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
@@ -109,7 +126,7 @@ export function DmCallPanel({
     return () => {
       currentSocket.off("connect", subscribe);
     };
-  }, [socket, conversationId]);
+  }, [conversationId, socket]);
 
   useEffect(() => {
     if (latestSignal?.call.dmConversationId !== conversationId) {
@@ -249,11 +266,9 @@ export function DmCallPanel({
       ["ACCEPTED", "JOINED"].includes(participant.state),
     ).length ?? 0;
   const isCurrentSession = isActiveCall(activeCall?.id ?? null);
+  const canPublishMedia = Boolean(isCurrentSession && session?.connection.canPublishMedia);
   const visualTracks = useMemo(
-    () =>
-      isCurrentSession
-        ? tracks.filter((item) => item.kind === "video")
-        : [],
+    () => (isCurrentSession ? tracks.filter((item) => item.kind === "video") : []),
     [isCurrentSession, tracks],
   );
   const hasVisualTracks = visualTracks.length > 0;
@@ -283,8 +298,10 @@ export function DmCallPanel({
       : screenShareVisible
         ? "Показ экрана в звонке"
         : activeCall.mode === "VIDEO"
-          ? "Видео-звонок"
+          ? "Видеозвонок"
           : "Голосовой звонок";
+  const screenShareButtonLabel = screenShareEnabled ? "Остановить показ" : "Показать экран";
+  const cameraButtonLabel = cameraEnabled ? "Камера" : "Включить камеру";
 
   return (
     <div className="grid gap-1.5">
@@ -300,29 +317,30 @@ export function DmCallPanel({
                 <p className="truncate text-sm font-medium tracking-tight text-white">
                   {summaryLabel}
                 </p>
+
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <span className="status-pill">
-                  <PhoneCall {...iconProps} />
-                  {activeCall ? callStatusLabels[activeCall.status] : "Готов"}
-                </span>
-                {activeCall ? (
-                  <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
-                ) : null}
-                {activeCall ? (
                   <span className="status-pill">
-                    <Users2 {...iconProps} />
-                    {connectedParticipants}
+                    <PhoneCall {...iconProps} />
+                    {activeCall ? callStatusLabels[activeCall.status] : "Готов"}
                   </span>
-                ) : null}
-                {screenShareVisible ? (
-                  <span className="status-pill">
-                    <Monitor {...iconProps} />
-                    Экран
-                  </span>
-                ) : null}
-                {isCurrentSession && !hasVisualTracks ? (
-                  <span className="status-pill">Вы в звонке</span>
-                ) : null}
+                  {activeCall ? (
+                    <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
+                  ) : null}
+                  {activeCall ? (
+                    <span className="status-pill">
+                      <Users2 {...iconProps} />
+                      {connectedParticipants}
+                    </span>
+                  ) : null}
+                  {screenShareVisible ? (
+                    <span className="status-pill">
+                      <Monitor {...iconProps} />
+                      Экран
+                    </span>
+                  ) : null}
+                  {isCurrentSession && !hasVisualTracks ? (
+                    <span className="status-pill">Вы в звонке</span>
+                  ) : null}
                 </div>
 
                 {infoText ? (
@@ -387,7 +405,7 @@ export function DmCallPanel({
                       size="sm"
                       variant="secondary"
                       onClick={() => void toggleMicrophone()}
-                      disabled={pendingAction !== null}
+                      disabled={pendingAction !== null || !canPublishMedia}
                     >
                       {microphoneEnabled ? (
                         <Mic {...iconProps} />
@@ -395,6 +413,36 @@ export function DmCallPanel({
                         <MicOff {...iconProps} />
                       )}
                       {microphoneEnabled ? "Микрофон" : "Без микрофона"}
+                    </Button>
+                  ) : null}
+                  {isCurrentSession ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void toggleCamera()}
+                      disabled={pendingAction !== null || !canPublishMedia}
+                    >
+                      {cameraEnabled ? (
+                        <Video {...iconProps} />
+                      ) : (
+                        <VideoOff {...iconProps} />
+                      )}
+                      {cameraButtonLabel}
+                    </Button>
+                  ) : null}
+                  {isCurrentSession ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void toggleScreenShare()}
+                      disabled={pendingAction !== null || !canPublishMedia}
+                    >
+                      {screenShareEnabled ? (
+                        <MonitorX {...iconProps} />
+                      ) : (
+                        <MonitorUp {...iconProps} />
+                      )}
+                      {screenShareButtonLabel}
                     </Button>
                   ) : null}
                   <Button
@@ -410,7 +458,6 @@ export function DmCallPanel({
               )}
             </div>
           </div>
-
         </div>
       </div>
 
@@ -425,4 +472,3 @@ export function DmCallPanel({
     </div>
   );
 }
-

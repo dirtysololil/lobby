@@ -107,8 +107,8 @@ export function ConversationList() {
         conversation,
         ...current.filter((item) => item.id !== conversation.id),
       ]);
+      setUsername("");
       router.push(`/app/messages/${conversation.id}`);
-      router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Не удалось открыть диалог.");
     } finally {
