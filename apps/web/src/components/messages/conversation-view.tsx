@@ -18,6 +18,7 @@ import { DmCallPanel } from "@/components/calls/dm-call-panel";
 import { buildUserProfileHref } from "@/lib/profile-routes";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import { sortDirectMessages } from "@/lib/direct-message-state";
+import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
 import { dmRetentionLabels } from "@/lib/ui-labels";
 import { ConversationSettings } from "./conversation-settings";
 import { MessageComposer } from "./message-composer";
@@ -411,6 +412,11 @@ export function ConversationView({
       { method: "PATCH", body: JSON.stringify(payload) },
     );
     directConversationSummaryResponseSchema.parse(response);
+    dispatchNotificationPreferencesEvent({
+      scope: "conversation",
+      conversationId,
+      notificationSetting: payload.notificationSetting,
+    });
     await loadConversation();
   }
 
@@ -487,7 +493,7 @@ export function ConversationView({
 
         </div>
 
-        <div className="shrink-0 border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_48%),rgba(20,29,40,0.72)] px-3 py-2">
+        <div className="shrink-0 border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_42%),rgba(20,29,40,0.68)] px-3 py-1.5">
           <DmCallPanel
             conversationId={conversationId}
             viewerId={viewerId}

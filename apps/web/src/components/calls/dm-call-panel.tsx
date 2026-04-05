@@ -6,15 +6,12 @@ import {
   type CallStateResponse,
   type CallSummary,
 } from "@lobby/shared";
-import { Mic, MicOff, Phone, PhoneCall, Users2, Video } from "lucide-react";
+import { Mic, MicOff, Monitor, Phone, PhoneCall, Users2, Video } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
-import {
-  callModeLabels,
-  callParticipantStateLabels,
-  callStatusLabels,
-} from "@/lib/ui-labels";
+import { callModeLabels, callStatusLabels } from "@/lib/ui-labels";
+import { cn } from "@/lib/utils";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
 import { useCallSession } from "./call-session-provider";
@@ -50,7 +47,6 @@ export function DmCallPanel({
   const [state, setState] = useState<CallStateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [showExpandedCallView, setShowExpandedCallView] = useState(false);
 
   const callRoute = `/app/messages/${conversationId}`;
   const callTitle = `Звонок с ${counterpartName}`;
@@ -244,10 +240,6 @@ export function DmCallPanel({
   }
 
   const activeCall = state?.activeCall ?? null;
-  const viewerParticipant =
-    activeCall?.participants.find(
-      (participant) => participant.user.id === viewerId,
-    ) ?? null;
   const isIncomingCall =
     activeCall?.status === "RINGING" && activeCall.initiatedBy.id !== viewerId;
   const connectedParticipants =
@@ -263,63 +255,46 @@ export function DmCallPanel({
     [isCurrentSession, tracks],
   );
   const hasVisualTracks = visualTracks.length > 0;
-  const canToggleExpandedStage = isCurrentSession && !hasVisualTracks;
-  const showExpandedStage = Boolean(
-    activeCall && isCurrentSession && (hasVisualTracks || showExpandedCallView),
+  const hasScreenShare = visualTracks.some((item) =>
+    item.source.toLowerCase().includes("screen"),
   );
+  const showExpandedStage = Boolean(activeCall && isCurrentSession && hasVisualTracks);
   const expandedCallId = showExpandedStage ? activeCall?.id ?? null : null;
-  const participantPreview = useMemo(() => {
-    if (!activeCall) {
-      return null;
-    }
-
-    const names = activeCall.participants
-      .filter((participant) => ["ACCEPTED", "JOINED"].includes(participant.state))
-      .map((participant) => participant.user.profile.displayName)
-      .slice(0, 3);
-
-    if (names.length === 0) {
-      return null;
-    }
-
-    return names.join(", ");
-  }, [activeCall]);
-  const summaryText = activeCall
-    ? showExpandedStage
-      ? "Сцена открыта, чат остается главным контентом ниже."
-      : hasVisualTracks
-        ? "Видео или screen-share активны, сцену можно открыть без потери чата."
-        : "Аудиозвонок остается компактным и не вытесняет переписку."
-    : null;
-
-  const detailText = errorMessage
+  const infoText = errorMessage
     ? errorMessage
     : isBlocked
       ? "Звонки недоступны в этом диалоге."
-      : activeCall
-        ? participantPreview
-          ? `${participantPreview}. ${summaryText}`
-          : summaryText
-        : null;
-
-  useEffect(() => {
-    setShowExpandedCallView(false);
-  }, [activeCall?.id]);
-
-  useEffect(() => {
-    if (!activeCall || !isCurrentSession) {
-      setShowExpandedCallView(false);
-    }
-  }, [activeCall, isCurrentSession]);
+      : null;
+  const infoToneClassName = errorMessage
+    ? "text-rose-200"
+    : isBlocked
+      ? "text-amber-100"
+      : "text-[var(--text-dim)]";
+  const summaryLabel = !activeCall
+    ? `Звонок с ${counterpartName}`
+    : isIncomingCall
+      ? `Входящий вызов от ${counterpartName}`
+      : hasScreenShare
+        ? "Показ экрана в звонке"
+        : activeCall.mode === "VIDEO"
+          ? "Видео-звонок"
+          : "Голосовой звонок";
 
   return (
-    <div className="grid gap-2">
-      <div className="premium-panel rounded-[18px] px-3 py-2.5">
-        <div className="flex flex-col gap-2.5">
+    <div className="grid gap-1.5">
+      <div className="premium-panel rounded-[18px] px-3 py-2">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="eyebrow-pill">Личный звонок</span>
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.2)] bg-[rgba(106,168,248,0.12)] text-[var(--accent-strong)]">
+                {hasScreenShare ? <Monitor {...iconProps} /> : <PhoneCall {...iconProps} />}
+              </div>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium tracking-tight text-white">
+                  {summaryLabel}
+                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 <span className="status-pill">
                   <PhoneCall {...iconProps} />
                   {activeCall ? callStatusLabels[activeCall.status] : "Готов"}
@@ -327,32 +302,27 @@ export function DmCallPanel({
                 {activeCall ? (
                   <span className="status-pill">{callModeLabels[activeCall.mode]}</span>
                 ) : null}
-                {viewerParticipant ? (
-                  <span className="status-pill">
-                    Вы: {callParticipantStateLabels[viewerParticipant.state]}
-                  </span>
-                ) : null}
                 {activeCall ? (
                   <span className="status-pill">
                     <Users2 {...iconProps} />
                     {connectedParticipants}
                   </span>
                 ) : null}
-                {isCurrentSession ? <span className="status-pill">Закреплен</span> : null}
+                {hasScreenShare ? (
+                  <span className="status-pill">
+                    <Monitor {...iconProps} />
+                    Экран
+                  </span>
+                ) : null}
+                {isCurrentSession && !hasVisualTracks ? (
+                  <span className="status-pill">Вы в звонке</span>
+                ) : null}
+                </div>
+
+                {infoText ? (
+                  <p className={cn("mt-1.5 text-sm", infoToneClassName)}>{infoText}</p>
+                ) : null}
               </div>
-
-              {detailText ? (
-                <p className="mt-1.5 text-sm text-[var(--text-dim)]">{detailText}</p>
-              ) : null}
-
-              {!detailText && errorMessage ? (
-                <p className="mt-2 text-sm text-rose-200">{errorMessage}</p>
-              ) : null}
-              {!detailText && !errorMessage && isBlocked ? (
-                <p className="mt-2 text-sm text-amber-100">
-                  Звонки недоступны в этом диалоге.
-                </p>
-              ) : null}
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -396,35 +366,16 @@ export function DmCallPanel({
                 </>
               ) : (
                 <>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      if (canToggleExpandedStage) {
-                        setShowExpandedCallView((value) => !value);
-                        return;
-                      }
-
-                      if (!isCurrentSession) {
-                        void joinCall();
-                      }
-                    }}
-                    disabled={
-                      pendingAction !== null ||
-                      isBlocked ||
-                      (isCurrentSession && hasVisualTracks)
-                    }
-                  >
-                    <PhoneCall {...iconProps} />
-                    {pendingAction === "join"
-                      ? "Подключаем..."
-                      : isCurrentSession
-                        ? hasVisualTracks
-                          ? "Комната открыта"
-                          : showExpandedStage
-                            ? "Свернуть комнату"
-                            : "Открыть комнату"
-                        : "Подключиться"}
-                  </Button>
+                  {!isCurrentSession ? (
+                    <Button
+                      size="sm"
+                      onClick={() => void joinCall()}
+                      disabled={pendingAction !== null || isBlocked}
+                    >
+                      <PhoneCall {...iconProps} />
+                      {pendingAction === "join" ? "Подключаем..." : "Подключиться"}
+                    </Button>
+                  ) : null}
                   {isCurrentSession ? (
                     <Button
                       size="sm"
@@ -437,12 +388,13 @@ export function DmCallPanel({
                       ) : (
                         <MicOff {...iconProps} />
                       )}
-                      {microphoneEnabled ? "Выключить микрофон" : "Включить микрофон"}
+                      {microphoneEnabled ? "Микрофон" : "Без микрофона"}
                     </Button>
                   ) : null}
                   <Button
                     size="sm"
                     variant="secondary"
+                    className="call-danger-button"
                     onClick={() => void endCall()}
                     disabled={pendingAction !== null}
                   >
@@ -452,14 +404,15 @@ export function DmCallPanel({
               )}
             </div>
           </div>
+
         </div>
       </div>
 
       {expandedCallId ? (
         <LiveKitCallRoom
           callId={expandedCallId}
-          title="Комната ЛС"
-          description="Сцена раскрывается только когда это действительно нужно и не отнимает экран у переписки."
+          title="DM stage"
+          description=""
           variant="conversation"
         />
       ) : null}

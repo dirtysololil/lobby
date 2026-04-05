@@ -9,6 +9,7 @@ import { AppContextRail } from "@/components/app/app-context-rail";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { PersistentCallDock } from "@/components/calls/call-session-provider";
 import { IncomingCallBanner } from "@/components/realtime/incoming-call-banner";
+import { NotificationSoundManager } from "@/components/realtime/notification-sound-manager";
 import { parseAppPath } from "@/lib/app-shell";
 import { cn } from "@/lib/utils";
 
@@ -84,6 +85,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
           ) : null}
 
           <IncomingCallBanner />
+          <NotificationSoundManager viewerId={viewer.id} />
 
           <div className="min-h-0 flex-1 overflow-hidden p-1.5 md:p-2 lg:p-2.5">
             <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_16%),rgba(8,13,20,0.92)]">
