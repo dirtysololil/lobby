@@ -20,6 +20,7 @@ import { parseAppPath } from "@/lib/app-shell";
 import { useRealtime } from "./realtime-provider";
 
 type AudioPipelineState = "locked" | "ready" | "unsupported";
+type BrowserNotificationState = NotificationPermission | "unsupported";
 type SoundBucket = "fx" | "ringtone";
 type ToneSpec = {
   frequency: number;
@@ -33,8 +34,15 @@ interface NotificationSoundManagerProps {
   viewerId: string;
 }
 
+interface ActiveDesktopNotification {
+  closeTimer: number | null;
+  notification: Notification;
+  route: string;
+}
+
 const debugStorageKey = "lobby:debug-sound";
 const handledMessageLimit = 120;
+const desktopMessageDurationMs = 8_000;
 const fallbackDefaults: UpdateViewerNotificationDefaultsInput = {
   dmNotificationDefault: "ALL",
   hubNotificationDefault: "ALL",
@@ -66,8 +74,30 @@ function normalizeErrorMessage(error: unknown) {
   return "unknown";
 }
 
+function getBrowserNotificationState(): BrowserNotificationState {
+  if (typeof window === "undefined" || typeof window.Notification === "undefined") {
+    return "unsupported";
+  }
+
+  return window.Notification.permission;
+}
+
 function notificationAllowsSound(setting: NotificationSetting | null | undefined) {
   return setting === "ALL" || setting === "MENTIONS_ONLY";
+}
+
+function trimNotificationBody(value: string | null | undefined, fallback: string) {
+  const normalized = value?.replace(/\s+/g, " ").trim();
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  if (normalized.length <= 120) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 117).trimEnd()}...`;
 }
 
 export function NotificationSoundManager({
@@ -80,11 +110,15 @@ export function NotificationSoundManager({
   const [defaults, setDefaults] =
     useState<UpdateViewerNotificationDefaultsInput>(fallbackDefaults);
   const [audioState, setAudioState] = useState<AudioPipelineState>("locked");
+  const [notificationPermission, setNotificationPermission] =
+    useState<BrowserNotificationState>(getBrowserNotificationState);
   const [settingsVersion, setSettingsVersion] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const debugEnabledRef = useRef(false);
+  const notificationPermissionRequestedRef = useRef(false);
   const warningKeysRef = useRef(new Set<string>());
   const conversationSettingsRef = useRef(new Map<string, NotificationSetting>());
+  const desktopNotificationsRef = useRef(new Map<string, ActiveDesktopNotification>());
   const handledMessageIdsRef = useRef(new Set<string>());
   const handledMessageOrderRef = useRef<string[]>([]);
   const fxCleanupRef = useRef(new Set<() => void>());
@@ -110,6 +144,154 @@ export function NotificationSoundManager({
       console.warn("[notify/sound]", message, payload ?? {});
     },
     [],
+  );
+
+  const closeDesktopNotification = useCallback(
+    (key: string, reason: string) => {
+      const activeNotification = desktopNotificationsRef.current.get(key);
+
+      if (!activeNotification) {
+        return;
+      }
+
+      if (activeNotification.closeTimer !== null) {
+        window.clearTimeout(activeNotification.closeTimer);
+      }
+
+      activeNotification.notification.close();
+      desktopNotificationsRef.current.delete(key);
+      logDebug("desktop-notification-closed", { key, reason });
+    },
+    [logDebug],
+  );
+
+  const closeDesktopNotificationsByPrefix = useCallback(
+    (prefix: string, reason: string) => {
+      for (const key of desktopNotificationsRef.current.keys()) {
+        if (key.startsWith(prefix)) {
+          closeDesktopNotification(key, reason);
+        }
+      }
+    },
+    [closeDesktopNotification],
+  );
+
+  const requestNotificationPermission = useCallback(
+    async (reason: string) => {
+      const currentPermission = getBrowserNotificationState();
+      setNotificationPermission(currentPermission);
+
+      if (currentPermission === "unsupported" || currentPermission !== "default") {
+        return currentPermission;
+      }
+
+      if (notificationPermissionRequestedRef.current) {
+        return currentPermission;
+      }
+
+      notificationPermissionRequestedRef.current = true;
+
+      try {
+        const nextPermission = await window.Notification.requestPermission();
+        setNotificationPermission(nextPermission);
+        logDebug("notification-permission", { reason, permission: nextPermission });
+        return nextPermission;
+      } catch (error) {
+        warnOnce("notification-permission-request", "Browser notification permission request failed.", {
+          reason,
+          error: normalizeErrorMessage(error),
+        });
+        return "default";
+      }
+    },
+    [logDebug, warnOnce],
+  );
+
+  const showDesktopNotification = useCallback(
+    (args: {
+      body: string;
+      key: string;
+      requireInteraction?: boolean;
+      route: string;
+      title: string;
+    }) => {
+      const currentPermission =
+        notificationPermission === "granted"
+          ? notificationPermission
+          : getBrowserNotificationState();
+
+      setNotificationPermission(currentPermission);
+
+      if (currentPermission !== "granted") {
+        logDebug("desktop-notification-skipped", {
+          key: args.key,
+          permission: currentPermission,
+        });
+        return false;
+      }
+
+      closeDesktopNotification(args.key, "replace");
+
+      try {
+        const notification = new window.Notification(args.title, {
+          body: args.body,
+          requireInteraction: args.requireInteraction ?? false,
+          silent: true,
+          tag: args.key,
+        });
+
+        const closeTimer =
+          args.requireInteraction === true
+            ? null
+            : window.setTimeout(() => {
+                closeDesktopNotification(args.key, "timeout");
+              }, desktopMessageDurationMs);
+
+        desktopNotificationsRef.current.set(args.key, {
+          closeTimer,
+          notification,
+          route: args.route,
+        });
+
+        notification.onclick = () => {
+          closeDesktopNotification(args.key, "click");
+          window.focus();
+
+          if (window.location.pathname !== args.route) {
+            window.location.assign(args.route);
+          }
+        };
+
+        notification.onclose = () => {
+          const activeNotification = desktopNotificationsRef.current.get(args.key);
+
+          if (!activeNotification || activeNotification.notification !== notification) {
+            return;
+          }
+
+          if (activeNotification.closeTimer !== null) {
+            window.clearTimeout(activeNotification.closeTimer);
+          }
+
+          desktopNotificationsRef.current.delete(args.key);
+        };
+
+        logDebug("desktop-notification-shown", {
+          key: args.key,
+          requireInteraction: args.requireInteraction ?? false,
+          route: args.route,
+        });
+
+        return true;
+      } catch (error) {
+        warnOnce(`desktop-notification:${args.key}`, "Browser notification failed to show.", {
+          error: normalizeErrorMessage(error),
+          key: args.key,
+        });
+        return false;
+      }
+    },
+    [closeDesktopNotification, logDebug, notificationPermission, warnOnce],
   );
 
   const getOrCreateAudioContext = useCallback(() => {
@@ -278,6 +460,7 @@ export function NotificationSoundManager({
       clearSoundBucket("ringtone");
 
       if (ringtoneCallIdRef.current) {
+        closeDesktopNotification(`call:${ringtoneCallIdRef.current}`, reason);
         logDebug("ringtone-stopped", {
           callId: ringtoneCallIdRef.current,
           reason,
@@ -286,7 +469,7 @@ export function NotificationSoundManager({
 
       ringtoneCallIdRef.current = null;
     },
-    [clearSoundBucket, logDebug],
+    [clearSoundBucket, closeDesktopNotification, logDebug],
   );
 
   const startRingtone = useCallback(
@@ -298,10 +481,11 @@ export function NotificationSoundManager({
       stopRingtone("replace");
 
       const ringtoneSequence: ToneSpec[] = [
-        { frequency: 587, duration: 0.16, gap: 0.08, gain: 0.028, type: "triangle" },
-        { frequency: 740, duration: 0.22, gap: 0.16, gain: 0.032, type: "triangle" },
-        { frequency: 659, duration: 0.16, gap: 0.08, gain: 0.028, type: "triangle" },
-        { frequency: 880, duration: 0.28, gap: 0.42, gain: 0.034, type: "triangle" },
+        { frequency: 523, duration: 0.16, gap: 0.06, gain: 0.046, type: "triangle" },
+        { frequency: 659, duration: 0.2, gap: 0.08, gain: 0.054, type: "triangle" },
+        { frequency: 784, duration: 0.24, gap: 0.12, gain: 0.06, type: "triangle" },
+        { frequency: 659, duration: 0.18, gap: 0.08, gain: 0.05, type: "triangle" },
+        { frequency: 880, duration: 0.28, gap: 0.46, gain: 0.064, type: "triangle" },
       ];
 
       const playBurst = () =>
@@ -314,7 +498,7 @@ export function NotificationSoundManager({
       }
 
       ringtoneCallIdRef.current = callId;
-      ringtoneIntervalRef.current = window.setInterval(playBurst, 1800);
+      ringtoneIntervalRef.current = window.setInterval(playBurst, 2400);
       logDebug("ringtone-started", { callId });
     },
     [logDebug, scheduleToneSequence, stopRingtone],
@@ -328,6 +512,29 @@ export function NotificationSoundManager({
 
     return scheduleToneSequence(messageSequence, "message", "fx");
   }, [scheduleToneSequence]);
+
+  const isAppInForeground = useCallback(() => {
+    if (typeof document === "undefined") {
+      return true;
+    }
+
+    return document.visibilityState === "visible" && document.hasFocus();
+  }, []);
+
+  const buildCallNotificationRoute = useCallback(
+    (call: (typeof incomingCalls)[number]) => {
+      if (call.dmConversationId) {
+        return `/app/messages/${call.dmConversationId}`;
+      }
+
+      if (call.hubId && call.lobbyId) {
+        return `/app/hubs/${call.hubId}/lobbies/${call.lobbyId}`;
+      }
+
+      return "/app";
+    },
+    [incomingCalls],
+  );
 
   const markMessageHandled = useCallback((messageId: string) => {
     if (handledMessageIdsRef.current.has(messageId)) {
@@ -365,6 +572,8 @@ export function NotificationSoundManager({
     if (!getAudioContextCtor()) {
       setAudioState("unsupported");
     }
+
+    setNotificationPermission(getBrowserNotificationState());
   }, []);
 
   useEffect(() => {
@@ -439,6 +648,7 @@ export function NotificationSoundManager({
 
     const unlockFromGesture = () => {
       void unlockAudio("user-gesture");
+      void requestNotificationPermission("user-gesture");
     };
 
     const listenerOptions = { passive: true } as const;
@@ -453,7 +663,7 @@ export function NotificationSoundManager({
       window.removeEventListener("mousedown", unlockFromGesture);
       window.removeEventListener("keydown", unlockFromGesture);
     };
-  }, [audioState, unlockAudio]);
+  }, [audioState, requestNotificationPermission, unlockAudio]);
 
   useEffect(() => {
     if (!latestDmSignal) {
@@ -500,12 +710,25 @@ export function NotificationSoundManager({
       return;
     }
 
-    const sameConversationInFocus =
+    const isForeground = isAppInForeground();
+    const sameConversationOpen =
       route.section === "messages" &&
-      route.conversationId === latestDmSignal.conversationId &&
-      typeof document !== "undefined" &&
-      document.visibilityState === "visible" &&
-      document.hasFocus();
+      route.conversationId === latestDmSignal.conversationId;
+    const sameConversationInFocus = sameConversationOpen && isForeground;
+
+    if (!sameConversationInFocus) {
+      const author = latestDmSignal.message.author;
+
+      void showDesktopNotification({
+        body: trimNotificationBody(
+          latestDmSignal.message.content,
+          `Новое сообщение от @${author.username}`,
+        ),
+        key: `message:${latestDmSignal.message.id}`,
+        route: `/app/messages/${latestDmSignal.conversationId}`,
+        title: author.profile.displayName,
+      });
+    }
 
     if (sameConversationInFocus) {
       logDebug("skip-message-active-thread", {
@@ -542,15 +765,18 @@ export function NotificationSoundManager({
     latestDmSignal,
     logDebug,
     markMessageHandled,
+    isAppInForeground,
     playMessageSound,
     route.conversationId,
     route.section,
+    showDesktopNotification,
     viewerId,
     warnOnce,
   ]);
 
   useEffect(() => {
     if (session) {
+      closeDesktopNotificationsByPrefix("call:", "active-session");
       stopRingtone("active-session");
       return;
     }
@@ -558,6 +784,7 @@ export function NotificationSoundManager({
     const incomingCall = incomingCalls[0] ?? null;
 
     if (!incomingCall) {
+      closeDesktopNotificationsByPrefix("call:", "no-incoming-call");
       stopRingtone("no-incoming-call");
       return;
     }
@@ -568,6 +795,7 @@ export function NotificationSoundManager({
         : null) ?? defaults.dmNotificationDefault;
 
     if (!notificationAllowsSound(notificationSetting)) {
+      closeDesktopNotification(`call:${incomingCall.id}`, "call-muted-by-setting");
       stopRingtone("call-muted-by-setting");
       logDebug("skip-ringtone-by-setting", {
         callId: incomingCall.id,
@@ -576,20 +804,65 @@ export function NotificationSoundManager({
       return;
     }
 
+    const isForeground = isAppInForeground();
+    const targetRoute = buildCallNotificationRoute(incomingCall);
+    const sameCallContextVisible =
+      isForeground &&
+      (
+        (incomingCall.dmConversationId &&
+          route.section === "messages" &&
+          route.conversationId === incomingCall.dmConversationId) ||
+        (incomingCall.hubId &&
+          incomingCall.lobbyId &&
+          route.section === "hubs" &&
+          route.hubId === incomingCall.hubId &&
+          route.lobbyId === incomingCall.lobbyId)
+      );
+
+    if (!sameCallContextVisible) {
+      const caller = incomingCall.initiatedBy;
+
+      void showDesktopNotification({
+        body: `${caller.profile.displayName} звонит вам`,
+        key: `call:${incomingCall.id}`,
+        requireInteraction: true,
+        route: targetRoute,
+        title: "Входящий звонок",
+      });
+    } else {
+      closeDesktopNotification(`call:${incomingCall.id}`, "call-context-visible");
+    }
+
     startRingtone(incomingCall.id);
   }, [
     audioState,
+    buildCallNotificationRoute,
+    closeDesktopNotification,
+    closeDesktopNotificationsByPrefix,
     defaults.dmNotificationDefault,
     incomingCalls,
+    isAppInForeground,
     logDebug,
+    route.conversationId,
+    route.hubId,
+    route.lobbyId,
+    route.section,
     settingsVersion,
     session,
+    showDesktopNotification,
     startRingtone,
     stopRingtone,
   ]);
 
   useEffect(() => {
-    if (!latestSignal || latestSignal.call.id !== ringtoneCallIdRef.current) {
+    if (!latestSignal) {
+      return;
+    }
+
+    const callNotificationKey = `call:${latestSignal.call.id}`;
+    const hasTrackedCallNotification = desktopNotificationsRef.current.has(callNotificationKey);
+
+    if (latestSignal.call.id !== ringtoneCallIdRef.current && !hasTrackedCallNotification) {
       return;
     }
 
@@ -601,9 +874,10 @@ export function NotificationSoundManager({
       viewerParticipant?.state === "INVITED";
 
     if (!shouldContinueRinging) {
+      closeDesktopNotification(callNotificationKey, "call-signal-updated");
       stopRingtone("call-signal-updated");
     }
-  }, [latestSignal, stopRingtone, viewerId]);
+  }, [closeDesktopNotification, latestSignal, stopRingtone, viewerId]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -655,6 +929,8 @@ export function NotificationSoundManager({
 
   useEffect(() => {
     return () => {
+      closeDesktopNotificationsByPrefix("message:", "unmount");
+      closeDesktopNotificationsByPrefix("call:", "unmount");
       stopRingtone("unmount");
       clearSoundBucket("fx");
 
@@ -662,7 +938,7 @@ export function NotificationSoundManager({
       audioContextRef.current = null;
       void audioContext?.close().catch(() => undefined);
     };
-  }, [clearSoundBucket, stopRingtone]);
+  }, [clearSoundBucket, closeDesktopNotificationsByPrefix, stopRingtone]);
 
   return null;
 }

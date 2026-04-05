@@ -123,6 +123,33 @@ interface ParticipantPresenceView {
   connectionQuality: string;
 }
 
+const screenShareSourceTokens = new Set(
+  [
+    Track.Source.ScreenShare,
+    "screen",
+    "screen_share",
+    "screenshare",
+  ].map((value) => String(value).toLowerCase()),
+);
+
+function normalizeTrackSourceValue(source: unknown) {
+  return String(source ?? "unknown").trim().toLowerCase();
+}
+
+function isScreenShareSource(source: unknown) {
+  const normalizedSource = normalizeTrackSourceValue(source);
+
+  if (screenShareSourceTokens.has(normalizedSource)) {
+    return true;
+  }
+
+  return (
+    normalizedSource.includes("screen_share") ||
+    normalizedSource.includes("screenshare") ||
+    normalizedSource.includes("screen")
+  );
+}
+
 interface CallSessionContextValue {
   session: ActiveCallSession | null;
   status: CallConnectionStatus;
@@ -185,11 +212,13 @@ function collectTrackViews(room: Room) {
         continue;
       }
 
+      const source = publication.source ?? publication.track.source ?? "unknown";
+
       items.push({
         id: `${participant.identity}:${publication.trackSid ?? publication.source}`,
         participantId: participant.identity,
         participantName: participant.name || participant.identity,
-        source: String(publication.source ?? "unknown"),
+        source: String(source),
         kind: publication.track.kind === Track.Kind.Video ? "video" : "audio",
         isLocal,
         track: publication.track,
@@ -215,13 +244,14 @@ function collectTrackViews(room: Room) {
     ),
     hasScreenShare: localPublications.some(
       (publication) =>
-        publication.source === Track.Source.ScreenShare && publication.track,
+        publication.track?.kind === Track.Kind.Video &&
+        isScreenShareSource(publication.source ?? publication.track?.source),
     ),
   };
 }
 
 function isScreenShareTrack(item: TrackView) {
-  return item.source.toLowerCase().includes("screen");
+  return item.kind === "video" && isScreenShareSource(item.source);
 }
 
 
@@ -846,6 +876,8 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
     const trackedEvents = [
       RoomEvent.Connected,
       RoomEvent.Reconnected,
+      RoomEvent.TrackPublished,
+      RoomEvent.TrackUnpublished,
       RoomEvent.TrackSubscribed,
       RoomEvent.TrackUnsubscribed,
       RoomEvent.ParticipantConnected,
@@ -1041,8 +1073,21 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    await room.localParticipant.setScreenShareEnabled(!screenShareEnabled);
-    setScreenShareEnabled(!screenShareEnabled);
+    const nextScreenShareEnabled = !screenShareEnabled;
+
+    try {
+      await room.localParticipant.setScreenShareEnabled(nextScreenShareEnabled);
+      setScreenShareEnabled(nextScreenShareEnabled);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Не удалось изменить показ экрана.";
+
+      if (!/cancel|abort|denied|permission/i.test(message)) {
+        setErrorMessage(message);
+      }
+    } finally {
+      roomStateSyncRef.current?.();
+    }
   }, [screenShareEnabled, session?.connection.canPublishMedia]);
 
   const participantCount = useMemo(() => {
@@ -1920,18 +1965,22 @@ export function CallRoomCanvas({
   );
   const isConversation = variant === "conversation";
   const hasScreenShare = screenTracks.length > 0;
+  const screenShareActive =
+    hasScreenShare ||
+    screenShareEnabled ||
+    participants.some((participant) => participant.hasScreenShare);
   const stageExpanded =
-    hasScreenShare && (isConversation || isScreenStageExpanded || isScreenFocusMode);
-  const showFocusedStage = !isConversation && hasScreenShare && isScreenFocusMode;
+    screenShareActive && (isConversation || isScreenStageExpanded || isScreenFocusMode);
+  const showFocusedStage = !isConversation && screenShareActive && isScreenFocusMode;
   const showConversationPanels =
-    !isConversation || !hasScreenShare || secondaryPanelsVisible;
+    !isConversation || !screenShareActive || secondaryPanelsVisible;
 
-  const stageSubtitle = screenTracks.length > 0
+  const stageSubtitle = screenShareActive
     ? "Идёт показ экрана."
     : description;
 
   useEffect(() => {
-    if (!activeSession || !hasScreenShare) {
+    if (!activeSession || !screenShareActive) {
       setIsScreenStageExpanded(false);
       setIsScreenFocusMode(false);
       setSecondaryPanelsVisible(true);
@@ -1945,7 +1994,7 @@ export function CallRoomCanvas({
       setIsScreenFocusMode(false);
       setSecondaryPanelsVisible(false);
     }
-  }, [activeSession, hasScreenShare, isConversation]);
+  }, [activeSession, isConversation, screenShareActive]);
 
   useEffect(() => {
     function handleFullscreenChange() {
@@ -1989,7 +2038,7 @@ export function CallRoomCanvas({
       {isConversation ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <div className="flex flex-wrap items-center gap-1.5">
-            {hasScreenShare ? (
+            {screenShareActive ? (
               <span className="status-pill">
                 <Monitor size={14} strokeWidth={1.5} />
                 Экран
@@ -2037,7 +2086,7 @@ export function CallRoomCanvas({
               )}
               Экран
             </Button>
-            {hasScreenShare ? (
+            {screenShareActive ? (
               <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
                 <Button
                   size="sm"
@@ -2055,7 +2104,7 @@ export function CallRoomCanvas({
                 </Button>
               </div>
             ) : null}
-            {hasScreenShare ? (
+            {screenShareActive ? (
               <Button
                 size="sm"
                 variant={secondaryPanelsVisible ? "secondary" : "ghost"}
@@ -2173,13 +2222,13 @@ export function CallRoomCanvas({
             ? showConversationPanels
               ? "lg:grid-cols-[minmax(0,1fr)_248px]"
               : "grid-cols-1"
-            : hasScreenShare
+            : screenShareActive
               ? "flex-1 xl:grid-cols-[minmax(0,1.45fr)_300px]"
               : "flex-1 xl:grid-cols-[minmax(0,1fr)_320px]",
         )}
       >
         <div className={cn("min-h-0", isConversation ? "space-y-2.5" : "space-y-3")}>
-          {!isConversation && hasScreenShare ? (
+          {!isConversation && screenShareActive ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
               <span className="status-pill">
                 <Monitor size={14} strokeWidth={1.5} />
