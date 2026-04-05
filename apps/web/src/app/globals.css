@@ -536,6 +536,21 @@ textarea {
   box-shadow: 0 0 0 3px var(--ring);
 }
 
+.call-danger-button {
+  border-color: rgba(255, 122, 136, 0.16) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 122, 136, 0.16), rgba(255, 122, 136, 0.1)) !important;
+  color: #ffe5e8 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.call-danger-button:hover {
+  border-color: rgba(255, 122, 136, 0.24) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 122, 136, 0.22), rgba(255, 122, 136, 0.14)) !important;
+  color: #fff5f6 !important;
+}
+
 .thread-rule {
   height: 1px;
   background: rgba(255, 255, 255, 0.08);

@@ -1270,6 +1270,37 @@ function TrackSurface({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isScreen = isScreenShareTrack(item);
   const isVideoTrack = item.kind === "video";
+  const surfaceSizingClassName = isScreen
+    ? emphasis === "stage"
+      ? cn(
+          "aspect-[16/10] rounded-[22px]",
+          expanded
+            ? "min-h-[420px] xl:min-h-[620px]"
+            : "min-h-[340px] xl:min-h-[480px]",
+        )
+      : emphasis === "conversation"
+        ? cn(
+            "aspect-[16/10] rounded-[20px] max-h-[72vh]",
+            expanded
+              ? "min-h-[300px] lg:min-h-[420px]"
+              : "min-h-[240px] lg:min-h-[340px]",
+          )
+        : "aspect-[16/10] min-h-[180px] rounded-[18px]"
+    : emphasis === "stage"
+      ? cn(
+          "aspect-video rounded-[22px]",
+          expanded
+            ? "min-h-[420px] xl:min-h-[620px]"
+            : "min-h-[300px] xl:min-h-[420px]",
+        )
+      : emphasis === "conversation"
+        ? cn(
+            "aspect-video rounded-[20px]",
+            expanded
+              ? "min-h-[240px] lg:min-h-[320px]"
+              : "min-h-[180px] lg:min-h-[240px]",
+          )
+        : "aspect-video min-h-[170px] rounded-[18px]";
 
   useEffect(() => {
     const container = containerRef.current;
@@ -1288,11 +1319,11 @@ function TrackSurface({
     element.className =
       isScreen
         ? screenFitMode === "cover"
-          ? "h-full w-full bg-[#04070b] object-cover object-top"
-          : "h-full w-full bg-[#04070b] object-contain"
+          ? "absolute inset-0 h-full w-full bg-[#04070b] object-cover object-center"
+          : "absolute inset-0 h-full w-full bg-[#04070b] object-contain object-center"
         : emphasis === "stage"
-          ? "h-full w-full object-cover"
-        : "h-full w-full rounded-[16px] object-cover";
+          ? "absolute inset-0 h-full w-full object-cover"
+          : "absolute inset-0 h-full w-full object-cover";
 
     item.track.attach(element);
     container.appendChild(element);
@@ -1307,25 +1338,20 @@ function TrackSurface({
   return (
     <div
       className={cn(
-        "relative overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_48%),rgba(8,12,18,0.96)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
-        emphasis === "stage"
-          ? cn(
-              "rounded-[22px]",
-              expanded
-                ? "min-h-[420px] xl:min-h-[620px]"
-                : "min-h-[300px] xl:min-h-[420px]",
-            )
-          : emphasis === "conversation"
-            ? cn(
-                "rounded-[20px]",
-                expanded
-                  ? "min-h-[260px] lg:min-h-[340px]"
-                  : "min-h-[180px] lg:min-h-[240px]",
-              )
-          : "min-h-[170px] rounded-[18px]",
+        "relative w-full overflow-hidden border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+        isScreen ? "bg-[#05080d]" : "bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_48%),rgba(8,12,18,0.96)]",
+        surfaceSizingClassName,
       )}
     >
-      {isVideoTrack ? <div ref={containerRef} className="absolute inset-0" /> : null}
+      {isVideoTrack ? (
+        <div
+          ref={containerRef}
+          className={cn(
+            "absolute inset-0 overflow-hidden",
+            isScreen && screenFitMode === "contain" && "bg-[#05080d]",
+          )}
+        />
+      ) : null}
 
       {!isVideoTrack ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.16),transparent_42%),rgba(9,14,20,0.96)] px-5 text-center">
@@ -1829,9 +1855,9 @@ export function PersistentCallDock() {
 
           <Button
             size="sm"
-            variant="destructive"
+            variant="secondary"
+            className="call-danger-button ml-auto"
             onClick={() => void leaveCall(session.call.id)}
-            className="ml-auto"
           >
             <PhoneOff size={15} strokeWidth={1.5} />
             Выйти
@@ -1873,7 +1899,7 @@ export function CallRoomCanvas({
   const [isScreenFocusMode, setIsScreenFocusMode] = useState(false);
   const [isStageFullscreen, setIsStageFullscreen] = useState(false);
   const [secondaryPanelsVisible, setSecondaryPanelsVisible] = useState(true);
-  const [screenFitMode, setScreenFitMode] = useState<ScreenShareFitMode>("cover");
+  const [screenFitMode, setScreenFitMode] = useState<ScreenShareFitMode>("contain");
   const activeSession = callId && session && session.call.id === callId ? session : null;
   const screenTracks = activeSession
     ? tracks.filter((item) => item.kind === "video" && isScreenShareTrack(item))
@@ -1894,11 +1920,14 @@ export function CallRoomCanvas({
   );
   const isConversation = variant === "conversation";
   const hasScreenShare = screenTracks.length > 0;
-  const stageExpanded = hasScreenShare && (isScreenStageExpanded || isScreenFocusMode);
-  const showFocusedStage = hasScreenShare && isScreenFocusMode;
+  const stageExpanded =
+    hasScreenShare && (isConversation || isScreenStageExpanded || isScreenFocusMode);
+  const showFocusedStage = !isConversation && hasScreenShare && isScreenFocusMode;
+  const showConversationPanels =
+    !isConversation || !hasScreenShare || secondaryPanelsVisible;
 
   const stageSubtitle = screenTracks.length > 0
-    ? "Демонстрация экрана становится главным контентом сцены, а участники и сервисные панели уходят во вторичную область."
+    ? "Идёт показ экрана."
     : description;
 
   useEffect(() => {
@@ -1906,9 +1935,17 @@ export function CallRoomCanvas({
       setIsScreenStageExpanded(false);
       setIsScreenFocusMode(false);
       setSecondaryPanelsVisible(true);
-      setScreenFitMode("cover");
+      setScreenFitMode("contain");
+      return;
     }
-  }, [activeSession, hasScreenShare]);
+
+    setScreenFitMode("contain");
+
+    if (isConversation) {
+      setIsScreenFocusMode(false);
+      setSecondaryPanelsVisible(false);
+    }
+  }, [activeSession, hasScreenShare, isConversation]);
 
   useEffect(() => {
     function handleFullscreenChange() {
@@ -1945,110 +1982,209 @@ export function CallRoomCanvas({
   return (
     <div
       className={cn(
-        "premium-panel flex min-h-0 flex-col p-3",
-        isConversation ? "shrink-0 rounded-[20px]" : "flex-1 rounded-[24px]",
+        "premium-panel flex min-h-0 flex-col overflow-hidden",
+        isConversation ? "shrink-0 rounded-[20px] p-2.5" : "flex-1 rounded-[24px] p-3",
       )}
     >
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="eyebrow-pill">{title}</span>
-            <span className="status-pill">{callModeLabels[activeSession.call.mode]}</span>
-            <span className="status-pill">{callStatusLabels[activeSession.call.status]}</span>
-            <span className="status-pill">{connectionStatusLabels[status]}</span>
-            <span className="status-pill">
-              <Users2 size={14} strokeWidth={1.5} />
-              {participantCount}
-            </span>
-            {!activeSession.connection.canPublishMedia ? (
-              <span className="status-pill">Только прослушивание</span>
+      {isConversation ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {hasScreenShare ? (
+              <span className="status-pill">
+                <Monitor size={14} strokeWidth={1.5} />
+                Экран
+              </span>
+            ) : primaryTrack ? (
+              <span className="status-pill">
+                <Video size={14} strokeWidth={1.5} />
+                Видео
+              </span>
+            ) : (
+              <span className="status-pill">
+                <Users2 size={14} strokeWidth={1.5} />
+                {participantCount}
+              </span>
+            )}
+            {status !== "connected" ? (
+              <span className="status-pill">{connectionStatusLabels[status]}</span>
             ) : null}
           </div>
-          <p className="mt-2 text-sm text-[var(--text-dim)]">{stageSubtitle}</p>
-        </div>
 
-        <div className="grid grid-cols-2 gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:grid-cols-4">
-          <Button
-            size="sm"
-            variant={microphoneEnabled ? "secondary" : "ghost"}
-            onClick={() => void toggleMicrophone()}
-            disabled={!activeSession.connection.canPublishMedia}
-            className="justify-start"
-          >
-            {microphoneEnabled ? (
-              <Mic size={15} strokeWidth={1.5} />
-            ) : (
-              <MicOff size={15} strokeWidth={1.5} />
-            )}
-            {microphoneEnabled ? "Микрофон" : "Включить микрофон"}
-          </Button>
-          <Button
-            size="sm"
-            variant={cameraEnabled ? "secondary" : "ghost"}
-            onClick={() => void toggleCamera()}
-            disabled={!activeSession.connection.canPublishMedia}
-            className="justify-start"
-          >
-            {cameraEnabled ? (
-              <Video size={15} strokeWidth={1.5} />
-            ) : (
-              <VideoOff size={15} strokeWidth={1.5} />
-            )}
-            {cameraEnabled ? "Камера" : "Включить камеру"}
-          </Button>
-          <Button
-            size="sm"
-            variant={screenShareEnabled ? "secondary" : "ghost"}
-            onClick={() => void toggleScreenShare()}
-            disabled={!activeSession.connection.canPublishMedia}
-            className="justify-start"
-          >
-            {screenShareEnabled ? (
-              <MonitorX size={15} strokeWidth={1.5} />
-            ) : (
-              <MonitorUp size={15} strokeWidth={1.5} />
-            )}
-            {screenShareEnabled ? "Остановить показ" : "Показать экран"}
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => void leaveCall(activeSession.call.id)}
-            className="justify-start"
-          >
-            <PhoneOff size={15} strokeWidth={1.5} />
-            Выйти
-          </Button>
+          <div className="flex flex-wrap gap-1.5">
+            <Button
+              size="sm"
+              variant={cameraEnabled ? "secondary" : "ghost"}
+              onClick={() => void toggleCamera()}
+              disabled={!activeSession.connection.canPublishMedia}
+            >
+              {cameraEnabled ? (
+                <Video size={15} strokeWidth={1.5} />
+              ) : (
+                <VideoOff size={15} strokeWidth={1.5} />
+              )}
+              Камера
+            </Button>
+            <Button
+              size="sm"
+              variant={screenShareEnabled ? "secondary" : "ghost"}
+              onClick={() => void toggleScreenShare()}
+              disabled={!activeSession.connection.canPublishMedia}
+            >
+              {screenShareEnabled ? (
+                <MonitorX size={15} strokeWidth={1.5} />
+              ) : (
+                <MonitorUp size={15} strokeWidth={1.5} />
+              )}
+              Экран
+            </Button>
+            {hasScreenShare ? (
+              <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
+                <Button
+                  size="sm"
+                  variant={screenFitMode === "cover" ? "secondary" : "ghost"}
+                  onClick={() => setScreenFitMode("cover")}
+                >
+                  Заполнить
+                </Button>
+                <Button
+                  size="sm"
+                  variant={screenFitMode === "contain" ? "secondary" : "ghost"}
+                  onClick={() => setScreenFitMode("contain")}
+                >
+                  Вписать
+                </Button>
+              </div>
+            ) : null}
+            {hasScreenShare ? (
+              <Button
+                size="sm"
+                variant={secondaryPanelsVisible ? "secondary" : "ghost"}
+                onClick={() => setSecondaryPanelsVisible((current) => !current)}
+              >
+                {secondaryPanelsVisible ? (
+                  <PanelRightOpen size={15} strokeWidth={1.5} />
+                ) : (
+                  <PanelRightClose size={15} strokeWidth={1.5} />
+                )}
+                {secondaryPanelsVisible ? "Скрыть панели" : "Панели"}
+              </Button>
+            ) : null}
+            <Button
+              size="sm"
+              variant={isStageFullscreen ? "secondary" : "ghost"}
+              onClick={() => void toggleStageFullscreen()}
+            >
+              {isStageFullscreen ? (
+                <Minimize2 size={15} strokeWidth={1.5} />
+              ) : (
+                <Maximize2 size={15} strokeWidth={1.5} />
+              )}
+              {isStageFullscreen ? "Свернуть" : "Во весь экран"}
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="eyebrow-pill">{title}</span>
+              <span className="status-pill">{callModeLabels[activeSession.call.mode]}</span>
+              <span className="status-pill">{callStatusLabels[activeSession.call.status]}</span>
+              <span className="status-pill">{connectionStatusLabels[status]}</span>
+              <span className="status-pill">
+                <Users2 size={14} strokeWidth={1.5} />
+                {participantCount}
+              </span>
+              {!activeSession.connection.canPublishMedia ? (
+                <span className="status-pill">Только прослушивание</span>
+              ) : null}
+            </div>
+            <p className="mt-2 text-sm text-[var(--text-dim)]">{stageSubtitle}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:grid-cols-4">
+            <Button
+              size="sm"
+              variant={microphoneEnabled ? "secondary" : "ghost"}
+              onClick={() => void toggleMicrophone()}
+              disabled={!activeSession.connection.canPublishMedia}
+              className="justify-start"
+            >
+              {microphoneEnabled ? (
+                <Mic size={15} strokeWidth={1.5} />
+              ) : (
+                <MicOff size={15} strokeWidth={1.5} />
+              )}
+              {microphoneEnabled ? "Микрофон" : "Включить микрофон"}
+            </Button>
+            <Button
+              size="sm"
+              variant={cameraEnabled ? "secondary" : "ghost"}
+              onClick={() => void toggleCamera()}
+              disabled={!activeSession.connection.canPublishMedia}
+              className="justify-start"
+            >
+              {cameraEnabled ? (
+                <Video size={15} strokeWidth={1.5} />
+              ) : (
+                <VideoOff size={15} strokeWidth={1.5} />
+              )}
+              {cameraEnabled ? "Камера" : "Включить камеру"}
+            </Button>
+            <Button
+              size="sm"
+              variant={screenShareEnabled ? "secondary" : "ghost"}
+              onClick={() => void toggleScreenShare()}
+              disabled={!activeSession.connection.canPublishMedia}
+              className="justify-start"
+            >
+              {screenShareEnabled ? (
+                <MonitorX size={15} strokeWidth={1.5} />
+              ) : (
+                <MonitorUp size={15} strokeWidth={1.5} />
+              )}
+              {screenShareEnabled ? "Остановить показ" : "Показать экран"}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="justify-start call-danger-button"
+              onClick={() => void leaveCall(activeSession.call.id)}
+            >
+              <PhoneOff size={15} strokeWidth={1.5} />
+              Выйти
+            </Button>
+          </div>
+        </div>
+      )}
 
       {errorMessage ? (
-        <div className="mt-3 rounded-[16px] border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
+        <div className="mt-2.5 rounded-[16px] border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
           {errorMessage}
         </div>
       ) : null}
 
       <div
         className={cn(
-          "mt-3 grid min-h-0 gap-3",
+          isConversation ? "mt-2.5 grid min-h-0 gap-2.5" : "mt-3 grid min-h-0 gap-3",
           showFocusedStage
             ? "grid-cols-1"
             : isConversation
-            ? "lg:grid-cols-[minmax(0,1fr)_280px]"
+            ? showConversationPanels
+              ? "lg:grid-cols-[minmax(0,1fr)_248px]"
+              : "grid-cols-1"
             : hasScreenShare
               ? "flex-1 xl:grid-cols-[minmax(0,1.45fr)_300px]"
-            : "flex-1 xl:grid-cols-[minmax(0,1fr)_320px]",
+              : "flex-1 xl:grid-cols-[minmax(0,1fr)_320px]",
         )}
       >
-        <div className="min-h-0 space-y-3">
-          {hasScreenShare ? (
-            <div className="flex flex-col gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-white">Демонстрация экрана</p>
-                <p className="mt-1 text-xs text-[var(--text-dim)]">
-                  Экран можно сделать главным content-блоком или развернуть во весь доступный stage.
-                </p>
-              </div>
+        <div className={cn("min-h-0", isConversation ? "space-y-2.5" : "space-y-3")}>
+          {!isConversation && hasScreenShare ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
+              <span className="status-pill">
+                <Monitor size={14} strokeWidth={1.5} />
+                Демонстрация экрана
+              </span>
               <div className="flex flex-wrap gap-2">
                 <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
                   <Button
@@ -2106,21 +2242,21 @@ export function CallRoomCanvas({
             </div>
           ) : null}
 
-          <div ref={stageHostRef} className={cn(isStageFullscreen && "bg-[#05080d] p-3")}>
-          {primaryTrack ? (
-            <TrackSurface
-              item={primaryTrack}
-              emphasis={isConversation ? "conversation" : "stage"}
-              expanded={stageExpanded}
-              screenFitMode={isScreenShareTrack(primaryTrack) ? screenFitMode : "contain"}
-            />
-          ) : (
-            <VoicePresenceStage
-              participants={participants.filter((participant) => participant.isConnected)}
-              participantCount={participantCount}
-              variant={variant}
-            />
-          )}
+          <div ref={stageHostRef} className={cn("min-h-0", isStageFullscreen && "bg-[#05080d] p-3")}>
+            {primaryTrack ? (
+              <TrackSurface
+                item={primaryTrack}
+                emphasis={isConversation ? "conversation" : "stage"}
+                expanded={stageExpanded}
+                screenFitMode={isScreenShareTrack(primaryTrack) ? screenFitMode : "contain"}
+              />
+            ) : (
+              <VoicePresenceStage
+                participants={participants.filter((participant) => participant.isConnected)}
+                participantCount={participantCount}
+                variant={variant}
+              />
+            )}
           </div>
 
           {secondaryVideoTracks.length > 0 ? (
@@ -2136,15 +2272,10 @@ export function CallRoomCanvas({
             </div>
           ) : null}
 
-          {showFocusedStage ? (
+          {!isConversation && showFocusedStage ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
-                <div>
-                  <p className="text-sm font-medium text-white">Вторичные панели</p>
-                  <p className="mt-0.5 text-xs text-[var(--text-dim)]">
-                    Настройки и участники не мешают экрану и раскрываются только когда нужны.
-                  </p>
-                </div>
+                <p className="text-sm font-medium text-white">Панели</p>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -2167,7 +2298,7 @@ export function CallRoomCanvas({
           ) : null}
         </div>
 
-        {!showFocusedStage ? (
+        {(isConversation ? showConversationPanels : !showFocusedStage) ? (
           <div className="flex min-h-0 flex-col gap-3">
             <AudioAndDeviceCard />
             <ParticipantsCard participants={participants} participantCount={participantCount} />

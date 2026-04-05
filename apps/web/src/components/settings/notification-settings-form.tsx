@@ -22,6 +22,7 @@ import {
 import { SelectField } from "@/components/ui/select-field";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
+import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
 
 interface NotificationSettingsFormProps {
   initialSettings: UserNotificationSettingsOverview;
@@ -64,6 +65,10 @@ export function NotificationSettingsForm({
         },
       );
       setMessage("Базовые правила уведомлений сохранены.");
+      dispatchNotificationPreferencesEvent({
+        scope: "defaults",
+        defaults,
+      });
       router.refresh();
     } catch (saveError) {
       setError(

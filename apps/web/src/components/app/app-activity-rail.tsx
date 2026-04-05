@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/compact-list";
 import { apiClientFetch } from "@/lib/api-client";
 import { parseAppPath } from "@/lib/app-shell";
+import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
 import { ConversationSettings } from "@/components/messages/conversation-settings";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import {
@@ -189,6 +190,11 @@ export function AppActivityRail({
     );
 
     setConversation(directConversationDetailSchema.parse(nextConversation).conversation);
+    dispatchNotificationPreferencesEvent({
+      scope: "conversation",
+      conversationId: route.conversationId,
+      notificationSetting: payload.notificationSetting,
+    });
   }
 
   if (!open || !available) {
