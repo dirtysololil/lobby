@@ -2,6 +2,7 @@
 
 import { ArrowLeft, BellRing, Clock3, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { MessageComposer } from "@/components/messages/message-composer";
 import {
@@ -140,7 +141,7 @@ export default function PreviewDmThreadPage() {
                 <p className="truncate text-sm font-medium tracking-tight text-white">
                   {activeContact.profile.displayName}
                 </p>
-                <span className="status-dot bg-emerald-400" />
+                <PresenceIndicator user={activeContact} compact />
                 <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                   <UserRound size={18} strokeWidth={1.5} />
                   DM

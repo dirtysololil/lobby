@@ -7,6 +7,7 @@ import {
   Users2,
 } from "lucide-react";
 import type { PublicUser } from "@lobby/shared";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 
@@ -71,13 +72,13 @@ export function PreviewShell({
           <div className="border-b border-white/5 px-3 py-3">
             <div className="flex items-center gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <UserAvatar user={viewer} size="sm" />
-              <span className="status-dot bg-emerald-400" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-white">
                   {viewer.profile.displayName}
                 </p>
                 <p className="truncate text-xs text-zinc-500">@{viewer.username}</p>
               </div>
+              <PresenceIndicator user={viewer} compact />
             </div>
           </div>
 
