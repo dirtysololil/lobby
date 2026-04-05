@@ -1868,17 +1868,13 @@ export function CallRoomCanvas({
   const [isScreenFocusMode, setIsScreenFocusMode] = useState(false);
   const [isStageFullscreen, setIsStageFullscreen] = useState(false);
   const [secondaryPanelsVisible, setSecondaryPanelsVisible] = useState(true);
-
-  if (!callId || !session || session.call.id !== callId) {
-    return null;
-  }
-
-  const screenTracks = tracks.filter(
-    (item) => item.kind === "video" && isScreenShareTrack(item),
-  );
-  const cameraTracks = tracks.filter(
-    (item) => item.kind === "video" && !isScreenShareTrack(item),
-  );
+  const activeSession = callId && session && session.call.id === callId ? session : null;
+  const screenTracks = activeSession
+    ? tracks.filter((item) => item.kind === "video" && isScreenShareTrack(item))
+    : [];
+  const cameraTracks = activeSession
+    ? tracks.filter((item) => item.kind === "video" && !isScreenShareTrack(item))
+    : [];
 
   const primaryTrack =
     screenTracks.find((item) => !item.isLocal) ??
@@ -1900,12 +1896,12 @@ export function CallRoomCanvas({
     : description;
 
   useEffect(() => {
-    if (!hasScreenShare) {
+    if (!activeSession || !hasScreenShare) {
       setIsScreenStageExpanded(false);
       setIsScreenFocusMode(false);
       setSecondaryPanelsVisible(true);
     }
-  }, [hasScreenShare]);
+  }, [activeSession, hasScreenShare]);
 
   useEffect(() => {
     function handleFullscreenChange() {
@@ -1935,6 +1931,10 @@ export function CallRoomCanvas({
     await stageHost.requestFullscreen().catch(() => undefined);
   }
 
+  if (!activeSession) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
@@ -1946,14 +1946,14 @@ export function CallRoomCanvas({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="eyebrow-pill">{title}</span>
-            <span className="status-pill">{callModeLabels[session.call.mode]}</span>
-            <span className="status-pill">{callStatusLabels[session.call.status]}</span>
+            <span className="status-pill">{callModeLabels[activeSession.call.mode]}</span>
+            <span className="status-pill">{callStatusLabels[activeSession.call.status]}</span>
             <span className="status-pill">{connectionStatusLabels[status]}</span>
             <span className="status-pill">
               <Users2 size={14} strokeWidth={1.5} />
               {participantCount}
             </span>
-            {!session.connection.canPublishMedia ? (
+            {!activeSession.connection.canPublishMedia ? (
               <span className="status-pill">Только прослушивание</span>
             ) : null}
           </div>
@@ -1965,7 +1965,7 @@ export function CallRoomCanvas({
             size="sm"
             variant={microphoneEnabled ? "secondary" : "ghost"}
             onClick={() => void toggleMicrophone()}
-            disabled={!session.connection.canPublishMedia}
+            disabled={!activeSession.connection.canPublishMedia}
             className="justify-start"
           >
             {microphoneEnabled ? (
@@ -1979,7 +1979,7 @@ export function CallRoomCanvas({
             size="sm"
             variant={cameraEnabled ? "secondary" : "ghost"}
             onClick={() => void toggleCamera()}
-            disabled={!session.connection.canPublishMedia}
+            disabled={!activeSession.connection.canPublishMedia}
             className="justify-start"
           >
             {cameraEnabled ? (
@@ -1993,7 +1993,7 @@ export function CallRoomCanvas({
             size="sm"
             variant={screenShareEnabled ? "secondary" : "ghost"}
             onClick={() => void toggleScreenShare()}
-            disabled={!session.connection.canPublishMedia}
+            disabled={!activeSession.connection.canPublishMedia}
             className="justify-start"
           >
             {screenShareEnabled ? (
@@ -2006,7 +2006,7 @@ export function CallRoomCanvas({
           <Button
             size="sm"
             variant="destructive"
-            onClick={() => void leaveCall(session.call.id)}
+            onClick={() => void leaveCall(activeSession.call.id)}
             className="justify-start"
           >
             <PhoneOff size={15} strokeWidth={1.5} />
