@@ -110,6 +110,7 @@ export const publicUserSchema = z.object({
   username: z.string(),
   email: z.string().email(),
   role: userRoleSchema,
+  isOnline: z.boolean(),
   profile: profileSchema,
   createdAt: isoDateSchema,
 });

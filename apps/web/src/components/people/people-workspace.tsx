@@ -117,7 +117,7 @@ function RelationshipRow({
             <p className="truncate text-sm font-medium leading-tight text-white">
               {user.profile.displayName}
             </p>
-            <PresenceIndicator presence={user.profile.presence} compact />
+            <PresenceIndicator user={user} compact />
             {meta}
           </div>
           <p className="mt-0.5 truncate text-xs leading-tight text-[var(--text-muted)]">

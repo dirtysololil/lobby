@@ -1,6 +1,7 @@
 import type { PublicUser } from "@lobby/shared";
 
 export type UserPresence = PublicUser["profile"]["presence"];
+export type PresenceUser = Pick<PublicUser, "isOnline" | "profile">;
 
 export const presenceDotClasses: Record<UserPresence, string> = {
   ONLINE: "bg-[var(--success)]",
@@ -16,7 +17,27 @@ export const presenceLabelMap: Record<UserPresence, string> = {
   OFFLINE: "Не в сети",
 };
 
-export function getPresenceLabel(presence: UserPresence | null | undefined): string {
+export function resolveUserPresence(
+  user: PresenceUser | null | undefined,
+): UserPresence {
+  if (!user?.isOnline) {
+    return "OFFLINE";
+  }
+
+  if (user.profile.presence === "IDLE" || user.profile.presence === "DND") {
+    return user.profile.presence;
+  }
+
+  if (user.profile.presence === "OFFLINE") {
+    return "OFFLINE";
+  }
+
+  return "ONLINE";
+}
+
+export function getPresenceLabel(
+  presence: UserPresence | null | undefined,
+): string {
   return presenceLabelMap[presence ?? "OFFLINE"];
 }
 
@@ -24,4 +45,16 @@ export function getPresenceDotClass(
   presence: UserPresence | null | undefined,
 ): string {
   return presenceDotClasses[presence ?? "OFFLINE"];
+}
+
+export function getResolvedPresenceLabel(
+  user: PresenceUser | null | undefined,
+): string {
+  return getPresenceLabel(resolveUserPresence(user));
+}
+
+export function getResolvedPresenceDotClass(
+  user: PresenceUser | null | undefined,
+): string {
+  return getPresenceDotClass(resolveUserPresence(user));
 }

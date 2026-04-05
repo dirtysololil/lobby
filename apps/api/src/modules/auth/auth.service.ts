@@ -121,7 +121,10 @@ export class AuthService {
 
     return {
       session: result.session,
-      user: toPublicUser(result.user),
+      user: toPublicUser({
+        ...result.user,
+        sessions: [{ expiresAt: result.session.expiresAt }],
+      }),
     };
   }
 
@@ -196,6 +199,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         createdAt: user.createdAt,
+        sessions: [{ expiresAt: session.expiresAt }],
         profile: {
           ...user.profile!,
           presence: PresenceStatus.ONLINE,

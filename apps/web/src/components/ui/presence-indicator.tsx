@@ -2,10 +2,15 @@
 
 import type { PublicUser } from "@lobby/shared";
 import { cn } from "@/lib/utils";
-import { getPresenceDotClass, getPresenceLabel } from "@/lib/presence";
+import {
+  getPresenceDotClass,
+  getPresenceLabel,
+  resolveUserPresence,
+} from "@/lib/presence";
 
 interface PresenceIndicatorProps {
-  presence: PublicUser["profile"]["presence"] | null | undefined;
+  presence?: PublicUser["profile"]["presence"] | null | undefined;
+  user?: PublicUser | null | undefined;
   className?: string;
   dotClassName?: string;
   compact?: boolean;
@@ -13,10 +18,13 @@ interface PresenceIndicatorProps {
 
 export function PresenceIndicator({
   presence,
+  user,
   className,
   dotClassName,
   compact = false,
 }: PresenceIndicatorProps) {
+  const resolvedPresence = user ? resolveUserPresence(user) : (presence ?? "OFFLINE");
+
   return (
     <span
       className={cn(
@@ -29,11 +37,11 @@ export function PresenceIndicator({
       <span
         className={cn(
           "status-dot h-2 w-2 border-0",
-          getPresenceDotClass(presence),
+          getPresenceDotClass(resolvedPresence),
           dotClassName,
         )}
       />
-      {getPresenceLabel(presence)}
+      {getPresenceLabel(resolvedPresence)}
     </span>
   );
 }

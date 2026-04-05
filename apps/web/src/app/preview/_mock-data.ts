@@ -6,6 +6,7 @@ function makeUser(args: {
   displayName: string;
   role?: PublicUser["role"];
   presence?: PublicUser["profile"]["presence"];
+  isOnline?: boolean;
   bio?: string | null;
 }): PublicUser {
   const now = new Date().toISOString();
@@ -15,6 +16,7 @@ function makeUser(args: {
     username: args.username,
     email: `${args.username}@lobby.local`,
     role: args.role ?? "MEMBER",
+    isOnline: args.isOnline ?? (args.presence ?? "ONLINE") !== "OFFLINE",
     createdAt: now,
     profile: {
       displayName: args.displayName,

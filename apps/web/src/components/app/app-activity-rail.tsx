@@ -254,7 +254,7 @@ export function AppActivityRail({
                             {counterpart?.profile.displayName ?? "Диалог"}
                           </p>
                           {counterpart ? (
-                            <PresenceIndicator presence={counterpart.profile.presence} compact />
+                            <PresenceIndicator user={counterpart} compact />
                           ) : null}
                         </div>
                         <p className="truncate text-xs text-[var(--text-muted)]">
@@ -328,7 +328,7 @@ export function AppActivityRail({
                       <p className="truncate text-sm text-white">
                         {member.user.profile.displayName}
                       </p>
-                      <PresenceIndicator presence={member.user.profile.presence} compact />
+                      <PresenceIndicator user={member.user} compact />
                     </div>
                     <p className="truncate text-xs text-[var(--text-muted)]">
                       @{member.user.username} · {formatRole(member.role)}

@@ -358,7 +358,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
             </p>
             <p className="truncate text-xs text-[var(--text-muted)]">@{viewer.username}</p>
           </div>
-          <PresenceIndicator presence={viewer.profile.presence} compact />
+          <PresenceIndicator user={viewer} compact />
         </div>
       </div>
 
