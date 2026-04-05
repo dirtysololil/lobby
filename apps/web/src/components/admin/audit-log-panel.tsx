@@ -13,14 +13,14 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
     <section className="premium-panel rounded-[24px] p-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
         <div>
-          <p className="text-sm font-medium text-white">Audit stream</p>
+          <p className="text-sm font-medium text-white">Поток аудита</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            A compact operational record of platform actions and automated events.
+            Компактный журнал действий платформы и автоматических событий.
           </p>
         </div>
         <span className="status-pill">
           <ScrollText {...iconProps} />
-          {response.items.length} events
+          {response.items.length} событий
         </span>
       </div>
 
@@ -28,8 +28,8 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
         {response.items.length === 0 ? (
           <EmptyState
             className="py-10"
-            title="No audit entries found"
-            description="Adjust the filters to bring more of the stream into view."
+            title="Записей аудита не найдено"
+            description="Измените фильтры, чтобы показать больше событий."
           />
         ) : (
           response.items.map((item) => (
@@ -44,11 +44,11 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
               <p className="mt-2 text-sm text-[var(--text-dim)]">
                 {item.actor
                   ? `${item.actor.profile.displayName} (@${item.actor.username})`
-                  : "System"}{" "}
-                / {new Date(item.createdAt).toLocaleString()}
+                  : "Система"}{" "}
+                / {new Date(item.createdAt).toLocaleString("ru-RU")}
               </p>
               <p className="mt-1 break-all text-xs text-[var(--text-muted)]">
-                entityId {item.entityId ?? "n/a"} / ip {item.ipAddress ?? "n/a"}
+                entityId {item.entityId ?? "н/д"} / ip {item.ipAddress ?? "н/д"}
               </p>
               {item.metadata ? (
                 <pre className="mt-3 overflow-x-auto rounded-[16px] border border-[var(--border-soft)] bg-[var(--bg-panel-muted)] p-3 text-xs leading-5 text-[var(--text-soft)]">
@@ -63,7 +63,7 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
       <div className="px-4 py-3 text-sm text-[var(--text-dim)]">
         <span className="inline-flex items-center gap-2 text-white">
           <Sparkles {...iconProps} className="text-[var(--accent)]" />
-          Keep operational review fast, searchable and close to the actual surface.
+          Держите операционный обзор быстрым, прозрачным и рядом с рабочей поверхностью.
         </span>
       </div>
     </section>

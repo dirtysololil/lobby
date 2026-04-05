@@ -84,45 +84,45 @@ export function getSectionMeta(route: AppRouteState) {
   switch (route.section) {
     case "people":
       return {
-        label: "People",
-        title: "People",
-        description: "Friends, requests and discovery.",
+        label: "Люди",
+        title: "Люди",
+        description: "Друзья, заявки и поиск новых контактов.",
       };
     case "messages":
       return route.conversationId
         ? {
-            label: "Chat",
-            title: "Conversation",
-            description: "Private chat, call state and message history.",
+            label: "Чат",
+            title: "Диалог",
+            description: "Личная переписка, звонок и история сообщений.",
           }
         : {
-            label: "Inbox",
-            title: "Recent Chats",
-            description: "Recent conversations and direct lines.",
+            label: "Входящие",
+            title: "Недавние диалоги",
+            description: "Актуальные переписки и быстрый вход в личные сообщения.",
           };
     case "hubs":
       return route.hubId
         ? {
-            label: "Hub",
-            title: "Hub Space",
-            description: "Channels, members and community flow.",
+            label: "Хаб",
+            title: "Пространство хаба",
+            description: "Каналы, участники и общий ритм сообщества.",
           }
         : {
-            label: "Hubs",
-            title: "Hubs",
-            description: "Spaces, invites and channel structure.",
+            label: "Хабы",
+            title: "Хабы",
+            description: "Пространства, инвайты и структура каналов.",
           };
     case "settings":
       return {
-        label: "Settings",
-        title: "Settings",
-        description: "Profile, presence and notification rules.",
+        label: "Настройки",
+        title: "Настройки",
+        description: "Профиль, присутствие и правила уведомлений.",
       };
     case "admin":
       return {
-        label: "Admin",
-        title: "Control",
-        description: "Internal moderation and platform operations.",
+        label: "Админка",
+        title: "Управление",
+        description: "Модерация и служебные операции платформы.",
       };
   }
 }

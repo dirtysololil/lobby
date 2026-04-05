@@ -11,13 +11,13 @@ import {
 } from "@lobby/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { DmCallPanel } from "@/components/calls/dm-call-panel";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import { sortDirectMessages } from "@/lib/direct-message-state";
 import { dmRetentionLabels } from "@/lib/ui-labels";
-import { cn } from "@/lib/utils";
 import { ConversationSettings } from "./conversation-settings";
 import { MessageComposer } from "./message-composer";
 import { MessageThread, type ThreadMessageItem } from "./message-thread";
@@ -34,19 +34,6 @@ type PendingReadState = {
 };
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
-
-function getPresenceTone(presence: string | null | undefined) {
-  switch (presence) {
-    case "ONLINE":
-      return "bg-emerald-400";
-    case "IDLE":
-      return "bg-amber-400";
-    case "DND":
-      return "bg-rose-400";
-    default:
-      return "bg-zinc-500";
-  }
-}
 
 function stripConversationMessages(
   conversation: DirectConversationDetail["conversation"],
@@ -455,9 +442,7 @@ export function ConversationView({
                 <p className="truncate text-sm font-medium tracking-tight text-white">
                   {counterpart.profile.displayName}
                 </p>
-                <span
-                  className={cn("status-dot", getPresenceTone(counterpart.profile.presence))}
-                />
+                <PresenceIndicator presence={counterpart.profile.presence} compact />
                 <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                   <UserRound {...iconProps} />
                   ЛС

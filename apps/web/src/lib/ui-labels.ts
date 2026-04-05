@@ -29,13 +29,13 @@ export const callModeLabels: Record<CallMode, string> = {
 export const callStatusLabels: Record<CallStatus, string> = {
   RINGING: "Звонок",
   ACCEPTED: "Активен",
-  DECLINED: "Отклонён",
-  ENDED: "Завершён",
+  DECLINED: "Отклонен",
+  ENDED: "Завершен",
   MISSED: "Пропущен",
 };
 
 export const callParticipantStateLabels: Record<CallParticipantState, string> = {
-  INVITED: "Приглашён",
+  INVITED: "Приглашен",
   ACCEPTED: "Принял",
   JOINED: "В комнате",
   DECLINED: "Отклонил",

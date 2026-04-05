@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { SelectField } from "@/components/ui/select-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -29,9 +30,9 @@ type InviteFormValues = {
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 const roleOptions: InviteFormValues["role"][] = ["MEMBER", "ADMIN", "OWNER"];
 const roleLabels: Record<InviteFormValues["role"], string> = {
-  MEMBER: "Member",
-  ADMIN: "Admin",
-  OWNER: "Owner",
+  MEMBER: "Участник",
+  ADMIN: "Администратор",
+  OWNER: "Владелец",
 };
 
 export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
@@ -65,14 +66,14 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
       );
 
       setLatestRawCode(response.rawCode);
-      setMessage("Invite key created.");
+      setMessage("Инвайт создан.");
       form.reset({ label: "", role: values.role, maxUses: 1, expiresAt: "" });
       router.refresh();
     } catch (submissionError) {
       setError(
         submissionError instanceof Error
           ? submissionError.message
-          : "Unable to create an invite key.",
+          : "Не удалось создать инвайт.",
       );
     }
   }
@@ -85,13 +86,13 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
       await apiClientFetch(`/v1/invites/${inviteId}/revoke`, {
         method: "POST",
       });
-      setMessage("Invite key revoked.");
+      setMessage("Инвайт отозван.");
       router.refresh();
     } catch (revokeError) {
       setError(
         revokeError instanceof Error
           ? revokeError.message
-          : "Unable to revoke this invite key.",
+          : "Не удалось отозвать этот инвайт.",
       );
     }
   }
@@ -105,42 +106,38 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
         <div className="flex flex-wrap items-center gap-2">
           <span className="eyebrow-pill">
             <KeyRound {...iconProps} />
-            New invite
+            Новый инвайт
           </span>
           <span className="status-pill">
             <ShieldCheck {...iconProps} />
-            Controlled access
+            Контролируемый доступ
           </span>
         </div>
 
         <div className="mt-5 grid gap-3">
           <div className="grid gap-2">
-            <Label htmlFor="label">Label</Label>
+            <Label htmlFor="label">Метка</Label>
             <Input
               id="label"
-              placeholder="Partner launch wave"
+              placeholder="Партнерская волна запуска"
               {...form.register("label")}
             />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="role">Role</Label>
-              <select
-                id="role"
-                className="field-select text-sm"
-                {...form.register("role")}
-              >
+              <Label htmlFor="role">Роль</Label>
+              <SelectField id="role" {...form.register("role")}>
                 {roleOptions.map((option) => (
                   <option key={option} value={option}>
                     {roleLabels[option]}
                   </option>
                 ))}
-              </select>
+              </SelectField>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="maxUses">Usage limit</Label>
+              <Label htmlFor="maxUses">Лимит использований</Label>
               <Input
                 id="maxUses"
                 type="number"
@@ -152,26 +149,26 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="expiresAt">Expires at</Label>
+            <Label htmlFor="expiresAt">Истекает</Label>
             <Input
               id="expiresAt"
               type="datetime-local"
               {...form.register("expiresAt")}
             />
             <p className="text-xs text-[var(--text-muted)]">
-              Leave empty to keep the key active until it is revoked or fully used.
+              Оставьте пустым, чтобы ключ работал до отзыва или полного расходования.
             </p>
           </div>
 
           <div className="surface-subtle rounded-[18px] px-4 py-3 text-sm text-[var(--text-dim)]">
-            A single key defines role, lifetime and usage window for the onboarding flow.
+            Один ключ сразу задает роль, срок жизни и окно использования для онбординга.
           </div>
         </div>
 
         {latestRawCode ? (
           <div className="mt-5 rounded-[18px] border border-emerald-300/15 bg-emerald-300/[0.06] p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-emerald-100/75">
-              Raw invite code
+              Исходный код инвайта
             </p>
             <p className="mt-2 break-all font-mono text-sm text-white">
               {latestRawCode}
@@ -184,10 +181,10 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
 
         <div className="mt-5 flex gap-2">
           <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Creating..." : "Create invite"}
+            {form.formState.isSubmitting ? "Создаем..." : "Создать инвайт"}
           </Button>
           <Button type="button" variant="secondary" onClick={() => router.refresh()}>
-            Refresh
+            Обновить
           </Button>
         </div>
       </form>
@@ -195,14 +192,14 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
       <section className="premium-panel rounded-[24px] p-0">
         <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
           <div>
-            <p className="text-sm font-medium text-white">Recent invite keys</p>
+            <p className="text-sm font-medium text-white">Последние инвайты</p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Keep onboarding tightly controlled and easy to audit.
+              Держите онбординг под контролем и без лишнего шума.
             </p>
           </div>
           <span className="status-pill">
             <Sparkles {...iconProps} />
-            {invites.length} live
+            {invites.length} активных
           </span>
         </div>
 
@@ -210,8 +207,8 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
           {invites.length === 0 ? (
             <EmptyState
               className="py-10"
-              title="No invite keys yet"
-              description="Create the first invite when you are ready to onboard a new segment."
+              title="Инвайтов пока нет"
+              description="Создайте первый инвайт, когда будете готовы подключать новую группу."
             />
           ) : (
             invites.map((invite) => (
@@ -222,19 +219,19 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-medium text-white">
-                      {invite.label ?? "Untitled invite"}
+                      {invite.label ?? "Инвайт без названия"}
                     </p>
                     <span className="glass-badge">{roleLabels[invite.role]}</span>
                   </div>
                   <p className="mt-1 text-xs text-[var(--text-dim)]">
-                    Uses {invite.usedCount}/{invite.maxUses}
+                    Использований {invite.usedCount}/{invite.maxUses}
                   </p>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
                     {invite.revokedAt
-                      ? `Revoked ${new Date(invite.revokedAt).toLocaleString()}`
+                      ? `Отозван ${new Date(invite.revokedAt).toLocaleString("ru-RU")}`
                       : invite.expiresAt
-                        ? `Expires ${new Date(invite.expiresAt).toLocaleString()}`
-                        : "No expiry limit"}
+                        ? `Истекает ${new Date(invite.expiresAt).toLocaleString("ru-RU")}`
+                        : "Без срока действия"}
                   </p>
                 </div>
 
@@ -244,7 +241,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
                     onClick={() => void revokeInvite(invite.id)}
                     disabled={Boolean(invite.revokedAt)}
                   >
-                    {invite.revokedAt ? "Revoked" : "Revoke"}
+                    {invite.revokedAt ? "Отозван" : "Отозвать"}
                   </Button>
                 </div>
               </div>

@@ -5,9 +5,9 @@ import { fetchServerApi } from "@/lib/server-api";
 import { requireAdminViewer } from "@/lib/server-session";
 
 const roleLabels: Record<string, string> = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  MEMBER: "Member",
+  OWNER: "Владелец",
+  ADMIN: "Администратор",
+  MEMBER: "Участник",
 };
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
@@ -25,19 +25,19 @@ export default async function AdminPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="eyebrow-pill">
                 <ShieldCheck {...iconProps} />
-                Admin
+                Админка
               </span>
               <span className="status-pill">
                 <UsersRound {...iconProps} />
-                Internal control
+                Контроль сервиса
               </span>
             </div>
             <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
-              Service control surface
+              Панель управления сервисом
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
-              Operational metrics, invite flow and the compact controls needed to keep
-              Lobby healthy without pulling focus from daily communication.
+              Операционные метрики, инвайты и компактные инструменты модерации без
+              лишнего шума вокруг повседневного общения.
             </p>
           </div>
         </div>
@@ -47,24 +47,24 @@ export default async function AdminPage() {
         <section className="premium-panel rounded-[26px] p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-white">Platform metrics</p>
+              <p className="text-sm font-medium text-white">Метрики платформы</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                A compact read on the current platform footprint.
+                Короткий срез текущего состояния платформы.
               </p>
             </div>
             <span className="status-pill">
               <Sparkles {...iconProps} />
-              Live snapshot
+              Живой срез
             </span>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {[
-              ["Users", overview.counts.users],
-              ["Blocked users", overview.counts.blockedUsers],
-              ["Invites", overview.counts.invites],
-              ["Hubs", overview.counts.hubs],
-              ["Audit events", overview.counts.auditEvents],
+              ["Пользователи", overview.counts.users],
+              ["Заблокированные", overview.counts.blockedUsers],
+              ["Инвайты", overview.counts.invites],
+              ["Хабы", overview.counts.hubs],
+              ["События аудита", overview.counts.auditEvents],
             ].map(([label, value]) => (
               <div key={label} className="surface-subtle rounded-[18px] px-4 py-3">
                 <p className="text-xs text-[var(--text-muted)]">{label}</p>
@@ -76,9 +76,9 @@ export default async function AdminPage() {
 
         <section className="premium-panel rounded-[26px] p-0">
           <div className="border-b border-[var(--border)] px-4 py-3">
-            <p className="text-sm font-medium text-white">Recent invite keys</p>
+            <p className="text-sm font-medium text-white">Последние инвайты</p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              The latest onboarding channels issued from admin.
+              Последние каналы доступа, выпущенные из админки.
             </p>
           </div>
 
@@ -86,8 +86,8 @@ export default async function AdminPage() {
             {overview.recentInvites.length === 0 ? (
               <EmptyState
                 className="py-10"
-                title="No invite keys yet"
-                description="Create the first invite to start onboarding through the control surface."
+                title="Инвайтов пока нет"
+                description="Создайте первый инвайт, чтобы открыть управляемый доступ."
               />
             ) : (
               overview.recentInvites.map((invite) => (
@@ -96,7 +96,7 @@ export default async function AdminPage() {
                   className="border-b border-[var(--border-soft)] px-4 py-3 transition-colors hover:bg-[var(--bg-hover)]"
                 >
                   <p className="text-sm font-medium text-white">
-                    {invite.label ?? "Untitled invite"}
+                    {invite.label ?? "Инвайт без названия"}
                   </p>
                   <p className="mt-1 text-xs text-[var(--text-dim)]">
                     {roleLabels[invite.role] ?? invite.role} / {invite.usedCount}/{invite.maxUses}

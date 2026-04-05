@@ -16,7 +16,7 @@ function getSingleValue(value: string | string[] | undefined): string {
 }
 
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
-  await requireAdminViewer();
+  const viewer = await requireAdminViewer();
   const query = getSingleValue(searchParams?.query);
   const role = getSingleValue(searchParams?.role);
   const blocked = getSingleValue(searchParams?.blocked) || "all";
@@ -39,6 +39,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
 
   return (
     <UsersAdminPanel
+      viewer={viewer}
       response={response}
       filters={{
         query,

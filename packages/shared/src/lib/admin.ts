@@ -67,6 +67,12 @@ export type AdminUserDetailResponse = z.infer<
   typeof adminUserDetailResponseSchema
 >;
 
+export const updateAdminUserRoleSchema = z.object({
+  role: userRoleSchema,
+});
+
+export type UpdateAdminUserRoleInput = z.infer<typeof updateAdminUserRoleSchema>;
+
 export const upsertPlatformBlockSchema = z.object({
   reason: z.string().trim().max(240).nullable().optional(),
 });

@@ -26,6 +26,7 @@ import {
   type PublicUser,
 } from "@lobby/shared";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   CompactList,
@@ -52,22 +53,22 @@ interface AppContextRailProps {
 }
 
 const settingsLinks = [
-  { href: "/app/settings/profile", label: "Profile" },
-  { href: "/app/settings/notifications", label: "Notifications" },
+  { href: "/app/settings/profile", label: "Профиль" },
+  { href: "/app/settings/notifications", label: "Уведомления" },
 ] as const;
 
 const adminLinks = [
-  { href: "/app/admin", label: "Overview" },
-  { href: "/app/admin/users", label: "Users" },
-  { href: "/app/admin/invites", label: "Invites" },
-  { href: "/app/admin/audit", label: "Audit" },
+  { href: "/app/admin", label: "Обзор" },
+  { href: "/app/admin/users", label: "Пользователи" },
+  { href: "/app/admin/invites", label: "Инвайты" },
+  { href: "/app/admin/audit", label: "Аудит" },
 ] as const;
 
 const peopleViews = [
-  { id: "friends", label: "Friends" },
-  { id: "requests", label: "Requests" },
-  { id: "discover", label: "Discover" },
-  { id: "blocked", label: "Blocked" },
+  { id: "friends", label: "Друзья" },
+  { id: "requests", label: "Заявки" },
+  { id: "discover", label: "Поиск" },
+  { id: "blocked", label: "Блокировки" },
 ] as const;
 
 const railIconProps = { size: 18, strokeWidth: 1.5 } as const;
@@ -75,26 +76,26 @@ const railIconProps = { size: 18, strokeWidth: 1.5 } as const;
 function formatMembershipRole(role: string | null | undefined) {
   switch (role) {
     case "OWNER":
-      return "Owner";
+      return "Владелец";
     case "ADMIN":
-      return "Admin";
+      return "Администратор";
     case "MEMBER":
-      return "Member";
+      return "Участник";
     case "GUEST":
-      return "Guest";
+      return "Гость";
     default:
-      return role ?? "Member";
+      return role ?? "Участник";
   }
 }
 
 function formatLobbyType(type: string) {
   switch (type) {
     case "TEXT":
-      return "Text";
+      return "Текст";
     case "VOICE":
-      return "Voice";
+      return "Голос";
     case "FORUM":
-      return "Forum";
+      return "Форум";
     default:
       return type;
   }
@@ -332,15 +333,15 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
     return [
       {
-        label: "Text",
+        label: "Текстовые",
         items: hub.lobbies.filter((item) => item.type === "TEXT"),
       },
       {
-        label: "Voice",
+        label: "Голосовые",
         items: hub.lobbies.filter((item) => item.type === "VOICE"),
       },
       {
-        label: "Forum",
+        label: "Форумы",
         items: hub.lobbies.filter((item) => item.type === "FORUM"),
       },
     ].filter((group) => group.items.length > 0);
@@ -357,7 +358,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
             </p>
             <p className="truncate text-xs text-[var(--text-muted)]">@{viewer.username}</p>
           </div>
-          <span className="status-dot bg-emerald-400" />
+          <PresenceIndicator presence={viewer.profile.presence} compact />
         </div>
       </div>
 
@@ -365,20 +366,20 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "messages" ? (
           <div>
             <CompactListHeader>
-              <span>Messages</span>
+              <span>Диалоги</span>
               <Link
                 href="/app/people?view=discover"
                 className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
               >
                 <UserRoundPlus {...railIconProps} />
-                New
+                Новое
               </Link>
             </CompactListHeader>
 
             {loadingLabel === "messages" ? (
-              <RailEmpty>Loading conversations...</RailEmpty>
+              <RailEmpty>Загружаем диалоги...</RailEmpty>
             ) : conversations.length === 0 ? (
-              <RailEmpty>No direct threads yet.</RailEmpty>
+              <RailEmpty>Личных диалогов пока нет.</RailEmpty>
             ) : (
               <CompactList>
                 {conversations.map((conversation) => {
@@ -394,8 +395,8 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                       label={conversation.counterpart.profile.displayName}
                       detail={
                         conversation.lastMessage?.isDeleted
-                          ? "Last message deleted"
-                          : (conversation.lastMessage?.content ?? "No messages yet")
+                          ? "Последнее сообщение удалено"
+                          : (conversation.lastMessage?.content ?? "Сообщений пока нет")
                       }
                       meta={
                         conversation.unreadCount > 0 ? (
@@ -413,20 +414,20 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "hubs" && !route.hubId ? (
           <div>
             <CompactListHeader>
-              <span>Hubs</span>
+              <span>Хабы</span>
               <Link
                 href="/app/hubs"
                 className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
               >
                 <Layers3 {...railIconProps} />
-                All
+                Все
               </Link>
             </CompactListHeader>
 
             {loadingLabel === "hubs" ? (
-              <RailEmpty>Loading hubs...</RailEmpty>
+              <RailEmpty>Загружаем хабы...</RailEmpty>
             ) : hubs.length === 0 ? (
-              <RailEmpty>Join or create a hub to see it here.</RailEmpty>
+              <RailEmpty>Присоединитесь к хабу или создайте его, чтобы увидеть список.</RailEmpty>
             ) : (
               <CompactList>
                 {hubs.map((item) => (
@@ -456,7 +457,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "hubs" && route.hubId ? (
           <div>
             <div className="px-3 py-3">
-              <p className="truncate text-sm font-medium text-white">{hub?.name ?? "Hub"}</p>
+              <p className="truncate text-sm font-medium text-white">{hub?.name ?? "Хаб"}</p>
               <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
                 {formatMembershipRole(hub?.membershipRole)}
               </p>
@@ -467,7 +468,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                 href={`/app/hubs/${route.hubId}`}
                 active={safePathname === `/app/hubs/${route.hubId}`}
                 leading={<House {...railIconProps} className="text-zinc-400" />}
-                label="Overview"
+                label="Обзор"
               />
             </CompactList>
 
@@ -513,13 +514,13 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "people" ? (
           <div>
             <CompactListHeader>
-              <span>People</span>
+              <span>Люди</span>
               <Link
                 href="/app/messages"
                 className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
               >
                 <MessageSquareMore {...railIconProps} />
-                DMs
+                Диалоги
               </Link>
             </CompactListHeader>
 
@@ -556,7 +557,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "settings" ? (
           <div>
             <CompactListHeader>
-              <span>Settings</span>
+              <span>Настройки</span>
             </CompactListHeader>
             <CompactList>
               {settingsLinks.map((item) => (
@@ -575,7 +576,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         {route.section === "admin" ? (
           <div>
             <CompactListHeader>
-              <span>Admin</span>
+              <span>Админка</span>
             </CompactListHeader>
             <CompactList>
               {adminLinks.map((item) => (
@@ -595,13 +596,13 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
       <div className="border-t border-white/5 px-3 py-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-muted)]">
-            Live
+            Звонки
           </p>
-          <CompactListMeta>{incomingCalls.length} active</CompactListMeta>
+          <CompactListMeta>{incomingCalls.length} активных</CompactListMeta>
         </div>
         <div className="mt-2 rounded-[16px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
           <p className="truncate text-sm text-zinc-100">
-            {latestSignal ? callStatusLabels[latestSignal.call.status] : "Standing by"}
+            {latestSignal ? callStatusLabels[latestSignal.call.status] : "Ожидание"}
           </p>
         </div>
       </div>

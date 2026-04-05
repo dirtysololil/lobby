@@ -24,10 +24,10 @@ import { getCachedHubShell, primeHubShellCache } from "@/lib/hub-shell-cache";
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
 const roleLabels: Record<string, string> = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  MODERATOR: "Moderator",
-  MEMBER: "Member",
+  OWNER: "Владелец",
+  ADMIN: "Администратор",
+  MODERATOR: "Модератор",
+  MEMBER: "Участник",
 };
 
 interface HubOverviewProps {
@@ -91,7 +91,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
       setRoleDrafts(buildRoleDrafts(parsed.hub));
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to load this hub.");
+      setErrorMessage(error instanceof Error ? error.message : "Не удалось загрузить этот хаб.");
     }
   }, [hubId]);
 
@@ -112,7 +112,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
       await action();
       await loadHub();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to update the hub.");
+      setErrorMessage(error instanceof Error ? error.message : "Не удалось обновить хаб.");
     } finally {
       setActionKey(null);
     }
@@ -142,7 +142,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
   if (!hub) {
     return (
       <div className="rounded-[18px] border border-[var(--border-soft)] bg-white/[0.03] px-4 py-4 text-sm text-[var(--text-dim)]">
-        Loading hub tools...
+        Загружаем инструменты хаба...
       </div>
     );
   }
@@ -151,7 +151,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
     <div className="grid gap-3">
       {hub.permissions.canCreateLobby ? (
         <section className="premium-panel rounded-[22px] p-4">
-          <SectionTitle title="Create lobby" />
+          <SectionTitle title="Создать канал" />
           <form
             className="mt-4 grid gap-3"
             onSubmit={(event) => {
@@ -182,7 +182,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
               <Input
                 value={lobbyName}
                 onChange={(event) => setLobbyName(event.target.value)}
-                placeholder="Lobby name"
+                placeholder="Название канала"
                 className="h-10"
               />
               <SelectField
@@ -191,16 +191,16 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   setLobbyType(event.target.value as "TEXT" | "VOICE" | "FORUM")
                 }
               >
-                <option value="TEXT">Text</option>
-                <option value="VOICE">Voice</option>
-                <option value="FORUM">Forum</option>
+                <option value="TEXT">Текст</option>
+                <option value="VOICE">Голос</option>
+                <option value="FORUM">Форум</option>
               </SelectField>
             </div>
 
             <Input
               value={lobbyDescription}
               onChange={(event) => setLobbyDescription(event.target.value)}
-              placeholder="Short description"
+              placeholder="Короткое описание"
               className="h-10"
             />
 
@@ -210,21 +210,21 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 checked={privateLobby}
                 onChange={(event) => setPrivateLobby(event.target.checked)}
               />
-              Private lobby
+              Приватный канал
             </label>
 
             {privateLobby ? (
               <Input
                 value={allowedUsernames}
                 onChange={(event) => setAllowedUsernames(event.target.value)}
-                placeholder="Allowed usernames, comma-separated"
+                placeholder="Разрешённые ники через запятую"
                 className="h-10"
               />
             ) : null}
 
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={actionKey === "create-lobby"} className="h-10">
-                {actionKey === "create-lobby" ? "Creating..." : "Create lobby"}
+                {actionKey === "create-lobby" ? "Создаём..." : "Создать канал"}
               </Button>
             </div>
           </form>
@@ -234,8 +234,8 @@ export function HubOverview({ hubId }: HubOverviewProps) {
       {hub.permissions.canInviteMembers ? (
         <section className="premium-panel rounded-[22px] p-4">
           <SectionTitle
-            title="Invite member"
-            meta={<CompactListCount>{hub.pendingInvites.length} pending</CompactListCount>}
+            title="Пригласить участника"
+            meta={<CompactListCount>{hub.pendingInvites.length} ожидают</CompactListCount>}
           />
           <form
             className="mt-4 flex flex-col gap-2 sm:flex-row"
@@ -256,20 +256,20 @@ export function HubOverview({ hubId }: HubOverviewProps) {
             <Input
               value={inviteUsername}
               onChange={(event) => setInviteUsername(event.target.value)}
-              placeholder="username"
+              placeholder="Ник пользователя"
               className="h-10"
             />
             <Button type="submit" disabled={actionKey === "invite-member"} className="h-10">
               <UserRoundPlus {...iconProps} />
-              {actionKey === "invite-member" ? "Inviting..." : "Invite"}
+              {actionKey === "invite-member" ? "Приглашаем..." : "Пригласить"}
             </Button>
           </form>
 
           <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--border-soft)]">
             {hub.pendingInvites.length === 0 ? (
               <EmptyState
-                title="No pending invites"
-                description="Invites will appear here until members accept them."
+                title="Ожидающих инвайтов нет"
+                description="Инвайты появятся здесь, пока участники их не примут."
                 className="min-h-[160px]"
               />
             ) : (
@@ -284,7 +284,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                         @{invite.invitee.username}
                       </p>
                     </div>
-                    <CompactListCount>Pending</CompactListCount>
+                    <CompactListCount>Ожидает</CompactListCount>
                   </CompactListRow>
                 ))}
               </CompactList>
@@ -296,7 +296,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
       <section className="premium-panel overflow-hidden rounded-[22px]">
         <div className="px-4 py-4">
           <SectionTitle
-            title="Members"
+            title="Участники"
             meta={<CompactListCount>{hub.members.length}</CompactListCount>}
           />
         </div>
@@ -363,7 +363,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                           disabled={actionKey === `role:${member.user.username}`}
                           className="h-10"
                         >
-                          Save role
+                          Сохранить роль
                         </Button>
                       </div>
                     ) : null}
@@ -385,7 +385,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                           }
                           className="h-8 px-2.5"
                         >
-                          Kick
+                          Исключить
                         </Button>
                         <Button
                           size="sm"
@@ -403,7 +403,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                           }
                           className="h-8 px-2.5"
                         >
-                          Mute
+                          Замутить
                         </Button>
                         <Button
                           size="sm"
@@ -422,7 +422,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                           className="h-8 px-2.5"
                         >
                           <ShieldBan {...iconProps} />
-                          Ban
+                          Забанить
                         </Button>
                       </div>
                     ) : null}
@@ -440,7 +440,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
               onClick={() => setVisibleMembersCount((current) => current + MEMBERS_PAGE_SIZE)}
               className="h-9"
             >
-              Show {Math.min(MEMBERS_PAGE_SIZE, hub.members.length - visibleMembersCount)} more
+              Показать ещё {Math.min(MEMBERS_PAGE_SIZE, hub.members.length - visibleMembersCount)}
             </Button>
           </div>
         ) : null}
@@ -451,7 +451,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
         <section className="premium-panel overflow-hidden rounded-[22px]">
           <div className="px-4 py-4">
             <SectionTitle
-              title="Restrictions"
+              title="Ограничения"
               meta={
                 <CompactListCount>
                   {hub.activeMutes.length + hub.activeBans.length}
@@ -483,7 +483,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   }
                   className="h-8 px-2.5"
                 >
-                  Revoke mute
+                  Снять мут
                 </Button>
               </CompactListRow>
             ))}
@@ -511,7 +511,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   }
                   className="h-8 px-2.5"
                 >
-                  Revoke ban
+                  Снять бан
                 </Button>
               </CompactListRow>
             ))}
@@ -527,7 +527,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                 }
                 className="h-9"
               >
-                Show more restrictions
+                Показать больше ограничений
               </Button>
             </div>
           ) : null}

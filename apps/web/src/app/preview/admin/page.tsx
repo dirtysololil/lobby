@@ -8,16 +8,17 @@ export default function PreviewAdminPage() {
   return (
     <PreviewShell
       viewer={previewViewer}
-      sectionLabel="Control"
+      sectionLabel="Админка"
       rows={[
-        { id: "overview", label: "Control", detail: "Platform metrics", initials: "Ct" },
-        { id: "users", label: "Users", detail: "Moderation queue", active: true, initials: "Us" },
-        { id: "invites", label: "Invites", detail: "Access channels", initials: "Iv" },
-        { id: "audit", label: "Audit log", detail: "Recent actions", initials: "Au" },
+        { id: "overview", label: "Обзор", detail: "Метрики платформы", initials: "Об" },
+        { id: "users", label: "Пользователи", detail: "Модерация", active: true, initials: "По" },
+        { id: "invites", label: "Инвайты", detail: "Каналы доступа", initials: "Ин" },
+        { id: "audit", label: "Аудит", detail: "Последние действия", initials: "Ау" },
       ]}
     >
       <div className="px-4 py-4">
         <UsersAdminPanel
+          viewer={previewViewer}
           response={previewAdminUsers}
           filters={{ query: "", role: "", blocked: "all", page: 1 }}
         />

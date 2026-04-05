@@ -19,11 +19,11 @@ export default function AppError({
 
   return (
     <ErrorState
-      title="Workspace unavailable"
+      title="Раздел временно недоступен"
       description={
         error.digest
-          ? `The selected workspace section could not be rendered. Reference: ${error.digest}`
-          : error.message || "The selected workspace section could not be rendered."
+          ? `Не удалось отрисовать выбранный раздел. Код: ${error.digest}`
+          : error.message || "Не удалось отрисовать выбранный раздел."
       }
       onRetry={reset}
     />

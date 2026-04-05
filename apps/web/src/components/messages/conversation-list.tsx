@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 import { apiClientFetch } from "@/lib/api-client";
@@ -41,13 +42,13 @@ function formatConversationTime(value: string | null) {
   const sameDay = date.toDateString() === now.toDateString();
 
   return sameDay
-    ? date.toLocaleTimeString("en-US", {
+    ? date.toLocaleTimeString("ru-RU", {
         hour: "2-digit",
         minute: "2-digit",
       })
-    : date.toLocaleDateString("en-US", {
-        month: "short",
+    : date.toLocaleDateString("ru-RU", {
         day: "numeric",
+        month: "short",
       });
 }
 
@@ -81,7 +82,7 @@ export function ConversationList() {
       setConversations(directConversationListResponseSchema.parse(payload).items);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to load conversations.");
+      setErrorMessage(error instanceof Error ? error.message : "Не удалось загрузить диалоги.");
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +110,7 @@ export function ConversationList() {
       router.push(`/app/messages/${conversation.id}`);
       router.refresh();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to open conversation.");
+      setErrorMessage(error instanceof Error ? error.message : "Не удалось открыть диалог.");
     } finally {
       setIsOpening(false);
     }
@@ -134,12 +135,12 @@ export function ConversationList() {
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <CompactListMeta>Messages</CompactListMeta>
-              <CompactListMeta>{conversations.length} threads</CompactListMeta>
-              <CompactListMeta>{getUnreadTotal(conversations)} unread</CompactListMeta>
+              <CompactListMeta>Сообщения</CompactListMeta>
+              <CompactListMeta>{conversations.length} диалогов</CompactListMeta>
+              <CompactListMeta>{getUnreadTotal(conversations)} непрочитанных</CompactListMeta>
             </div>
             <h2 className="mt-2 text-base font-semibold tracking-tight text-white">
-              Direct conversations
+              Личные сообщения
             </h2>
           </div>
 
@@ -165,7 +166,7 @@ export function ConversationList() {
             </div>
             <Button type="submit" disabled={isOpening} className="h-10 shrink-0 px-3">
               <UserRoundPlus {...iconProps} />
-              {isOpening ? "Opening..." : "New DM"}
+              {isOpening ? "Открываем..." : "Новое ЛС"}
             </Button>
           </form>
         </div>
@@ -192,15 +193,15 @@ export function ConversationList() {
         {isLoading ? (
           <div className="empty-state-minimal text-[var(--text-muted)]">
             <MessageSquareMore {...iconProps} />
-            <p className="text-sm">Loading conversations...</p>
+            <p className="text-sm">Загружаем диалоги...</p>
           </div>
         ) : orderedConversations.length === 0 ? (
           <div className="empty-state-minimal text-[var(--text-muted)]">
             <MessageSquareMore size={20} strokeWidth={1.5} />
             <div>
-              <p className="text-sm font-medium text-white">No conversations yet</p>
+              <p className="text-sm font-medium text-white">Диалогов пока нет</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Start one from a username or open a DM from the people list.
+                Начните переписку по нику или откройте ЛС из списка людей.
               </p>
             </div>
           </div>
@@ -219,6 +220,10 @@ export function ConversationList() {
                     <p className="truncate text-sm font-medium tracking-tight text-white">
                       {conversation.counterpart.profile.displayName}
                     </p>
+                    <PresenceIndicator
+                      presence={conversation.counterpart.profile.presence}
+                      compact
+                    />
                     {conversation.unreadCount > 0 ? (
                       <CompactListCount>{conversation.unreadCount}</CompactListCount>
                     ) : null}
@@ -242,8 +247,8 @@ export function ConversationList() {
                     )}
                   >
                     {conversation.lastMessage?.isDeleted
-                      ? "Last message deleted"
-                      : (conversation.lastMessage?.content ?? "Say hello first")}
+                      ? "Последнее сообщение удалено"
+                      : (conversation.lastMessage?.content ?? "Напишите первым")}
                   </p>
                 </div>
               </CompactListLink>

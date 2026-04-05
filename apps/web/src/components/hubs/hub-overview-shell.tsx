@@ -11,22 +11,23 @@ import {
   CompactListMeta,
   CompactListRow,
 } from "@/components/ui/compact-list";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
 import { HubOverviewLauncher } from "./hub-overview-launcher";
 import { HubShellBootstrap } from "./hub-shell-bootstrap";
 
 const roleLabels: Record<string, string> = {
-  OWNER: "Owner",
-  ADMIN: "Admin",
-  MODERATOR: "Moderator",
-  MEMBER: "Member",
+  OWNER: "Владелец",
+  ADMIN: "Администратор",
+  MODERATOR: "Модератор",
+  MEMBER: "Участник",
 };
 
 const lobbyTypeLabels: Record<string, string> = {
-  TEXT: "Text",
-  VOICE: "Voice",
-  FORUM: "Forum",
+  TEXT: "Текст",
+  VOICE: "Голос",
+  FORUM: "Форум",
 };
 
 interface HubOverviewShellProps {
@@ -46,44 +47,46 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
               <div className="flex flex-wrap items-center gap-2">
                 <CompactListMeta>
                   <Waves className="h-4 w-4" />
-                  Hub
+                  Хаб
                 </CompactListMeta>
                 <CompactListMeta>
-                  {hub.membershipRole ? roleLabels[hub.membershipRole] ?? hub.membershipRole : "Guest"}
+                  {hub.membershipRole
+                    ? roleLabels[hub.membershipRole] ?? hub.membershipRole
+                    : "Гость"}
                 </CompactListMeta>
                 <CompactListMeta>
                   <UsersRound className="h-4 w-4" />
-                  {hub.members.length} members
+                  {hub.members.length} участников
                 </CompactListMeta>
                 {hub.isPrivate ? (
                   <CompactListMeta>
                     <LockKeyhole className="h-4 w-4" />
-                    Private
+                    Приватный
                   </CompactListMeta>
                 ) : null}
               </div>
               <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">{hub.name}</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
                 {hub.description ??
-                  "A shared communication space for channels, calls, and member context."}
+                  "Общее пространство для каналов, звонков и контекста участников."}
               </p>
             </div>
 
             <div className="grid min-w-[240px] grid-cols-2 gap-2 xl:w-[280px]">
               <div className="rounded-[16px] border border-[var(--border-soft)] bg-white/[0.03] px-3 py-3">
-                <p className="text-xs text-[var(--text-muted)]">Channels</p>
+                <p className="text-xs text-[var(--text-muted)]">Каналы</p>
                 <p className="mt-1 text-lg font-semibold text-white">{hub.lobbies.length}</p>
               </div>
               <div className="rounded-[16px] border border-[var(--border-soft)] bg-white/[0.03] px-3 py-3">
-                <p className="text-xs text-[var(--text-muted)]">Pending invites</p>
+                <p className="text-xs text-[var(--text-muted)]">Ожидают инвайты</p>
                 <p className="mt-1 text-lg font-semibold text-white">{hub.pendingInvites.length}</p>
               </div>
               <div className="rounded-[16px] border border-[var(--border-soft)] bg-white/[0.03] px-3 py-3">
-                <p className="text-xs text-[var(--text-muted)]">Active mutes</p>
+                <p className="text-xs text-[var(--text-muted)]">Активные муты</p>
                 <p className="mt-1 text-lg font-semibold text-white">{hub.activeMutes.length}</p>
               </div>
               <div className="rounded-[16px] border border-[var(--border-soft)] bg-white/[0.03] px-3 py-3">
-                <p className="text-xs text-[var(--text-muted)]">Active bans</p>
+                <p className="text-xs text-[var(--text-muted)]">Активные баны</p>
                 <p className="mt-1 text-lg font-semibold text-white">{hub.activeBans.length}</p>
               </div>
             </div>
@@ -94,13 +97,13 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
           <section className="premium-panel overflow-hidden rounded-[22px]">
             <div className="px-4 py-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium tracking-tight text-white">Channels and spaces</p>
+                <p className="text-sm font-medium tracking-tight text-white">Каналы и пространства</p>
                 <CompactListCount>{hub.lobbies.length}</CompactListCount>
               </div>
             </div>
             {hub.lobbies.length === 0 ? (
               <div className="px-4 pb-4 text-sm text-[var(--text-dim)]">
-                No accessible spaces yet.
+                Пока нет доступных пространств.
               </div>
             ) : (
               <CompactList>
@@ -119,10 +122,10 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
                         <CompactListCount>
                           {lobbyTypeLabels[lobby.type] ?? lobby.type}
                         </CompactListCount>
-                        {lobby.isPrivate ? <CompactListCount>Private</CompactListCount> : null}
+                        {lobby.isPrivate ? <CompactListCount>Приватный</CompactListCount> : null}
                       </div>
                       <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
-                        {lobby.description ?? "Ready for conversation."}
+                        {lobby.description ?? "Готов к общению."}
                       </p>
                     </div>
                   </CompactListLink>
@@ -135,7 +138,7 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
             <section className="premium-panel overflow-hidden rounded-[22px]">
               <div className="px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium tracking-tight text-white">Members preview</p>
+                  <p className="text-sm font-medium tracking-tight text-white">Участники</p>
                   <CompactListCount>{hub.members.length}</CompactListCount>
                 </div>
               </div>
@@ -144,9 +147,12 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
                   <CompactListRow key={member.id} compact className="gap-3">
                     <UserAvatar user={member.user} size="sm" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-white">
-                        {member.user.profile.displayName}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm text-white">
+                          {member.user.profile.displayName}
+                        </p>
+                        <PresenceIndicator presence={member.user.profile.presence} compact />
+                      </div>
                       <p className="truncate text-xs text-[var(--text-muted)]">
                         @{member.user.username} · {roleLabels[member.role] ?? member.role}
                       </p>

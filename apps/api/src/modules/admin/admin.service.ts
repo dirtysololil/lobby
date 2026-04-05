@@ -11,6 +11,7 @@ import type {
   ListAdminUsersQuery,
   PlatformBlock,
   PublicUser,
+  UpdateAdminUserRoleInput,
   UpsertPlatformBlockInput,
 } from '@lobby/shared';
 import { Prisma, UserRole } from '@prisma/client';
@@ -280,6 +281,50 @@ export class AdminService {
         targetUserId: userId,
       },
     });
+  }
+
+  public async updateUserRole(
+    actor: PublicUser,
+    userId: string,
+    input: UpdateAdminUserRoleInput,
+    requestMetadata: RequestMetadata,
+  ): Promise<AdminUserSummary> {
+    const targetUser = await this.getTargetUserOrThrow(userId);
+    this.assertCanModerate(actor, targetUser);
+
+    if (actor.role !== 'OWNER' && input.role === UserRole.OWNER) {
+      throw new ForbiddenException(
+        'Insufficient permissions to assign the owner role',
+      );
+    }
+
+    const user =
+      targetUser.role === input.role
+        ? targetUser
+        : await this.prisma.user.update({
+            where: {
+              id: userId,
+            },
+            data: {
+              role: input.role,
+            },
+            include: userAdminInclude,
+          });
+
+    await this.auditService.write({
+      action: 'admin.user.role.update',
+      entityType: 'User',
+      entityId: userId,
+      actorUserId: actor.id,
+      ipAddress: requestMetadata.ipAddress,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        previousRole: targetUser.role,
+        nextRole: input.role,
+      },
+    });
+
+    return this.toAdminUser(user);
   }
 
   private async toAdminUser(user: AdminUserRecord): Promise<AdminUserSummary> {

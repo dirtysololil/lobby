@@ -6,6 +6,7 @@ import { PanelRightClose, PanelRightOpen, ShieldCheck } from "lucide-react";
 import type { PublicUser } from "@lobby/shared";
 import { getSectionMeta, matchesPath, parseAppPath } from "@/lib/app-shell";
 import { cn } from "@/lib/utils";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { LogoutButton } from "./logout-button";
 import { QuickLauncher } from "./quick-launcher";
 
@@ -15,13 +16,6 @@ interface AppHeaderProps {
   onToggleActivity: () => void;
   viewer: PublicUser;
 }
-
-const presenceLabels: Record<PublicUser["profile"]["presence"], string> = {
-  ONLINE: "Online",
-  IDLE: "Idle",
-  DND: "Do not disturb",
-  OFFLINE: "Invisible",
-};
 
 export function AppHeader({
   activityAvailable,
@@ -41,14 +35,14 @@ export function AppHeader({
           <h1 className="truncate text-[0.96rem] font-semibold tracking-[-0.03em] text-white md:text-[1rem]">
             {meta.title}
           </h1>
-          <span className="hidden items-center gap-1.5 text-xs text-[var(--text-dim)] lg:inline-flex">
-            <span className="status-dot bg-[var(--success)]" />
-            {presenceLabels[viewer.profile.presence]}
-          </span>
+          <PresenceIndicator
+            presence={viewer.profile.presence}
+            className="hidden lg:inline-flex"
+          />
           {matchesPath(pathname, "/app/admin") ? (
             <span className="hidden md:inline-flex status-pill">
               <ShieldCheck className="h-3 w-3 text-[var(--accent)]" />
-              Internal
+              Внутренний раздел
             </span>
           ) : null}
         </div>
@@ -76,7 +70,7 @@ export function AppHeader({
               <PanelRightOpen className="h-4 w-4" />
             )}
             <span className="hidden sm:inline">
-              {activityOpen ? "Hide details" : "Details"}
+              {activityOpen ? "Скрыть детали" : "Детали"}
             </span>
           </button>
         ) : null}
@@ -84,7 +78,7 @@ export function AppHeader({
         {viewer.role !== "MEMBER" ? (
           <Link href="/app/admin" className="hidden md:inline-flex status-pill">
             <ShieldCheck className="h-3 w-3 text-[var(--accent)]" />
-            Control
+            Управление
           </Link>
         ) : null}
 
