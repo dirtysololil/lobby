@@ -33,7 +33,6 @@ const apiEnvSchema = z.object({
   UPLOAD_DRIVER: z.enum(["local", "s3"]),
   UPLOAD_LOCAL_ROOT: z.string().min(1),
   MAX_AVATAR_MB: z.coerce.number().positive(),
-  MAX_AVATAR_DIMENSION: z.coerce.number().int().positive().default(1024),
   MAX_AVATAR_FRAMES: z.coerce.number().int().positive().default(180),
   MAX_AVATAR_ANIMATION_MS: z.coerce.number().int().positive().default(10000),
   MAX_FILE_MB: z.coerce.number().positive(),
@@ -65,7 +64,6 @@ const webEnvSchema = z.object({
   WEB_PORT: z.coerce.number().int().positive(),
   WEB_HOST: z.string().min(1),
   MAX_AVATAR_MB: z.coerce.number().positive(),
-  MAX_AVATAR_DIMENSION: z.coerce.number().int().positive(),
   MAX_AVATAR_ANIMATION_MS: z.coerce.number().int().positive(),
 });
 

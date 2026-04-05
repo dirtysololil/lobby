@@ -113,7 +113,6 @@ export class UsersService {
 
     try {
       metadata = parseAvatarImageMetadata(file.buffer, {
-        maxDimension: env.MAX_AVATAR_DIMENSION,
         maxFrames: env.MAX_AVATAR_FRAMES,
         maxAnimationMs: env.MAX_AVATAR_ANIMATION_MS,
       });

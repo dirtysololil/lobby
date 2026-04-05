@@ -27,7 +27,6 @@ import { apiClientFetch } from "@/lib/api-client";
 interface ProfileSettingsFormProps {
   viewer: PublicUser;
   maxAvatarMb: number;
-  maxAvatarDimension: number;
   maxAvatarAnimationMs: number;
 }
 
@@ -63,7 +62,6 @@ const presetLabels: Record<UpdateProfileInput["avatarPreset"], string> = {
 export function ProfileSettingsForm({
   viewer,
   maxAvatarMb,
-  maxAvatarDimension,
   maxAvatarAnimationMs,
 }: ProfileSettingsFormProps) {
   const router = useRouter();
@@ -190,13 +188,6 @@ export function ProfileSettingsForm({
                 <p className="text-xs text-[var(--text-muted)]">PNG, JPG, WEBP or GIF</p>
               </div>
               <CompactListCount>{maxAvatarMb} MB</CompactListCount>
-            </CompactListRow>
-            <CompactListRow compact className="text-left">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-white">Max dimension</p>
-                <p className="text-xs text-[var(--text-muted)]">Keeps avatar rows crisp</p>
-              </div>
-              <CompactListCount>{maxAvatarDimension}px</CompactListCount>
             </CompactListRow>
             <CompactListRow compact className="text-left">
               <div className="min-w-0 flex-1">

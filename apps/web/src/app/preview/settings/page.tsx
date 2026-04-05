@@ -29,7 +29,6 @@ export default function PreviewSettingsPage() {
         <ProfileSettingsForm
           viewer={previewViewer}
           maxAvatarMb={10}
-          maxAvatarDimension={1024}
           maxAvatarAnimationMs={15000}
         />
       </div>
