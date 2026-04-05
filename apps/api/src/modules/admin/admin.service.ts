@@ -128,9 +128,7 @@ export class AdminService {
       this.prisma.user.count({ where }),
     ]);
 
-    const items = await Promise.all(
-      users.map((user) => this.toAdminUser(user)),
-    );
+    const items = await this.toAdminUsers(users);
 
     return {
       items,
@@ -153,7 +151,7 @@ export class AdminService {
     }
 
     return {
-      item: await this.toAdminUser(user),
+      item: (await this.toAdminUsers([user]))[0]!,
     };
   }
 
@@ -321,48 +319,82 @@ export class AdminService {
       },
     });
 
-    return this.toAdminUser(user);
+    return (await this.toAdminUsers([user]))[0]!;
   }
 
-  private async toAdminUser(user: AdminUserRecord): Promise<AdminUserSummary> {
-    const [activeSessionCount, hubMembershipCount, lastSeenAt] =
-      await Promise.all([
-        this.prisma.session.count({
+  private async toAdminUsers(
+    users: AdminUserRecord[],
+  ): Promise<AdminUserSummary[]> {
+    if (users.length === 0) {
+      return [];
+    }
+
+    const userIds = users.map((user) => user.id);
+    const now = new Date();
+    const [activeSessions, hubMemberships, lastSeenEntries] = await Promise.all(
+      [
+        this.prisma.session.groupBy({
+          by: ['userId'],
           where: {
-            userId: user.id,
+            userId: {
+              in: userIds,
+            },
             revokedAt: null,
             expiresAt: {
-              gt: new Date(),
+              gt: now,
             },
           },
-        }),
-        this.prisma.hubMember.count({
-          where: {
-            userId: user.id,
+          _count: {
+            _all: true,
           },
         }),
-        this.prisma.session.findFirst({
+        this.prisma.hubMember.groupBy({
+          by: ['userId'],
           where: {
-            userId: user.id,
+            userId: {
+              in: userIds,
+            },
           },
-          orderBy: {
-            lastActiveAt: 'desc',
+          _count: {
+            _all: true,
           },
-          select: {
+        }),
+        this.prisma.session.groupBy({
+          by: ['userId'],
+          where: {
+            userId: {
+              in: userIds,
+            },
+          },
+          _max: {
             lastActiveAt: true,
           },
         }),
-      ]);
+      ],
+    );
 
-    return {
+    const activeSessionCountByUserId = new Map(
+      activeSessions.map((entry) => [entry.userId, entry._count._all]),
+    );
+    const hubMembershipCountByUserId = new Map(
+      hubMemberships.map((entry) => [entry.userId, entry._count._all]),
+    );
+    const lastSeenAtByUserId = new Map(
+      lastSeenEntries.map((entry) => [
+        entry.userId,
+        entry._max.lastActiveAt ?? null,
+      ]),
+    );
+
+    return users.map((user) => ({
       user: toPublicUser(user as unknown as Parameters<typeof toPublicUser>[0]),
-      activeSessionCount,
-      hubMembershipCount,
-      lastSeenAt: lastSeenAt?.lastActiveAt.toISOString() ?? null,
+      activeSessionCount: activeSessionCountByUserId.get(user.id) ?? 0,
+      hubMembershipCount: hubMembershipCountByUserId.get(user.id) ?? 0,
+      lastSeenAt: lastSeenAtByUserId.get(user.id)?.toISOString() ?? null,
       platformBlock: user.platformBlock
         ? this.toPlatformBlock(user.platformBlock)
         : null,
-    };
+    }));
   }
 
   private async getTargetUserOrThrow(userId: string) {

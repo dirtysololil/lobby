@@ -218,7 +218,10 @@ export function PeopleWorkspace() {
   }
 
   async function openDm(username: string) {
-    await withAction(`SEARCH:${username}`, async () => {
+    setActionKey(`SEARCH:${username}`);
+    setSearchError(null);
+
+    try {
       const payload = await apiClientFetch("/v1/direct-messages/open", {
         method: "POST",
         body: JSON.stringify({ username }),
@@ -227,8 +230,11 @@ export function PeopleWorkspace() {
       const conversation =
         directConversationSummaryResponseSchema.parse(payload).conversation;
       router.push(`/app/messages/${conversation.id}`);
-      router.refresh();
-    });
+    } catch (error) {
+      setSearchError(error instanceof Error ? error.message : "Не удалось открыть диалог.");
+    } finally {
+      setActionKey(null);
+    }
   }
 
   function setView(nextView: PeopleView) {

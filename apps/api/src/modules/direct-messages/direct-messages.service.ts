@@ -10,6 +10,7 @@ import type {
   DmSignal,
   PublicUser,
   UpdateDmSettingsInput,
+  UserRelationshipSummary,
 } from '@lobby/shared';
 import { DmRetentionMode, Prisma } from '@prisma/client';
 import type { RequestMetadata } from '../../common/interfaces/request-metadata.interface';
@@ -170,10 +171,28 @@ export class DirectMessagesService {
       include: conversationSummaryInclude,
     });
 
+    const relationshipSummaries =
+      await this.relationshipsService.getRelationshipSummaries(
+        viewerId,
+        conversations.map(
+          (conversation) =>
+            this.getCounterpart(conversation.participants, viewerId).userId,
+        ),
+      );
+
     const items = await Promise.all(
-      conversations.map((conversation) =>
-        this.toConversationSummary(conversation, viewerId),
-      ),
+      conversations.map((conversation) => {
+        const counterpart = this.getCounterpart(
+          conversation.participants,
+          viewerId,
+        );
+
+        return this.toConversationSummary(
+          conversation,
+          viewerId,
+          relationshipSummaries.get(counterpart.userId) ?? null,
+        );
+      }),
     );
 
     return items.sort((left, right) => {
@@ -330,23 +349,25 @@ export class DirectMessagesService {
       );
     }
 
-    const updatedMessage = await this.prisma.$transaction(async (transaction) => {
-      const deletedMessage = await transaction.directMessage.update({
-        where: {
-          id: message.id,
-        },
-        data: {
-          content: null,
-          deletedAt: new Date(),
-          deletedByUserId: actor.id,
-        },
-        include: directMessageWithAuthorInclude,
-      });
+    const updatedMessage = await this.prisma.$transaction(
+      async (transaction) => {
+        const deletedMessage = await transaction.directMessage.update({
+          where: {
+            id: message.id,
+          },
+          data: {
+            content: null,
+            deletedAt: new Date(),
+            deletedByUserId: actor.id,
+          },
+          include: directMessageWithAuthorInclude,
+        });
 
-      await this.syncConversationLastMessageAt(transaction, conversationId);
+        await this.syncConversationLastMessageAt(transaction, conversationId);
 
-      return deletedMessage;
-    });
+        return deletedMessage;
+      },
+    );
 
     await this.auditService.write({
       action: 'dm.message.delete',
@@ -527,6 +548,7 @@ export class DirectMessagesService {
   private async toConversationSummary(
     conversation: ConversationSummaryRecord,
     viewerId: string,
+    relationshipOverride?: UserRelationshipSummary | null,
   ): Promise<DirectConversationSummary> {
     const participant = conversation.participants.find(
       (item) => item.userId === viewerId,
@@ -541,10 +563,11 @@ export class DirectMessagesService {
       viewerId,
     );
     const [relationship, unreadCount] = await Promise.all([
-      this.relationshipsService.getRelationshipSummary(
-        viewerId,
-        counterpart.userId,
-      ),
+      relationshipOverride ??
+        this.relationshipsService.getRelationshipSummary(
+          viewerId,
+          counterpart.userId,
+        ),
       this.prisma.directMessage.count({
         where: {
           conversationId: conversation.id,
@@ -705,21 +728,22 @@ export class DirectMessagesService {
     clientNonce?: string | null;
     targetUserIds?: string[];
   }): Promise<void> {
-    const targetParticipants = await this.prisma.directConversationParticipant.findMany({
-      where: {
-        conversationId: args.conversationId,
-        ...(args.targetUserIds
-          ? {
-              userId: {
-                in: args.targetUserIds,
-              },
-            }
-          : {}),
-      },
-      select: {
-        userId: true,
-      },
-    });
+    const targetParticipants =
+      await this.prisma.directConversationParticipant.findMany({
+        where: {
+          conversationId: args.conversationId,
+          ...(args.targetUserIds
+            ? {
+                userId: {
+                  in: args.targetUserIds,
+                },
+              }
+            : {}),
+        },
+        select: {
+          userId: true,
+        },
+      });
 
     for (const participant of targetParticipants) {
       const summary = await this.loadConversationSummaryForViewer(

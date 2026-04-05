@@ -2,7 +2,7 @@
 
 import type { DirectConversationDetail } from "@lobby/shared";
 import { AlertCircle, RotateCcw, Trash2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
@@ -65,30 +65,40 @@ export function MessageThread({
   onDelete,
   onRetry,
 }: MessageThreadProps) {
-  const groupedMessages = messages.reduce<ThreadGroup[]>(
-    (accumulator: ThreadGroup[], message: ThreadMessageItem) => {
-      const label = formatThreadDate(message.createdAt);
-      const group = accumulator[accumulator.length - 1];
+  const groupedMessages = useMemo(
+    () =>
+      messages.reduce<ThreadGroup[]>(
+        (accumulator: ThreadGroup[], message: ThreadMessageItem) => {
+          const label = formatThreadDate(message.createdAt);
+          const group = accumulator[accumulator.length - 1];
 
-      if (group && group.label === label) {
-        group.items.push(message);
-        return accumulator;
-      }
+          if (group && group.label === label) {
+            group.items.push(message);
+            return accumulator;
+          }
 
-      accumulator.push({ label, items: [message] });
-      return accumulator;
-    },
-    [],
+          accumulator.push({ label, items: [message] });
+          return accumulator;
+        },
+        [],
+      ),
+    [messages],
   );
-
-  const unreadIndex =
-    lastReadAt == null
-      ? -1
-      : messages.findIndex(
-          (message) =>
-            message.author.id !== viewerId &&
-            new Date(message.createdAt).getTime() > new Date(lastReadAt).getTime(),
-        );
+  const messageIndexById = useMemo(
+    () => new Map(messages.map((message, index) => [message.id, index])),
+    [messages],
+  );
+  const unreadIndex = useMemo(
+    () =>
+      lastReadAt == null
+        ? -1
+        : messages.findIndex(
+            (message) =>
+              message.author.id !== viewerId &&
+              new Date(message.createdAt).getTime() > new Date(lastReadAt).getTime(),
+          ),
+    [lastReadAt, messages, viewerId],
+  );
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const didInitScrollRef = useRef(false);
 
@@ -138,7 +148,7 @@ export function MessageThread({
               </div>
 
               {group.items.map((message, index) => {
-                const globalIndex = messages.findIndex((item) => item.id === message.id);
+                const globalIndex = messageIndexById.get(message.id) ?? -1;
                 const isOwn = message.author.id === viewerId;
                 const previousMessage = group.items[index - 1];
                 const continuation = isContinuation(previousMessage, message);

@@ -109,7 +109,9 @@ export function NotificationSoundManager({
   const { session } = useCallSession();
   const [defaults, setDefaults] =
     useState<UpdateViewerNotificationDefaultsInput>(fallbackDefaults);
-  const [audioState, setAudioState] = useState<AudioPipelineState>("locked");
+  const [audioState, setAudioState] = useState<AudioPipelineState>(() =>
+    getAudioContextCtor() ? "locked" : "unsupported",
+  );
   const [notificationPermission, setNotificationPermission] =
     useState<BrowserNotificationState>(getBrowserNotificationState);
   const [settingsVersion, setSettingsVersion] = useState(0);
@@ -125,6 +127,28 @@ export function NotificationSoundManager({
   const ringtoneCleanupRef = useRef(new Set<() => void>());
   const ringtoneIntervalRef = useRef<number | null>(null);
   const ringtoneCallIdRef = useRef<string | null>(null);
+
+  const storeConversationNotificationSetting = useCallback(
+    (
+      conversationId: string,
+      notificationSetting: NotificationSetting | null | undefined,
+    ) => {
+      if (!notificationSetting) {
+        return false;
+      }
+
+      const currentSetting = conversationSettingsRef.current.get(conversationId);
+
+      if (currentSetting === notificationSetting) {
+        return false;
+      }
+
+      conversationSettingsRef.current.set(conversationId, notificationSetting);
+      setSettingsVersion((current) => current + 1);
+      return true;
+    },
+    [],
+  );
 
   const logDebug = useCallback((message: string, payload?: Record<string, unknown>) => {
     if (!debugEnabledRef.current) {
@@ -219,8 +243,6 @@ export function NotificationSoundManager({
         notificationPermission === "granted"
           ? notificationPermission
           : getBrowserNotificationState();
-
-      setNotificationPermission(currentPermission);
 
       if (currentPermission !== "granted") {
         logDebug("desktop-notification-skipped", {
@@ -533,7 +555,7 @@ export function NotificationSoundManager({
 
       return "/app";
     },
-    [incomingCalls],
+    [],
   );
 
   const markMessageHandled = useCallback((messageId: string) => {
@@ -568,12 +590,6 @@ export function NotificationSoundManager({
     } catch {
       debugEnabledRef.current = false;
     }
-
-    if (!getAudioContextCtor()) {
-      setAudioState("unsupported");
-    }
-
-    setNotificationPermission(getBrowserNotificationState());
   }, []);
 
   useEffect(() => {
@@ -670,11 +686,12 @@ export function NotificationSoundManager({
       return;
     }
 
-    conversationSettingsRef.current.set(
-      latestDmSignal.conversationId,
-      latestDmSignal.conversation.settings.notificationSetting,
-    );
-    setSettingsVersion((current) => current + 1);
+    if (latestDmSignal.conversation.settings.notificationSetting) {
+      conversationSettingsRef.current.set(
+        latestDmSignal.conversationId,
+        latestDmSignal.conversation.settings.notificationSetting,
+      );
+    }
 
     if (latestDmSignal.event !== "MESSAGE_CREATED" || !latestDmSignal.message) {
       return;
@@ -745,20 +762,26 @@ export function NotificationSoundManager({
       return;
     }
 
-    const played = playMessageSound();
+    const playbackTimer = window.setTimeout(() => {
+      const played = playMessageSound();
 
-    if (!played) {
-      warnOnce("message-playback", "Message notification sound did not start.", {
-        audioState,
+      if (!played) {
+        warnOnce("message-playback", "Message notification sound did not start.", {
+          audioState,
+          conversationId: latestDmSignal.conversationId,
+        });
+        return;
+      }
+
+      logDebug("message-sound-triggered", {
+        messageId: latestDmSignal.message?.id ?? null,
         conversationId: latestDmSignal.conversationId,
       });
-      return;
-    }
+    }, 0);
 
-    logDebug("message-sound-triggered", {
-      messageId: latestDmSignal.message.id,
-      conversationId: latestDmSignal.conversationId,
-    });
+    return () => {
+      window.clearTimeout(playbackTimer);
+    };
   }, [
     audioState,
     defaults.dmNotificationDefault,
@@ -770,6 +793,7 @@ export function NotificationSoundManager({
     route.conversationId,
     route.section,
     showDesktopNotification,
+    storeConversationNotificationSetting,
     viewerId,
     warnOnce,
   ]);
@@ -903,11 +927,10 @@ export function NotificationSoundManager({
         return;
       }
 
-      conversationSettingsRef.current.set(
+      storeConversationNotificationSetting(
         detail.conversationId,
         detail.notificationSetting,
       );
-      setSettingsVersion((current) => current + 1);
       logDebug("conversation-notification-updated", {
         conversationId: detail.conversationId,
         notificationSetting: detail.notificationSetting,
@@ -925,7 +948,7 @@ export function NotificationSoundManager({
         handlePreferencesUpdate as EventListener,
       );
     };
-  }, [logDebug]);
+  }, [logDebug, storeConversationNotificationSetting]);
 
   useEffect(() => {
     return () => {
