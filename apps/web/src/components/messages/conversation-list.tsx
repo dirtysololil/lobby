@@ -221,7 +221,7 @@ export function ConversationList() {
                       {conversation.counterpart.profile.displayName}
                     </p>
                     <PresenceIndicator
-                      presence={conversation.counterpart.profile.presence}
+                      user={conversation.counterpart}
                       compact
                     />
                     {conversation.unreadCount > 0 ? (

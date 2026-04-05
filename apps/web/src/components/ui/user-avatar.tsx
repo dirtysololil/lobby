@@ -5,7 +5,7 @@ import type { PublicUser } from "@lobby/shared";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { getAvatarInitials, getAvatarUrl } from "@/lib/avatar";
-import { getPresenceDotClass } from "@/lib/presence";
+import { getResolvedPresenceDotClass } from "@/lib/presence";
 
 interface UserAvatarProps {
   user: PublicUser;
@@ -52,7 +52,7 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
       <span
         className={cn(
           "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-app)]",
-          getPresenceDotClass(user.profile.presence),
+          getResolvedPresenceDotClass(user),
         )}
       />
     </div>

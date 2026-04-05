@@ -54,17 +54,6 @@ function getManageableRoleOptions(viewerRole: UserRole): UserRole[] {
   return viewerRole === "OWNER" ? ["OWNER", "ADMIN", "MEMBER"] : ["ADMIN", "MEMBER"];
 }
 
-function getSessionPresence(
-  presence: PublicUser["profile"]["presence"],
-  activeSessionCount: number,
-): PublicUser["profile"]["presence"] {
-  if (activeSessionCount === 0) {
-    return "OFFLINE";
-  }
-
-  return presence === "OFFLINE" ? "ONLINE" : presence;
-}
-
 export function UsersAdminPanel({
   viewer,
   response,
@@ -233,11 +222,6 @@ export function UsersAdminPanel({
                 getRoleRank(viewer.role) > getRoleRank(item.user.role);
               const draftRole = roleDrafts[item.user.id] ?? item.user.role;
               const roleChanged = draftRole !== item.user.role;
-              const rowPresence = getSessionPresence(
-                item.user.profile.presence,
-                item.activeSessionCount,
-              );
-
               return (
                 <div
                   key={item.user.id}
@@ -253,7 +237,7 @@ export function UsersAdminPanel({
                         <span className="glass-badge">
                           {roleLabels[item.user.role] ?? item.user.role}
                         </span>
-                        <PresenceIndicator presence={rowPresence} compact />
+                        <PresenceIndicator user={item.user} compact />
                         {item.platformBlock ? (
                           <span className="status-pill text-rose-200">
                             <ShieldBan {...iconProps} />

@@ -151,7 +151,7 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
                         <p className="truncate text-sm text-white">
                           {member.user.profile.displayName}
                         </p>
-                        <PresenceIndicator presence={member.user.profile.presence} compact />
+                        <PresenceIndicator user={member.user} compact />
                       </div>
                       <p className="truncate text-xs text-[var(--text-muted)]">
                         @{member.user.username} · {roleLabels[member.role] ?? member.role}

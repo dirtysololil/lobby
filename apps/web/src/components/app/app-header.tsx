@@ -36,7 +36,7 @@ export function AppHeader({
             {meta.title}
           </h1>
           <PresenceIndicator
-            presence={viewer.profile.presence}
+            user={viewer}
             className="hidden lg:inline-flex"
           />
           {matchesPath(pathname, "/app/admin") ? (

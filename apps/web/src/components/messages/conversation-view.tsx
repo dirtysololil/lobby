@@ -442,7 +442,7 @@ export function ConversationView({
                 <p className="truncate text-sm font-medium tracking-tight text-white">
                   {counterpart.profile.displayName}
                 </p>
-                <PresenceIndicator presence={counterpart.profile.presence} compact />
+                <PresenceIndicator user={counterpart} compact />
                 <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                   <UserRound {...iconProps} />
                   ЛС
