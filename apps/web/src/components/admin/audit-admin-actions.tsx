@@ -205,7 +205,7 @@ export function AuditAdminActions() {
                   </Button>
                   <Button
                     type="button"
-                    variant={actionCopy[pendingAction].buttonVariant}
+                    variant={currentAction.buttonVariant}
                     onClick={() => void handleConfirm()}
                     disabled={runningAction !== null}
                     className="h-10 px-4"
