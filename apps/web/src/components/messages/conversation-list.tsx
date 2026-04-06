@@ -17,12 +17,14 @@ import {
   CompactListMeta,
 } from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { useRealtime } from "@/components/realtime/realtime-provider";
+import {
+  useOptionalRealtimePresence,
+  useRealtime,
+} from "@/components/realtime/realtime-provider";
 import { apiClientFetch } from "@/lib/api-client";
 import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
+import { getAvailabilityLabel } from "@/lib/last-seen";
 import { dmRetentionLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +57,7 @@ function formatConversationTime(value: string | null) {
 export function ConversationList() {
   const router = useRouter();
   const { latestDmSignal } = useRealtime();
+  const realtimePresence = useOptionalRealtimePresence();
   const [conversations, setConversations] = useState<DirectConversationSummary[]>([]);
   const [username, setUsername] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -132,7 +135,7 @@ export function ConversationList() {
   return (
     <section className="flex h-full min-h-0 flex-col bg-[var(--bg-app)]">
       <div className="border-b border-[var(--border-soft)] px-3 py-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <CompactListMeta>Сообщения</CompactListMeta>
@@ -145,29 +148,33 @@ export function ConversationList() {
           </div>
 
           <form
-            className="flex w-full max-w-[420px] gap-2"
+            className="w-full max-w-[468px]"
             onSubmit={(event) => {
               event.preventDefault();
               void handleOpenConversation();
             }}
           >
-            <div className="relative min-w-0 flex-1">
-              <Search
-                {...iconProps}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-              />
-              <Input
-                className="h-10 border-white/6 bg-[var(--bg-panel-muted)] pl-9 text-sm text-white placeholder:text-[var(--text-muted)]"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                placeholder="@username"
-                autoComplete="off"
-              />
+            <div className="flex items-center gap-2 rounded-[18px] border border-[var(--border-soft)] bg-white/[0.03] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+              <label className="flex min-w-0 flex-1 items-center gap-2 rounded-[14px] border border-transparent bg-[var(--bg-panel-muted)] px-3 text-[var(--text-muted)] transition-colors focus-within:border-[var(--border-strong)] focus-within:bg-white/[0.06]">
+                <Search {...iconProps} className="h-4 w-4 shrink-0" />
+                <input
+                  className="h-9 w-full border-0 bg-transparent px-0 text-sm leading-none text-white outline-none placeholder:text-[var(--text-muted)]"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="@username"
+                  autoComplete="off"
+                  aria-label="Ник пользователя для нового диалога"
+                />
+              </label>
+              <Button
+                type="submit"
+                disabled={isOpening}
+                className="h-9 shrink-0 rounded-[14px] px-3.5"
+              >
+                <UserRoundPlus {...iconProps} />
+                {isOpening ? "Открываем..." : "Новое ЛС"}
+              </Button>
             </div>
-            <Button type="submit" disabled={isOpening} className="h-10 shrink-0 px-3">
-              <UserRoundPlus {...iconProps} />
-              {isOpening ? "Открываем..." : "Новое ЛС"}
-            </Button>
           </form>
         </div>
       </div>
@@ -179,13 +186,13 @@ export function ConversationList() {
       ) : null}
 
       <CompactListHeader className="border-b border-[var(--border-soft)] px-3 py-2">
-        <span>Threads</span>
+        <span>Диалоги</span>
         <Link
           href="/app/people?view=discover"
           className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
         >
           <UserRoundPlus {...iconProps} />
-          Find people
+          Найти людей
         </Link>
       </CompactListHeader>
 
@@ -216,30 +223,60 @@ export function ConversationList() {
               >
                 <UserAvatar user={conversation.counterpart} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium tracking-tight text-white">
-                      {conversation.counterpart.profile.displayName}
-                    </p>
-                    <PresenceIndicator
-                      user={conversation.counterpart}
-                      compact
-                    />
-                    {conversation.unreadCount > 0 ? (
-                      <CompactListCount>{conversation.unreadCount}</CompactListCount>
-                    ) : null}
-                    {conversation.retentionMode !== "OFF" ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
-                        <Clock3 {...iconProps} />
-                        {dmRetentionLabels[conversation.retentionMode]}
-                      </span>
-                    ) : null}
-                    <span className="ml-auto shrink-0 text-[11px] text-[var(--text-muted)]">
-                      {formatConversationTime(conversation.lastMessageAt)}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
-                    @{conversation.counterpart.username}
-                  </p>
+                  {(() => {
+                    const liveCounterpart =
+                      realtimePresence !== null
+                        ? {
+                            ...conversation.counterpart,
+                            isOnline: Boolean(
+                              realtimePresence[conversation.counterpart.id],
+                            ),
+                          }
+                        : conversation.counterpart;
+                    const availabilityLabel = getAvailabilityLabel(liveCounterpart);
+
+                    return (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-medium tracking-tight text-white">
+                            {conversation.counterpart.profile.displayName}
+                          </p>
+                          {conversation.unreadCount > 0 ? (
+                            <CompactListCount>{conversation.unreadCount}</CompactListCount>
+                          ) : null}
+                          {conversation.retentionMode !== "OFF" ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                              <Clock3 {...iconProps} />
+                              {dmRetentionLabels[conversation.retentionMode]}
+                            </span>
+                          ) : null}
+                          <span className="ml-auto shrink-0 text-[11px] text-[var(--text-muted)]">
+                            {formatConversationTime(conversation.lastMessageAt)}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
+                          <span className="truncate text-[var(--text-muted)]">
+                            @{conversation.counterpart.username}
+                          </span>
+                          {availabilityLabel ? (
+                            <>
+                              <span className="text-[var(--text-muted)]">•</span>
+                              <span
+                                className={cn(
+                                  "truncate",
+                                  liveCounterpart.isOnline
+                                    ? "text-[var(--text-soft)]"
+                                    : "text-[var(--text-muted)]",
+                                )}
+                              >
+                                {availabilityLabel}
+                              </span>
+                            </>
+                          ) : null}
+                        </div>
+                      </>
+                    );
+                  })()}
                   <p
                     className={cn(
                       "mt-1 truncate text-[13px] leading-tight",

@@ -1,6 +1,7 @@
 import cookieParser from 'cookie-parser';
 import { INestApplication } from '@nestjs/common';
 import {
+  directConversationDetailSchema,
   directConversationSummaryResponseSchema,
   directMessageResponseSchema,
 } from '@lobby/shared';
@@ -96,6 +97,65 @@ describe('DirectMessagesController (e2e)', () => {
     expect(
       directMessageResponseSchema.parse(messageResponse.body).message.content,
     ).toBe('hello from delta');
+  });
+
+  it('exposes counterpart last seen separately from online status', async () => {
+    const alice = await createTestUser(prisma, {
+      username: 'harbor',
+      email: 'harbor@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Harbor',
+    });
+    const bob = await createTestUser(prisma, {
+      username: 'signal',
+      email: 'signal@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Signal',
+    });
+    const bobLastSeenAt = new Date(Date.now() - 2 * 60 * 60 * 1_000);
+
+    await prisma.session.create({
+      data: {
+        userId: bob.id,
+        tokenHash: `test-session-${Date.now()}`,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1_000),
+        lastActiveAt: bobLastSeenAt,
+      },
+    });
+
+    const aliceCookies = await loginAs(
+      app,
+      alice.username,
+      'VeryStrongPass123',
+    );
+
+    const openResponse = await request(httpServer)
+      .post('/v1/direct-messages/open')
+      .set('Cookie', aliceCookies)
+      .send({ username: bob.username })
+      .expect(201);
+
+    const conversation = directConversationSummaryResponseSchema.parse(
+      openResponse.body,
+    ).conversation;
+
+    expect(conversation.counterpart.isOnline).toBe(false);
+    expect(conversation.counterpart.lastSeenAt).toBe(
+      bobLastSeenAt.toISOString(),
+    );
+
+    const detailResponse = await request(httpServer)
+      .get(`/v1/direct-messages/${conversation.id}`)
+      .set('Cookie', aliceCookies)
+      .expect(200);
+
+    const detail = directConversationDetailSchema.parse(detailResponse.body);
+    const counterpart = detail.conversation.participants.find(
+      (participant) => participant.user.id === bob.id,
+    )?.user;
+
+    expect(counterpart?.isOnline).toBe(false);
+    expect(counterpart?.lastSeenAt).toBe(bobLastSeenAt.toISOString());
   });
 
   it('cleans up expired messages by retention policy', async () => {

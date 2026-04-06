@@ -180,6 +180,12 @@ export class DirectMessagesService {
         ),
       );
 
+    const counterpartIds = conversations.map((conversation) =>
+      this.getCounterpart(conversation.participants, viewerId).userId,
+    );
+    const lastSeenAtByUserId =
+      await this.getLastSeenAtByUserIds(counterpartIds);
+
     const items = await Promise.all(
       conversations.map((conversation) => {
         const counterpart = this.getCounterpart(
@@ -191,6 +197,7 @@ export class DirectMessagesService {
           conversation,
           viewerId,
           relationshipSummaries.get(counterpart.userId) ?? null,
+          lastSeenAtByUserId,
         );
       }),
     );
@@ -219,6 +226,9 @@ export class DirectMessagesService {
       viewerId,
       counterpart.userId,
     );
+    const lastSeenAtByUserId = await this.getLastSeenAtByUserIds(
+      conversation.participants.map((participant) => participant.userId),
+    );
 
     return toDirectConversationDetail({
       conversationId: conversation.id,
@@ -231,6 +241,7 @@ export class DirectMessagesService {
       messages: [...conversation.messages].sort(
         (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
       ),
+      lastSeenAtByUserId,
     });
   }
 
@@ -549,6 +560,7 @@ export class DirectMessagesService {
     conversation: ConversationSummaryRecord,
     viewerId: string,
     relationshipOverride?: UserRelationshipSummary | null,
+    lastSeenAtByUserId?: Map<string, Date | null>,
   ): Promise<DirectConversationSummary> {
     const participant = conversation.participants.find(
       (item) => item.userId === viewerId,
@@ -585,6 +597,12 @@ export class DirectMessagesService {
         },
       }),
     ]);
+    const counterpartLastSeenAt =
+      lastSeenAtByUserId && lastSeenAtByUserId.has(counterpart.userId)
+        ? (lastSeenAtByUserId.get(counterpart.userId) ?? null)
+        : ((await this.getLastSeenAtByUserIds([counterpart.userId])).get(
+            counterpart.userId,
+          ) ?? null);
 
     return toDirectConversationSummary({
       conversationId: conversation.id,
@@ -593,11 +611,42 @@ export class DirectMessagesService {
       retentionMode: conversation.retentionMode,
       retentionSeconds: conversation.retentionSeconds,
       counterpart: counterpart.user,
+      counterpartLastSeenAt,
       participant,
       lastMessage: conversation.messages[0] ?? null,
       isBlockedByViewer: relationship.isBlockedByViewer,
       hasBlockedViewer: relationship.hasBlockedViewer,
     });
+  }
+
+  private async getLastSeenAtByUserIds(userIds: string[]) {
+    const uniqueUserIds = [...new Set(userIds)];
+
+    if (uniqueUserIds.length === 0) {
+      return new Map<string, Date | null>();
+    }
+
+    const entries = await this.prisma.session.groupBy({
+      by: ['userId'],
+      where: {
+        userId: {
+          in: uniqueUserIds,
+        },
+      },
+      _max: {
+        lastActiveAt: true,
+      },
+    });
+
+    const lastSeenAtByUserId = new Map<string, Date | null>(
+      uniqueUserIds.map((userId) => [userId, null]),
+    );
+
+    entries.forEach((entry) => {
+      lastSeenAtByUserId.set(entry.userId, entry._max.lastActiveAt ?? null);
+    });
+
+    return lastSeenAtByUserId;
   }
 
   private resolveRetentionUpdate(input: UpdateDmSettingsInput) {

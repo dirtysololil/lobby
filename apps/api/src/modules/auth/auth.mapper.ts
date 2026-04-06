@@ -31,7 +31,12 @@ export type PublicUserRecord = Prisma.UserGetPayload<{
   select: typeof publicUserSelect;
 }>;
 
-export function toPublicUser(user: PublicUserRecord): PublicUser {
+export function toPublicUser(
+  user: PublicUserRecord,
+  options?: {
+    lastSeenAt?: Date | null;
+  },
+): PublicUser {
   if (!user.profile) {
     throw new Error(`Profile is missing for user ${user.id}`);
   }
@@ -42,6 +47,7 @@ export function toPublicUser(user: PublicUserRecord): PublicUser {
     email: user.email,
     role: user.role,
     isOnline: false,
+    lastSeenAt: options?.lastSeenAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     profile: {
       displayName: user.profile.displayName,

@@ -11,13 +11,16 @@ import {
 } from "@lobby/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { DmCallPanel } from "@/components/calls/dm-call-panel";
 import { buildUserProfileHref } from "@/lib/profile-routes";
-import { useRealtime } from "@/components/realtime/realtime-provider";
+import {
+  useOptionalRealtimePresence,
+  useRealtime,
+} from "@/components/realtime/realtime-provider";
 import { sortDirectMessages } from "@/lib/direct-message-state";
+import { getAvailabilityLabel } from "@/lib/last-seen";
 import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
 import { dmRetentionLabels } from "@/lib/ui-labels";
 import { ConversationSettings } from "./conversation-settings";
@@ -158,6 +161,7 @@ export function ConversationView({
   viewerId,
 }: ConversationViewProps) {
   const { latestDmSignal } = useRealtime();
+  const realtimePresence = useOptionalRealtimePresence();
   const [conversation, setConversation] = useState<ConversationState | null>(null);
   const [messages, setMessages] = useState<ThreadMessageItem[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -309,6 +313,22 @@ export function ConversationView({
       null,
     [conversation, viewerId],
   );
+  const liveCounterpart = useMemo(() => {
+    if (!counterpart) {
+      return null;
+    }
+
+    return realtimePresence !== null
+      ? {
+          ...counterpart,
+          isOnline: Boolean(realtimePresence[counterpart.id]),
+        }
+      : counterpart;
+  }, [counterpart, realtimePresence]);
+  const counterpartAvailabilityLabel = useMemo(
+    () => getAvailabilityLabel(liveCounterpart),
+    [liveCounterpart],
+  );
   const isBlocked =
     conversation?.isBlockedByViewer || conversation?.hasBlockedViewer || false;
 
@@ -454,7 +474,6 @@ export function ConversationView({
                 <p className="truncate text-sm font-medium tracking-tight text-white">
                   {counterpart.profile.displayName}
                 </p>
-                <PresenceIndicator user={counterpart} compact />
                 <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                   <UserRound {...iconProps} />
                   ЛС
@@ -472,9 +491,23 @@ export function ConversationView({
                   </span>
                 ) : null}
               </div>
-              <p className="truncate text-xs text-[var(--text-muted)]">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
                 @{counterpart.username}
-              </p>
+                {counterpartAvailabilityLabel ? (
+                  <>
+                    <span>•</span>
+                    <span
+                      className={cn(
+                        liveCounterpart?.isOnline
+                          ? "text-[var(--text-soft)]"
+                          : "text-[var(--text-muted)]",
+                      )}
+                    >
+                      {counterpartAvailabilityLabel}
+                    </span>
+                  </>
+                ) : null}
+              </div>
             </div>
           </Link>
 
