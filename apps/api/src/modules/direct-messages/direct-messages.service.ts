@@ -35,8 +35,6 @@ const directMessageWithAuthorInclude = {
   },
 } satisfies Prisma.DirectMessageInclude;
 
-const DM_DELETE_WINDOW_MS = 60 * 60 * 1_000;
-
 const participantWithUserInclude = {
   user: {
     select: publicUserSelect,
@@ -350,14 +348,10 @@ export class DirectMessagesService {
       throw new ForbiddenException('Only the author can delete this message');
     }
 
-    const deleteExpiresAt = new Date(
-      message.createdAt.getTime() + DM_DELETE_WINDOW_MS,
-    );
-
-    if (deleteExpiresAt.getTime() <= Date.now()) {
-      throw new ForbiddenException(
-        'Messages can be deleted only within 1 hour after sending',
-      );
+    if (message.deletedAt) {
+      return toDirectMessage(message, {
+        viewerId: actor.id,
+      });
     }
 
     const updatedMessage = await this.prisma.$transaction(
