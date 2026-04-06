@@ -123,4 +123,19 @@ export class AdminController {
       await this.adminService.listAudit(query),
     );
   }
+
+  @Post('audit/clear')
+  public async clearAuditLog(
+    @CurrentUser() currentUser: PublicUser,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    await this.adminService.clearAuditLog(
+      currentUser,
+      getRequestMetadata(request),
+    );
+
+    return actionMessageSchema.parse({
+      ok: true,
+    });
+  }
 }

@@ -111,6 +111,7 @@ export const publicUserSchema = z.object({
   email: z.string().email(),
   role: userRoleSchema,
   isOnline: z.boolean(),
+  lastSeenAt: isoDateSchema.nullable(),
   profile: profileSchema,
   createdAt: isoDateSchema,
 });

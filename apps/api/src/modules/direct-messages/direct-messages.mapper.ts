@@ -20,24 +20,15 @@ export type ParticipantWithUser = DirectConversationParticipant & {
   user: PublicUserRecord;
 };
 
-const DELETE_WINDOW_MS = 60 * 60 * 1000;
-
 export function toDirectMessage(
   message: MessageWithAuthor,
   options?: {
     viewerId?: string;
-    now?: Date;
     clientNonce?: string | null;
   },
 ): DirectMessage {
-  const now = options?.now ?? new Date();
-  const deleteExpiresAt = new Date(
-    message.createdAt.getTime() + DELETE_WINDOW_MS,
-  );
   const canDelete =
-    !message.deletedAt &&
-    options?.viewerId === message.authorId &&
-    deleteExpiresAt.getTime() > now.getTime();
+    !message.deletedAt && options?.viewerId === message.authorId;
 
   return directMessageSchema.parse({
     id: message.id,
@@ -46,7 +37,7 @@ export function toDirectMessage(
     content: message.deletedAt ? null : message.content,
     isDeleted: Boolean(message.deletedAt),
     canDelete,
-    deleteExpiresAt: message.deletedAt ? null : deleteExpiresAt.toISOString(),
+    deleteExpiresAt: null,
     clientNonce: options?.clientNonce ?? null,
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),
@@ -60,6 +51,7 @@ export function toDirectConversationSummary(args: {
   retentionMode: string;
   retentionSeconds: number | null;
   counterpart: PublicUserRecord;
+  counterpartLastSeenAt: Date | null;
   participant: DirectConversationParticipant;
   lastMessage: MessageWithAuthor | null;
   isBlockedByViewer: boolean;
@@ -71,7 +63,9 @@ export function toDirectConversationSummary(args: {
     unreadCount: args.unreadCount,
     retentionMode: args.retentionMode,
     retentionSeconds: args.retentionSeconds,
-    counterpart: toPublicUser(args.counterpart),
+    counterpart: toPublicUser(args.counterpart, {
+      lastSeenAt: args.counterpartLastSeenAt,
+    }),
     settings: {
       notificationSetting: args.participant.notificationSetting,
       lastReadMessageId: args.participant.lastReadMessageId,
@@ -96,6 +90,7 @@ export function toDirectConversationDetail(args: {
   hasBlockedViewer: boolean;
   participants: ParticipantWithUser[];
   messages: MessageWithAuthor[];
+  lastSeenAtByUserId?: Map<string, Date | null>;
 }): DirectConversationDetail {
   return directConversationDetailSchema.parse({
     conversation: {
@@ -105,7 +100,9 @@ export function toDirectConversationDetail(args: {
       isBlockedByViewer: args.isBlockedByViewer,
       hasBlockedViewer: args.hasBlockedViewer,
       participants: args.participants.map((participant) => ({
-        user: toPublicUser(participant.user),
+        user: toPublicUser(participant.user, {
+          lastSeenAt: args.lastSeenAtByUserId?.get(participant.userId) ?? null,
+        }),
         notificationSetting: participant.notificationSetting,
         lastReadMessageId: participant.lastReadMessageId,
         lastReadAt: participant.lastReadAt?.toISOString() ?? null,

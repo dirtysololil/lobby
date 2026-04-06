@@ -21,10 +21,12 @@ export default async function ProfileSettingsPage() {
   const viewer = await requireViewer();
 
   return (
-    <ProfileSettingsForm
-      viewer={viewer}
-      maxAvatarMb={getPositiveNumberEnv("MAX_AVATAR_MB", 10)}
-      maxAvatarAnimationMs={getPositiveNumberEnv("MAX_AVATAR_ANIMATION_MS", 15_000)}
-    />
+    <div className="mx-auto w-full max-w-[1180px]">
+      <ProfileSettingsForm
+        viewer={viewer}
+        maxAvatarMb={getPositiveNumberEnv("MAX_AVATAR_MB", 10)}
+        maxAvatarAnimationMs={getPositiveNumberEnv("MAX_AVATAR_ANIMATION_MS", 15_000)}
+      />
+    </div>
   );
 }

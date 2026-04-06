@@ -85,4 +85,11 @@ export class AuditService {
       total,
     };
   }
+
+  public async clear(client?: AuditClient): Promise<number> {
+    const target = client ?? this.prisma;
+    const result = await target.auditLog.deleteMany({});
+
+    return result.count;
+  }
 }
