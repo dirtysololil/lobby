@@ -1,4 +1,5 @@
 import { adminAuditLogListResponseSchema } from "@lobby/shared";
+import { AuditAdminActions } from "@/components/admin/audit-admin-actions";
 import { AuditLogPanel } from "@/components/admin/audit-log-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,11 +49,14 @@ export default async function AdminAuditPage({
               отдельно и не ломает высоту страницы.
             </p>
           </div>
-          <div className="grid gap-2 text-sm text-[var(--text-muted)] xl:text-right">
-            <span className="status-pill justify-center xl:justify-end">
+          <div className="grid gap-3 xl:max-w-[440px] xl:justify-items-end">
+            <div className="grid gap-2 text-sm text-[var(--text-muted)] xl:text-right">
+              <span className="status-pill justify-center xl:justify-end">
               Строки {pageStart}-{pageEnd} из {response.total}
-            </span>
-            <span>Страница {response.page}</span>
+              </span>
+              <span>Страница {response.page}</span>
+            </div>
+            <AuditAdminActions />
           </div>
         </div>
 

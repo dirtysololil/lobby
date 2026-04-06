@@ -7,6 +7,7 @@ function makeUser(args: {
   role?: PublicUser["role"];
   presence?: PublicUser["profile"]["presence"];
   isOnline?: boolean;
+  lastSeenAt?: string | null;
   bio?: string | null;
 }): PublicUser {
   const now = new Date().toISOString();
@@ -17,6 +18,7 @@ function makeUser(args: {
     email: `${args.username}@lobby.local`,
     role: args.role ?? "MEMBER",
     isOnline: args.isOnline ?? (args.presence ?? "ONLINE") !== "OFFLINE",
+    lastSeenAt: args.lastSeenAt ?? null,
     createdAt: now,
     profile: {
       displayName: args.displayName,
@@ -73,6 +75,7 @@ export const previewContacts = [
     username: "omar",
     displayName: "Omar Reed",
     presence: "OFFLINE",
+    lastSeenAt: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
   }),
 ];
 

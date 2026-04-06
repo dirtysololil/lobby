@@ -17,6 +17,7 @@ import {
   CompactListHeader,
   CompactListRow,
 } from "@/components/ui/compact-list";
+import { useOptionalRealtimePresence } from "@/components/realtime/realtime-provider";
 import { SelectField } from "@/components/ui/select-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { AvatarPreviewModal } from "@/components/ui/avatar-preview-modal";
@@ -24,6 +25,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiClientFetch } from "@/lib/api-client";
+import { getAvailabilityLabel } from "@/lib/last-seen";
+import { getResolvedPresenceDotClass } from "@/lib/presence";
+import { cn } from "@/lib/utils";
 
 interface ProfileSettingsFormProps {
   viewer: PublicUser;
@@ -67,11 +71,20 @@ export function ProfileSettingsForm({
   maxAvatarAnimationMs,
 }: ProfileSettingsFormProps) {
   const router = useRouter();
+  const realtimePresence = useOptionalRealtimePresence();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isRemovingAvatar, setIsRemovingAvatar] = useState(false);
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
+  const liveViewer =
+    realtimePresence !== null
+      ? {
+          ...viewer,
+          isOnline: Boolean(realtimePresence[viewer.id]),
+        }
+      : viewer;
+  const availabilityLabel = getAvailabilityLabel(liveViewer) ?? "Не в сети";
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -160,22 +173,33 @@ export function ProfileSettingsForm({
           <p className="section-kicker">Профиль</p>
 
           <div className="mt-3 rounded-[22px] border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_24%),rgba(255,255,255,0.02)] p-4">
-            <div className="flex items-start gap-3">
-              <button
-                type="button"
-                onClick={() => setIsAvatarPreviewOpen(true)}
-                className="group relative inline-flex rounded-[26px] border border-white/8 bg-black/15 p-2 transition-colors hover:border-white/14 hover:bg-black/20"
-                aria-label="Открыть фото профиля"
-              >
-                <UserAvatar
-                  user={viewer}
-                  size="lg"
-                  className="h-[88px] w-[88px] text-[1.35rem]"
-                />
-                <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full border border-white/10 bg-black/40 px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-                  Просмотр
+            <div className="flex items-start gap-4">
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAvatarPreviewOpen(true)}
+                  className="group relative inline-flex rounded-[28px] border border-white/8 bg-black/15 p-2 transition-colors hover:border-white/14 hover:bg-black/20"
+                  aria-label="Открыть фото профиля"
+                >
+                  <UserAvatar
+                    user={viewer}
+                    size="lg"
+                    showPresenceIndicator={false}
+                    className="h-[92px] w-[92px] text-[1.4rem]"
+                  />
+                  <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full border border-white/10 bg-black/40 px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    Просмотр
+                  </span>
+                </button>
+                <span className="absolute bottom-2 right-2 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-[var(--bg-panel)] bg-[rgba(6,10,16,0.92)] shadow-[0_8px_18px_rgba(0,0,0,0.35)]">
+                  <span
+                    className={cn(
+                      "h-2.5 w-2.5 rounded-full",
+                      getResolvedPresenceDotClass(liveViewer),
+                    )}
+                  />
                 </span>
-              </button>
+              </div>
 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-semibold tracking-tight text-white">
@@ -184,31 +208,50 @@ export function ProfileSettingsForm({
                 <p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
                   @{viewer.username}
                 </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-                  {viewer.profile.bio?.trim() ||
-                    "Добавьте короткое описание, чтобы аккуратно показываться в людях и личных сообщениях."}
+                <p className="mt-3 text-xs leading-5 text-[var(--text-dim)]">
+                  Этот блок используется как основа identity-поверхностей в Lobby, поэтому
+                  аватар, статус и подписи должны оставаться компактными и собранными.
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="status-pill">
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        getResolvedPresenceDotClass(liveViewer),
+                      )}
+                    />
+                    {availabilityLabel}
+                  </span>
+                  <span className="status-pill">
+                    <ShieldCheck
+                      size={16}
+                      strokeWidth={1.5}
+                      className="text-[var(--success)]"
+                    />
+                    Публичный профиль
+                  </span>
+                  <span className="status-pill">
+                    <Sparkles
+                      size={16}
+                      strokeWidth={1.5}
+                      className="text-[var(--accent)]"
+                    />
+                    {presetLabels[viewer.profile.avatarPreset]}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="status-pill">
-                <ShieldCheck
-                  size={16}
-                  strokeWidth={1.5}
-                  className="text-[var(--success)]"
-                />
-                Публичный профиль
-              </span>
-              <span className="status-pill">
-                <Sparkles
-                  size={16}
-                  strokeWidth={1.5}
-                  className="text-[var(--accent)]"
-                />
-                {presetLabels[viewer.profile.avatarPreset]}
-              </span>
+            <div className="mt-4 rounded-[18px] border border-white/6 bg-black/10 px-3 py-3">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-dim)]">
+                Описание профиля
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
+                {viewer.profile.bio?.trim() ||
+                  "Добавьте короткое описание, чтобы аккуратно показываться в людях и личных сообщениях."}
+              </p>
             </div>
+
           </div>
 
           <div className="mt-4 overflow-hidden rounded-[20px] border border-[var(--border-soft)]">
