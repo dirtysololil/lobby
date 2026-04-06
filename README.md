@@ -1,64 +1,67 @@
 # Lobby
 
-Private communication platform on `pnpm` monorepo.
+Приватный проект. README оставлен как короткая шпаргалка для быстрого старта и обслуживания.
 
-## Stack
+## Что где
 
-- `apps/web`: Next.js App Router + TypeScript
-- `apps/api`: NestJS + TypeScript
-- `packages/shared`: shared DTO, enums and zod schemas
-- `packages/config`: env loading and parsing
-- MySQL + Prisma
-- Redis + BullMQ
-- LiveKit
+- `apps/web` - фронт на Next.js
+- `apps/api` - API на NestJS
+- `packages/shared` - общие типы, DTO и схемы
+- `packages/config` - загрузка и валидация env
+- `prisma` - схема, миграции и seed
 
-## MySQL migration strategy
+## Быстрый старт
 
-- Old PostgreSQL migration history removed from the repo
-- Repository now contains single MySQL baseline migration: `20260402170000_mysql_baseline`
-- For a fresh database use `prisma migrate deploy`
-- For an existing MySQL database that was already aligned through `prisma db push`, mark the baseline once with `prisma:migrate:resolve:baseline`
-
-## Install
+1. Проверить `.env` и при необходимости обновить его по примеру из `.env.example`.
+2. Установить зависимости:
 
 ```bash
 corepack pnpm install
 corepack pnpm prisma:generate
 ```
 
-## Database
+3. Поднять базу.
 
-Fresh MySQL database:
+Для новой MySQL:
 
 ```bash
 corepack pnpm prisma:migrate:deploy
 corepack pnpm db:seed
 ```
 
-Existing MySQL database already matching the schema:
+Если база уже была выровнена через `prisma db push`, один раз отметить baseline:
 
 ```bash
 corepack pnpm prisma:migrate:resolve:baseline
 corepack pnpm db:seed
 ```
 
-## Build
+## Разработка
+
+```bash
+corepack pnpm dev
+corepack pnpm dev:worker
+```
+
+- `web`: `http://127.0.0.1:3000`
+- `api`: `http://127.0.0.1:3001`
+
+## Прод-сборка и запуск
 
 ```bash
 corepack pnpm build
-```
-
-## Run
-
-```bash
 corepack pnpm start:api
 corepack pnpm start:web
 corepack pnpm start:worker
 ```
 
-`api` binds to `127.0.0.1:3001`, `web` binds to `127.0.0.1:3000`.
+## Подсказки для меня
 
-## PM2
+- После изменений в Prisma почти всегда нужно выполнить `corepack pnpm prisma:generate`.
+- `db:seed` создает `owner`, `admin` и инвайт-коды из переменных в `.env`.
+- Если не работают очереди или realtime, сначала проверить `REDIS_URL`, `REALTIME_*`, `LIVEKIT_*`.
+- Для ручного инвайта владельца есть команда: `corepack pnpm --filter @lobby/api owner:invite`.
+- Для PM2:
 
 ```bash
 pm2 start ecosystem.config.cjs
