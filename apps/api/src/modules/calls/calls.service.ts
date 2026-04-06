@@ -2,6 +2,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type {
@@ -60,6 +61,8 @@ const ACTIVE_CALL_STATUSES: CallStatus[] = [
 
 @Injectable()
 export class CallsService {
+  private readonly logger = new Logger(CallsService.name);
+
   public constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
@@ -77,24 +80,13 @@ export class CallsService {
   ): Promise<CallStateResponse> {
     await this.assertDmConversationAccess(viewerId, conversationId);
 
-    const calls = await this.prisma.callSession.findMany({
-      where: {
-        dmConversationId: conversationId,
-      },
-      include: callSessionInclude,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 10,
-    });
+    const calls = await this.loadFreshDmCalls(conversationId);
+    const activeCall = calls.find((call) =>
+      ACTIVE_CALL_STATUSES.includes(call.status),
+    );
 
     return {
-      activeCall:
-        calls.find((call) => ACTIVE_CALL_STATUSES.includes(call.status)) != null
-          ? toCallSummary(
-              calls.find((call) => ACTIVE_CALL_STATUSES.includes(call.status))!,
-            )
-          : null,
+      activeCall: activeCall ? toCallSummary(activeCall) : null,
       history: calls.map((call) => toCallSummary(call)),
     };
   }
@@ -153,18 +145,7 @@ export class CallsService {
       counterpart.userId,
     );
 
-    const existingCall = await this.prisma.callSession.findFirst({
-      where: {
-        dmConversationId: conversationId,
-        status: {
-          in: ACTIVE_CALL_STATUSES,
-        },
-      },
-      include: callSessionInclude,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const existingCall = await this.findFreshActiveDmCall(conversationId);
 
     if (existingCall) {
       return toCallSummary(existingCall);
@@ -197,28 +178,7 @@ export class CallsService {
       include: callSessionInclude,
     });
 
-    await this.queueService.scheduleCallTimeout(
-      call.id,
-      new Date(
-        now.getTime() +
-          this.envService.getValues().CALL_RING_TIMEOUT_SECONDS * 1_000,
-      ),
-    );
-
-    await this.auditService.write({
-      action: 'calls.dm.start',
-      entityType: 'CallSession',
-      entityId: call.id,
-      actorUserId: actor.id,
-      ipAddress: requestMetadata.ipAddress,
-      userAgent: requestMetadata.userAgent,
-      metadata: {
-        conversationId,
-        mode: call.mode,
-      },
-    });
-
-    this.emitCallSignal('CALL_CREATED', call);
+    this.runDmCallStartSideEffects(call, actor.id, conversationId, requestMetadata);
 
     return toCallSummary(call);
   }
@@ -296,7 +256,12 @@ export class CallsService {
     callId: string,
     requestMetadata: RequestMetadata,
   ): Promise<CallSummary> {
-    const call = await this.getCallOrThrow(callId);
+    let call = await this.getCallOrThrow(callId);
+
+    if (call.scope === CallScope.DM) {
+      call = await this.refreshExpiredRingingCall(call);
+    }
+
     const participant = this.getParticipantOrThrow(call, actor.id);
 
     if (call.scope !== CallScope.DM) {
@@ -567,7 +532,11 @@ export class CallsService {
       canPublishMedia: boolean;
     };
   }> {
-    const call = await this.getCallOrThrow(callId);
+    let call = await this.getCallOrThrow(callId);
+
+    if (call.scope === CallScope.DM) {
+      call = await this.refreshExpiredRingingCall(call);
+    }
 
     if (!ACTIVE_CALL_STATUSES.includes(call.status)) {
       throw new ConflictException('Call is no longer active');
@@ -803,6 +772,43 @@ export class CallsService {
     return conversation;
   }
 
+  private async loadDmCalls(conversationId: string): Promise<CallSessionRecord[]> {
+    return this.prisma.callSession.findMany({
+      where: {
+        dmConversationId: conversationId,
+      },
+      include: callSessionInclude,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 10,
+    });
+  }
+
+  private async loadFreshDmCalls(conversationId: string): Promise<CallSessionRecord[]> {
+    let calls = await this.loadDmCalls(conversationId);
+    const activeCall = calls.find((call) => ACTIVE_CALL_STATUSES.includes(call.status));
+
+    if (!activeCall || !this.isExpiredRingingCall(activeCall)) {
+      return calls;
+    }
+
+    await this.expireRingingCall(activeCall.id);
+    calls = await this.loadDmCalls(conversationId);
+
+    return calls;
+  }
+
+  private async findFreshActiveDmCall(
+    conversationId: string,
+  ): Promise<CallSessionRecord | null> {
+    const calls = await this.loadFreshDmCalls(conversationId);
+
+    return (
+      calls.find((call) => ACTIVE_CALL_STATUSES.includes(call.status)) ?? null
+    );
+  }
+
   private async getCallOrThrow(callId: string): Promise<CallSessionRecord> {
     const call = await this.prisma.callSession.findUnique({
       where: {
@@ -816,6 +822,79 @@ export class CallsService {
     }
 
     return call;
+  }
+
+  private isExpiredRingingCall(call: Pick<CallSessionRecord, 'status' | 'createdAt'>): boolean {
+    if (call.status !== CallStatus.RINGING) {
+      return false;
+    }
+
+    const ringTimeoutMs =
+      this.envService.getValues().CALL_RING_TIMEOUT_SECONDS * 1_000;
+
+    return call.createdAt.getTime() + ringTimeoutMs <= Date.now();
+  }
+
+  private async refreshExpiredRingingCall(
+    call: CallSessionRecord,
+  ): Promise<CallSessionRecord> {
+    if (!this.isExpiredRingingCall(call)) {
+      return call;
+    }
+
+    await this.expireRingingCall(call.id);
+    return this.getCallOrThrow(call.id);
+  }
+
+  private runDmCallStartSideEffects(
+    call: CallSessionRecord,
+    actorUserId: string,
+    conversationId: string,
+    requestMetadata: RequestMetadata,
+  ): void {
+    const executeAt = new Date(
+      call.createdAt.getTime() +
+        this.envService.getValues().CALL_RING_TIMEOUT_SECONDS * 1_000,
+    );
+
+    void Promise.allSettled([
+      this.queueService.scheduleCallTimeout(call.id, executeAt),
+      this.auditService.write({
+        action: 'calls.dm.start',
+        entityType: 'CallSession',
+        entityId: call.id,
+        actorUserId,
+        ipAddress: requestMetadata.ipAddress,
+        userAgent: requestMetadata.userAgent,
+        metadata: {
+          conversationId,
+          mode: call.mode,
+        },
+      }),
+      Promise.resolve().then(() => {
+        this.emitCallSignal('CALL_CREATED', call);
+      }),
+    ]).then((results) => {
+      const [timeoutResult, auditResult, signalResult] = results;
+
+      if (timeoutResult?.status === 'rejected') {
+        this.logger.warn(
+          `Failed to schedule DM call timeout for ${call.id}: ${this.formatError(timeoutResult.reason)}`,
+        );
+      }
+
+      if (auditResult?.status === 'rejected') {
+        this.logger.warn(
+          `Failed to write DM call start audit for ${call.id}: ${this.formatError(auditResult.reason)}`,
+        );
+      }
+
+      if (signalResult?.status === 'rejected') {
+        this.logger.warn(
+          `Failed to emit DM call start signal for ${call.id}: ${this.formatError(signalResult.reason)}`,
+        );
+      }
+    });
   }
 
   private getParticipantOrThrow(call: CallSessionRecord, userId: string) {
@@ -932,5 +1011,9 @@ export class CallsService {
       );
       this.realtimeService.emitToLobby(call.lobbyId, payload);
     }
+  }
+
+  private formatError(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 }

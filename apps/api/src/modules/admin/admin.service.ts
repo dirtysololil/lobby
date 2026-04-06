@@ -182,6 +182,29 @@ export class AdminService {
     };
   }
 
+  public async clearAuditLog(
+    actor: PublicUser,
+    requestMetadata: RequestMetadata,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (transaction) => {
+      const deletedCount = await this.auditService.clear(transaction);
+
+      await this.auditService.write(
+        {
+          action: 'admin.audit.clear',
+          entityType: 'AuditLog',
+          actorUserId: actor.id,
+          ipAddress: requestMetadata.ipAddress,
+          userAgent: requestMetadata.userAgent,
+          metadata: {
+            deletedCount,
+          },
+        },
+        transaction,
+      );
+    });
+  }
+
   public async blockUser(
     actor: PublicUser,
     userId: string,
@@ -387,7 +410,12 @@ export class AdminService {
     );
 
     return users.map((user) => ({
-      user: toPublicUser(user as unknown as Parameters<typeof toPublicUser>[0]),
+      user: toPublicUser(
+        user as unknown as Parameters<typeof toPublicUser>[0],
+        {
+          lastSeenAt: lastSeenAtByUserId.get(user.id) ?? null,
+        },
+      ),
       activeSessionCount: activeSessionCountByUserId.get(user.id) ?? 0,
       hubMembershipCount: hubMembershipCountByUserId.get(user.id) ?? 0,
       lastSeenAt: lastSeenAtByUserId.get(user.id)?.toISOString() ?? null,

@@ -108,4 +108,49 @@ describe('AdminController (e2e)', () => {
       })
       .expect(201);
   });
+
+  it('clears audit logs and keeps the clear action itself', async () => {
+    const admin = await createTestUser(prisma, {
+      username: 'auditboss',
+      email: 'auditboss@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Audit Boss',
+      role: UserRole.ADMIN,
+    });
+
+    const adminCookies = await loginAs(
+      app,
+      admin.username,
+      'VeryStrongPass123',
+    );
+
+    await request(httpServer)
+      .get('/v1/admin/audit')
+      .set('Cookie', adminCookies)
+      .expect(200);
+
+    const beforeClearCount = await prisma.auditLog.count();
+    expect(beforeClearCount).toBeGreaterThan(0);
+
+    await request(httpServer)
+      .post('/v1/admin/audit/clear')
+      .set('Cookie', adminCookies)
+      .expect(201);
+
+    const remainingLogs = await prisma.auditLog.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        action: true,
+        entityType: true,
+      },
+    });
+
+    expect(remainingLogs).toHaveLength(1);
+    expect(remainingLogs[0]).toEqual({
+      action: 'admin.audit.clear',
+      entityType: 'AuditLog',
+    });
+  });
 });

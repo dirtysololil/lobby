@@ -12,6 +12,7 @@ interface UserAvatarProps {
   user: PublicUser;
   size?: "sm" | "md" | "lg";
   className?: string;
+  showPresenceIndicator?: boolean;
 }
 
 const sizeClasses = {
@@ -20,7 +21,12 @@ const sizeClasses = {
   lg: "h-12 w-12 text-sm",
 } as const;
 
-export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
+export function UserAvatar({
+  user,
+  size = "md",
+  className,
+  showPresenceIndicator = true,
+}: UserAvatarProps) {
   const realtimePresence = useOptionalRealtimePresence();
   const avatarUrl = getAvatarUrl(user);
   const initials = getAvatarInitials(user.profile.displayName || user.username);
@@ -58,12 +64,14 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
         )}
       </div>
 
-      <span
-        className={cn(
-          "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-app)]",
-          getResolvedPresenceDotClass(liveUser),
-        )}
-      />
+      {showPresenceIndicator ? (
+        <span
+          className={cn(
+            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-app)]",
+            getResolvedPresenceDotClass(liveUser),
+          )}
+        />
+      ) : null}
     </div>
   );
 }
