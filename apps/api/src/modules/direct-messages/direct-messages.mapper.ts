@@ -20,24 +20,15 @@ export type ParticipantWithUser = DirectConversationParticipant & {
   user: PublicUserRecord;
 };
 
-const DELETE_WINDOW_MS = 60 * 60 * 1000;
-
 export function toDirectMessage(
   message: MessageWithAuthor,
   options?: {
     viewerId?: string;
-    now?: Date;
     clientNonce?: string | null;
   },
 ): DirectMessage {
-  const now = options?.now ?? new Date();
-  const deleteExpiresAt = new Date(
-    message.createdAt.getTime() + DELETE_WINDOW_MS,
-  );
   const canDelete =
-    !message.deletedAt &&
-    options?.viewerId === message.authorId &&
-    deleteExpiresAt.getTime() > now.getTime();
+    !message.deletedAt && options?.viewerId === message.authorId;
 
   return directMessageSchema.parse({
     id: message.id,
@@ -46,7 +37,7 @@ export function toDirectMessage(
     content: message.deletedAt ? null : message.content,
     isDeleted: Boolean(message.deletedAt),
     canDelete,
-    deleteExpiresAt: message.deletedAt ? null : deleteExpiresAt.toISOString(),
+    deleteExpiresAt: null,
     clientNonce: options?.clientNonce ?? null,
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),

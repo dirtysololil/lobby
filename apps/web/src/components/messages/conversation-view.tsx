@@ -57,7 +57,6 @@ function buildOptimisticMessage(args: {
   clientNonce: string;
 }): ThreadMessageItem {
   const createdAt = new Date().toISOString();
-  const deleteExpiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
   return {
     id: `temp:${args.clientNonce}`,
@@ -66,7 +65,7 @@ function buildOptimisticMessage(args: {
     content: args.content,
     isDeleted: false,
     canDelete: true,
-    deleteExpiresAt,
+    deleteExpiresAt: null,
     clientNonce: args.clientNonce,
     createdAt,
     updatedAt: createdAt,
@@ -390,7 +389,11 @@ export function ConversationView({
   async function deleteMessage(messageId: string) {
     const previousMessage = messages.find((message) => message.id === messageId);
 
-    if (!previousMessage || !previousMessage.canDelete) {
+    if (
+      !previousMessage ||
+      previousMessage.author.id !== viewerId ||
+      previousMessage.localState
+    ) {
       return;
     }
 
@@ -405,17 +408,8 @@ export function ConversationView({
       directMessageResponseSchema.parse(payload);
       setErrorMessage(null);
     } catch (error) {
-      const deleteWindowExpired =
-        error instanceof Error &&
-        error.message.toLowerCase().includes("1 hour");
       setMessages((current) =>
-        sortDirectMessages([
-          ...current,
-          {
-            ...previousMessage,
-            canDelete: deleteWindowExpired ? false : previousMessage.canDelete,
-          },
-        ]),
+        sortDirectMessages([...current, previousMessage]),
       );
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось удалить сообщение.",
@@ -464,10 +458,10 @@ export function ConversationView({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex min-h-[56px] shrink-0 flex-col gap-2 border-b border-white/5 bg-[rgba(11,16,24,0.88)] px-3 py-2 backdrop-blur-xl md:min-h-12 md:flex-row md:items-center md:justify-between md:gap-3">
+        <div className="flex shrink-0 flex-col gap-2 border-b border-white/5 bg-[rgba(11,16,24,0.88)] px-3 py-2 backdrop-blur-xl md:flex-row md:items-center md:justify-between md:gap-3">
           <Link
             href={buildUserProfileHref(counterpart.username)}
-            className="identity-link min-w-0 flex-1 rounded-[16px] px-1.5 py-1"
+            className="identity-link min-w-0 flex-1 rounded-[16px] px-1 py-0.5"
           >
             <UserAvatar user={counterpart} size="sm" />
             <div className="min-w-0">
@@ -475,36 +469,38 @@ export function ConversationView({
                 <p className="truncate text-sm font-medium tracking-tight text-white">
                   {counterpart.profile.displayName}
                 </p>
-                <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                  <UserRound {...iconProps} />
-                  ЛС
-                </span>
-                {conversation.retentionMode !== "OFF" ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                    <Clock3 {...iconProps} />
-                    {dmRetentionLabels[conversation.retentionMode]}
-                  </span>
-                ) : null}
-                {isBlocked ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-amber-300">
-                    <ShieldAlert {...iconProps} />
-                    Ограничено
-                  </span>
-                ) : null}
               </div>
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                @{counterpart.username}
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                <span>@{counterpart.username}</span>
                 {counterpartAvailabilityLabel ? (
                   <>
                     <span>•</span>
                     <span
                       className={cn(
                         liveCounterpart?.isOnline
-                          ? "text-[var(--text-soft)]"
+                          ? "text-emerald-200"
                           : "text-[var(--text-muted)]",
                       )}
                     >
                       {counterpartAvailabilityLabel}
+                    </span>
+                  </>
+                ) : null}
+                {conversation.retentionMode !== "OFF" ? (
+                  <>
+                    <span>•</span>
+                    <span className="inline-flex items-center gap-1 text-[var(--text-muted)]">
+                      <Clock3 {...iconProps} />
+                      {dmRetentionLabels[conversation.retentionMode]}
+                    </span>
+                  </>
+                ) : null}
+                {isBlocked ? (
+                  <>
+                    <span>•</span>
+                    <span className="inline-flex items-center gap-1 text-amber-300">
+                      <ShieldAlert {...iconProps} />
+                      Ограничено
                     </span>
                   </>
                 ) : null}
@@ -529,13 +525,15 @@ export function ConversationView({
 
         </div>
 
-        <div className="shrink-0 border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_42%),rgba(20,29,40,0.68)] px-3 py-1.5">
+        <div className="shrink-0 border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_42%),rgba(20,29,40,0.62)] px-3 py-1.5">
           <DmCallPanel
             conversationId={conversationId}
             viewerId={viewerId}
             isBlocked={isBlocked}
             counterpartName={counterpart.profile.displayName}
             counterpartUsername={counterpart.username}
+            counterpartAvailabilityLabel={counterpartAvailabilityLabel}
+            counterpartIsOnline={Boolean(liveCounterpart?.isOnline)}
           />
         </div>
 
@@ -565,7 +563,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="shrink-0 border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 py-2.5 backdrop-blur-xl">
+        <div className="shrink-0 border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 py-2 backdrop-blur-xl">
           <MessageComposer disabled={isBlocked} onSend={sendMessage} />
         </div>
       </section>
