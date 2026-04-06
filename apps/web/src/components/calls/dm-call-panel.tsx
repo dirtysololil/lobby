@@ -92,7 +92,7 @@ export function DmCallPanel({
     [callRoute, callSubtitle, callTitle, connectToCall],
   );
 
-  const loadState = useCallback(async () => {
+  const loadState = useCallback(async (): Promise<CallStateResponse | null> => {
     const requestId = ++loadRequestIdRef.current;
 
     try {
@@ -100,7 +100,7 @@ export function DmCallPanel({
       const parsed = callStateResponseSchema.parse(payload);
 
       if (requestId !== loadRequestIdRef.current) {
-        return;
+        return null;
       }
 
       setState(parsed);
@@ -114,14 +114,16 @@ export function DmCallPanel({
       }
 
       setErrorMessage(null);
+      return parsed;
     } catch (error) {
       if (requestId !== loadRequestIdRef.current) {
-        return;
+        return null;
       }
 
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось загрузить состояние звонка.",
       );
+      return null;
     }
   }, [callRoute, callSubtitle, callTitle, conversationId, syncCall]);
 
@@ -234,6 +236,19 @@ export function DmCallPanel({
       await loadState();
       setErrorMessage(null);
     } catch (error) {
+      const recoveredState = await loadState();
+      const recoveredCall = recoveredState?.activeCall ?? null;
+
+      if (recoveredCall) {
+        try {
+          await connectToResolvedCall(recoveredCall);
+          setErrorMessage(null);
+          return;
+        } catch {
+          // Keep the original error handling below if recovery could not reconnect.
+        }
+      }
+
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось запустить звонок.",
       );
