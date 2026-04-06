@@ -23,6 +23,7 @@ import { sortDirectMessages } from "@/lib/direct-message-state";
 import { getAvailabilityLabel } from "@/lib/last-seen";
 import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
 import { dmRetentionLabels } from "@/lib/ui-labels";
+import { cn } from "@/lib/utils";
 import { ConversationSettings } from "./conversation-settings";
 import { MovableConversationInfoPanel } from "./movable-conversation-info-panel";
 import { MessageComposer } from "./message-composer";
