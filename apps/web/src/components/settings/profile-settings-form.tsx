@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, ShieldCheck, Sparkles } from "lucide-react";
+import { Camera, Trash2 } from "lucide-react";
 import {
   updateProfileSchema,
   type PublicUser,
@@ -11,12 +11,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import {
-  CompactList,
-  CompactListCount,
-  CompactListHeader,
-  CompactListRow,
-} from "@/components/ui/compact-list";
 import { useOptionalRealtimePresence } from "@/components/realtime/realtime-provider";
 import { SelectField } from "@/components/ui/select-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -65,6 +59,18 @@ const presetLabels: Record<UpdateProfileInput["avatarPreset"], string> = {
   ANIMATED_RING: "Анимированный ореол",
 };
 
+const fieldClassName =
+  "h-11 rounded-[14px] border-white/8 bg-white/[0.03] px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-white/[0.05]";
+
+const textareaClassName =
+  "field-textarea min-h-[132px] rounded-[16px] border-white/8 bg-white/[0.03] px-3.5 py-3 text-sm leading-6 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-white/[0.05]";
+
+const selectClassName =
+  "min-h-11 rounded-[14px] border-white/8 bg-white/[0.03] px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)]";
+
+const selectListClassName =
+  "border-[var(--border)] bg-[var(--bg-panel)] p-1 shadow-[0_14px_36px_rgba(4,8,16,0.32)]";
+
 export function ProfileSettingsForm({
   viewer,
   maxAvatarMb,
@@ -84,7 +90,9 @@ export function ProfileSettingsForm({
           isOnline: Boolean(realtimePresence[viewer.id]),
         }
       : viewer;
+  const trimmedBio = viewer.profile.bio?.trim() ?? "";
   const availabilityLabel = getAvailabilityLabel(liveViewer) ?? "Не в сети";
+  const hasCustomAvatar = Boolean(viewer.profile.avatar.fileKey);
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -168,30 +176,28 @@ export function ProfileSettingsForm({
 
   return (
     <>
-      <section className="grid gap-3 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="premium-panel rounded-[24px] p-4">
-          <p className="section-kicker">Профиль</p>
-
-          <div className="mt-3 rounded-[22px] border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_24%),rgba(255,255,255,0.02)] p-4">
-            <div className="flex items-start gap-4">
+      <div className="grid gap-3">
+        <section className="premium-panel rounded-[24px] px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4 sm:gap-5">
               <div className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAvatarPreviewOpen(true)}
-                  className="group relative inline-flex rounded-[28px] border border-white/8 bg-black/15 p-2 transition-colors hover:border-white/14 hover:bg-black/20"
+                  className="group relative inline-flex rounded-[30px] border border-white/8 bg-white/[0.03] p-2 transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.05]"
                   aria-label="Открыть фото профиля"
                 >
                   <UserAvatar
                     user={viewer}
                     size="lg"
                     showPresenceIndicator={false}
-                    className="h-[92px] w-[92px] text-[1.4rem]"
+                    className="h-[104px] w-[104px] text-[1.55rem]"
                   />
-                  <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full border border-white/10 bg-black/40 px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  <span className="pointer-events-none absolute inset-x-4 bottom-4 rounded-full border border-white/10 bg-[rgba(8,12,18,0.82)] px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
                     Просмотр
                   </span>
                 </button>
-                <span className="absolute bottom-2 right-2 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-[var(--bg-panel)] bg-[rgba(6,10,16,0.92)] shadow-[0_8px_18px_rgba(0,0,0,0.35)]">
+                <span className="absolute bottom-3 right-3 flex h-5 w-5 items-center justify-center rounded-full border-[3px] border-[var(--bg-panel)] bg-[var(--bg-panel)]">
                   <span
                     className={cn(
                       "h-2.5 w-2.5 rounded-full",
@@ -201,19 +207,21 @@ export function ProfileSettingsForm({
                 </span>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-base font-semibold tracking-tight text-white">
+              <div className="min-w-0 py-1">
+                <h2 className="truncate text-[1.35rem] font-semibold tracking-tight text-white">
                   {viewer.profile.displayName}
-                </p>
-                <p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
-                  @{viewer.username}
-                </p>
-                <p className="mt-3 text-xs leading-5 text-[var(--text-dim)]">
-                  Этот блок используется как основа identity-поверхностей в Lobby, поэтому
-                  аватар, статус и подписи должны оставаться компактными и собранными.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="status-pill">
+                </h2>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-[var(--text-muted)]">@{viewer.username}</span>
+                  <span className="h-1 w-1 rounded-full bg-white/12" />
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium",
+                      liveViewer.isOnline
+                        ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+                        : "border-white/8 bg-white/[0.04] text-[var(--text-soft)]",
+                    )}
+                  >
                     <span
                       className={cn(
                         "h-2 w-2 rounded-full",
@@ -222,148 +230,144 @@ export function ProfileSettingsForm({
                     />
                     {availabilityLabel}
                   </span>
-                  <span className="status-pill">
-                    <ShieldCheck
-                      size={16}
-                      strokeWidth={1.5}
-                      className="text-[var(--success)]"
-                    />
-                    Публичный профиль
-                  </span>
-                  <span className="status-pill">
-                    <Sparkles
-                      size={16}
-                      strokeWidth={1.5}
-                      className="text-[var(--accent)]"
-                    />
-                    {presetLabels[viewer.profile.avatarPreset]}
-                  </span>
                 </div>
+                {trimmedBio ? (
+                  <p className="mt-3 max-w-[64ch] text-sm leading-6 text-[var(--text-dim)]">
+                    {trimmedBio}
+                  </p>
+                ) : null}
               </div>
             </div>
 
-            <div className="mt-4 rounded-[18px] border border-white/6 bg-black/10 px-3 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-dim)]">
-                Описание профиля
-              </p>
-              <p className="mt-2 text-sm leading-6 text-[var(--text-dim)]">
-                {viewer.profile.bio?.trim() ||
-                  "Добавьте короткое описание, чтобы аккуратно показываться в людях и личных сообщениях."}
-              </p>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[220px]">
+              <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.05] px-3 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(event) =>
+                    void handleAvatarUpload(event.target.files?.[0] ?? null)
+                  }
+                  disabled={isUploadingAvatar}
+                />
+                <Camera size={16} strokeWidth={1.5} />
+                {isUploadingAvatar ? "Загружаем..." : "Загрузить аватар"}
+              </label>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void handleAvatarRemove()}
+                disabled={!hasCustomAvatar || isRemovingAvatar}
+                className="h-10 rounded-[14px] border-white/8 bg-white/[0.04] px-3 hover:bg-white/[0.07]"
+              >
+                <Trash2 size={15} strokeWidth={1.5} />
+                {isRemovingAvatar ? "Удаляем..." : "Удалить аватар"}
+              </Button>
             </div>
-
           </div>
-
-          <div className="mt-4 overflow-hidden rounded-[20px] border border-[var(--border-soft)]">
-            <CompactListHeader className="bg-white/[0.02]">
-              <span>Параметры аватара</span>
-              <CompactListCount>Сейчас</CompactListCount>
-            </CompactListHeader>
-            <CompactList>
-              <CompactListRow compact className="text-left">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-white">Размер файла</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    PNG, JPG, WEBP или GIF
-                  </p>
-                </div>
-                <CompactListCount>{maxAvatarMb} MB</CompactListCount>
-              </CompactListRow>
-              <CompactListRow compact className="text-left">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-white">Анимация</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Для загружаемых GIF
-                  </p>
-                </div>
-                <CompactListCount>
-                  {Math.floor(maxAvatarAnimationMs / 1000)}s
-                </CompactListCount>
-              </CompactListRow>
-            </CompactList>
-          </div>
-
-          <div className="mt-4 grid gap-2">
-            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-[var(--border)] bg-white/[0.05] px-3 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className="hidden"
-                onChange={(event) =>
-                  void handleAvatarUpload(event.target.files?.[0] ?? null)
-                }
-                disabled={isUploadingAvatar}
-              />
-              <Camera size={16} strokeWidth={1.5} />
-              {isUploadingAvatar ? "Загружаем аватар..." : "Загрузить аватар"}
-            </label>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => void handleAvatarRemove()}
-              disabled={!viewer.profile.avatar.fileKey || isRemovingAvatar}
-              className="h-10"
-            >
-              {isRemovingAvatar ? "Удаляем..." : "Удалить аватар"}
-            </Button>
-          </div>
-        </aside>
+        </section>
 
         <form
-          className="premium-panel overflow-hidden rounded-[24px]"
+          className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.85fr)]"
           onSubmit={form.handleSubmit((values) => void onSubmit(values))}
         >
-          <div className="border-b border-[var(--border-soft)] px-4 py-4">
-            <p className="section-kicker">Настройки профиля</p>
-            <p className="mt-1 text-sm text-[var(--text-dim)]">
-              Эти значения сразу попадают в заголовки ЛС, строки людей, участников
-              хабов и другие identity-поверхности.
-            </p>
-          </div>
-
-          <div className="grid">
-            <div className="border-b border-[var(--border-soft)] px-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="displayName">Отображаемое имя</Label>
-                <Input id="displayName" {...form.register("displayName")} className="h-10" />
-                <p className="text-xs leading-5 text-[var(--text-dim)]">
-                  Короткое и чистое имя выглядит лучше всего в списках и компактных
-                  call/header поверхностях.
-                </p>
-                {form.formState.errors.displayName ? (
-                  <p className="text-sm text-rose-200">
-                    {form.formState.errors.displayName.message}
-                  </p>
-                ) : null}
-              </div>
+          <section className="premium-panel overflow-hidden rounded-[24px]">
+            <div className="border-b border-[var(--border-soft)] px-5 py-4">
+              <p className="section-kicker">Основное</p>
+              <h3 className="mt-1 text-base font-semibold tracking-tight text-white">
+                Профиль
+              </h3>
             </div>
 
-            <div className="border-b border-[var(--border-soft)] px-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="bio">О себе</Label>
-                <textarea
-                  id="bio"
-                  rows={4}
-                  className="field-textarea min-h-[108px] text-sm"
-                  {...form.register("bio")}
-                />
-                <p className="text-xs leading-5 text-[var(--text-dim)]">
-                  Лучше короткий понятный текст, чем длинный блок, который ломает
-                  ритм интерфейса.
-                </p>
-                {form.formState.errors.bio ? (
-                  <p className="text-sm text-rose-200">
-                    {form.formState.errors.bio.message}
-                  </p>
-                ) : null}
+            <div className="grid">
+              <div className="px-5 py-4">
+                <div className="grid gap-2.5">
+                  <Label htmlFor="displayName">Отображаемое имя</Label>
+                  <Input
+                    id="displayName"
+                    {...form.register("displayName")}
+                    className={fieldClassName}
+                  />
+                  {form.formState.errors.displayName ? (
+                    <p className="text-sm text-rose-200">
+                      {form.formState.errors.displayName.message}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="border-t border-[var(--border-soft)] px-5 py-4">
+                <div className="grid gap-2.5">
+                  <Label htmlFor="bio">О себе</Label>
+                  <textarea
+                    id="bio"
+                    rows={5}
+                    className={textareaClassName}
+                    {...form.register("bio")}
+                  />
+                  {form.formState.errors.bio ? (
+                    <p className="text-sm text-rose-200">
+                      {form.formState.errors.bio.message}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </div>
+          </section>
 
-            <div className="border-b border-[var(--border-soft)] px-4 py-4">
-              <div className="grid gap-3 lg:grid-cols-2">
-                <div className="grid gap-2">
+          <div className="grid gap-3">
+            <section className="premium-panel overflow-hidden rounded-[24px]">
+              <div className="border-b border-[var(--border-soft)] px-4 py-4">
+                <p className="section-kicker">Медиа</p>
+                <h3 className="mt-1 text-sm font-semibold tracking-tight text-white">
+                  Аватар
+                </h3>
+              </div>
+
+              <div className="grid">
+                {[
+                  {
+                    label: "Текущий режим",
+                    value: hasCustomAvatar ? "Свой файл" : "Стандартный",
+                  },
+                  { label: "Форматы", value: "PNG, JPG, WEBP, GIF" },
+                  { label: "Размер", value: `${maxAvatarMb} MB` },
+                  {
+                    label: "Анимация",
+                    value: `${Math.floor(maxAvatarAnimationMs / 1000)} c`,
+                  },
+                ].map((item, index) => (
+                  <div
+                    key={item.label}
+                    className={cn(
+                      "flex items-center justify-between gap-3 px-4 py-3",
+                      index > 0 && "border-t border-[var(--border-soft)]",
+                    )}
+                  >
+                    <span className="text-sm text-[var(--text-dim)]">{item.label}</span>
+                    <span className="text-sm font-medium text-white">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="premium-panel overflow-hidden rounded-[24px]">
+              <div className="border-b border-[var(--border-soft)] px-4 py-4">
+                <p className="section-kicker">Видимость</p>
+                <h3 className="mt-1 text-sm font-semibold tracking-tight text-white">
+                  Статус и стиль
+                </h3>
+              </div>
+
+              <div className="grid gap-4 px-4 py-4">
+                <div className="grid gap-2.5">
                   <Label htmlFor="presence">Статус</Label>
-                  <SelectField id="presence" {...form.register("presence")}>
+                  <SelectField
+                    id="presence"
+                    className={selectClassName}
+                    listClassName={selectListClassName}
+                    {...form.register("presence")}
+                  >
                     {presenceOptions.map((option) => (
                       <option key={option} value={option}>
                         {presenceLabels[option]}
@@ -372,9 +376,14 @@ export function ProfileSettingsForm({
                   </SelectField>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-2.5">
                   <Label htmlFor="avatarPreset">Стиль аватара</Label>
-                  <SelectField id="avatarPreset" {...form.register("avatarPreset")}>
+                  <SelectField
+                    id="avatarPreset"
+                    className={selectClassName}
+                    listClassName={selectListClassName}
+                    {...form.register("avatarPreset")}
+                  >
                     {presetOptions.map((option) => (
                       <option key={option} value={option}>
                         {presetLabels[option]}
@@ -383,34 +392,45 @@ export function ProfileSettingsForm({
                   </SelectField>
                 </div>
               </div>
-            </div>
-
-            <div className="px-4 py-3 text-sm leading-6 text-[var(--text-dim)]">
-              Профиль должен оставаться компактным и читаемым. Самые удачные значения
-              хорошо выглядят не только в большой форме, но и в строках, списках и
-              карточках по всему Lobby.
-            </div>
+            </section>
           </div>
 
-          {error ? <p className="px-4 pb-1 text-sm text-rose-200">{error}</p> : null}
-          {message ? <p className="px-4 pb-1 text-sm text-emerald-200">{message}</p> : null}
+          <section className="premium-panel col-span-full rounded-[24px] px-4 py-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-h-[20px] text-sm">
+                {error ? (
+                  <p className="text-rose-200">{error}</p>
+                ) : message ? (
+                  <p className="text-emerald-200">{message}</p>
+                ) : null}
+              </div>
 
-          <div className="flex flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3">
-            <Button type="submit" disabled={form.formState.isSubmitting} className="h-10">
-              {form.formState.isSubmitting ? "Сохраняем..." : "Сохранить профиль"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => form.reset()}
-              disabled={form.formState.isSubmitting}
-              className="h-10"
-            >
-              Сбросить
-            </Button>
-          </div>
+              <div className="flex flex-wrap gap-2 sm:justify-end">
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  className="h-11 rounded-[14px] px-5"
+                >
+                  {form.formState.isSubmitting ? "Сохраняем..." : "Сохранить профиль"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    form.reset();
+                    setError(null);
+                    setMessage(null);
+                  }}
+                  disabled={form.formState.isSubmitting}
+                  className="h-11 rounded-[14px] border-white/8 bg-white/[0.04] px-4 hover:bg-white/[0.07]"
+                >
+                  Сбросить
+                </Button>
+              </div>
+            </div>
+          </section>
         </form>
-      </section>
+      </div>
 
       <AvatarPreviewModal
         user={viewer}
