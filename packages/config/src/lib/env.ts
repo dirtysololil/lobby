@@ -35,6 +35,10 @@ const apiEnvSchema = z.object({
   MAX_AVATAR_MB: z.coerce.number().positive(),
   MAX_AVATAR_FRAMES: z.coerce.number().int().positive().default(180),
   MAX_AVATAR_ANIMATION_MS: z.coerce.number().int().positive().default(10000),
+  MAX_STICKER_MB: z.coerce.number().positive().default(4),
+  MAX_STICKER_DIMENSION: z.coerce.number().int().positive().default(1024),
+  MAX_STICKER_FRAMES: z.coerce.number().int().positive().default(180),
+  MAX_STICKER_ANIMATION_MS: z.coerce.number().int().positive().default(10000),
   MAX_RINGTONE_MB: z.coerce.number().positive().default(25),
   MAX_FILE_MB: z.coerce.number().positive(),
   REALTIME_CORS_ORIGIN: z.string().url(),
@@ -66,6 +70,8 @@ const webEnvSchema = z.object({
   WEB_HOST: z.string().min(1),
   MAX_AVATAR_MB: z.coerce.number().positive(),
   MAX_AVATAR_ANIMATION_MS: z.coerce.number().int().positive(),
+  MAX_STICKER_MB: z.coerce.number().positive().default(4),
+  MAX_STICKER_DIMENSION: z.coerce.number().int().positive().default(1024),
   MAX_RINGTONE_MB: z.coerce.number().positive().default(25),
 });
 

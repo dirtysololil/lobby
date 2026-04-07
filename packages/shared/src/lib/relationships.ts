@@ -92,9 +92,3 @@ export const blockResponseSchema = z.object({
 });
 
 export type BlockResponse = z.infer<typeof blockResponseSchema>;
-
-export const actionMessageSchema = z.object({
-  ok: z.literal(true),
-});
-
-export type ActionMessage = z.infer<typeof actionMessageSchema>;

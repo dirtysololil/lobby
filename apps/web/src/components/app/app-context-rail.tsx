@@ -395,9 +395,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                       leading={<UserAvatar user={conversation.counterpart} size="sm" />}
                       label={conversation.counterpart.profile.displayName}
                       detail={
-                        conversation.lastMessage?.isDeleted
-                          ? "Последнее сообщение удалено"
-                          : (conversation.lastMessage?.content ?? "Сообщений пока нет")
+                        conversation.lastMessagePreview ?? "Сообщений пока нет"
                       }
                       meta={
                         conversation.unreadCount > 0 ? (

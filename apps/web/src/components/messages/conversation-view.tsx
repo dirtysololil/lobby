@@ -26,7 +26,10 @@ import { dmRetentionLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 import { ConversationSettings } from "./conversation-settings";
 import { MovableConversationInfoPanel } from "./movable-conversation-info-panel";
-import { MessageComposer } from "./message-composer";
+import {
+  MessageComposer,
+  type ComposerSendPayload,
+} from "./message-composer";
 import { MessageThread, type ThreadMessageItem } from "./message-thread";
 
 interface ConversationViewProps {
@@ -53,7 +56,7 @@ function stripConversationMessages(
 function buildOptimisticMessage(args: {
   author: DirectConversationDetail["conversation"]["participants"][number]["user"];
   conversationId: string;
-  content: string;
+  payload: ComposerSendPayload;
   clientNonce: string;
 }): ThreadMessageItem {
   const createdAt = new Date().toISOString();
@@ -61,8 +64,10 @@ function buildOptimisticMessage(args: {
   return {
     id: `temp:${args.clientNonce}`,
     conversationId: args.conversationId,
+    type: args.payload.type,
     author: args.author,
-    content: args.content,
+    content: args.payload.type === "TEXT" ? args.payload.content : null,
+    sticker: args.payload.type === "STICKER" ? args.payload.sticker : null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: null,
@@ -332,7 +337,7 @@ export function ConversationView({
   const isBlocked =
     conversation?.isBlockedByViewer || conversation?.hasBlockedViewer || false;
 
-  async function sendMessage(content: string) {
+  async function sendMessage(payload: ComposerSendPayload) {
     if (!conversation || !counterpart) {
       return;
     }
@@ -347,7 +352,7 @@ export function ConversationView({
     const optimisticMessage = buildOptimisticMessage({
       author,
       conversationId,
-      content,
+      payload,
       clientNonce,
     });
 
@@ -357,11 +362,16 @@ export function ConversationView({
     );
 
     try {
-      const payload = await apiClientFetch(`/v1/direct-messages/${conversationId}/messages`, {
+      const response = await apiClientFetch(`/v1/direct-messages/${conversationId}/messages`, {
         method: "POST",
-        body: JSON.stringify({ content, clientNonce }),
+        body: JSON.stringify({
+          type: payload.type,
+          content: payload.type === "TEXT" ? payload.content : undefined,
+          stickerId: payload.type === "STICKER" ? payload.stickerId : undefined,
+          clientNonce,
+        }),
       });
-      const parsed = directMessageResponseSchema.parse(payload);
+      const parsed = directMessageResponseSchema.parse(response);
       setMessages((current) => mergeThreadMessage(current, parsed.message));
       setConversation((current) =>
         applyLocalRead(current, viewerId, parsed.message.id, parsed.message.createdAt),
@@ -378,12 +388,27 @@ export function ConversationView({
   async function retryMessage(messageId: string) {
     const failedMessage = messages.find((item) => item.id === messageId);
 
-    if (!failedMessage?.content) {
+    if (!failedMessage) {
       return;
     }
 
     setMessages((current) => removeThreadMessage(current, messageId));
-    await sendMessage(failedMessage.content);
+
+    if (failedMessage.type === "STICKER" && failedMessage.sticker) {
+      await sendMessage({
+        type: "STICKER",
+        stickerId: failedMessage.sticker.id,
+        sticker: failedMessage.sticker,
+      });
+      return;
+    }
+
+    if (failedMessage.content) {
+      await sendMessage({
+        type: "TEXT",
+        content: failedMessage.content,
+      });
+    }
   }
 
   async function deleteMessage(messageId: string) {

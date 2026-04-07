@@ -58,6 +58,11 @@ enum DmRetentionMode {
   CUSTOM
 }
 
+enum DirectMessageType {
+  TEXT
+  STICKER
+}
+
 enum HubMemberRole {
   OWNER
   ADMIN
@@ -127,6 +132,8 @@ model User {
   createdConversations     DirectConversation[]          @relation("ConversationCreator")
   sentMessages             DirectMessage[]               @relation("MessageAuthor")
   deletedMessages          DirectMessage[]               @relation("MessageDeleter")
+  stickerPacks             StickerPack[]
+  stickerRecents           StickerRecent[]
   createdHubs              Hub[]                         @relation("HubCreator")
   hubMemberships           HubMember[]
   sentHubInvites           HubInvite[]                   @relation("HubInviteSender")
@@ -281,7 +288,9 @@ model DirectMessage {
   id                     String                         @id @default(cuid())
   conversationId         String
   authorId               String
+  type                   DirectMessageType              @default(TEXT)
   content                String?
+  stickerId              String?
   deletedAt              DateTime?
   deletedByUserId        String?
   createdAt              DateTime                       @default(now())
@@ -289,10 +298,65 @@ model DirectMessage {
   conversation           DirectConversation             @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   author                 User                           @relation("MessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   deletedByUser          User?                          @relation("MessageDeleter", fields: [deletedByUserId], references: [id], onDelete: SetNull)
+  sticker                Sticker?                       @relation(fields: [stickerId], references: [id], onDelete: SetNull)
   lastReadByParticipants DirectConversationParticipant[] @relation("ParticipantLastReadMessage")
 
   @@index([conversationId, createdAt])
   @@index([deletedAt])
+  @@index([stickerId])
+  @@index([type])
+}
+
+model StickerPack {
+  id        String    @id @default(cuid())
+  ownerId   String
+  title     String
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  stickers  Sticker[]
+  recents   StickerRecent[]
+
+  @@index([ownerId, deletedAt, sortOrder])
+}
+
+model Sticker {
+  id           String          @id @default(cuid())
+  packId       String
+  title        String
+  fileKey      String
+  originalName String?
+  mimeType     String
+  fileSize     Int
+  width        Int
+  height       Int
+  isAnimated   Boolean         @default(false)
+  sortOrder    Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+  pack         StickerPack     @relation(fields: [packId], references: [id], onDelete: Cascade)
+  recents      StickerRecent[]
+  messages     DirectMessage[]
+
+  @@index([packId, deletedAt, sortOrder])
+}
+
+model StickerRecent {
+  userId     String
+  stickerId  String
+  packId     String
+  usedAt     DateTime @default(now())
+  usageCount Int      @default(1)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sticker    Sticker  @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+  pack       StickerPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@id([userId, stickerId])
+  @@index([userId, usedAt])
+  @@index([packId, usedAt])
 }
 
 model Hub {

@@ -16,6 +16,10 @@ export class StorageService {
     return this.writeScopedObject('ringtones', buffer, extension);
   }
 
+  public async writeSticker(buffer: Buffer, extension: string): Promise<string> {
+    return this.writeScopedObject('stickers', buffer, extension);
+  }
+
   public async readObject(fileKey: string): Promise<Buffer> {
     return readFile(this.resolveLocalPath(fileKey));
   }

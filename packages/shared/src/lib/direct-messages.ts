@@ -6,8 +6,11 @@ import {
   isoDateSchema,
   publicUserSchema,
 } from "./common";
+import { stickerAssetSchema } from "./stickers";
 
 export const dmMessageContentSchema = z.string().trim().min(1).max(4000);
+export const dmMessageTypeSchema = z.enum(["TEXT", "STICKER"]);
+export type DmMessageType = z.infer<typeof dmMessageTypeSchema>;
 
 export const openDirectConversationSchema = z.object({
   username: usernameSchema,
@@ -17,10 +20,50 @@ export type OpenDirectConversationInput = z.infer<
   typeof openDirectConversationSchema
 >;
 
-export const createDirectMessageSchema = z.object({
-  content: dmMessageContentSchema,
-  clientNonce: z.string().trim().min(1).max(120).optional(),
-});
+export const createDirectMessageSchema = z
+  .object({
+    type: dmMessageTypeSchema.default("TEXT"),
+    content: z.string().trim().max(4000).nullable().optional(),
+    stickerId: z.string().cuid().nullable().optional(),
+    clientNonce: z.string().trim().min(1).max(120).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.type === "TEXT") {
+      if (!value.content || value.content.trim().length === 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["content"],
+          message: "content is required for TEXT messages",
+        });
+      }
+
+      if (value.stickerId) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["stickerId"],
+          message: "stickerId is allowed only for STICKER messages",
+        });
+      }
+
+      return;
+    }
+
+    if (!value.stickerId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["stickerId"],
+        message: "stickerId is required for STICKER messages",
+      });
+    }
+
+    if (value.content && value.content.trim().length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["content"],
+        message: "content must be empty for STICKER messages",
+      });
+    }
+  });
 
 export type CreateDirectMessageInput = z.infer<
   typeof createDirectMessageSchema
@@ -77,8 +120,10 @@ export type UpdateDmSettingsInput = z.infer<typeof updateDmSettingsSchema>;
 export const directMessageSchema = z.object({
   id: z.string().cuid(),
   conversationId: z.string().cuid(),
+  type: dmMessageTypeSchema,
   author: publicUserSchema,
   content: z.string().nullable(),
+  sticker: stickerAssetSchema.nullable(),
   isDeleted: z.boolean(),
   canDelete: z.boolean(),
   deleteExpiresAt: isoDateSchema.nullable(),
@@ -112,6 +157,7 @@ export const directConversationSummarySchema = z.object({
     lastReadMessageId: z.string().cuid().nullable(),
     lastReadAt: isoDateSchema.nullable(),
   }),
+  lastMessagePreview: z.string().nullable(),
   lastMessage: directMessageSchema.nullable(),
   isBlockedByViewer: z.boolean(),
   hasBlockedViewer: z.boolean(),

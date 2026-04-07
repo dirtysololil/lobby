@@ -12,7 +12,7 @@ import type {
   UpdateDmSettingsInput,
   UserRelationshipSummary,
 } from '@lobby/shared';
-import { DmRetentionMode, Prisma } from '@prisma/client';
+import { DirectMessageType, DmRetentionMode, Prisma } from '@prisma/client';
 import type { RequestMetadata } from '../../common/interfaces/request-metadata.interface';
 import { buildUserPairKey } from '../../common/utils/user-pair-key.util';
 import { PrismaService } from '../../database/prisma.service';
@@ -21,6 +21,7 @@ import { publicUserSelect } from '../auth/auth.mapper';
 import { CallsRealtimeService } from '../calls/calls-realtime.service';
 import { QueueService } from '../queue/queue.service';
 import { RelationshipsService } from '../relationships/relationships.service';
+import { StickersService } from '../stickers/stickers.service';
 import {
   toDirectConversationDetail,
   toDirectConversationSummary,
@@ -33,6 +34,7 @@ const directMessageWithAuthorInclude = {
   author: {
     select: publicUserSelect,
   },
+  sticker: true,
 } satisfies Prisma.DirectMessageInclude;
 
 const participantWithUserInclude = {
@@ -80,6 +82,7 @@ export class DirectMessagesService {
     private readonly relationshipsService: RelationshipsService,
     private readonly realtimeService: CallsRealtimeService,
     private readonly queueService: QueueService,
+    private readonly stickersService: StickersService,
   ) {}
 
   public async ensureRetentionSweepJob(): Promise<void> {
@@ -263,12 +266,26 @@ export class DirectMessagesService {
       counterpart.userId,
     );
 
+    const trimmedContent = input.content?.trim() ?? null;
+    const sticker =
+      input.type === 'STICKER' && input.stickerId
+        ? await this.stickersService.getOwnedActiveStickerOrThrow(
+            actor.id,
+            input.stickerId,
+          )
+        : null;
+
     const message = await this.prisma.$transaction(async (transaction) => {
       const createdMessage = await transaction.directMessage.create({
         data: {
           conversationId,
           authorId: actor.id,
-          content: input.content.trim(),
+          type:
+            input.type === 'STICKER'
+              ? DirectMessageType.STICKER
+              : DirectMessageType.TEXT,
+          content: input.type === 'TEXT' ? trimmedContent : null,
+          stickerId: sticker?.id ?? null,
         },
         include: directMessageWithAuthorInclude,
       });
@@ -295,6 +312,15 @@ export class DirectMessagesService {
         },
       });
 
+      if (sticker) {
+        await this.stickersService.recordStickerUsage(
+          actor.id,
+          sticker.id,
+          sticker.packId,
+          transaction,
+        );
+      }
+
       return createdMessage;
     });
 
@@ -307,6 +333,8 @@ export class DirectMessagesService {
       userAgent: requestMetadata.userAgent,
       metadata: {
         conversationId,
+        type: message.type,
+        stickerId: message.stickerId ?? null,
       },
     });
 
