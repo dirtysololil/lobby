@@ -211,6 +211,7 @@ export default function PreviewDmThreadPage() {
           <MessageThread
             viewerId={previewViewer.id}
             messages={messages}
+            customEmojis={[]}
             isDeleting={null}
             lastReadAt={lastReadAt}
             onDelete={async () => undefined}
