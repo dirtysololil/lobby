@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import type { RequestMetadata } from '../../common/interfaces/request-metadata.interface';
+import { normalizeRequestMetadata } from '../../common/utils/request-metadata.util';
 import {
   generateSessionToken,
   hashOpaqueToken,
@@ -32,6 +33,7 @@ export class SessionService {
   ): Promise<{ sessionId: string; rawToken: string; expiresAt: Date }> {
     const target = client ?? this.prisma;
     const env = this.envService.getValues();
+    const normalizedRequestMetadata = normalizeRequestMetadata(requestMetadata);
     const rawToken = generateSessionToken();
     const tokenHash = hashOpaqueToken(rawToken, env.SESSION_SECRET, 'session');
     const expiresAt = new Date(
@@ -42,8 +44,8 @@ export class SessionService {
       data: {
         userId,
         tokenHash,
-        ipAddress: requestMetadata.ipAddress ?? undefined,
-        userAgent: requestMetadata.userAgent ?? undefined,
+        ipAddress: normalizedRequestMetadata.ipAddress ?? undefined,
+        userAgent: normalizedRequestMetadata.userAgent ?? undefined,
         expiresAt,
       },
       select: {
@@ -61,8 +63,17 @@ export class SessionService {
   public async scheduleSessionExpiry(
     sessionId: string,
     expiresAt: Date,
-  ): Promise<void> {
-    await this.queueService.scheduleSessionExpiry(sessionId, expiresAt);
+  ): Promise<boolean> {
+    try {
+      await this.queueService.scheduleSessionExpiry(sessionId, expiresAt);
+      return true;
+    } catch (error) {
+      console.error(
+        `[auth/session] session_expiry_schedule_failed sessionId=${sessionId}`,
+        error,
+      );
+      return false;
+    }
   }
 
   public async resolveSession(
@@ -127,19 +138,29 @@ export class SessionService {
       });
     }
 
-    const profile =
-      session.user.profile ??
-      (await this.prisma.profile.upsert({
-        where: {
-          userId: session.user.id,
-        },
-        update: {},
-        create: {
-          userId: session.user.id,
-          displayName: session.user.username,
-        },
-        select: publicProfileSelect,
-      }));
+    let profile = session.user.profile;
+
+    if (!profile) {
+      try {
+        profile = await this.prisma.profile.upsert({
+          where: {
+            userId: session.user.id,
+          },
+          update: {},
+          create: {
+            userId: session.user.id,
+            displayName: session.user.username,
+          },
+          select: publicProfileSelect,
+        });
+      } catch (error) {
+        console.error(
+          `[auth/session] profile_restore_failed userId=${session.user.id}`,
+          error,
+        );
+        profile = null;
+      }
+    }
 
     return {
       sessionId: session.id,

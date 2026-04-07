@@ -14,6 +14,7 @@ import * as argon2 from 'argon2';
 import { PresenceStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import type { RequestMetadata } from '../../common/interfaces/request-metadata.interface';
+import { normalizeRequestMetadata } from '../../common/utils/request-metadata.util';
 import { AuditService } from '../audit/audit.service';
 import { EnvService } from '../env/env.service';
 import { InvitesService } from '../invites/invites.service';
@@ -23,6 +24,8 @@ import {
   toPublicUser,
 } from './auth.mapper';
 import { SessionService } from './session.service';
+
+const AUTH_LOGIN_TRACE = 'auth-login-trace-v3';
 
 @Injectable()
 export class AuthService {
@@ -40,6 +43,7 @@ export class AuthService {
   ) {
     const env = this.envService.getValues();
     const normalizedInput = registerSchema.parse(input);
+    const normalizedRequestMetadata = normalizeRequestMetadata(requestMetadata);
     const passwordHash = await argon2.hash(normalizedInput.password, {
       type: argon2.argon2id,
       memoryCost: env.ARGON2_MEMORY_COST,
@@ -104,7 +108,7 @@ export class AuthService {
 
       const session = await this.sessionService.createSessionRecord(
         user.id,
-        requestMetadata,
+        normalizedRequestMetadata,
         transaction,
       );
 
@@ -114,8 +118,8 @@ export class AuthService {
           entityType: 'User',
           entityId: user.id,
           actorUserId: user.id,
-          ipAddress: requestMetadata.ipAddress,
-          userAgent: requestMetadata.userAgent,
+          ipAddress: normalizedRequestMetadata.ipAddress,
+          userAgent: normalizedRequestMetadata.userAgent,
           metadata: {
             inviteKeyId: invite.id,
           },
@@ -142,13 +146,17 @@ export class AuthService {
 
   public async login(input: LoginInput, requestMetadata: RequestMetadata) {
     const normalizedLogin = input.login.trim().toLowerCase();
+    const normalizedRequestMetadata = normalizeRequestMetadata(requestMetadata);
+    let stage = 'stage=2 enter_service';
 
-    console.info(`[auth/login] service:start login=${input.login}`);
-    console.info(`[auth/login] normalized login=${normalizedLogin}`);
+    console.info(
+      `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} login=${input.login}`,
+    );
 
     try {
+      stage = 'stage=3 normalized_login';
       console.info(
-        `[auth/login] user_lookup:start mode=${normalizedLogin.includes('@') ? 'email' : 'username'} login=${normalizedLogin}`,
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} normalized=${normalizedLogin} mode=${normalizedLogin.includes('@') ? 'email' : 'username'}`,
       );
 
       const user = await this.prisma.user.findFirst({
@@ -170,12 +178,15 @@ export class AuthService {
         },
       });
 
+      stage = 'stage=4 user_lookup_done';
       console.info(
-        `[auth/login] user_lookup:done login=${normalizedLogin} found=${Boolean(user)}`,
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} login=${normalizedLogin} found=${Boolean(user)}`,
       );
 
       if (!user) {
-        console.info(`[auth/login] user_not_found login=${normalizedLogin}`);
+        console.info(
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} user_not_found login=${normalizedLogin}`,
+        );
         throw new UnauthorizedException({
           code: 'AUTH_INVALID_CREDENTIALS',
           message: 'Неверный логин, почта или пароль.',
@@ -186,19 +197,24 @@ export class AuthService {
         typeof user.passwordHash === 'string' &&
         user.passwordHash.trim().length > 0;
 
+      stage = 'stage=5 password_hash_checked';
       console.info(
-        `[auth/login] credentials:state userId=${user.id} hasPasswordHash=${hasPasswordHash}`,
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} userId=${user.id} hasPasswordHash=${hasPasswordHash}`,
       );
 
       if (!hasPasswordHash) {
-        console.warn(`[auth/login] missing_password_hash userId=${user.id}`);
+        console.warn(
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} missing_password_hash userId=${user.id}`,
+        );
         throw new UnauthorizedException({
           code: 'AUTH_INVALID_CREDENTIALS',
           message: 'Неверный логин, почта или пароль.',
         });
       }
 
-      console.info(`[auth/login] verify:start userId=${user.id}`);
+      console.info(
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} verify:start userId=${user.id}`,
+      );
       let passwordMatches = false;
 
       try {
@@ -208,7 +224,7 @@ export class AuthService {
         );
       } catch (error) {
         console.warn(
-          `[auth/login] verify:invalid_hash userId=${user.id}`,
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} verify:invalid_hash userId=${user.id}`,
           error,
         );
         throw new UnauthorizedException({
@@ -217,12 +233,15 @@ export class AuthService {
         });
       }
 
+      stage = 'stage=6 verify_done';
       console.info(
-        `[auth/login] verify:done userId=${user.id} matched=${passwordMatches}`,
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} userId=${user.id} matched=${passwordMatches}`,
       );
 
       if (!passwordMatches) {
-        console.info(`[auth/login] invalid_password userId=${user.id}`);
+        console.info(
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} invalid_password userId=${user.id}`,
+        );
         throw new UnauthorizedException({
           code: 'AUTH_INVALID_CREDENTIALS',
           message: 'Неверный логин, почта или пароль.',
@@ -230,67 +249,109 @@ export class AuthService {
       }
 
       if (user.platformBlock) {
-        console.warn(`[auth/login] blocked_user userId=${user.id}`);
+        console.warn(
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} blocked_user userId=${user.id}`,
+        );
         throw new ForbiddenException({
           code: 'AUTH_ACCOUNT_BLOCKED',
           message: 'Аккаунт заблокирован модерацией.',
         });
       }
 
-      console.info(`[auth/login] session:create:start userId=${user.id}`);
+      stage = 'stage=7 tokens_issued';
+      console.info(
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} session:create:start userId=${user.id}`,
+      );
       const session = await this.sessionService.createSessionRecord(
         user.id,
-        requestMetadata,
+        normalizedRequestMetadata,
       );
-      await this.sessionService.scheduleSessionExpiry(
-        session.sessionId,
-        session.expiresAt,
-      );
+      stage = 'stage=8 session_saved';
       console.info(
-        `[auth/login] session:create:done userId=${user.id} sessionId=${session.sessionId}`,
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} session:create:done userId=${user.id} sessionId=${session.sessionId}`,
       );
+      let expiryScheduled = false;
 
-      console.info(`[auth/login] audit:start userId=${user.id}`);
-      await this.auditService.write({
-        action: 'auth.login',
-        entityType: 'User',
-        entityId: user.id,
-        actorUserId: user.id,
-        ipAddress: requestMetadata.ipAddress,
-        userAgent: requestMetadata.userAgent,
-      });
-      console.info(`[auth/login] audit:done userId=${user.id}`);
-
-      const profile =
-        user.profile ??
-        (await this.prisma.profile.upsert({
-          where: {
-            userId: user.id,
-          },
-          update: {},
-          create: {
-            userId: user.id,
-            displayName: user.username,
-          },
-          select: publicProfileSelect,
-        }));
-
-      if (!user.profile) {
-        console.info(`[auth/login] profile:restored userId=${user.id}`);
+      try {
+        expiryScheduled = await this.sessionService.scheduleSessionExpiry(
+          session.sessionId,
+          session.expiresAt,
+        );
+      } catch (error) {
+        console.error(
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} expiry_schedule_failed userId=${user.id} sessionId=${session.sessionId}`,
+          error,
+        );
       }
 
-      console.info(`[auth/login] success userId=${user.id}`);
+      console.info(
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} expiry_scheduled=${expiryScheduled} userId=${user.id} sessionId=${session.sessionId}`,
+      );
+
+      stage = 'stage=9 audit_saved';
+      try {
+        await this.auditService.write({
+          action: 'auth.login',
+          entityType: 'User',
+          entityId: user.id,
+          actorUserId: user.id,
+          ipAddress: normalizedRequestMetadata.ipAddress,
+          userAgent: normalizedRequestMetadata.userAgent,
+        });
+        console.info(
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} success userId=${user.id}`,
+        );
+      } catch (error) {
+        console.error(
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} audit_failed userId=${user.id}`,
+          error,
+        );
+      }
+
+      let profile = user.profile;
+
+      if (!profile) {
+        try {
+          profile = await this.prisma.profile.upsert({
+            where: {
+              userId: user.id,
+            },
+            update: {},
+            create: {
+              userId: user.id,
+              displayName: user.username,
+            },
+            select: publicProfileSelect,
+          });
+          console.info(
+            `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} profile_restored userId=${user.id}`,
+          );
+        } catch (error) {
+          console.error(
+            `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} profile_restore_failed userId=${user.id}`,
+            error,
+          );
+          profile = null;
+        }
+      }
+
+      stage = 'stage=10 response_mapped';
+      const publicUser = toPublicUser({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        profile,
+      });
+
+      console.info(
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} success userId=${user.id}`,
+      );
 
       return {
         session,
-        user: toPublicUser({
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          createdAt: user.createdAt,
-          profile,
-        }),
+        user: publicUser,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -298,7 +359,7 @@ export class AuthService {
       }
 
       console.error(
-        `[auth/login] unexpected_failure login=${normalizedLogin}`,
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} unexpected_failure login=${normalizedLogin}`,
         error,
       );
       throw error;
@@ -310,14 +371,16 @@ export class AuthService {
     rawToken: string,
     requestMetadata: RequestMetadata,
   ): Promise<void> {
+    const normalizedRequestMetadata = normalizeRequestMetadata(requestMetadata);
+
     await this.sessionService.revokeSession(rawToken);
     await this.auditService.write({
       action: 'auth.logout',
       entityType: 'User',
       entityId: userId,
       actorUserId: userId,
-      ipAddress: requestMetadata.ipAddress,
-      userAgent: requestMetadata.userAgent,
+      ipAddress: normalizedRequestMetadata.ipAddress,
+      userAgent: normalizedRequestMetadata.userAgent,
     });
   }
 }

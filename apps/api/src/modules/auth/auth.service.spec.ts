@@ -278,4 +278,146 @@ describe('AuthService.login', () => {
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
+
+  it('keeps login successful when session expiry scheduling fails', async () => {
+    const password = 'Passw0rd';
+    const passwordHash = await argon2.hash(password);
+
+    prisma.user.findFirst.mockResolvedValue(
+      createMockUser({
+        username: 'queue_fallback_user',
+        passwordHash,
+      }),
+    );
+    sessionService.createSessionRecord.mockResolvedValue({
+      sessionId: 'session_queue_fallback',
+      rawToken: 'raw_token_queue_fallback',
+      expiresAt: new Date('2026-04-08T10:00:00.000Z'),
+    });
+    sessionService.scheduleSessionExpiry.mockRejectedValue(
+      new Error('redis unavailable'),
+    );
+    auditService.write.mockResolvedValue(undefined);
+
+    const result = await service.login(
+      {
+        login: 'queue_fallback_user',
+        password,
+      },
+      requestMetadata,
+    );
+
+    expect(result.user.username).toBe('queue_fallback_user');
+    expect(auditService.write).toHaveBeenCalled();
+  });
+
+  it('keeps login successful when audit logging fails', async () => {
+    const password = 'Passw0rd';
+    const passwordHash = await argon2.hash(password);
+
+    prisma.user.findFirst.mockResolvedValue(
+      createMockUser({
+        username: 'audit_fallback_user',
+        passwordHash,
+      }),
+    );
+    sessionService.createSessionRecord.mockResolvedValue({
+      sessionId: 'session_audit_fallback',
+      rawToken: 'raw_token_audit_fallback',
+      expiresAt: new Date('2026-04-08T10:00:00.000Z'),
+    });
+    sessionService.scheduleSessionExpiry.mockResolvedValue(true);
+    auditService.write.mockRejectedValue(new Error('audit insert failed'));
+
+    const result = await service.login(
+      {
+        login: 'audit_fallback_user',
+        password,
+      },
+      requestMetadata,
+    );
+
+    expect(result.user.username).toBe('audit_fallback_user');
+    expect(sessionService.createSessionRecord).toHaveBeenCalled();
+  });
+
+  it('keeps login successful when profile restoration fails after verify', async () => {
+    const password = 'Passw0rd';
+    const passwordHash = await argon2.hash(password);
+    const createdAt = new Date('2026-04-07T10:00:00.000Z');
+
+    prisma.user.findFirst.mockResolvedValue(
+      createMockUser({
+        username: 'broken_profile_user',
+        passwordHash,
+        createdAt,
+        profile: null,
+      }),
+    );
+    prisma.profile.upsert.mockRejectedValue(new Error('profile insert failed'));
+    sessionService.createSessionRecord.mockResolvedValue({
+      sessionId: 'session_profile_fallback',
+      rawToken: 'raw_token_profile_fallback',
+      expiresAt: new Date('2026-04-08T10:00:00.000Z'),
+    });
+    sessionService.scheduleSessionExpiry.mockResolvedValue(true);
+    auditService.write.mockResolvedValue(undefined);
+
+    const result = await service.login(
+      {
+        login: 'broken_profile_user',
+        password,
+      },
+      requestMetadata,
+    );
+
+    expect(result.user.username).toBe('broken_profile_user');
+    expect(result.user.profile.displayName).toBe('broken_profile_user');
+  });
+
+  it('normalizes long request metadata before session and audit writes', async () => {
+    const password = 'Passw0rd';
+    const passwordHash = await argon2.hash(password);
+    const longUserAgent = `Mozilla/5.0 ${'x'.repeat(260)}`;
+    const longIpAddress = `2001:0db8:${'abcd:'.repeat(50)}`;
+
+    prisma.user.findFirst.mockResolvedValue(
+      createMockUser({
+        username: 'metadata_safe_user',
+        passwordHash,
+      }),
+    );
+    sessionService.createSessionRecord.mockResolvedValue({
+      sessionId: 'session_metadata_safe',
+      rawToken: 'raw_token_metadata_safe',
+      expiresAt: new Date('2026-04-08T10:00:00.000Z'),
+    });
+    sessionService.scheduleSessionExpiry.mockResolvedValue(true);
+    auditService.write.mockResolvedValue(undefined);
+
+    await service.login(
+      {
+        login: 'metadata_safe_user',
+        password,
+      },
+      {
+        ipAddress: longIpAddress,
+        userAgent: longUserAgent,
+      },
+    );
+
+    expect(sessionService.createSessionRecord).toHaveBeenCalledWith(
+      expect.any(String),
+      {
+        ipAddress: longIpAddress.trim().slice(0, 191),
+        userAgent: longUserAgent.trim().slice(0, 191),
+      },
+    );
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ipAddress: longIpAddress.trim().slice(0, 191),
+        userAgent: longUserAgent.trim().slice(0, 191),
+      }),
+    );
+  });
 });

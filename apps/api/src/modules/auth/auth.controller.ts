@@ -28,6 +28,8 @@ import { EnvService } from '../env/env.service';
 import { clearSessionCookie, setSessionCookie } from './auth-cookie.util';
 import { AuthService } from './auth.service';
 
+const AUTH_LOGIN_TRACE = 'auth-login-trace-v3';
+
 @Controller('auth')
 export class AuthController {
   public constructor(
@@ -65,15 +67,22 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const requestMetadata = getRequestMetadata(request);
+    let stage = 'stage=1 enter_controller';
+
     console.info(
-      `[auth/login] controller:start login=${body.login} ip=${requestMetadata.ipAddress ?? 'unknown'}`,
+      `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} login=${body.login} ip=${requestMetadata.ipAddress ?? 'unknown'}`,
     );
 
     try {
       const result = await this.authService.login(body, requestMetadata);
+      stage = 'stage=10 response_mapped';
+      const responseBody = authSessionResponseSchema.parse({
+        user: result.user,
+      });
 
+      stage = 'stage=11 response_sent';
       console.info(
-        `[auth/login] controller:session_cookie:start userId=${result.user.id}`,
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} cookie_set:start userId=${result.user.id}`,
       );
       setSessionCookie(
         response,
@@ -83,20 +92,18 @@ export class AuthController {
       );
 
       console.info(
-        `[auth/login] success userId=${result.user.id} ip=${requestMetadata.ipAddress ?? 'unknown'}`,
+        `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} success userId=${result.user.id} ip=${requestMetadata.ipAddress ?? 'unknown'}`,
       );
 
-      return authSessionResponseSchema.parse({
-        user: result.user,
-      });
+      return responseBody;
     } catch (error) {
       if (error instanceof HttpException) {
         console.warn(
-          `[auth/login] controller:fail login=${body.login} status=${error.getStatus()}`,
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} http_fail login=${body.login} status=${error.getStatus()}`,
         );
       } else {
         console.error(
-          `[auth/login] controller:unexpected login=${body.login}`,
+          `[auth/login][trace=${AUTH_LOGIN_TRACE}] ${stage} unexpected_fail login=${body.login}`,
           error,
         );
       }
