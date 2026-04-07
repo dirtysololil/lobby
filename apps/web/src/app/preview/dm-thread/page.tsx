@@ -27,6 +27,7 @@ const messages: ThreadMessageItem[] = [
     author: activeContact,
     content: "Pushed the tightened DM scene. The thread feels a lot denser now.",
     sticker: null,
+    gif: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -41,6 +42,7 @@ const messages: ThreadMessageItem[] = [
     author: activeContact,
     content: "The new call strip reads much more like a communication product.",
     sticker: null,
+    gif: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -56,6 +58,7 @@ const messages: ThreadMessageItem[] = [
     content:
       "Good. I also tightened the rails and removed the leftover cheap accent tone.",
     sticker: null,
+    gif: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 24).toISOString(),
@@ -70,6 +73,7 @@ const messages: ThreadMessageItem[] = [
     author: previewViewer,
     content: "Need a final screenshot set once the build stays green.",
     sticker: null,
+    gif: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 18).toISOString(),
@@ -85,6 +89,7 @@ const messages: ThreadMessageItem[] = [
     content:
       "Sending one more pass on the hub and settings hierarchy now.",
     sticker: null,
+    gif: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -100,6 +105,7 @@ const messages: ThreadMessageItem[] = [
     content:
       "Perfect. Keep the thread compact and the action states obvious.",
     sticker: null,
+    gif: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 45).toISOString(),
