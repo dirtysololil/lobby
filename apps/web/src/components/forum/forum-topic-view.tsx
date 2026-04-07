@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Archive, ArrowLeft, Lock, MessageSquareQuote, Pin, Tags } from "lucide-react";
+import {
+  Archive,
+  ArrowLeft,
+  Lock,
+  MessageSquareQuote,
+  Pin,
+  Tags,
+} from "lucide-react";
 import {
   forumReplyResponseSchema,
   forumTopicDetailSchema,
@@ -56,7 +63,7 @@ export function ForumTopicView({
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С‚РµРјСѓ",
+        error instanceof Error ? error.message : "Не удалось загрузить тему.",
       );
     }
   }, [hubId, lobbyId, topicId]);
@@ -64,6 +71,7 @@ export function ForumTopicView({
   async function handleReply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setActionKey("reply");
+
     try {
       const payload = await apiClientFetch(
         `/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics/${topicId}/replies`,
@@ -74,7 +82,7 @@ export function ForumTopicView({
       await loadTopic();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РѕС‚РІРµС‚",
+        error instanceof Error ? error.message : "Не удалось отправить ответ.",
       );
     } finally {
       setActionKey(null);
@@ -86,6 +94,7 @@ export function ForumTopicView({
     value: boolean,
   ) {
     setActionKey(key);
+
     try {
       const payload = await apiClientFetch(
         `/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics/${topicId}/state`,
@@ -97,7 +106,7 @@ export function ForumTopicView({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ С‚РµРјС‹",
+          : "Не удалось обновить состояние темы.",
       );
     } finally {
       setActionKey(null);
@@ -115,7 +124,7 @@ export function ForumTopicView({
   if (!topic) {
     return (
       <div className="rounded-[18px] border border-[var(--border)] bg-white/[0.03] p-4 text-sm text-[var(--text-dim)]">
-        Р—Р°РіСЂСѓР¶Р°РµРј С‚РµРјСѓ...
+        Загружаем тему...
       </div>
     );
   }
@@ -129,31 +138,32 @@ export function ForumTopicView({
   return (
     <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
       <HubShellBootstrap hub={hub} />
-      <div className="mx-auto grid max-w-[1040px] gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="grid gap-3">
-          <section className="social-shell rounded-[24px] p-4 sm:p-5">
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid min-w-0 gap-3">
+          <section className="premium-panel rounded-[24px] px-4 py-4">
             <div className="flex flex-wrap items-center gap-2">
               {topic.pinned ? (
                 <span className="eyebrow-pill">
                   <Pin className="h-3.5 w-3.5" />
-                  Pinned
+                  Закреплена
                 </span>
               ) : null}
               {topic.locked ? (
                 <span className="status-pill">
                   <Lock className="h-3.5 w-3.5 text-[var(--accent)]" />
-                  Locked
+                  Закрыта
                 </span>
               ) : null}
               {topic.archived ? (
                 <span className="status-pill">
                   <Archive className="h-3.5 w-3.5 text-[var(--accent)]" />
-                  Archived
+                  В архиве
                 </span>
               ) : null}
             </div>
 
-            <h1 className="mt-3 text-xl font-semibold tracking-[-0.04em] text-white">
+            <h1 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white">
               {topic.title}
             </h1>
 
@@ -172,7 +182,7 @@ export function ForumTopicView({
                   </span>
                 </Link>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  РђРєС‚РёРІРЅРѕСЃС‚СЊ {formatDateTime(topic.lastActivityAt)}
+                  Активность {formatDateTime(topic.lastActivityAt)}
                 </p>
               </div>
             </div>
@@ -185,7 +195,7 @@ export function ForumTopicView({
           <section className="premium-panel rounded-[24px] p-4">
             <div className="compact-toolbar">
               <div>
-                <p className="section-kicker">Replies</p>
+                <p className="section-kicker">Ответы</p>
                 <p className="mt-2 text-sm text-[var(--text-dim)]">
                   {topic.replies.length} ответов в этой теме.
                 </p>
@@ -202,25 +212,25 @@ export function ForumTopicView({
                 />
                 <div className="flex justify-end">
                   <Button type="submit" disabled={actionKey === "reply"} className="h-10">
-                    {actionKey === "reply" ? "РћС‚РїСЂР°РІР»СЏРµРј..." : "РћС‚РІРµС‚РёС‚СЊ"}
+                    {actionKey === "reply" ? "Отправляем..." : "Ответить"}
                   </Button>
                 </div>
               </form>
             ) : (
               <div className="mt-4 rounded-[18px] border border-[var(--border-soft)] bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[var(--text-soft)]">
                 {hub.isViewerMuted
-                  ? "Р’С‹ РѕРіСЂР°РЅРёС‡РµРЅС‹ РІ СЌС‚РѕРј С…Р°Р±Рµ."
+                  ? "Вы ограничены в этом хабе."
                   : topic.locked || topic.archived
-                    ? "РћС‚РІРµС‚С‹ РѕС‚РєР»СЋС‡РµРЅС‹ РґР»СЏ СЌС‚РѕР№ С‚РµРјС‹."
-                    : "Р’СЃС‚СѓРїРёС‚Рµ РІ С…Р°Р±, С‡С‚РѕР±С‹ РѕС‚РІРµС‡Р°С‚СЊ."}
+                    ? "Ответы отключены для этой темы."
+                    : "Вступите в хаб, чтобы отвечать."}
               </div>
             )}
 
             <div className="mt-4 grid gap-2">
               {topic.replies.length === 0 ? (
                 <EmptyState
-                  title="РџРѕРєР° РЅРµС‚ РѕС‚РІРµС‚РѕРІ"
-                  description="Р‘СѓРґСЊС‚Рµ РїРµСЂРІС‹Рј, РєС‚Рѕ РґРѕР±Р°РІРёС‚ РїРѕР»РµР·РЅС‹Р№ РєРѕРЅС‚РµРєСЃС‚ Рє СЌС‚РѕР№ С‚РµРјРµ."
+                  title="Пока нет ответов"
+                  description="Будьте первым, кто добавит полезный контекст к этой теме."
                 />
               ) : (
                 topic.replies.map((reply) => (
@@ -260,7 +270,7 @@ export function ForumTopicView({
           </section>
         </div>
 
-        <aside className="grid gap-3">
+        <aside className="grid content-start gap-3">
           <section className="premium-panel rounded-[24px] p-4">
             <Link
               href={`/app/hubs/${hubId}/forum/${lobbyId}`}
@@ -284,7 +294,7 @@ export function ForumTopicView({
 
           {hub.permissions.canModerateForum ? (
             <section className="premium-panel rounded-[24px] p-4">
-              <p className="section-kicker">Moderator tools</p>
+              <p className="section-kicker">Инструменты модерации</p>
               <div className="mt-3 grid gap-2">
                 <Button
                   variant="secondary"
@@ -292,7 +302,7 @@ export function ForumTopicView({
                   disabled={actionKey === "pinned"}
                   className="h-10 justify-start"
                 >
-                  {topic.pinned ? "РЎРЅСЏС‚СЊ Р·Р°РєСЂРµРї" : "Р—Р°РєСЂРµРїРёС‚СЊ"}
+                  {topic.pinned ? "Снять закреп" : "Закрепить"}
                 </Button>
                 <Button
                   variant="secondary"
@@ -300,7 +310,7 @@ export function ForumTopicView({
                   disabled={actionKey === "locked"}
                   className="h-10 justify-start"
                 >
-                  {topic.locked ? "РћС‚РєСЂС‹С‚СЊ С‚РµРјСѓ" : "Р—Р°РєСЂС‹С‚СЊ С‚РµРјСѓ"}
+                  {topic.locked ? "Открыть тему" : "Закрыть тему"}
                 </Button>
                 <Button
                   variant="secondary"
@@ -308,7 +318,7 @@ export function ForumTopicView({
                   disabled={actionKey === "archived"}
                   className="h-10 justify-start"
                 >
-                  {topic.archived ? "Р Р°Р·Р°СЂС…РёРІРёСЂРѕРІР°С‚СЊ" : "РћС‚РїСЂР°РІРёС‚СЊ РІ Р°СЂС…РёРІ"}
+                  {topic.archived ? "Разархивировать" : "Отправить в архив"}
                 </Button>
               </div>
             </section>
