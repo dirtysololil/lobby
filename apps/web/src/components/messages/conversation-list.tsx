@@ -283,9 +283,7 @@ export function ConversationList() {
                       conversation.unreadCount > 0 ? "text-zinc-100" : "text-zinc-400",
                     )}
                   >
-                    {conversation.lastMessage?.isDeleted
-                      ? "Последнее сообщение удалено"
-                      : (conversation.lastMessage?.content ?? "Напишите первым")}
+                    {conversation.lastMessagePreview ?? "Напишите первым"}
                   </p>
                 </div>
               </CompactListLink>

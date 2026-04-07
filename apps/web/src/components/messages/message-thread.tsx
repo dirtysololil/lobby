@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
+import { StickerAssetPreview } from "./sticker-asset-preview";
 
 export type ThreadMessageItem =
   DirectConversationDetail["conversation"]["messages"][number] & {
@@ -275,6 +276,7 @@ export function MessageThread({
                 {group.items.map((message, index) => {
                   const globalIndex = messageIndexById.get(message.id) ?? -1;
                   const isOwn = message.author.id === viewerId;
+                  const isSticker = message.type === "STICKER";
                   const previousMessage = group.items[index - 1];
                   const continuation = isContinuation(previousMessage, message);
                   const isUnreadMarker = unreadIndex >= 0 && globalIndex === unreadIndex;
@@ -283,11 +285,13 @@ export function MessageThread({
                   const isContextMenuOpen = contextMenu?.messageId === message.id;
                   const bubbleClassName = cn(
                     "relative rounded-[17px] border px-3 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-[border-color,background,box-shadow] duration-150",
+                    isSticker && "border-transparent bg-transparent px-0 py-0 shadow-none",
                     isOwn
                       ? "ml-auto border-[rgba(106,168,248,0.15)] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_46%),rgba(88,132,191,0.15)] group-hover/message:border-[rgba(106,168,248,0.22)] group-hover/message:bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_46%),rgba(92,139,201,0.17)]"
                       : "border-white/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.016),transparent_46%),rgba(255,255,255,0.04)] group-hover/message:border-white/[0.1] group-hover/message:bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_46%),rgba(255,255,255,0.052)]",
-                    continuation && "rounded-[15px] py-1.5",
+                    continuation && !isSticker && "rounded-[15px] py-1.5",
                     isContextMenuOpen &&
+                      !isSticker &&
                       (isOwn
                         ? "border-[rgba(106,168,248,0.3)] bg-[linear-gradient(180deg,rgba(255,255,255,0.022),transparent_44%),rgba(96,145,210,0.22)] shadow-[0_10px_24px_rgba(8,16,28,0.14)]"
                         : "border-white/[0.16] bg-[linear-gradient(180deg,rgba(255,255,255,0.024),transparent_44%),rgba(255,255,255,0.07)] shadow-[0_10px_24px_rgba(8,16,28,0.12)]"),
@@ -334,7 +338,7 @@ export function MessageThread({
 
                         <div
                           className={cn(
-                            "min-w-0 max-w-[min(76ch,100%)] flex-1",
+                            isSticker ? "min-w-0 max-w-[min(320px,100%)] flex-1" : "min-w-0 max-w-[min(76ch,100%)] flex-1",
                             isOwn && "text-right",
                           )}
                         >
@@ -394,9 +398,21 @@ export function MessageThread({
                             ) : null}
 
                             <div className={bubbleClassName}>
-                              <p className="whitespace-pre-wrap text-[13px] leading-[1.42] text-white">
-                                {message.content}
-                              </p>
+                              {isSticker && message.sticker ? (
+                                <StickerAssetPreview
+                                  sticker={message.sticker}
+                                  className="aspect-square rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_55%),rgba(255,255,255,0.03)]"
+                                  imageClassName="pointer-events-none"
+                                />
+                              ) : isSticker ? (
+                                <div className="flex aspect-square items-center justify-center rounded-[24px] border border-white/8 bg-white/[0.03] px-4 text-center text-sm text-[var(--text-muted)]">
+                                  Стикер недоступен
+                                </div>
+                              ) : (
+                                <p className="whitespace-pre-wrap text-[13px] leading-[1.42] text-white">
+                                  {message.content}
+                                </p>
+                              )}
                             </div>
                           </div>
 

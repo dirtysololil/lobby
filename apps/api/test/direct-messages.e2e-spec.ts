@@ -99,6 +99,81 @@ describe('DirectMessagesController (e2e)', () => {
     ).toBe('hello from delta');
   });
 
+  it('sends a sticker as a direct message and tracks recent usage', async () => {
+    const alpha = await createTestUser(prisma, {
+      username: 'stickeralpha',
+      email: 'stickeralpha@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Sticker Alpha',
+    });
+    const beta = await createTestUser(prisma, {
+      username: 'stickerbeta',
+      email: 'stickerbeta@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Sticker Beta',
+    });
+
+    const pack = await prisma.stickerPack.create({
+      data: {
+        ownerId: alpha.id,
+        title: 'Личные',
+        sortOrder: 0,
+      },
+    });
+    const sticker = await prisma.sticker.create({
+      data: {
+        packId: pack.id,
+        title: 'Пинг',
+        fileKey: 'stickers/test/ping.webp',
+        originalName: 'ping.webp',
+        mimeType: 'image/webp',
+        fileSize: 1024,
+        width: 256,
+        height: 256,
+        sortOrder: 0,
+      },
+    });
+
+    const alphaCookies = await loginAs(
+      app,
+      alpha.username,
+      'VeryStrongPass123',
+    );
+
+    const openResponse = await request(httpServer)
+      .post('/v1/direct-messages/open')
+      .set('Cookie', alphaCookies)
+      .send({ username: beta.username })
+      .expect(201);
+
+    const conversation = directConversationSummaryResponseSchema.parse(
+      openResponse.body,
+    ).conversation;
+
+    const messageResponse = await request(httpServer)
+      .post(`/v1/direct-messages/${conversation.id}/messages`)
+      .set('Cookie', alphaCookies)
+      .send({ type: 'STICKER', stickerId: sticker.id })
+      .expect(201);
+
+    const message = directMessageResponseSchema.parse(messageResponse.body).message;
+
+    expect(message.type).toBe('STICKER');
+    expect(message.content).toBeNull();
+    expect(message.sticker?.id).toBe(sticker.id);
+
+    const recent = await prisma.stickerRecent.findUnique({
+      where: {
+        userId_stickerId: {
+          userId: alpha.id,
+          stickerId: sticker.id,
+        },
+      },
+    });
+
+    expect(recent?.usageCount).toBe(1);
+  });
+
   it('exposes counterpart last seen separately from online status', async () => {
     const alice = await createTestUser(prisma, {
       username: 'harbor',

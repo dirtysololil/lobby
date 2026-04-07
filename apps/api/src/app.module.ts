@@ -16,6 +16,7 @@ import { CallsModule } from './modules/calls/calls.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { RelationshipsModule } from './modules/relationships/relationships.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { StickersModule } from './modules/stickers/stickers.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -38,6 +39,7 @@ import { UsersModule } from './modules/users/users.module';
     ForumModule,
     RelationshipsModule,
     AuthModule,
+    StickersModule,
     DirectMessagesModule,
     CallsModule,
     HealthModule,

@@ -160,3 +160,9 @@ export const apiErrorSchema = z.object({
 });
 
 export type ApiError = z.infer<typeof apiErrorSchema>;
+
+export const actionMessageSchema = z.object({
+  ok: z.literal(true),
+});
+
+export type ActionMessage = z.infer<typeof actionMessageSchema>;

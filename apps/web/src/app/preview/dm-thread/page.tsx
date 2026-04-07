@@ -23,8 +23,10 @@ const messages: ThreadMessageItem[] = [
   {
     id: "msg-1",
     conversationId: "conv-1",
+    type: "TEXT",
     author: activeContact,
     content: "Pushed the tightened DM scene. The thread feels a lot denser now.",
+    sticker: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -35,8 +37,10 @@ const messages: ThreadMessageItem[] = [
   {
     id: "msg-2",
     conversationId: "conv-1",
+    type: "TEXT",
     author: activeContact,
     content: "The new call strip reads much more like a communication product.",
+    sticker: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -47,9 +51,11 @@ const messages: ThreadMessageItem[] = [
   {
     id: "msg-3",
     conversationId: "conv-1",
+    type: "TEXT",
     author: previewViewer,
     content:
       "Good. I also tightened the rails and removed the leftover cheap accent tone.",
+    sticker: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 24).toISOString(),
@@ -60,8 +66,10 @@ const messages: ThreadMessageItem[] = [
   {
     id: "msg-4",
     conversationId: "conv-1",
+    type: "TEXT",
     author: previewViewer,
     content: "Need a final screenshot set once the build stays green.",
+    sticker: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 18).toISOString(),
@@ -72,9 +80,11 @@ const messages: ThreadMessageItem[] = [
   {
     id: "msg-5",
     conversationId: "conv-1",
+    type: "TEXT",
     author: activeContact,
     content:
       "Sending one more pass on the hub and settings hierarchy now.",
+    sticker: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -85,9 +95,11 @@ const messages: ThreadMessageItem[] = [
   {
     id: "msg-6",
     conversationId: "conv-1",
+    type: "TEXT",
     author: previewViewer,
     content:
       "Perfect. Keep the thread compact and the action states obvious.",
+    sticker: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 45).toISOString(),
