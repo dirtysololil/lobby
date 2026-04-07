@@ -1,7 +1,13 @@
 "use client";
 
-import type { StickerAsset, StickerCatalog } from "@lobby/shared";
-import { Search, Settings2, SmilePlus, Sticker } from "lucide-react";
+/* eslint-disable @next/next/no-img-element */
+import type {
+  CustomEmojiAsset,
+  GifAsset,
+  MediaPickerCatalog,
+  StickerAsset,
+} from "@lobby/shared";
+import { Film, Search, Settings2, SmilePlus, Sticker } from "lucide-react";
 import {
   useDeferredValue,
   useEffect,
@@ -12,63 +18,84 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  getCustomEmojiAssetUrl,
+  getGifAssetUrl,
+} from "@/lib/stickers";
 import { cn } from "@/lib/utils";
 import { emojiCategories, type EmojiCategoryId, type EmojiEntry } from "./emoji-data";
+import { GifAssetPreview } from "./gif-asset-preview";
 import { StickerAssetPreview } from "./sticker-asset-preview";
 
-export type PickerTab = "emoji" | "sticker";
+export type PickerTab = "emoji" | "sticker" | "gif";
 
 interface EmojiStickerPickerProps {
   activeTab: PickerTab;
   recentEmojis: string[];
-  stickerCatalog: StickerCatalog | null;
-  isStickerCatalogLoading: boolean;
-  stickerCatalogError: string | null;
+  recentGifIds: string[];
+  catalog: MediaPickerCatalog | null;
+  isCatalogLoading: boolean;
+  catalogError: string | null;
   pendingStickerIds: string[];
+  pendingGifIds: string[];
+  canManageLibrary: boolean;
   onTabChange: (tab: PickerTab) => void;
   onEmojiSelect: (emoji: string) => void;
+  onCustomEmojiSelect: (emoji: CustomEmojiAsset) => void;
   onStickerSelect: (sticker: StickerAsset) => void;
-  onRetryStickerCatalog: () => void | Promise<void>;
+  onGifSelect: (gif: GifAsset) => void;
+  onRetryCatalog: () => void | Promise<void>;
   onOpenManager: () => void;
 }
+
+type ExtendedEmojiCategoryId = EmojiCategoryId | "custom";
 
 const allEmojiEntries = emojiCategories.flatMap((category) => category.emojis);
 
 export function EmojiStickerPicker({
   activeTab,
   recentEmojis,
-  stickerCatalog,
-  isStickerCatalogLoading,
-  stickerCatalogError,
+  recentGifIds,
+  catalog,
+  isCatalogLoading,
+  catalogError,
   pendingStickerIds,
+  pendingGifIds,
+  canManageLibrary,
   onTabChange,
   onEmojiSelect,
+  onCustomEmojiSelect,
   onStickerSelect,
-  onRetryStickerCatalog,
+  onGifSelect,
+  onRetryCatalog,
   onOpenManager,
 }: EmojiStickerPickerProps) {
   const [emojiSearch, setEmojiSearch] = useState("");
   const [selectedEmojiCategory, setSelectedEmojiCategory] =
-    useState<EmojiCategoryId>("recent");
+    useState<ExtendedEmojiCategoryId>("recent");
   const [stickerSearch, setStickerSearch] = useState("");
   const [selectedStickerSource, setSelectedStickerSource] = useState("recent");
+  const [gifSearch, setGifSearch] = useState("");
   const deferredEmojiSearch = useDeferredValue(emojiSearch.trim().toLowerCase());
   const deferredStickerSearch = useDeferredValue(stickerSearch.trim().toLowerCase());
+  const deferredGifSearch = useDeferredValue(gifSearch.trim().toLowerCase());
 
   useEffect(() => {
-    if (activeTab !== "sticker" || !stickerCatalog) {
+    if (activeTab !== "sticker" || !catalog) {
       return;
     }
 
-    const hasRecent = stickerCatalog.recent.length > 0;
-    const hasPack = stickerCatalog.packs.some((pack) => pack.id === selectedStickerSource);
+    const hasRecent = catalog.stickers.recent.length > 0;
+    const hasPack = catalog.stickers.packs.some((pack) => pack.id === selectedStickerSource);
 
     if ((selectedStickerSource === "recent" && hasRecent) || hasPack) {
       return;
     }
 
-    setSelectedStickerSource(hasRecent ? "recent" : (stickerCatalog.packs[0]?.id ?? "recent"));
-  }, [activeTab, selectedStickerSource, stickerCatalog]);
+    setSelectedStickerSource(
+      hasRecent ? "recent" : (catalog.stickers.packs[0]?.id ?? "recent"),
+    );
+  }, [activeTab, catalog, selectedStickerSource]);
 
   const recentEmojiEntries = useMemo(() => {
     const emojiMap = new Map(allEmojiEntries.map((item) => [item.emoji, item]));
@@ -78,6 +105,20 @@ export function EmojiStickerPicker({
       .slice(0, 28);
   }, [recentEmojis]);
 
+  const filteredCustomEmojis = useMemo(() => {
+    const items = catalog?.customEmojis ?? [];
+
+    if (!deferredEmojiSearch) {
+      return items;
+    }
+
+    return items.filter((emoji) =>
+      [emoji.alias, emoji.title].some((candidate) =>
+        candidate.toLowerCase().includes(deferredEmojiSearch),
+      ),
+    );
+  }, [catalog?.customEmojis, deferredEmojiSearch]);
+
   const filteredEmojiSections = useMemo(() => {
     if (deferredEmojiSearch) {
       const filtered = allEmojiEntries.filter((item) =>
@@ -86,33 +127,56 @@ export function EmojiStickerPicker({
         ),
       );
 
-      return filtered.length > 0
-        ? [{ id: "search", label: "Результаты", emojis: filtered }]
-        : [];
+      return {
+        system:
+          filtered.length > 0
+            ? [{ id: "search", label: "Результаты", emojis: filtered }]
+            : [],
+        custom: filteredCustomEmojis,
+      };
+    }
+
+    if (selectedEmojiCategory === "custom") {
+      return {
+        system: [],
+        custom: filteredCustomEmojis,
+      };
     }
 
     if (selectedEmojiCategory === "recent") {
-      return recentEmojiEntries.length > 0
-        ? [{ id: "recent", label: "Недавние", emojis: recentEmojiEntries }]
-        : emojiCategories;
+      return {
+        system:
+          recentEmojiEntries.length > 0
+            ? [{ id: "recent", label: "Недавние", emojis: recentEmojiEntries }]
+            : emojiCategories,
+        custom: filteredCustomEmojis,
+      };
     }
 
-    return emojiCategories.filter((category) => category.id === selectedEmojiCategory);
-  }, [deferredEmojiSearch, recentEmojiEntries, selectedEmojiCategory]);
+    return {
+      system: emojiCategories.filter((category) => category.id === selectedEmojiCategory),
+      custom: filteredCustomEmojis,
+    };
+  }, [
+    deferredEmojiSearch,
+    filteredCustomEmojis,
+    recentEmojiEntries,
+    selectedEmojiCategory,
+  ]);
 
   const pickerPacks = useMemo(() => {
-    if (!stickerCatalog) {
+    if (!catalog) {
       return [];
     }
 
     const latestUsageByPackId = new Map(
-      stickerCatalog.recent.map((item) => [
+      catalog.stickers.recent.map((item) => [
         item.packId,
         new Date(item.usedAt).getTime(),
       ]),
     );
 
-    return [...stickerCatalog.packs].sort((left, right) => {
+    return [...catalog.stickers.packs].sort((left, right) => {
       const leftUsage = latestUsageByPackId.get(left.id) ?? 0;
       const rightUsage = latestUsageByPackId.get(right.id) ?? 0;
 
@@ -122,14 +186,14 @@ export function EmojiStickerPicker({
 
       return left.sortOrder - right.sortOrder;
     });
-  }, [stickerCatalog]);
+  }, [catalog]);
 
   const stickerResults = useMemo(() => {
-    if (!stickerCatalog || !deferredStickerSearch) {
+    if (!catalog || !deferredStickerSearch) {
       return [];
     }
 
-    return stickerCatalog.packs.flatMap((pack) =>
+    return catalog.stickers.packs.flatMap((pack) =>
       pack.stickers
         .filter((sticker) =>
           [sticker.title, sticker.originalName ?? "", pack.title].some((candidate) =>
@@ -141,10 +205,10 @@ export function EmojiStickerPicker({
           packTitle: pack.title,
         })),
     );
-  }, [deferredStickerSearch, stickerCatalog]);
+  }, [catalog, deferredStickerSearch]);
 
   const visibleStickers = useMemo(() => {
-    if (!stickerCatalog) {
+    if (!catalog) {
       return [];
     }
 
@@ -153,7 +217,7 @@ export function EmojiStickerPicker({
     }
 
     if (selectedStickerSource === "recent") {
-      return stickerCatalog.recent.map((item) => ({
+      return catalog.stickers.recent.map((item) => ({
         sticker: item.sticker,
         packTitle: item.packTitle,
       }));
@@ -165,17 +229,37 @@ export function EmojiStickerPicker({
       sticker,
       packTitle: pack?.title ?? "Стикеры",
     }));
-  }, [
-    deferredStickerSearch,
-    pickerPacks,
-    selectedStickerSource,
-    stickerCatalog,
-    stickerResults,
-  ]);
+  }, [catalog, deferredStickerSearch, pickerPacks, selectedStickerSource, stickerResults]);
+
+  const gifSections = useMemo(() => {
+    if (!catalog) {
+      return {
+        recent: [] as GifAsset[],
+        items: [] as GifAsset[],
+      };
+    }
+
+    const filtered = deferredGifSearch
+      ? catalog.gifs.filter((gif) =>
+          [gif.title, ...gif.tags].some((candidate) =>
+            candidate.toLowerCase().includes(deferredGifSearch),
+          ),
+        )
+      : catalog.gifs;
+    const recentOrder = new Map(recentGifIds.map((id, index) => [id, index]));
+    const recent = filtered
+      .filter((gif) => recentOrder.has(gif.id))
+      .sort((left, right) => (recentOrder.get(left.id) ?? 0) - (recentOrder.get(right.id) ?? 0));
+
+    return {
+      recent,
+      items: filtered,
+    };
+  }, [catalog, deferredGifSearch, recentGifIds]);
 
   return (
-    <div className="flex h-[min(68vh,520px)] w-[min(92vw,404px)] flex-col overflow-hidden rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent_18%),rgba(8,12,18,0.98)] shadow-[0_26px_80px_rgba(2,6,12,0.45)] backdrop-blur-xl">
-      <div className="flex items-center gap-1 border-b border-white/6 p-2">
+    <div className="flex h-[min(70vh,560px)] w-[min(92vw,408px)] flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#091019] shadow-[0_32px_90px_rgba(2,6,12,0.72)] ring-1 ring-black/35">
+      <div className="flex items-center gap-1 border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-2 py-2">
         <PickerTabButton
           active={activeTab === "emoji"}
           label="Смайлики"
@@ -188,29 +272,57 @@ export function EmojiStickerPicker({
           icon={<Sticker size={16} strokeWidth={1.5} />}
           onClick={() => onTabChange("sticker")}
         />
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="ml-auto h-9 rounded-[12px] px-3"
-          onClick={onOpenManager}
-        >
-          <Settings2 size={16} strokeWidth={1.5} />
-          Управление
-        </Button>
+        <PickerTabButton
+          active={activeTab === "gif"}
+          label="GIF"
+          icon={<Film size={16} strokeWidth={1.5} />}
+          onClick={() => onTabChange("gif")}
+        />
+        {canManageLibrary ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="ml-auto h-9 rounded-[12px] px-3 text-[var(--text-soft)]"
+            onClick={onOpenManager}
+          >
+            <Settings2 size={16} strokeWidth={1.5} />
+            Управление
+          </Button>
+        ) : null}
       </div>
 
-      <div className="border-b border-white/6 px-3 py-2.5">
-        <label className="flex items-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.03] px-3 text-[var(--text-muted)]">
+      <div className="border-b border-white/8 px-3 py-2.5">
+        <label className="flex items-center gap-2 rounded-[14px] border border-white/10 bg-black/20 px-3 text-[var(--text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <Search size={16} strokeWidth={1.5} className="shrink-0" />
           <Input
-            value={activeTab === "emoji" ? emojiSearch : stickerSearch}
-            onChange={(event) =>
+            value={
               activeTab === "emoji"
-                ? setEmojiSearch(event.target.value)
-                : setStickerSearch(event.target.value)
+                ? emojiSearch
+                : activeTab === "sticker"
+                  ? stickerSearch
+                  : gifSearch
             }
-            placeholder={activeTab === "emoji" ? "Поиск смайликов" : "Поиск стикеров"}
+            onChange={(event) => {
+              if (activeTab === "emoji") {
+                setEmojiSearch(event.target.value);
+                return;
+              }
+
+              if (activeTab === "sticker") {
+                setStickerSearch(event.target.value);
+                return;
+              }
+
+              setGifSearch(event.target.value);
+            }}
+            placeholder={
+              activeTab === "emoji"
+                ? "Поиск смайликов"
+                : activeTab === "sticker"
+                  ? "Поиск стикеров"
+                  : "Поиск GIF"
+            }
             className="h-9 border-0 bg-transparent px-0 text-sm text-white"
           />
         </label>
@@ -218,12 +330,19 @@ export function EmojiStickerPicker({
 
       {activeTab === "emoji" ? (
         <>
-          <div className="flex gap-1 overflow-x-auto border-b border-white/6 px-2 py-2">
+          <div className="flex gap-1 overflow-x-auto border-b border-white/8 px-2 py-2">
             <EmojiCategoryButton
               active={selectedEmojiCategory === "recent"}
               label="Недавние"
               onClick={() => setSelectedEmojiCategory("recent")}
             />
+            {catalog?.customEmojis.length ? (
+              <EmojiCategoryButton
+                active={selectedEmojiCategory === "custom"}
+                label="Кастомные"
+                onClick={() => setSelectedEmojiCategory("custom")}
+              />
+            ) : null}
             {emojiCategories.map((category) => (
               <EmojiCategoryButton
                 key={category.id}
@@ -235,13 +354,39 @@ export function EmojiStickerPicker({
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-            {filteredEmojiSections.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-center text-sm text-[var(--text-muted)]">
-                Ничего не найдено.
-              </div>
+            {filteredEmojiSections.system.length === 0 && filteredEmojiSections.custom.length === 0 ? (
+              <PickerState>Ничего не найдено.</PickerState>
             ) : (
               <div className="grid gap-4">
-                {filteredEmojiSections.map((section) => (
+                {filteredEmojiSections.custom.length > 0 ? (
+                  <section className="grid gap-2">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                      Кастомные
+                    </div>
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {filteredEmojiSections.custom.map((emoji) => (
+                        <button
+                          key={emoji.id}
+                          type="button"
+                          onMouseDown={preventFocusLoss}
+                          onClick={() => onCustomEmojiSelect(emoji)}
+                          className="flex h-11 items-center justify-center rounded-[12px] border border-transparent bg-white/[0.03] transition-colors hover:border-white/10 hover:bg-white/[0.08]"
+                          title={`:${emoji.alias}:`}
+                        >
+                          <img
+                            src={getCustomEmojiAssetUrl(emoji)}
+                            alt={emoji.title}
+                            className="h-7 w-7 object-contain"
+                            draggable={false}
+                            loading="lazy"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {filteredEmojiSections.system.map((section) => (
                   <section key={section.id} className="grid gap-2">
                     <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
                       {section.label}
@@ -267,10 +412,10 @@ export function EmojiStickerPicker({
             )}
           </div>
         </>
-      ) : (
+      ) : activeTab === "sticker" ? (
         <>
-          <div className="flex gap-1 overflow-x-auto border-b border-white/6 px-2 py-2">
-            {stickerCatalog?.recent.length ? (
+          <div className="flex gap-1 overflow-x-auto border-b border-white/8 px-2 py-2">
+            {catalog?.stickers.recent.length ? (
               <SourceButton
                 active={selectedStickerSource === "recent"}
                 label="Недавние"
@@ -288,26 +433,27 @@ export function EmojiStickerPicker({
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-            {isStickerCatalogLoading && !stickerCatalog ? (
+            {isCatalogLoading && !catalog ? (
               <PickerState>Загружаем стикеры...</PickerState>
-            ) : stickerCatalogError ? (
-              <div className="grid h-full place-items-center gap-3 text-center">
-                <p className="text-sm text-rose-200">{stickerCatalogError}</p>
-                <Button type="button" size="sm" onClick={() => void onRetryStickerCatalog()}>
-                  Повторить
-                </Button>
-              </div>
-            ) : stickerCatalog && stickerCatalog.packs.length === 0 && stickerCatalog.recent.length === 0 ? (
+            ) : catalogError ? (
+              <ErrorState message={catalogError} onRetry={onRetryCatalog} />
+            ) : catalog && catalog.stickers.packs.length === 0 && catalog.stickers.recent.length === 0 ? (
               <div className="grid h-full place-items-center gap-3 text-center">
                 <div>
                   <p className="text-sm font-medium text-white">Паков пока нет</p>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
-                    Создайте набор и загрузите первые стикеры.
+                    Сначала создайте набор и загрузите первые стикеры.
                   </p>
                 </div>
-                <Button type="button" className="h-9 rounded-[14px] px-3" onClick={onOpenManager}>
-                  Создать набор
-                </Button>
+                {canManageLibrary ? (
+                  <Button
+                    type="button"
+                    className="h-9 rounded-[14px] px-3"
+                    onClick={onOpenManager}
+                  >
+                    Создать набор
+                  </Button>
+                ) : null}
               </div>
             ) : visibleStickers.length === 0 ? (
               <PickerState>
@@ -318,32 +464,31 @@ export function EmojiStickerPicker({
                     : "В этом наборе пока нет стикеров."}
               </PickerState>
             ) : (
-              <div className="grid grid-cols-3 gap-2.5">
-                {visibleStickers.map((item) => {
-                  const pending = pendingStickerIds.includes(item.sticker.id);
+              <div className="grid grid-cols-2 gap-2">
+                {visibleStickers.map(({ sticker, packTitle }) => {
+                  const isPending = pendingStickerIds.includes(sticker.id);
 
                   return (
                     <button
-                      key={`${item.packTitle}-${item.sticker.id}`}
+                      key={sticker.id}
                       type="button"
-                      disabled={pending}
                       onMouseDown={preventFocusLoss}
-                      onClick={() => onStickerSelect(item.sticker)}
-                      className="group grid gap-1 rounded-[18px] border border-white/8 bg-white/[0.03] p-2 text-left transition-colors hover:border-white/14 hover:bg-white/[0.05] disabled:cursor-wait disabled:opacity-60"
-                      title={`${item.packTitle}: ${item.sticker.title}`}
+                      onClick={() => onStickerSelect(sticker)}
+                      disabled={isPending}
+                      className="group rounded-[18px] border border-white/8 bg-white/[0.03] p-2 text-left transition-colors hover:border-white/12 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60"
+                      title={`${packTitle} · ${sticker.title}`}
                     >
                       <StickerAssetPreview
-                        sticker={item.sticker}
-                        className="aspect-square rounded-[14px] bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.08),transparent_55%),rgba(255,255,255,0.03)]"
-                        imageClassName="pointer-events-none"
+                        sticker={sticker}
+                        className="aspect-square rounded-[18px] bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_55%),rgba(255,255,255,0.03)]"
                       />
-                      <div className="min-w-0">
-                        <div className="truncate text-[11px] font-medium text-white">
-                          {pending ? "Отправляем..." : item.sticker.title}
-                        </div>
-                        <div className="truncate text-[10px] text-[var(--text-muted)]">
-                          {item.packTitle}
-                        </div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="truncate text-[11px] text-[var(--text-muted)]">
+                          {packTitle}
+                        </span>
+                        <span className="text-[11px] text-white/70">
+                          {isPending ? "..." : ""}
+                        </span>
                       </div>
                     </button>
                   );
@@ -352,32 +497,131 @@ export function EmojiStickerPicker({
             )}
           </div>
         </>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          {isCatalogLoading && !catalog ? (
+            <PickerState>Загружаем GIF...</PickerState>
+          ) : catalogError ? (
+            <ErrorState message={catalogError} onRetry={onRetryCatalog} />
+          ) : !catalog || catalog.gifs.length === 0 ? (
+            <div className="grid h-full place-items-center gap-3 text-center">
+              <div>
+                <p className="text-sm font-medium text-white">GIF пока нет</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  Загрузите первые GIF в библиотеку, чтобы отправлять их в 1 клик.
+                </p>
+              </div>
+              {canManageLibrary ? (
+                <Button type="button" className="h-9 rounded-[14px] px-3" onClick={onOpenManager}>
+                  Открыть библиотеку
+                </Button>
+              ) : null}
+            </div>
+          ) : gifSections.items.length === 0 ? (
+            <PickerState>По запросу ничего не нашлось.</PickerState>
+          ) : (
+            <div className="grid gap-4">
+              {gifSections.recent.length > 0 && !deferredGifSearch ? (
+                <section className="grid gap-2">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    Недавние
+                  </div>
+                  <div className="grid gap-2">
+                    {gifSections.recent.slice(0, 4).map((gif) => (
+                      <GifPickerCard
+                        key={`recent-${gif.id}`}
+                        gif={gif}
+                        isPending={pendingGifIds.includes(gif.id)}
+                        onSelect={onGifSelect}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              <section className="grid gap-2">
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                  Библиотека
+                </div>
+                <div className="grid gap-2">
+                  {gifSections.items.map((gif) => (
+                    <GifPickerCard
+                      key={gif.id}
+                      gif={gif}
+                      isPending={pendingGifIds.includes(gif.id)}
+                      onSelect={onGifSelect}
+                    />
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function PickerTabButton({
-  active,
-  icon,
-  label,
-  onClick,
+function GifPickerCard({
+  gif,
+  isPending,
+  onSelect,
 }: {
-  active: boolean;
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
+  gif: GifAsset;
+  isPending: boolean;
+  onSelect: (gif: GifAsset) => void;
 }) {
   return (
     <button
       type="button"
       onMouseDown={preventFocusLoss}
+      onClick={() => onSelect(gif)}
+      disabled={isPending}
+      className="overflow-hidden rounded-[18px] border border-white/8 bg-white/[0.03] text-left transition-colors hover:border-white/12 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60"
+      title={gif.title}
+    >
+      <GifAssetPreview
+        gif={gif}
+        className="aspect-[4/3] rounded-none"
+        showBadge
+      />
+      <div className="flex items-center justify-between gap-3 px-3 py-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-white">{gif.title}</p>
+          <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">
+            {gif.tags.length > 0 ? gif.tags.join(" · ") : "Без тегов"}
+          </p>
+        </div>
+        {isPending ? (
+          <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--accent)]">
+            ...
+          </span>
+        ) : null}
+      </div>
+    </button>
+  );
+}
+
+function PickerTabButton({
+  active,
+  label,
+  icon,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 items-center gap-2 rounded-[12px] px-3 text-sm transition-colors",
+        "inline-flex h-10 items-center gap-2 rounded-[14px] border px-3 text-sm font-medium transition-colors",
         active
-          ? "border border-white/10 bg-white/[0.08] text-white"
-          : "border border-transparent text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-white",
+          ? "border-white/14 bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+          : "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-white",
       )}
     >
       {icon}
@@ -398,13 +642,12 @@ function EmojiCategoryButton({
   return (
     <button
       type="button"
-      onMouseDown={preventFocusLoss}
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full border px-3 py-1.5 text-xs transition-colors",
+        "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
         active
-          ? "border-white/12 bg-white/[0.08] text-white"
-          : "border-white/6 bg-white/[0.03] text-[var(--text-muted)] hover:text-white",
+          ? "border-white/14 bg-white/[0.08] text-white"
+          : "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-white",
       )}
     >
       {label}
@@ -424,13 +667,12 @@ function SourceButton({
   return (
     <button
       type="button"
-      onMouseDown={preventFocusLoss}
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full border px-3 py-1.5 text-xs transition-colors",
+        "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
         active
-          ? "border-white/12 bg-white/[0.08] text-white"
-          : "border-white/6 bg-white/[0.03] text-[var(--text-muted)] hover:text-white",
+          ? "border-white/14 bg-white/[0.08] text-white"
+          : "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-white",
       )}
     >
       {label}
@@ -441,9 +683,30 @@ function SourceButton({
 function PickerState({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-full items-center justify-center text-center text-sm text-[var(--text-muted)]">
-      <div>{children}</div>
+      <div className="max-w-[240px]">{children}</div>
     </div>
   );
+}
+
+function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void | Promise<void>;
+}) {
+  return (
+    <div className="grid h-full place-items-center gap-3 text-center">
+      <p className="max-w-[260px] text-sm text-rose-200">{message}</p>
+      <Button type="button" size="sm" onClick={() => void onRetry()}>
+        Повторить
+      </Button>
+    </div>
+  );
+}
+
+function preventFocusLoss(event: MouseEvent<HTMLElement>) {
+  event.preventDefault();
 }
 
 function createLooseEmojiEntry(emoji: string): EmojiEntry {
@@ -452,8 +715,4 @@ function createLooseEmojiEntry(emoji: string): EmojiEntry {
     label: emoji,
     keywords: [],
   };
-}
-
-function preventFocusLoss(event: MouseEvent) {
-  event.preventDefault();
 }

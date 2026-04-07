@@ -1,17 +1,17 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import type {
   CreateStickerPackInput,
-  RenameStickerPackInput,
   ReorderStickerPacksInput,
   ReorderStickersInput,
   StickerAsset,
   StickerCatalog,
   StickerPack,
+  UpdateStickerInput,
+  UpdateStickerPackInput,
 } from '@lobby/shared';
 import type { Prisma, Sticker } from '@prisma/client';
 import type { RequestMetadata } from '../../common/interfaces/request-metadata.interface';
@@ -50,14 +50,21 @@ export class StickersService {
     const [packs, recent] = await Promise.all([
       this.prisma.stickerPack.findMany({
         where: {
-          ownerId: userId,
           deletedAt: null,
+          isActive: true,
+          stickers: {
+            some: {
+              deletedAt: null,
+              isActive: true,
+            },
+          },
         },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         include: {
           stickers: {
             where: {
               deletedAt: null,
+              isActive: true,
             },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
           },
@@ -69,11 +76,13 @@ export class StickersService {
           sticker: {
             is: {
               deletedAt: null,
+              isActive: true,
             },
           },
           pack: {
             is: {
               deletedAt: null,
+              isActive: true,
             },
           },
         },
@@ -92,17 +101,37 @@ export class StickersService {
     });
   }
 
+  public async listAdminPacks(): Promise<StickerPack[]> {
+    const packs = await this.prisma.stickerPack.findMany({
+      where: {
+        deletedAt: null,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        stickers: {
+          where: {
+            deletedAt: null,
+          },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        },
+      },
+    });
+
+    return packs.map((pack) => toStickerPack(pack as StickerPackWithStickers));
+  }
+
   public async createPack(
-    ownerId: string,
+    actorUserId: string,
     input: CreateStickerPackInput,
     requestMetadata: RequestMetadata,
   ): Promise<StickerPack> {
-    const sortOrder = await this.getNextPackSortOrder(ownerId);
+    const sortOrder = await this.getNextPackSortOrder();
     const pack = await this.prisma.stickerPack.create({
       data: {
-        ownerId,
+        ownerId: actorUserId,
         title: input.title.trim(),
         sortOrder,
+        isActive: true,
       },
       include: {
         stickers: {
@@ -118,7 +147,7 @@ export class StickersService {
       action: 'stickers.pack.create',
       entityType: 'StickerPack',
       entityId: pack.id,
-      actorUserId: ownerId,
+      actorUserId,
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
       metadata: {
@@ -126,23 +155,24 @@ export class StickersService {
       },
     });
 
-    return toStickerPack(pack);
+    return toStickerPack(pack as StickerPackWithStickers);
   }
 
-  public async renamePack(
-    ownerId: string,
+  public async updatePack(
+    actorUserId: string,
     packId: string,
-    input: RenameStickerPackInput,
+    input: UpdateStickerPackInput,
     requestMetadata: RequestMetadata,
   ): Promise<StickerPack> {
-    await this.getOwnedPackOrThrow(ownerId, packId);
+    await this.getPackOrThrow(packId);
 
     const pack = await this.prisma.stickerPack.update({
       where: {
         id: packId,
       },
       data: {
-        title: input.title.trim(),
+        ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
       },
       include: {
         stickers: {
@@ -155,28 +185,28 @@ export class StickersService {
     });
 
     await this.auditService.write({
-      action: 'stickers.pack.rename',
+      action: 'stickers.pack.update',
       entityType: 'StickerPack',
       entityId: pack.id,
-      actorUserId: ownerId,
+      actorUserId,
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
       metadata: {
-        title: pack.title,
+        title: input.title ?? null,
+        isActive: input.isActive ?? null,
       },
     });
 
-    return toStickerPack(pack);
+    return toStickerPack(pack as StickerPackWithStickers);
   }
 
   public async reorderPacks(
-    ownerId: string,
+    actorUserId: string,
     input: ReorderStickerPacksInput,
     requestMetadata: RequestMetadata,
   ): Promise<void> {
     const packs = await this.prisma.stickerPack.findMany({
       where: {
-        ownerId,
         deletedAt: null,
       },
       select: {
@@ -191,7 +221,9 @@ export class StickersService {
       currentIds.length !== nextIds.length ||
       currentIds.some((id) => !nextIds.includes(id))
     ) {
-      throw new BadRequestException('Список наборов для сортировки некорректен.');
+      throw new BadRequestException(
+        'Список наборов для сортировки некорректен.',
+      );
     }
 
     await this.prisma.$transaction(
@@ -210,8 +242,8 @@ export class StickersService {
     await this.auditService.write({
       action: 'stickers.pack.reorder',
       entityType: 'StickerPack',
-      entityId: ownerId,
-      actorUserId: ownerId,
+      entityId: null,
+      actorUserId,
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
       metadata: {
@@ -221,11 +253,11 @@ export class StickersService {
   }
 
   public async deletePack(
-    ownerId: string,
+    actorUserId: string,
     packId: string,
     requestMetadata: RequestMetadata,
   ): Promise<void> {
-    await this.getOwnedPackOrThrow(ownerId, packId);
+    await this.getPackOrThrow(packId);
     const deletedAt = new Date();
 
     await this.prisma.$transaction(async (transaction) => {
@@ -235,6 +267,7 @@ export class StickersService {
         },
         data: {
           deletedAt,
+          isActive: false,
         },
       });
 
@@ -245,6 +278,7 @@ export class StickersService {
         },
         data: {
           deletedAt,
+          isActive: false,
         },
       });
     });
@@ -253,20 +287,20 @@ export class StickersService {
       action: 'stickers.pack.delete',
       entityType: 'StickerPack',
       entityId: packId,
-      actorUserId: ownerId,
+      actorUserId,
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
     });
   }
 
   public async addStickerToPack(
-    ownerId: string,
+    actorUserId: string,
     packId: string,
     file: UploadedBinaryFile | undefined,
     rawTitle: string | null | undefined,
     requestMetadata: RequestMetadata,
   ): Promise<StickerAsset> {
-    await this.getOwnedPackOrThrow(ownerId, packId);
+    await this.getPackOrThrow(packId);
 
     if (!file || !file.buffer || file.size === 0) {
       throw new BadRequestException('Выберите файл стикера.');
@@ -291,7 +325,9 @@ export class StickersService {
       });
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Не удалось обработать файл стикера.',
+        error instanceof Error
+          ? error.message
+          : 'Не удалось обработать файл стикера.',
       );
     }
 
@@ -315,6 +351,7 @@ export class StickersService {
           height: metadata.height,
           isAnimated: metadata.isAnimated,
           sortOrder,
+          isActive: true,
         },
       });
 
@@ -322,7 +359,7 @@ export class StickersService {
         action: 'stickers.sticker.create',
         entityType: 'Sticker',
         entityId: sticker.id,
-        actorUserId: ownerId,
+        actorUserId,
         ipAddress: requestMetadata.ipAddress,
         userAgent: requestMetadata.userAgent,
         metadata: {
@@ -340,13 +377,49 @@ export class StickersService {
     }
   }
 
+  public async updateSticker(
+    actorUserId: string,
+    packId: string,
+    stickerId: string,
+    input: UpdateStickerInput,
+    requestMetadata: RequestMetadata,
+  ): Promise<StickerAsset> {
+    await this.getPackOrThrow(packId);
+    await this.getStickerOrThrow(packId, stickerId);
+
+    const sticker = await this.prisma.sticker.update({
+      where: {
+        id: stickerId,
+      },
+      data: {
+        ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+      },
+    });
+
+    await this.auditService.write({
+      action: 'stickers.sticker.update',
+      entityType: 'Sticker',
+      entityId: stickerId,
+      actorUserId,
+      ipAddress: requestMetadata.ipAddress,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        title: input.title ?? null,
+        isActive: input.isActive ?? null,
+      },
+    });
+
+    return toStickerAsset(sticker);
+  }
+
   public async reorderStickers(
-    ownerId: string,
+    actorUserId: string,
     packId: string,
     input: ReorderStickersInput,
     requestMetadata: RequestMetadata,
   ): Promise<void> {
-    await this.getOwnedPackOrThrow(ownerId, packId);
+    await this.getPackOrThrow(packId);
 
     const stickers = await this.prisma.sticker.findMany({
       where: {
@@ -365,7 +438,9 @@ export class StickersService {
       currentIds.length !== nextIds.length ||
       currentIds.some((id) => !nextIds.includes(id))
     ) {
-      throw new BadRequestException('Список стикеров для сортировки некорректен.');
+      throw new BadRequestException(
+        'Список стикеров для сортировки некорректен.',
+      );
     }
 
     await this.prisma.$transaction(
@@ -385,7 +460,7 @@ export class StickersService {
       action: 'stickers.sticker.reorder',
       entityType: 'StickerPack',
       entityId: packId,
-      actorUserId: ownerId,
+      actorUserId,
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
       metadata: {
@@ -395,26 +470,13 @@ export class StickersService {
   }
 
   public async deleteSticker(
-    ownerId: string,
+    actorUserId: string,
     packId: string,
     stickerId: string,
     requestMetadata: RequestMetadata,
   ): Promise<void> {
-    await this.getOwnedPackOrThrow(ownerId, packId);
-    const sticker = await this.prisma.sticker.findFirst({
-      where: {
-        id: stickerId,
-        packId,
-      },
-      select: {
-        id: true,
-        deletedAt: true,
-      },
-    });
-
-    if (!sticker) {
-      throw new NotFoundException('Стикер не найден.');
-    }
+    await this.getPackOrThrow(packId);
+    const sticker = await this.getStickerOrThrow(packId, stickerId);
 
     if (!sticker.deletedAt) {
       await this.prisma.sticker.update({
@@ -423,6 +485,7 @@ export class StickersService {
         },
         data: {
           deletedAt: new Date(),
+          isActive: false,
         },
       });
     }
@@ -431,7 +494,7 @@ export class StickersService {
       action: 'stickers.sticker.delete',
       entityType: 'Sticker',
       entityId: stickerId,
-      actorUserId: ownerId,
+      actorUserId,
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
       metadata: {
@@ -440,18 +503,16 @@ export class StickersService {
     });
   }
 
-  public async getOwnedActiveStickerOrThrow(
-    ownerId: string,
-    stickerId: string,
-  ): Promise<Sticker> {
+  public async getActiveStickerOrThrow(stickerId: string): Promise<Sticker> {
     const sticker = await this.prisma.sticker.findFirst({
       where: {
         id: stickerId,
         deletedAt: null,
+        isActive: true,
         pack: {
           is: {
-            ownerId,
             deletedAt: null,
+            isActive: true,
           },
         },
       },
@@ -497,48 +558,21 @@ export class StickersService {
   }
 
   public async getStickerAssetForViewer(
-    viewerId: string,
+    _viewerId: string,
     stickerId: string,
   ): Promise<{ buffer: Buffer; mimeType: string }> {
     const sticker = await this.prisma.sticker.findUnique({
       where: {
         id: stickerId,
       },
-      include: {
-        pack: {
-          select: {
-            ownerId: true,
-          },
-        },
+      select: {
+        fileKey: true,
+        mimeType: true,
       },
     });
 
     if (!sticker) {
       throw new NotFoundException('Стикер не найден.');
-    }
-
-    const isOwner = sticker.pack.ownerId === viewerId;
-
-    if (!isOwner) {
-      const accessibleMessage = await this.prisma.directMessage.findFirst({
-        where: {
-          stickerId,
-          conversation: {
-            participants: {
-              some: {
-                userId: viewerId,
-              },
-            },
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (!accessibleMessage) {
-        throw new ForbiddenException('Стикер недоступен.');
-      }
     }
 
     try {
@@ -551,11 +585,10 @@ export class StickersService {
     }
   }
 
-  private async getOwnedPackOrThrow(ownerId: string, packId: string) {
+  private async getPackOrThrow(packId: string) {
     const pack = await this.prisma.stickerPack.findFirst({
       where: {
         id: packId,
-        ownerId,
         deletedAt: null,
       },
       select: {
@@ -570,10 +603,28 @@ export class StickersService {
     return pack;
   }
 
-  private async getNextPackSortOrder(ownerId: string): Promise<number> {
+  private async getStickerOrThrow(packId: string, stickerId: string) {
+    const sticker = await this.prisma.sticker.findFirst({
+      where: {
+        id: stickerId,
+        packId,
+      },
+      select: {
+        id: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!sticker) {
+      throw new NotFoundException('Стикер не найден.');
+    }
+
+    return sticker;
+  }
+
+  private async getNextPackSortOrder(): Promise<number> {
     const aggregate = await this.prisma.stickerPack.aggregate({
       where: {
-        ownerId,
         deletedAt: null,
       },
       _max: {

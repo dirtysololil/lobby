@@ -6,8 +6,11 @@ import {
   directConversationDetailSchema,
   directConversationSummaryResponseSchema,
   directMessageResponseSchema,
+  mediaPickerCatalogResponseSchema,
   type DirectConversationDetail,
   type DirectMessage,
+  type MediaPickerCatalog,
+  type UserRole,
 } from "@lobby/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +38,7 @@ import { MessageThread, type ThreadMessageItem } from "./message-thread";
 interface ConversationViewProps {
   conversationId: string;
   viewerId: string;
+  viewerRole: UserRole;
 }
 
 type ConversationState = Omit<DirectConversationDetail["conversation"], "messages">;
@@ -68,6 +72,7 @@ function buildOptimisticMessage(args: {
     author: args.author,
     content: args.payload.type === "TEXT" ? args.payload.content : null,
     sticker: args.payload.type === "STICKER" ? args.payload.sticker : null,
+    gif: args.payload.type === "GIF" ? args.payload.gif : null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: null,
@@ -164,12 +169,16 @@ function applyLocalRead(
 export function ConversationView({
   conversationId,
   viewerId,
+  viewerRole,
 }: ConversationViewProps) {
   const { latestDmSignal } = useRealtime();
   const realtimePresence = useOptionalRealtimePresence();
   const [conversation, setConversation] = useState<ConversationState | null>(null);
   const [messages, setMessages] = useState<ThreadMessageItem[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pickerCatalog, setPickerCatalog] = useState<MediaPickerCatalog | null>(null);
+  const [pickerCatalogError, setPickerCatalogError] = useState<string | null>(null);
+  const [isPickerCatalogLoading, setIsPickerCatalogLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const readInFlightRef = useRef(false);
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
@@ -210,6 +219,25 @@ export function ConversationView({
   // markConversationAsRead is intentionally called from the initial load flow.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, viewerId]);
+
+  const refreshPickerCatalog = useCallback(async () => {
+    setIsPickerCatalogLoading(true);
+
+    try {
+      const payload = await apiClientFetch("/v1/media/picker");
+      const catalog = mediaPickerCatalogResponseSchema.parse(payload).catalog;
+      setPickerCatalog(catalog);
+      setPickerCatalogError(null);
+      return catalog;
+    } catch (error) {
+      setPickerCatalogError(
+        error instanceof Error ? error.message : "Не удалось загрузить библиотеку медиа.",
+      );
+      return null;
+    } finally {
+      setIsPickerCatalogLoading(false);
+    }
+  }, []);
 
   const markConversationAsRead = useCallback(
     async (lastReadMessageId: string | null, lastReadAt: string | null) => {
@@ -253,6 +281,10 @@ export function ConversationView({
   useEffect(() => {
     void loadConversation();
   }, [loadConversation]);
+
+  useEffect(() => {
+    void refreshPickerCatalog();
+  }, [refreshPickerCatalog]);
 
   useEffect(() => {
     if (!latestDmSignal || latestDmSignal.conversationId !== conversationId) {
@@ -368,6 +400,7 @@ export function ConversationView({
           type: payload.type,
           content: payload.type === "TEXT" ? payload.content : undefined,
           stickerId: payload.type === "STICKER" ? payload.stickerId : undefined,
+          gifId: payload.type === "GIF" ? payload.gifId : undefined,
           clientNonce,
         }),
       });
@@ -399,6 +432,15 @@ export function ConversationView({
         type: "STICKER",
         stickerId: failedMessage.sticker.id,
         sticker: failedMessage.sticker,
+      });
+      return;
+    }
+
+    if (failedMessage.type === "GIF" && failedMessage.gif) {
+      await sendMessage({
+        type: "GIF",
+        gifId: failedMessage.gif.id,
+        gif: failedMessage.gif,
       });
       return;
     }
@@ -574,6 +616,7 @@ export function ConversationView({
             messages={messages}
             isDeleting={isDeleting}
             lastReadAt={viewerParticipant.lastReadAt}
+            customEmojis={pickerCatalog?.customEmojis ?? []}
             onDelete={deleteMessage}
             onRetry={retryMessage}
           />
@@ -589,7 +632,25 @@ export function ConversationView({
         </div>
 
         <div className="shrink-0 border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 py-2 backdrop-blur-xl">
-          <MessageComposer disabled={isBlocked} onSend={sendMessage} />
+          <MessageComposer
+            disabled={isBlocked}
+            canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
+            pickerCatalog={pickerCatalog}
+            isPickerCatalogLoading={isPickerCatalogLoading}
+            pickerCatalogError={pickerCatalogError}
+            onRefreshPickerCatalog={refreshPickerCatalog}
+            onStickerCatalogChange={(catalog) =>
+              setPickerCatalog((current) =>
+                current
+                  ? {
+                      ...current,
+                      stickers: catalog,
+                    }
+                  : current,
+              )
+            }
+            onSend={sendMessage}
+          />
         </div>
       </section>
 

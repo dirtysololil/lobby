@@ -6,10 +6,11 @@ import {
   isoDateSchema,
   publicUserSchema,
 } from "./common";
+import { gifAssetSchema } from "./media-library";
 import { stickerAssetSchema } from "./stickers";
 
 export const dmMessageContentSchema = z.string().trim().min(1).max(4000);
-export const dmMessageTypeSchema = z.enum(["TEXT", "STICKER"]);
+export const dmMessageTypeSchema = z.enum(["TEXT", "STICKER", "GIF"]);
 export type DmMessageType = z.infer<typeof dmMessageTypeSchema>;
 
 export const openDirectConversationSchema = z.object({
@@ -25,6 +26,7 @@ export const createDirectMessageSchema = z
     type: dmMessageTypeSchema.default("TEXT"),
     content: z.string().trim().max(4000).nullable().optional(),
     stickerId: z.string().cuid().nullable().optional(),
+    gifId: z.string().cuid().nullable().optional(),
     clientNonce: z.string().trim().min(1).max(120).optional(),
   })
   .superRefine((value, context) => {
@@ -45,22 +47,58 @@ export const createDirectMessageSchema = z
         });
       }
 
-      return;
-    }
+      if (value.gifId) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["gifId"],
+          message: "gifId is allowed only for GIF messages",
+        });
+      }
 
-    if (!value.stickerId) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["stickerId"],
-        message: "stickerId is required for STICKER messages",
-      });
+      return;
     }
 
     if (value.content && value.content.trim().length > 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["content"],
-        message: "content must be empty for STICKER messages",
+        message: "content must be empty for media messages",
+      });
+    }
+
+    if (value.type === "STICKER") {
+      if (!value.stickerId) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["stickerId"],
+          message: "stickerId is required for STICKER messages",
+        });
+      }
+
+      if (value.gifId) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["gifId"],
+          message: "gifId is allowed only for GIF messages",
+        });
+      }
+
+      return;
+    }
+
+    if (!value.gifId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["gifId"],
+        message: "gifId is required for GIF messages",
+      });
+    }
+
+    if (value.stickerId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["stickerId"],
+        message: "stickerId is allowed only for STICKER messages",
       });
     }
   });
@@ -124,6 +162,7 @@ export const directMessageSchema = z.object({
   author: publicUserSchema,
   content: z.string().nullable(),
   sticker: stickerAssetSchema.nullable(),
+  gif: gifAssetSchema.nullable(),
   isDeleted: z.boolean(),
   canDelete: z.boolean(),
   deleteExpiresAt: isoDateSchema.nullable(),

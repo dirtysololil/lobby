@@ -1,12 +1,14 @@
 "use client";
 
-import type { DirectConversationDetail } from "@lobby/shared";
+import type { CustomEmojiAsset, DirectConversationDetail } from "@lobby/shared";
 import { AlertCircle, MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
+import { GifAssetPreview } from "./gif-asset-preview";
+import { InlineCustomEmojiText } from "./inline-custom-emoji-text";
 import { StickerAssetPreview } from "./sticker-asset-preview";
 
 export type ThreadMessageItem =
@@ -19,6 +21,7 @@ interface MessageThreadProps {
   messages: ThreadMessageItem[];
   isDeleting: string | null;
   lastReadAt: string | null;
+  customEmojis: CustomEmojiAsset[];
   onDelete: (messageId: string) => Promise<void>;
   onRetry: (messageId: string) => Promise<void>;
 }
@@ -81,6 +84,7 @@ export function MessageThread({
   messages,
   isDeleting,
   lastReadAt,
+  customEmojis,
   onDelete,
   onRetry,
 }: MessageThreadProps) {
@@ -231,7 +235,7 @@ export function MessageThread({
       ? createPortal(
           <div
             data-dm-context-menu="true"
-            className="fixed z-[90] w-[196px] rounded-[14px] border border-white/8 bg-[rgba(10,14,20,0.96)] p-1.5 shadow-[0_18px_40px_rgba(2,6,12,0.42)] backdrop-blur-xl"
+            className="fixed z-[90] w-[196px] rounded-[14px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-1.5 shadow-[0_18px_40px_rgba(2,6,12,0.42)]"
             style={{
               left: contextMenu.x,
               top: contextMenu.y,
@@ -244,7 +248,9 @@ export function MessageThread({
               className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-rose-100 transition-colors hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Trash2 size={16} strokeWidth={1.5} />
-              {isDeleting === contextMenu.messageId ? "Удаляем..." : "Удалить сообщение"}
+              {isDeleting === contextMenu.messageId
+                ? "Удаляем..."
+                : "Удалить сообщение"}
             </button>
           </div>,
           document.body,
@@ -277,6 +283,8 @@ export function MessageThread({
                   const globalIndex = messageIndexById.get(message.id) ?? -1;
                   const isOwn = message.author.id === viewerId;
                   const isSticker = message.type === "STICKER";
+                  const isGif = message.type === "GIF";
+                  const isVisualMessage = isSticker || isGif;
                   const previousMessage = group.items[index - 1];
                   const continuation = isContinuation(previousMessage, message);
                   const isUnreadMarker = unreadIndex >= 0 && globalIndex === unreadIndex;
@@ -285,13 +293,13 @@ export function MessageThread({
                   const isContextMenuOpen = contextMenu?.messageId === message.id;
                   const bubbleClassName = cn(
                     "relative rounded-[17px] border px-3 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-[border-color,background,box-shadow] duration-150",
-                    isSticker && "border-transparent bg-transparent px-0 py-0 shadow-none",
+                    isVisualMessage && "border-transparent bg-transparent px-0 py-0 shadow-none",
                     isOwn
                       ? "ml-auto border-[rgba(106,168,248,0.15)] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_46%),rgba(88,132,191,0.15)] group-hover/message:border-[rgba(106,168,248,0.22)] group-hover/message:bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_46%),rgba(92,139,201,0.17)]"
                       : "border-white/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.016),transparent_46%),rgba(255,255,255,0.04)] group-hover/message:border-white/[0.1] group-hover/message:bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_46%),rgba(255,255,255,0.052)]",
-                    continuation && !isSticker && "rounded-[15px] py-1.5",
+                    continuation && !isVisualMessage && "rounded-[15px] py-1.5",
                     isContextMenuOpen &&
-                      !isSticker &&
+                      !isVisualMessage &&
                       (isOwn
                         ? "border-[rgba(106,168,248,0.3)] bg-[linear-gradient(180deg,rgba(255,255,255,0.022),transparent_44%),rgba(96,145,210,0.22)] shadow-[0_10px_24px_rgba(8,16,28,0.14)]"
                         : "border-white/[0.16] bg-[linear-gradient(180deg,rgba(255,255,255,0.024),transparent_44%),rgba(255,255,255,0.07)] shadow-[0_10px_24px_rgba(8,16,28,0.12)]"),
@@ -338,7 +346,9 @@ export function MessageThread({
 
                         <div
                           className={cn(
-                            isSticker ? "min-w-0 max-w-[min(320px,100%)] flex-1" : "min-w-0 max-w-[min(76ch,100%)] flex-1",
+                            isVisualMessage
+                              ? "min-w-0 max-w-[min(340px,100%)] flex-1"
+                              : "min-w-0 max-w-[min(76ch,100%)] flex-1",
                             isOwn && "text-right",
                           )}
                         >
@@ -408,9 +418,23 @@ export function MessageThread({
                                 <div className="flex aspect-square items-center justify-center rounded-[24px] border border-white/8 bg-white/[0.03] px-4 text-center text-sm text-[var(--text-muted)]">
                                   Стикер недоступен
                                 </div>
+                              ) : isGif && message.gif ? (
+                                <GifAssetPreview
+                                  gif={message.gif}
+                                  className="aspect-[4/3] rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.1),transparent_55%),rgba(255,255,255,0.03)]"
+                                  imageClassName="pointer-events-none"
+                                  showBadge
+                                />
+                              ) : isGif ? (
+                                <div className="flex aspect-[4/3] items-center justify-center rounded-[24px] border border-white/8 bg-white/[0.03] px-4 text-center text-sm text-[var(--text-muted)]">
+                                  GIF недоступен
+                                </div>
                               ) : (
-                                <p className="whitespace-pre-wrap text-[13px] leading-[1.42] text-white">
-                                  {message.content}
+                                <p className="text-[13px] leading-[1.42] text-white">
+                                  <InlineCustomEmojiText
+                                    text={message.content ?? ""}
+                                    customEmojis={customEmojis}
+                                  />
                                 </p>
                               )}
                             </div>
