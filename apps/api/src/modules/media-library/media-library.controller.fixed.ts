@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  adminMediaLibraryResponseSchema,
   createCustomEmojiSchema,
   createGifAssetSchema,
   customEmojiResponseSchema,
@@ -21,8 +22,6 @@ import {
   mediaPickerCatalogResponseSchema,
   reorderCustomEmojisSchema,
   reorderGifAssetsSchema,
-  type CreateCustomEmojiInput,
-  type CreateGifAssetInput,
   type PublicUser,
   type ReorderCustomEmojisInput,
   type ReorderGifAssetsInput,
@@ -37,7 +36,6 @@ import { RequireAuth } from '../../common/decorators/require-auth.decorator';
 import type { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { getRequestMetadata } from '../../common/utils/request-metadata.util';
-import { adminMediaLibraryResponseSchema } from '@lobby/shared';
 import { MediaLibraryService } from './media-library.service';
 
 type UploadedBinaryFile = {
@@ -112,9 +110,9 @@ export class MediaLibraryController {
     @Req() request: AuthenticatedRequest,
   ) {
     const parsed = createCustomEmojiSchema.parse({
-      alias: body.alias,
-      title: body?.title,
-    } satisfies CreateCustomEmojiInput);
+      alias: typeof body?.alias === 'string' ? body.alias : '',
+      title: typeof body?.title === 'string' ? body.title : undefined,
+    });
 
     return customEmojiResponseSchema.parse({
       emoji: await this.mediaLibraryService.createCustomEmoji(
@@ -192,9 +190,9 @@ export class MediaLibraryController {
     @Req() request: AuthenticatedRequest,
   ) {
     const parsed = createGifAssetSchema.parse({
-      title: body.title,
+      title: typeof body?.title === 'string' ? body.title : '',
       tags: normalizeTags(body?.tags),
-    } satisfies CreateGifAssetInput);
+    });
 
     return gifAssetResponseSchema.parse({
       gif: await this.mediaLibraryService.createGifAsset(
