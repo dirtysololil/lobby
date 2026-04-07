@@ -94,7 +94,7 @@ export function LoginForm() {
         <Label htmlFor="login">Логин или почта</Label>
         <Input
           id="login"
-          placeholder="vladimir_panin"
+          placeholder="Логин или почта"
           autoComplete="username"
           autoCapitalize="none"
           autoCorrect="off"
