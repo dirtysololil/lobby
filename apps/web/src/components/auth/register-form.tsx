@@ -201,7 +201,7 @@ export function RegisterForm({ inviteFromUrl = null }: RegisterFormProps) {
           <Label htmlFor="username">Имя пользователя</Label>
           <Input
             id="username"
-            placeholder="vladimir_panin"
+            placeholder="Имя пользователя"
             autoComplete="username"
             autoCapitalize="none"
             autoCorrect="off"
@@ -220,7 +220,7 @@ export function RegisterForm({ inviteFromUrl = null }: RegisterFormProps) {
           <Label htmlFor="displayName">Отображаемое имя</Label>
           <Input
             id="displayName"
-            placeholder="Владимир Панин"
+            placeholder="Отображаемое имя"
             autoComplete="name"
             {...form.register("displayName")}
           />
@@ -235,7 +235,7 @@ export function RegisterForm({ inviteFromUrl = null }: RegisterFormProps) {
         <Input
           id="email"
           type="email"
-          placeholder="vladimir@lobby.local"
+          placeholder="Почта"
           autoComplete="email"
           autoCapitalize="none"
           autoCorrect="off"
