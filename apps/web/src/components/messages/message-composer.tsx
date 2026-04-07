@@ -1,5 +1,13 @@
 "use client";
 
+import type {
+  CustomEmojiAsset,
+  GifAsset,
+  MediaPickerCatalog,
+  StickerAsset,
+  StickerCatalog,
+} from "@lobby/shared";
+import { SendHorizontal, SmilePlus } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -8,46 +16,44 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { SendHorizontal, SmilePlus } from "lucide-react";
-import {
-  stickerCatalogResponseSchema,
-  type StickerAsset,
-  type StickerCatalog,
-} from "@lobby/shared";
+import { buildCustomEmojiToken } from "@/lib/stickers";
 import { Button } from "@/components/ui/button";
-import { apiClientFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
-import {
-  EmojiStickerPicker,
-  type PickerTab,
-} from "./emoji-sticker-picker";
+import { EmojiStickerPicker, type PickerTab } from "./emoji-sticker-picker";
 import { StickerPackManagerModal } from "./sticker-pack-manager-modal";
 
 export type ComposerSendPayload =
   | { type: "TEXT"; content: string }
-  | { type: "STICKER"; stickerId: string; sticker: StickerAsset };
+  | { type: "STICKER"; stickerId: string; sticker: StickerAsset }
+  | { type: "GIF"; gifId: string; gif: GifAsset };
 
 interface MessageComposerProps {
   disabled: boolean;
+  canManageLibrary: boolean;
+  pickerCatalog: MediaPickerCatalog | null;
+  isPickerCatalogLoading: boolean;
+  pickerCatalogError: string | null;
+  onRefreshPickerCatalog: () => Promise<MediaPickerCatalog | null>;
+  onStickerCatalogChange: (catalog: StickerCatalog) => void;
   onSend: (payload: ComposerSendPayload) => Promise<void>;
 }
 
 const BASE_HEIGHT = 38;
 const MAX_HEIGHT = 112;
 const RECENT_EMOJIS_KEY = "lobby:dm:recent-emojis";
+const RECENT_GIFS_KEY = "lobby:dm:recent-gifs";
 const MAX_RECENT_EMOJIS = 28;
 const MAX_RECENT_STICKERS = 24;
+const MAX_RECENT_GIFS = 20;
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
-function readRecentEmojis() {
+function readRecentStrings(storageKey: string) {
   if (typeof window === "undefined") {
     return [] as string[];
   }
 
   try {
-    const parsed = JSON.parse(
-      window.localStorage.getItem(RECENT_EMOJIS_KEY) ?? "[]",
-    );
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? "[]");
 
     return Array.isArray(parsed)
       ? parsed.filter((item): item is string => typeof item === "string")
@@ -57,20 +63,16 @@ function readRecentEmojis() {
   }
 }
 
-function writeRecentEmojis(nextItems: string[]) {
+function writeRecentStrings(storageKey: string, nextItems: string[]) {
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(RECENT_EMOJIS_KEY, JSON.stringify(nextItems));
+    window.localStorage.setItem(storageKey, JSON.stringify(nextItems));
   }
 }
 
 function moveStickerToRecent(
-  catalog: StickerCatalog | null,
+  catalog: StickerCatalog,
   sticker: StickerAsset,
-): StickerCatalog | null {
-  if (!catalog) {
-    return catalog;
-  }
-
+): StickerCatalog {
   const packTitle =
     catalog.packs.find((pack) => pack.id === sticker.packId)?.title ?? "Стикеры";
   const nextRecent = [
@@ -92,43 +94,31 @@ function moveStickerToRecent(
   };
 }
 
-export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
+export function MessageComposer({
+  disabled,
+  canManageLibrary,
+  pickerCatalog,
+  isPickerCatalogLoading,
+  pickerCatalogError,
+  onRefreshPickerCatalog,
+  onStickerCatalogChange,
+  onSend,
+}: MessageComposerProps) {
   const [content, setContent] = useState("");
   const [isSendingText, setIsSendingText] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PickerTab>("emoji");
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
-  const [stickerCatalog, setStickerCatalog] = useState<StickerCatalog | null>(null);
-  const [isStickerCatalogLoading, setIsStickerCatalogLoading] = useState(false);
-  const [stickerCatalogError, setStickerCatalogError] = useState<string | null>(null);
+  const [recentGifIds, setRecentGifIds] = useState<string[]>([]);
   const [pendingStickerIds, setPendingStickerIds] = useState<string[]>([]);
+  const [pendingGifIds, setPendingGifIds] = useState<string[]>([]);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const composerRef = useRef<HTMLFormElement | null>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
 
-  const refreshStickerCatalog = useCallback(async () => {
-    setIsStickerCatalogLoading(true);
-
-    try {
-      const payload = await apiClientFetch("/v1/stickers/me");
-      const catalog = stickerCatalogResponseSchema.parse(payload).catalog;
-      setStickerCatalog(catalog);
-      setStickerCatalogError(null);
-
-      return catalog;
-    } catch (error) {
-      setStickerCatalogError(
-        error instanceof Error ? error.message : "Не удалось загрузить стикеры.",
-      );
-      return null;
-    } finally {
-      setIsStickerCatalogLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    setRecentEmojis(readRecentEmojis());
+    setRecentEmojis(readRecentStrings(RECENT_EMOJIS_KEY));
+    setRecentGifIds(readRecentStrings(RECENT_GIFS_KEY));
   }, []);
 
   useEffect(() => {
@@ -143,14 +133,6 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
     element.style.height = `${nextHeight}px`;
     element.style.overflowY = element.scrollHeight > MAX_HEIGHT ? "auto" : "hidden";
   }, [content]);
-
-  useEffect(() => {
-    if (!pickerOpen || activeTab !== "sticker" || stickerCatalog || isStickerCatalogLoading) {
-      return;
-    }
-
-    void refreshStickerCatalog();
-  }, [activeTab, isStickerCatalogLoading, pickerOpen, stickerCatalog, refreshStickerCatalog]);
 
   useEffect(() => {
     if (!pickerOpen) {
@@ -182,6 +164,14 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [pickerOpen]);
+
+  const refreshCatalogIfNeeded = useCallback(async () => {
+    if (pickerCatalog || isPickerCatalogLoading) {
+      return pickerCatalog;
+    }
+
+    return await onRefreshPickerCatalog();
+  }, [isPickerCatalogLoading, onRefreshPickerCatalog, pickerCatalog]);
 
   function syncSelection() {
     const element = textareaRef.current;
@@ -220,21 +210,35 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         0,
         MAX_RECENT_EMOJIS,
       );
-      writeRecentEmojis(nextItems);
+      writeRecentStrings(RECENT_EMOJIS_KEY, nextItems);
       return nextItems;
     });
   }
 
-  function insertEmoji(emoji: string) {
+  function pushRecentGif(gifId: string) {
+    setRecentGifIds((current) => {
+      const nextItems = [gifId, ...current.filter((item) => item !== gifId)].slice(
+        0,
+        MAX_RECENT_GIFS,
+      );
+      writeRecentStrings(RECENT_GIFS_KEY, nextItems);
+      return nextItems;
+    });
+  }
+
+  function insertTextToken(token: string, recentEmoji?: string) {
     const element = textareaRef.current;
     const { start, end } = selectionRef.current;
     const before = content.slice(0, start);
     const after = content.slice(end);
-    const nextContent = `${before}${emoji}${after}`;
-    const nextPosition = start + emoji.length;
+    const nextContent = `${before}${token}${after}`;
+    const nextPosition = start + token.length;
 
     setContent(nextContent);
-    pushRecentEmoji(emoji);
+
+    if (recentEmoji) {
+      pushRecentEmoji(recentEmoji);
+    }
 
     requestAnimationFrame(() => {
       if (!element) {
@@ -248,6 +252,14 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         end: nextPosition,
       };
     });
+  }
+
+  function insertEmoji(emoji: string) {
+    insertTextToken(emoji, emoji);
+  }
+
+  function insertCustomEmoji(emoji: CustomEmojiAsset) {
+    insertTextToken(buildCustomEmojiToken(emoji.alias));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -286,10 +298,34 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         stickerId: sticker.id,
         sticker,
       });
-      setStickerCatalog((current) => moveStickerToRecent(current, sticker));
+
+      if (pickerCatalog) {
+        onStickerCatalogChange(moveStickerToRecent(pickerCatalog.stickers, sticker));
+      }
+
       textareaRef.current?.focus();
     } finally {
       setPendingStickerIds((current) => current.filter((item) => item !== sticker.id));
+    }
+  }
+
+  async function handleGifSelect(gif: GifAsset) {
+    if (disabled || pendingGifIds.includes(gif.id)) {
+      return;
+    }
+
+    setPendingGifIds((current) => [...current, gif.id]);
+
+    try {
+      await onSend({
+        type: "GIF",
+        gifId: gif.id,
+        gif,
+      });
+      pushRecentGif(gif.id);
+      textareaRef.current?.focus();
+    } finally {
+      setPendingGifIds((current) => current.filter((item) => item !== gif.id));
     }
   }
 
@@ -305,35 +341,38 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
   return (
     <>
       <form
-        ref={composerRef}
         data-composer-picker-root="true"
         className="relative flex items-end gap-2 rounded-[20px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_44%),rgba(18,25,36,0.94)] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
         onSubmit={handleSubmit}
       >
         {pickerOpen ? (
-          <div className="absolute bottom-full right-0 z-20 mb-3">
+          <div className="absolute bottom-full right-0 z-50 mb-3">
             <EmojiStickerPicker
               activeTab={activeTab}
               recentEmojis={recentEmojis}
-              stickerCatalog={stickerCatalog}
-              isStickerCatalogLoading={isStickerCatalogLoading}
-              stickerCatalogError={stickerCatalogError}
+              recentGifIds={recentGifIds}
+              catalog={pickerCatalog}
+              isCatalogLoading={isPickerCatalogLoading}
+              catalogError={pickerCatalogError}
               pendingStickerIds={pendingStickerIds}
+              pendingGifIds={pendingGifIds}
+              canManageLibrary={canManageLibrary}
               onTabChange={(tab) => {
                 setActiveTab(tab);
-
-                if (tab === "sticker" && !stickerCatalog) {
-                  void refreshStickerCatalog();
-                }
+                void refreshCatalogIfNeeded();
               }}
               onEmojiSelect={insertEmoji}
+              onCustomEmojiSelect={insertCustomEmoji}
               onStickerSelect={(sticker) => void handleStickerSelect(sticker)}
-              onRetryStickerCatalog={() => void refreshStickerCatalog()}
+              onGifSelect={(gif) => void handleGifSelect(gif)}
+              onRetryCatalog={() => void onRefreshPickerCatalog()}
               onOpenManager={() => {
-                setIsManagerOpen(true);
-                if (!stickerCatalog) {
-                  void refreshStickerCatalog();
+                if (!canManageLibrary) {
+                  return;
                 }
+
+                setIsManagerOpen(true);
+                void refreshCatalogIfNeeded();
               }}
             />
           </div>
@@ -346,11 +385,11 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
           disabled={disabled}
           onClick={() => {
             setPickerOpen((current) => !current);
-            setActiveTab((current) => current);
             syncSelection();
+            void refreshCatalogIfNeeded();
           }}
           className="h-9 w-9 shrink-0 rounded-full border border-white/6 bg-white/[0.03] px-0 text-[var(--text-soft)] hover:bg-white/[0.08] hover:text-white"
-          aria-label="Открыть смайлики и стикеры"
+          aria-label="Открыть смайлики, стикеры и GIF"
         >
           <SmilePlus {...iconProps} />
         </Button>
@@ -364,7 +403,9 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
           onSelect={syncSelection}
           onKeyDown={handleKeyDown}
           placeholder={
-            disabled ? "В этом диалоге нельзя отправлять сообщения." : "Сообщение"
+            disabled
+              ? "В этом диалоге нельзя отправлять сообщения."
+              : "Сообщение"
           }
           disabled={disabled || isSendingText}
           rows={1}
@@ -387,16 +428,18 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
         </Button>
       </form>
 
-      <StickerPackManagerModal
-        open={isManagerOpen}
-        catalog={stickerCatalog}
-        onClose={() => {
-          setIsManagerOpen(false);
-          void refreshStickerCatalog();
-        }}
-        onCatalogChange={setStickerCatalog}
-        onRefreshCatalog={refreshStickerCatalog}
-      />
+      {canManageLibrary ? (
+        <StickerPackManagerModal
+          open={isManagerOpen}
+          catalog={pickerCatalog?.stickers ?? null}
+          onClose={() => {
+            setIsManagerOpen(false);
+            void onRefreshPickerCatalog();
+          }}
+          onCatalogChange={onStickerCatalogChange}
+          onRefreshCatalog={async () => (await onRefreshPickerCatalog())?.stickers ?? null}
+        />
+      ) : null}
     </>
   );
 }

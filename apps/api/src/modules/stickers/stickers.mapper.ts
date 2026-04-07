@@ -35,6 +35,7 @@ export function toStickerAsset(sticker: PrismaSticker): StickerAsset {
     width: sticker.width,
     height: sticker.height,
     isAnimated: sticker.isAnimated,
+    isActive: sticker.isActive,
     createdAt: sticker.createdAt.toISOString(),
     updatedAt: sticker.updatedAt.toISOString(),
   });
@@ -46,6 +47,7 @@ export function toStickerPack(pack: StickerPackWithStickers): StickerPack {
     ownerId: pack.ownerId,
     title: pack.title,
     sortOrder: pack.sortOrder,
+    isActive: pack.isActive,
     createdAt: pack.createdAt.toISOString(),
     updatedAt: pack.updatedAt.toISOString(),
     stickers: pack.stickers.map((sticker) => toStickerAsset(sticker)),

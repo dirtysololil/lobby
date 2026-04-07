@@ -12,6 +12,17 @@ export class StorageService {
     return this.writeScopedObject('avatars', buffer, extension);
   }
 
+  public async writeCustomEmoji(
+    buffer: Buffer,
+    extension: string,
+  ): Promise<string> {
+    return this.writeScopedObject('custom-emojis', buffer, extension);
+  }
+
+  public async writeGif(buffer: Buffer, extension: string): Promise<string> {
+    return this.writeScopedObject('gifs', buffer, extension);
+  }
+
   public async writeRingtone(buffer: Buffer, extension: string): Promise<string> {
     return this.writeScopedObject('ringtones', buffer, extension);
   }

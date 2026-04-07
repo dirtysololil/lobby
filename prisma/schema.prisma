@@ -61,6 +61,7 @@ enum DmRetentionMode {
 enum DirectMessageType {
   TEXT
   STICKER
+  GIF
 }
 
 enum HubMemberRole {
@@ -134,6 +135,8 @@ model User {
   deletedMessages          DirectMessage[]               @relation("MessageDeleter")
   stickerPacks             StickerPack[]
   stickerRecents           StickerRecent[]
+  customEmojis             CustomEmoji[]
+  gifAssets                GifAsset[]
   createdHubs              Hub[]                         @relation("HubCreator")
   hubMemberships           HubMember[]
   sentHubInvites           HubInvite[]                   @relation("HubInviteSender")
@@ -291,6 +294,7 @@ model DirectMessage {
   type                   DirectMessageType              @default(TEXT)
   content                String?
   stickerId              String?
+  gifId                  String?
   deletedAt              DateTime?
   deletedByUserId        String?
   createdAt              DateTime                       @default(now())
@@ -299,11 +303,13 @@ model DirectMessage {
   author                 User                           @relation("MessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   deletedByUser          User?                          @relation("MessageDeleter", fields: [deletedByUserId], references: [id], onDelete: SetNull)
   sticker                Sticker?                       @relation(fields: [stickerId], references: [id], onDelete: SetNull)
+  gif                    GifAsset?                      @relation(fields: [gifId], references: [id], onDelete: SetNull)
   lastReadByParticipants DirectConversationParticipant[] @relation("ParticipantLastReadMessage")
 
   @@index([conversationId, createdAt])
   @@index([deletedAt])
   @@index([stickerId])
+  @@index([gifId])
   @@index([type])
 }
 
@@ -312,6 +318,7 @@ model StickerPack {
   ownerId   String
   title     String
   sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -334,6 +341,7 @@ model Sticker {
   height       Int
   isAnimated   Boolean         @default(false)
   sortOrder    Int             @default(0)
+  isActive     Boolean         @default(true)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   deletedAt    DateTime?
@@ -357,6 +365,53 @@ model StickerRecent {
   @@id([userId, stickerId])
   @@index([userId, usedAt])
   @@index([packId, usedAt])
+}
+
+model CustomEmoji {
+  id           String   @id @default(cuid())
+  alias        String   @unique
+  title        String
+  fileKey      String
+  originalName String?
+  mimeType     String
+  fileSize     Int
+  width        Int
+  height       Int
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+  createdBy    User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([isActive, deletedAt, sortOrder])
+  @@index([createdById, createdAt])
+}
+
+model GifAsset {
+  id           String          @id @default(cuid())
+  title        String
+  tags         Json?
+  fileKey      String
+  previewKey   String?
+  originalName String?
+  mimeType     String
+  fileSize     Int
+  width        Int
+  height       Int
+  durationMs   Int?
+  sortOrder    Int             @default(0)
+  isActive     Boolean         @default(true)
+  createdById  String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+  createdBy    User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  messages     DirectMessage[]
+
+  @@index([isActive, deletedAt, sortOrder])
+  @@index([createdById, createdAt])
 }
 
 model Hub {

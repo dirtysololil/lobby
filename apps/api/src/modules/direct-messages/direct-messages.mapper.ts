@@ -9,14 +9,17 @@ import {
 import type {
   DirectConversationParticipant,
   DirectMessage as PrismaDirectMessage,
+  GifAsset as PrismaGifAsset,
   Sticker as PrismaSticker,
 } from '@prisma/client';
 import { toPublicUser, type PublicUserRecord } from '../auth/auth.mapper';
+import { toGifAsset } from '../media-library/media-library.mapper';
 import { toStickerAsset } from '../stickers/stickers.mapper';
 
 export type MessageWithAuthor = PrismaDirectMessage & {
   author: PublicUserRecord;
   sticker: PrismaSticker | null;
+  gif: PrismaGifAsset | null;
 };
 
 export type ParticipantWithUser = DirectConversationParticipant & {
@@ -30,8 +33,7 @@ export function toDirectMessage(
     clientNonce?: string | null;
   },
 ): DirectMessage {
-  const canDelete =
-    !message.deletedAt && options?.viewerId === message.authorId;
+  const canDelete = !message.deletedAt && options?.viewerId === message.authorId;
 
   return directMessageSchema.parse({
     id: message.id,
@@ -40,6 +42,7 @@ export function toDirectMessage(
     author: toPublicUser(message.author),
     content: message.deletedAt ? null : message.content,
     sticker: message.sticker ? toStickerAsset(message.sticker) : null,
+    gif: message.gif ? toGifAsset(message.gif) : null,
     isDeleted: Boolean(message.deletedAt),
     canDelete,
     deleteExpiresAt: null,
@@ -76,7 +79,10 @@ export function toDirectConversationSummary(args: {
       lastReadMessageId: args.participant.lastReadMessageId,
       lastReadAt: args.participant.lastReadAt?.toISOString() ?? null,
     },
-    lastMessagePreview: getDirectMessagePreview(args.lastMessage, args.participant.userId),
+    lastMessagePreview: getDirectMessagePreview(
+      args.lastMessage,
+      args.participant.userId,
+    ),
     lastMessage: args.lastMessage
       ? toDirectMessage(args.lastMessage, {
           viewerId: args.participant.userId,
@@ -132,6 +138,10 @@ function getDirectMessagePreview(
 
   if (message.type === 'STICKER') {
     return message.authorId === viewerId ? 'Вы отправили стикер' : 'Стикер';
+  }
+
+  if (message.type === 'GIF') {
+    return message.authorId === viewerId ? 'Вы отправили GIF' : 'GIF';
   }
 
   return message.content?.trim() || null;

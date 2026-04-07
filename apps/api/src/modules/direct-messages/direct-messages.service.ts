@@ -19,6 +19,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { publicUserSelect } from '../auth/auth.mapper';
 import { CallsRealtimeService } from '../calls/calls-realtime.service';
+import { MediaLibraryService } from '../media-library/media-library.service';
 import { QueueService } from '../queue/queue.service';
 import { RelationshipsService } from '../relationships/relationships.service';
 import { StickersService } from '../stickers/stickers.service';
@@ -35,6 +36,7 @@ const directMessageWithAuthorInclude = {
     select: publicUserSelect,
   },
   sticker: true,
+  gif: true,
 } satisfies Prisma.DirectMessageInclude;
 
 const participantWithUserInclude = {
@@ -83,6 +85,7 @@ export class DirectMessagesService {
     private readonly realtimeService: CallsRealtimeService,
     private readonly queueService: QueueService,
     private readonly stickersService: StickersService,
+    private readonly mediaLibraryService: MediaLibraryService,
   ) {}
 
   public async ensureRetentionSweepJob(): Promise<void> {
@@ -269,10 +272,11 @@ export class DirectMessagesService {
     const trimmedContent = input.content?.trim() ?? null;
     const sticker =
       input.type === 'STICKER' && input.stickerId
-        ? await this.stickersService.getOwnedActiveStickerOrThrow(
-            actor.id,
-            input.stickerId,
-          )
+        ? await this.stickersService.getActiveStickerOrThrow(input.stickerId)
+        : null;
+    const gif =
+      input.type === 'GIF' && input.gifId
+        ? await this.mediaLibraryService.getActiveGifOrThrow(input.gifId)
         : null;
 
     const message = await this.prisma.$transaction(async (transaction) => {
@@ -283,9 +287,12 @@ export class DirectMessagesService {
           type:
             input.type === 'STICKER'
               ? DirectMessageType.STICKER
+              : input.type === 'GIF'
+                ? DirectMessageType.GIF
               : DirectMessageType.TEXT,
           content: input.type === 'TEXT' ? trimmedContent : null,
           stickerId: sticker?.id ?? null,
+          gifId: gif?.id ?? null,
         },
         include: directMessageWithAuthorInclude,
       });
@@ -335,6 +342,7 @@ export class DirectMessagesService {
         conversationId,
         type: message.type,
         stickerId: message.stickerId ?? null,
+        gifId: message.gifId ?? null,
       },
     });
 

@@ -6,6 +6,7 @@ export * from "./lib/direct-messages";
 export * from "./lib/forum";
 export * from "./lib/hubs";
 export * from "./lib/invites";
+export * from "./lib/media-library";
 export * from "./lib/notifications";
 export * from "./lib/presence";
 export * from "./lib/relationships";

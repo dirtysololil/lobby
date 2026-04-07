@@ -12,6 +12,7 @@ export const stickerAssetSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   isAnimated: z.boolean(),
+  isActive: z.boolean(),
   createdAt: isoDateSchema,
   updatedAt: isoDateSchema,
 });
@@ -23,6 +24,7 @@ export const stickerPackSchema = z.object({
   ownerId: z.string().cuid(),
   title: z.string().trim().min(1).max(80),
   sortOrder: z.number().int().nonnegative(),
+  isActive: z.boolean(),
   createdAt: isoDateSchema,
   updatedAt: isoDateSchema,
   stickers: z.array(stickerAssetSchema),
@@ -59,6 +61,20 @@ export const renameStickerPackSchema = z.object({
 
 export type RenameStickerPackInput = z.infer<typeof renameStickerPackSchema>;
 
+export const updateStickerPackSchema = z
+  .object({
+    title: z.string().trim().min(1).max(80).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (value) => value.title !== undefined || value.isActive !== undefined,
+    {
+      message: "Нужно передать хотя бы одно изменение.",
+    },
+  );
+
+export type UpdateStickerPackInput = z.infer<typeof updateStickerPackSchema>;
+
 export const reorderStickerPacksSchema = z.object({
   packIds: z.array(z.string().cuid()).min(1).max(200),
 });
@@ -70,6 +86,20 @@ export const reorderStickersSchema = z.object({
 });
 
 export type ReorderStickersInput = z.infer<typeof reorderStickersSchema>;
+
+export const updateStickerSchema = z
+  .object({
+    title: z.string().trim().min(1).max(80).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (value) => value.title !== undefined || value.isActive !== undefined,
+    {
+      message: "Нужно передать хотя бы одно изменение.",
+    },
+  );
+
+export type UpdateStickerInput = z.infer<typeof updateStickerSchema>;
 
 export const createStickerResponseSchema = z.object({
   sticker: stickerAssetSchema,

@@ -12,6 +12,7 @@ import { ForumModule } from './modules/forum/forum.module';
 import { HealthModule } from './modules/health/health.module';
 import { HubsModule } from './modules/hubs/hubs.module';
 import { InvitesModule } from './modules/invites/invites.module';
+import { MediaLibraryModule } from './modules/media-library/media-library.module';
 import { CallsModule } from './modules/calls/calls.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { RelationshipsModule } from './modules/relationships/relationships.module';
@@ -40,6 +41,7 @@ import { UsersModule } from './modules/users/users.module';
     RelationshipsModule,
     AuthModule,
     StickersModule,
+    MediaLibraryModule,
     DirectMessagesModule,
     CallsModule,
     HealthModule,

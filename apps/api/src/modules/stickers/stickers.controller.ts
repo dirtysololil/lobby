@@ -14,7 +14,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   createStickerPackSchema,
-  renameStickerPackSchema,
   reorderStickerPacksSchema,
   reorderStickersSchema,
   stickerActionResponseSchema,
@@ -23,9 +22,12 @@ import {
   stickerResponseSchema,
   type CreateStickerPackInput,
   type PublicUser,
-  type RenameStickerPackInput,
   type ReorderStickerPacksInput,
   type ReorderStickersInput,
+  type UpdateStickerInput,
+  type UpdateStickerPackInput,
+  updateStickerPackSchema,
+  updateStickerSchema,
 } from '@lobby/shared';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -53,7 +55,7 @@ export class StickersController {
     });
   }
 
-  @RequireAuth()
+  @RequireAuth('OWNER', 'ADMIN')
   @Post('packs')
   public async createPack(
     @CurrentUser() currentUser: PublicUser,
@@ -70,17 +72,17 @@ export class StickersController {
     });
   }
 
-  @RequireAuth()
+  @RequireAuth('OWNER', 'ADMIN')
   @Patch('packs/:packId')
-  public async renamePack(
+  public async updatePack(
     @CurrentUser() currentUser: PublicUser,
     @Param('packId') packId: string,
-    @Body(new ZodValidationPipe(renameStickerPackSchema))
-    body: RenameStickerPackInput,
+    @Body(new ZodValidationPipe(updateStickerPackSchema))
+    body: UpdateStickerPackInput,
     @Req() request: AuthenticatedRequest,
   ) {
     return stickerPackResponseSchema.parse({
-      pack: await this.stickersService.renamePack(
+      pack: await this.stickersService.updatePack(
         currentUser.id,
         packId,
         body,
@@ -89,7 +91,7 @@ export class StickersController {
     });
   }
 
-  @RequireAuth()
+  @RequireAuth('OWNER', 'ADMIN')
   @Post('packs/reorder')
   public async reorderPacks(
     @CurrentUser() currentUser: PublicUser,
@@ -108,7 +110,7 @@ export class StickersController {
     });
   }
 
-  @RequireAuth()
+  @RequireAuth('OWNER', 'ADMIN')
   @Delete('packs/:packId')
   public async deletePack(
     @CurrentUser() currentUser: PublicUser,
@@ -126,7 +128,7 @@ export class StickersController {
     });
   }
 
-  @RequireAuth()
+  @RequireAuth('OWNER', 'ADMIN')
   @Post('packs/:packId/stickers')
   @UseInterceptors(FileInterceptor('file'))
   public async uploadSticker(
@@ -147,7 +149,28 @@ export class StickersController {
     });
   }
 
-  @RequireAuth()
+  @RequireAuth('OWNER', 'ADMIN')
+  @Patch('packs/:packId/stickers/:stickerId')
+  public async updateSticker(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('packId') packId: string,
+    @Param('stickerId') stickerId: string,
+    @Body(new ZodValidationPipe(updateStickerSchema))
+    body: UpdateStickerInput,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return stickerResponseSchema.parse({
+      sticker: await this.stickersService.updateSticker(
+        currentUser.id,
+        packId,
+        stickerId,
+        body,
+        getRequestMetadata(request),
+      ),
+    });
+  }
+
+  @RequireAuth('OWNER', 'ADMIN')
   @Post('packs/:packId/stickers/reorder')
   public async reorderStickers(
     @CurrentUser() currentUser: PublicUser,
@@ -168,7 +191,7 @@ export class StickersController {
     });
   }
 
-  @RequireAuth()
+  @RequireAuth('OWNER', 'ADMIN')
   @Delete('packs/:packId/stickers/:stickerId')
   public async deleteSticker(
     @CurrentUser() currentUser: PublicUser,
