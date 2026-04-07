@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { normalizeRequestMetadata } from '../../common/utils/request-metadata.util';
 import { publicUserSelect } from '../auth/auth.mapper';
 
 type AuditClient = Prisma.TransactionClient | PrismaService;
@@ -24,6 +25,10 @@ export class AuditService {
     client?: AuditClient,
   ): Promise<void> {
     const target = client ?? this.prisma;
+    const normalizedRequestMetadata = normalizeRequestMetadata({
+      ipAddress: input.ipAddress ?? null,
+      userAgent: input.userAgent ?? null,
+    });
 
     await target.auditLog.create({
       data: {
@@ -31,8 +36,8 @@ export class AuditService {
         entityType: input.entityType,
         entityId: input.entityId ?? undefined,
         actorUserId: input.actorUserId ?? undefined,
-        ipAddress: input.ipAddress ?? undefined,
-        userAgent: input.userAgent ?? undefined,
+        ipAddress: normalizedRequestMetadata.ipAddress ?? undefined,
+        userAgent: normalizedRequestMetadata.userAgent ?? undefined,
         metadata: input.metadata
           ? (input.metadata as Prisma.InputJsonValue)
           : undefined,
