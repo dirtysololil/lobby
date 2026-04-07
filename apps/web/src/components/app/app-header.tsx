@@ -82,7 +82,7 @@ export function AppHeader({
           </Link>
         ) : null}
 
-        <div>
+        <div className="md:hidden">
           <LogoutButton />
         </div>
       </div>

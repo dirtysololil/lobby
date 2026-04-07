@@ -24,6 +24,7 @@ interface RealtimeContextValue {
   incomingCalls: CallSummary[];
   presenceByUserId: Record<string, boolean>;
   clearIncomingCall: (callId: string) => void;
+  disconnectRealtime: () => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
@@ -116,6 +117,18 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
   const clearIncomingCall = useCallback((callId: string) => {
     setIncomingCalls((current) => current.filter((item) => item.id !== callId));
   }, []);
+  const disconnectRealtime = useCallback(() => {
+    setLatestSignal(null);
+    setLatestDmSignal(null);
+    setIncomingCalls([]);
+    setPresenceByUserId({});
+
+    if (typeof window !== "undefined" && window.__lobbySocket === socket) {
+      delete window.__lobbySocket;
+    }
+
+    socket.disconnect();
+  }, [socket]);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -259,6 +272,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
         incomingCalls,
         presenceByUserId,
         clearIncomingCall,
+        disconnectRealtime,
       }}
     >
       {children}

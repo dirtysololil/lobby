@@ -176,6 +176,7 @@ interface CallSessionContextValue {
   isActiveCall: (callId: string | null | undefined) => boolean;
   leaveCall: (callId?: string | null) => Promise<void>;
   dismissCall: (callId?: string | null) => void;
+  prepareForLogout: () => Promise<void>;
   toggleMicrophone: () => Promise<void>;
   toggleCamera: () => Promise<void>;
   toggleScreenShare: () => Promise<void>;
@@ -697,6 +698,27 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
     },
     [dismissCall, session?.call.id],
   );
+
+  const prepareForLogout = useCallback(async () => {
+    const activeCallId = sessionRef.current?.call.id ?? null;
+
+    if (activeCallId) {
+      try {
+        await apiClientFetch(`/v1/calls/${activeCallId}/end`, {
+          method: "POST",
+        });
+      } catch (error) {
+        console.warn("[auth/logout] failed to end active call", {
+          callId: activeCallId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    dismissCall(activeCallId);
+    audioContextRef.current?.close().catch(() => undefined);
+    audioContextRef.current = null;
+  }, [dismissCall]);
 
   const ensureAudioContext = useCallback(async () => {
     if (typeof window === "undefined") {
@@ -1343,6 +1365,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       isActiveCall,
       leaveCall,
       dismissCall,
+      prepareForLogout,
       toggleMicrophone,
       toggleCamera,
       toggleScreenShare,
@@ -1373,6 +1396,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
       isActiveCall,
       leaveCall,
       dismissCall,
+      prepareForLogout,
       toggleMicrophone,
       toggleCamera,
       toggleScreenShare,

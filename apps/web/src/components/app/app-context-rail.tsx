@@ -26,6 +26,7 @@ import {
   type PublicUser,
 } from "@lobby/shared";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { LogoutButton } from "@/components/app/logout-button";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -44,7 +45,7 @@ import {
   primeHubShellCache,
   subscribeToHubShellCache,
 } from "@/lib/hub-shell-cache";
-import { callStatusLabels } from "@/lib/ui-labels";
+import { getResolvedPresenceLabel } from "@/lib/presence";
 import { cn } from "@/lib/utils";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 
@@ -150,7 +151,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   const safePathname = pathname ?? "";
   const searchParams = useSearchParams();
   const route = parseAppPath(safePathname);
-  const { incomingCalls, latestDmSignal, latestSignal } = useRealtime();
+  const { latestDmSignal } = useRealtime();
   const [conversations, setConversations] = useState<DirectConversationSummary[]>([]);
   const [hubs, setHubs] = useState<HubSummary[]>([]);
   const [hub, setHub] = useState<HubShell["hub"] | null>(null);
@@ -634,14 +635,16 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
       <div className="border-t border-white/5 px-3 py-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-muted)]">
-            Звонки
+            Сеанс
           </p>
-          <CompactListMeta>{incomingCalls.length} активных</CompactListMeta>
+          <CompactListMeta>{getResolvedPresenceLabel(viewer)}</CompactListMeta>
         </div>
-        <div className="mt-2 rounded-[16px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
-          <p className="truncate text-sm text-zinc-100">
-            {latestSignal ? callStatusLabels[latestSignal.call.status] : "Ожидание"}
-          </p>
+        <div className="mt-2 rounded-[16px] border border-white/6 bg-white/[0.03] p-2">
+          <LogoutButton
+            label="Выйти"
+            pendingLabel="Выходим..."
+            className="call-danger-button h-9 w-full justify-between rounded-[12px] px-3 text-sm"
+          />
         </div>
       </div>
     </aside>

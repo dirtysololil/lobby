@@ -11,6 +11,7 @@ import { PersistentCallDock } from "@/components/calls/call-session-provider";
 import { IncomingCallBanner } from "@/components/realtime/incoming-call-banner";
 import { NotificationSoundManager } from "@/components/realtime/notification-sound-manager";
 import { parseAppPath } from "@/lib/app-shell";
+import { subscribeToLogoutEvent } from "@/lib/logout-broadcast";
 import { cn } from "@/lib/utils";
 
 interface AppShellFrameProps {
@@ -48,6 +49,12 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
     return () => {
       media.removeEventListener("change", syncMediaState);
     };
+  }, []);
+
+  useEffect(() => {
+    return subscribeToLogoutEvent(() => {
+      window.location.replace("/login");
+    });
   }, []);
 
   const showDockedActivityRail = effectiveActivityOpen && isWideScreen;
