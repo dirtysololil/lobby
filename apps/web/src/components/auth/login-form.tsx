@@ -65,18 +65,27 @@ export function LoginForm() {
 
   function mapLoginError(error: unknown): string {
     if (error instanceof ApiClientError && error.code === "network_or_cors") {
-      return "Ошибка сети/CORS при обращении к API. Проверьте API URL, CORS и настройки cookie/HTTPS.";
+      return "Не удалось связаться с сервером. Проверьте адрес API, CORS и настройки cookie.";
     }
 
-    if (error instanceof ApiClientError && error.status === 401) {
-      return error.message;
+    if (error instanceof ApiClientError) {
+      switch (error.apiCode) {
+        case "AUTH_INVALID_CREDENTIALS":
+          return "Неверный логин, почта или пароль.";
+        case "AUTH_ACCOUNT_BLOCKED":
+          return "Аккаунт заблокирован модерацией.";
+        case "RATE_LIMITED":
+          return "Слишком много попыток входа. Подождите минуту и повторите.";
+        default:
+          return error.message || "Не удалось войти в аккаунт.";
+      }
     }
 
     if (error instanceof Error) {
-      return error.message;
+      return error.message || "Не удалось войти в аккаунт.";
     }
 
-    return "Не удалось войти";
+    return "Не удалось войти в аккаунт.";
   }
 
   return (
@@ -85,8 +94,11 @@ export function LoginForm() {
         <Label htmlFor="login">Логин или почта</Label>
         <Input
           id="login"
-          placeholder="owner"
+          placeholder="vladimir_panin"
           autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           {...form.register("login")}
         />
         <p className="text-xs text-rose-300">
@@ -101,6 +113,8 @@ export function LoginForm() {
           type="password"
           placeholder="Ваш пароль"
           autoComplete="current-password"
+          autoCorrect="off"
+          spellCheck={false}
           {...form.register("password")}
         />
         <p className="text-xs text-rose-300">
@@ -109,7 +123,7 @@ export function LoginForm() {
       </div>
 
       <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-        Войдите по логину или почте.
+        Войдите по логину или адресу электронной почты.
       </div>
 
       {errorMessage ? (
@@ -119,7 +133,7 @@ export function LoginForm() {
       ) : null}
 
       <Button className="w-full" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Вход..." : "Войти"}
+        {isSubmitting ? "Входим..." : "Войти"}
       </Button>
     </form>
   );

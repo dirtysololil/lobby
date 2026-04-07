@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useOptionalRealtimePresence } from "@/components/realtime/realtime-provider";
+import { ProfileRingtoneSettings } from "@/components/settings/profile-ringtone-settings";
 import { SelectField } from "@/components/ui/select-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { AvatarPreviewModal } from "@/components/ui/avatar-preview-modal";
@@ -27,6 +28,7 @@ interface ProfileSettingsFormProps {
   viewer: PublicUser;
   maxAvatarMb: number;
   maxAvatarAnimationMs: number;
+  maxRingtoneMb: number;
 }
 
 const presenceOptions: UpdateProfileInput["presence"][] = [
@@ -75,6 +77,7 @@ export function ProfileSettingsForm({
   viewer,
   maxAvatarMb,
   maxAvatarAnimationMs,
+  maxRingtoneMb,
 }: ProfileSettingsFormProps) {
   const router = useRouter();
   const realtimePresence = useOptionalRealtimePresence();
@@ -82,6 +85,8 @@ export function ProfileSettingsForm({
   const [error, setError] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isRemovingAvatar, setIsRemovingAvatar] = useState(false);
+  const [isUploadingRingtone, setIsUploadingRingtone] = useState(false);
+  const [isRemovingRingtone, setIsRemovingRingtone] = useState(false);
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
   const liveViewer =
     realtimePresence !== null
@@ -100,6 +105,7 @@ export function ProfileSettingsForm({
       bio: viewer.profile.bio ?? "",
       presence: viewer.profile.presence,
       avatarPreset: viewer.profile.avatarPreset,
+      callRingtonePreset: viewer.profile.callRingtonePreset,
     },
   });
 
@@ -171,6 +177,57 @@ export function ProfileSettingsForm({
       );
     } finally {
       setIsRemovingAvatar(false);
+    }
+  }
+
+  async function handleRingtoneUpload(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+    setIsUploadingRingtone(true);
+
+    try {
+      const payload = new FormData();
+      payload.append("file", file);
+      await apiClientFetch<UserResponse>("/v1/users/me/ringtone", {
+        method: "POST",
+        body: payload,
+      });
+      setMessage("Рингтон обновлен.");
+      router.refresh();
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Не удалось загрузить рингтон.",
+      );
+    } finally {
+      setIsUploadingRingtone(false);
+    }
+  }
+
+  async function handleRingtoneRemove() {
+    setError(null);
+    setMessage(null);
+    setIsRemovingRingtone(true);
+
+    try {
+      await apiClientFetch<UserResponse>("/v1/users/me/ringtone", {
+        method: "DELETE",
+      });
+      setMessage("Кастомный рингтон удален.");
+      router.refresh();
+    } catch (removeError) {
+      setError(
+        removeError instanceof Error
+          ? removeError.message
+          : "Не удалось удалить рингтон.",
+      );
+    } finally {
+      setIsRemovingRingtone(false);
     }
   }
 
@@ -350,6 +407,20 @@ export function ProfileSettingsForm({
                 ))}
               </div>
             </section>
+
+            <ProfileRingtoneSettings
+              viewer={viewer}
+              form={form}
+              maxRingtoneMb={maxRingtoneMb}
+              isUploading={isUploadingRingtone}
+              isRemoving={isRemovingRingtone}
+              onUpload={handleRingtoneUpload}
+              onRemove={handleRingtoneRemove}
+              onError={(message) => {
+                setError(message);
+                setMessage(null);
+              }}
+            />
 
             <section className="premium-panel overflow-hidden rounded-[24px]">
               <div className="border-b border-[var(--border-soft)] px-4 py-4">

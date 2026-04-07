@@ -8,13 +8,15 @@ export class ApiClientError extends Error {
     message: string,
     public readonly code: "network_or_cors" | "http_error",
     public readonly status?: number,
+    public readonly apiCode?: string,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = "ApiClientError";
   }
 }
 
-export async function apiClientFetch<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
+async function performApiRequest(path: string, init?: RequestInit) {
   const apiBaseUrl = resolveApiBaseUrlForBrowser();
 
   if (!apiBaseUrl) {
@@ -24,27 +26,37 @@ export async function apiClientFetch<TResponse>(path: string, init?: RequestInit
     );
   }
 
-  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  const isFormData =
+    typeof FormData !== "undefined" && init?.body instanceof FormData;
 
   try {
     const response = await fetch(`${apiBaseUrl}${path}`, {
       ...init,
       credentials: "include",
       headers: {
-        ...(!isFormData && init?.body ? { "Content-Type": "application/json" } : {}),
+        ...(!isFormData && init?.body
+          ? { "Content-Type": "application/json" }
+          : {}),
         ...init?.headers,
       },
     });
 
     if (!response.ok) {
-      throw new ApiClientError(await extractErrorMessage(response), "http_error", response.status);
+      const payload = await extractErrorPayload(response);
+      throw new ApiClientError(
+        payload.message,
+        "http_error",
+        response.status,
+        payload.apiCode,
+        payload.details,
+      );
     }
 
-    return (await response.json()) as TResponse;
+    return response;
   } catch (error) {
     if (error instanceof TypeError) {
       throw new ApiClientError(
-        "Network/CORS error: request did not reach API. Check API URL, CORS origin and HTTPS.",
+        "Не удалось связаться с API. Проверьте адрес API, CORS и HTTPS-прокси.",
         "network_or_cors",
       );
     }
@@ -57,19 +69,43 @@ export async function apiClientFetch<TResponse>(path: string, init?: RequestInit
       throw new ApiClientError(error.message, "http_error");
     }
 
-    throw new ApiClientError("Unknown API client error", "http_error");
+    throw new ApiClientError("Неизвестная ошибка API-клиента.", "http_error");
   }
 }
 
-async function extractErrorMessage(response: Response): Promise<string> {
+export async function apiClientFetch<TResponse>(
+  path: string,
+  init?: RequestInit,
+): Promise<TResponse> {
+  const response = await performApiRequest(path, init);
+
+  return (await response.json()) as TResponse;
+}
+
+export async function apiClientFetchBlob(
+  path: string,
+  init?: RequestInit,
+): Promise<Blob> {
+  const response = await performApiRequest(path, init);
+
+  return await response.blob();
+}
+
+async function extractErrorPayload(response: Response): Promise<{
+  message: string;
+  apiCode?: string;
+  details?: unknown;
+}> {
   const fallbackMessage =
     response.status === 401
-      ? "Invalid login or password"
-      : response.statusText || `Request failed (${response.status})`;
+      ? "Неверный логин, почта или пароль."
+      : `Ошибка запроса (${response.status})`;
   const contentType = response.headers.get("content-type") ?? "";
 
   if (!contentType.includes("application/json")) {
-    return fallbackMessage;
+    return {
+      message: fallbackMessage,
+    };
   }
 
   try {
@@ -77,23 +113,37 @@ async function extractErrorMessage(response: Response): Promise<string> {
     const parsedApiError = apiErrorSchema.safeParse(payload);
 
     if (parsedApiError.success) {
-      return parsedApiError.data.error.message;
+      return {
+        message: parsedApiError.data.error.message,
+        apiCode: parsedApiError.data.error.code,
+        details: parsedApiError.data.error.details,
+      };
     }
 
     if (typeof payload?.message === "string" && payload.message.trim()) {
-      return payload.message;
+      return {
+        message: payload.message,
+      };
     }
 
     if (Array.isArray(payload?.message) && payload.message.length > 0) {
-      return payload.message.join(", ");
+      return {
+        message: payload.message.join(", "),
+      };
     }
 
     if (typeof payload?.error === "string" && payload.error.trim()) {
-      return payload.error;
+      return {
+        message: payload.error,
+      };
     }
   } catch {
-    return fallbackMessage;
+    return {
+      message: fallbackMessage,
+    };
   }
 
-  return fallbackMessage;
+  return {
+    message: fallbackMessage,
+  };
 }

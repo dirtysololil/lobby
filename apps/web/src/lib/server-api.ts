@@ -19,7 +19,7 @@ export async function fetchServerApi<TResponse>(
   });
 
   if (!response.ok) {
-    let message = "Request failed";
+    let message = "Не удалось выполнить запрос.";
 
     try {
       const payload = apiErrorSchema.parse(await response.json());

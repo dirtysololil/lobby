@@ -56,11 +56,23 @@ export class AuthService {
         },
         select: {
           id: true,
+          email: true,
+          username: true,
         },
       });
 
       if (existingUser) {
-        throw new ConflictException('Email or username is already taken');
+        if (existingUser.email === normalizedInput.email) {
+          throw new ConflictException({
+            code: 'AUTH_EMAIL_TAKEN',
+            message: 'Эта почта уже используется.',
+          });
+        }
+
+        throw new ConflictException({
+          code: 'AUTH_USERNAME_TAKEN',
+          message: 'Этот логин уже занят.',
+        });
       }
 
       const invite = await this.invitesService.consumeInvite(
@@ -147,7 +159,10 @@ export class AuthService {
 
     if (!user) {
       console.info(`[auth/login] user_not_found login=${normalizedLogin}`);
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        message: 'Неверный логин, почта или пароль.',
+      });
     }
 
     const passwordMatches = await argon2.verify(
@@ -157,12 +172,18 @@ export class AuthService {
 
     if (!passwordMatches) {
       console.info(`[auth/login] invalid_password userId=${user.id}`);
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        message: 'Неверный логин, почта или пароль.',
+      });
     }
 
     if (user.platformBlock) {
       console.warn(`[auth/login] blocked_user userId=${user.id}`);
-      throw new ForbiddenException('Account is blocked by moderation');
+      throw new ForbiddenException({
+        code: 'AUTH_ACCOUNT_BLOCKED',
+        message: 'Аккаунт заблокирован модерацией.',
+      });
     }
 
     const session = await this.sessionService.createSessionRecord(

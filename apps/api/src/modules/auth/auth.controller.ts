@@ -7,6 +7,7 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   authSessionResponseSchema,
   loginSchema,
@@ -33,6 +34,7 @@ export class AuthController {
     private readonly envService: EnvService,
   ) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('register')
   public async register(
     @Body(new ZodValidationPipe(registerSchema)) body: RegisterInput,
@@ -54,6 +56,7 @@ export class AuthController {
     });
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
   public async login(
     @Body(new ZodValidationPipe(loginSchema)) body: LoginInput,
@@ -97,7 +100,10 @@ export class AuthController {
     const authSession = request.authSession;
 
     if (!currentUser || !authSession) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException({
+        code: 'AUTH_REQUIRED',
+        message: 'Требуется авторизация.',
+      });
     }
 
     await this.authService.logout(

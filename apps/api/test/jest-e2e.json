@@ -7,7 +7,7 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^@lobby/shared$": "<rootDir>/../../packages/shared/src/index.ts",
-    "^@lobby/config$": "<rootDir>/../../packages/config/src/index.ts"
+    "^@lobby/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
+    "^@lobby/config$": "<rootDir>/../../../packages/config/src/index.ts"
   }
 }

@@ -35,6 +35,7 @@ export function ensureTestEnv() {
   process.env.MAX_AVATAR_DIMENSION ??= '1024';
   process.env.MAX_AVATAR_FRAMES ??= '180';
   process.env.MAX_AVATAR_ANIMATION_MS ??= '10000';
+  process.env.MAX_RINGTONE_MB ??= '25';
   process.env.MAX_FILE_MB ??= '50';
   process.env.REALTIME_CORS_ORIGIN ??= 'http://localhost:3000';
 }

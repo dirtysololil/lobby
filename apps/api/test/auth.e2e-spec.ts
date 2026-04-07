@@ -1,6 +1,10 @@
+import * as argon2 from 'argon2';
 import cookieParser from 'cookie-parser';
 import { INestApplication } from '@nestjs/common';
-import { authSessionResponseSchema } from '@lobby/shared';
+import {
+  authSessionResponseSchema,
+  inviteLookupResponseSchema,
+} from '@lobby/shared';
 import { Test } from '@nestjs/testing';
 import { PrismaClient, UserRole } from '@prisma/client';
 import request from 'supertest';
@@ -79,7 +83,7 @@ describe('AuthController (e2e)', () => {
     await prisma.$disconnect();
   });
 
-  it('registers only with a valid access key and returns the session user', async () => {
+  it('registers by invite, preserves username with "_" and "-", and marks a one-time invite as used', async () => {
     const rawAccessKey = generateAccessKey();
     const httpServer = app.getHttpServer() as Parameters<typeof request>[0];
 
@@ -98,10 +102,10 @@ describe('AuthController (e2e)', () => {
     const registerResponse = await request(httpServer)
       .post('/v1/auth/register')
       .send({
-        username: 'owner_test',
+        username: 'vladimir-panin_01',
         email: 'owner@test.local',
         displayName: 'Owner Test',
-        password: 'VeryStrongPass123',
+        password: 'Passw0rd',
         accessKey: rawAccessKey,
       })
       .expect(201);
@@ -117,7 +121,7 @@ describe('AuthController (e2e)', () => {
     );
 
     expect(sessionCookies).toBeDefined();
-    expect(registerPayload.user.username).toBe('owner_test');
+    expect(registerPayload.user.username).toBe('vladimir-panin_01');
     expect(registerPayload.user.profile.displayName).toBe('Owner Test');
 
     const meResponse = await request(httpServer)
@@ -128,5 +132,82 @@ describe('AuthController (e2e)', () => {
 
     expect(mePayload.user.email).toBe('owner@test.local');
     expect(mePayload.user.profile.presence).toBe('ONLINE');
+
+    const lookupResponse = await request(httpServer)
+      .get(`/v1/invites/resolve?invite=${encodeURIComponent(rawAccessKey)}`)
+      .expect(200);
+    const lookupPayload = inviteLookupResponseSchema.parse(lookupResponse.body);
+
+    expect(lookupPayload.status).toBe('USED');
+    expect(lookupPayload.invite).toBeNull();
+  });
+
+  it('rejects registration when the password is shorter than 8 characters', async () => {
+    const rawAccessKey = generateAccessKey();
+    const httpServer = app.getHttpServer() as Parameters<typeof request>[0];
+
+    await prisma.inviteKey.create({
+      data: {
+        codeHash: hashOpaqueToken(
+          rawAccessKey,
+          process.env.SESSION_SECRET!,
+          'invite',
+        ),
+        role: UserRole.MEMBER,
+        maxUses: 1,
+      },
+    });
+
+    const response = await request(httpServer)
+      .post('/v1/auth/register')
+      .send({
+        username: 'short-pass',
+        email: 'short@test.local',
+        displayName: 'Short Pass',
+        password: 'Passw0r',
+        accessKey: rawAccessKey,
+      })
+      .expect(400);
+    const responseBody = response.body as {
+      error?: {
+        code?: string;
+        message?: string;
+      };
+    };
+
+    expect(responseBody.error?.code).toBe('VALIDATION_ERROR');
+    expect(responseBody.error?.message).toBe('Ошибка валидации данных');
+  });
+
+  it('logs in with a username containing "_" and "-" without altering its value', async () => {
+    const password = 'Passw0rd';
+    const passwordHash = await argon2.hash(password);
+    const httpServer = app.getHttpServer() as Parameters<typeof request>[0];
+
+    await prisma.user.create({
+      data: {
+        email: 'combo@test.local',
+        username: 'vladimir_panin-test',
+        passwordHash,
+        role: UserRole.MEMBER,
+        profile: {
+          create: {
+            displayName: 'Combo User',
+          },
+        },
+      },
+    });
+
+    const loginResponse = await request(httpServer)
+      .post('/v1/auth/login')
+      .send({
+        login: 'vladimir_panin-test',
+        password,
+      })
+      .expect(201);
+
+    const loginPayload = authSessionResponseSchema.parse(loginResponse.body);
+
+    expect(loginPayload.user.username).toBe('vladimir_panin-test');
   });
 });

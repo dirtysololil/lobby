@@ -5,6 +5,7 @@ import {
   authSessionResponseSchema,
   inviteCreateResponseSchema,
   inviteListResponseSchema,
+  inviteLookupResponseSchema,
   inviteResponseSchema,
 } from '@lobby/shared';
 import { Test } from '@nestjs/testing';
@@ -82,7 +83,7 @@ describe('InvitesController (e2e)', () => {
     await prisma.$disconnect();
   });
 
-  it('allows owner to create, list and revoke invites', async () => {
+  it('allows owner to create, resolve and revoke a direct invite link', async () => {
     const password = 'VeryStrongPass123';
     const passwordHash = await argon2.hash(password);
     const httpServer = app.getHttpServer() as Parameters<typeof request>[0];
@@ -126,11 +127,13 @@ describe('InvitesController (e2e)', () => {
         label: 'Owner invite',
         role: 'MEMBER',
         maxUses: 3,
+        mode: 'LINK',
       })
       .expect(201);
     const createPayload = inviteCreateResponseSchema.parse(createResponse.body);
 
     expect(createPayload.rawCode.startsWith('LBY-')).toBe(true);
+    expect(createPayload.mode).toBe('LINK');
 
     const listResponse = await request(httpServer)
       .get('/v1/invites')
@@ -142,6 +145,18 @@ describe('InvitesController (e2e)', () => {
       listPayload.items.some((item) => item.id === createPayload.invite.id),
     ).toBe(true);
 
+    const activeLookupResponse = await request(httpServer)
+      .get(
+        `/v1/invites/resolve?invite=${encodeURIComponent(createPayload.rawCode)}`,
+      )
+      .expect(200);
+    const activeLookupPayload = inviteLookupResponseSchema.parse(
+      activeLookupResponse.body,
+    );
+
+    expect(activeLookupPayload.status).toBe('ACTIVE');
+    expect(activeLookupPayload.invite?.remainingUses).toBe(3);
+
     const revokeResponse = await request(httpServer)
       .post(`/v1/invites/${createPayload.invite.id}/revoke`)
       .set('Cookie', sessionCookies)
@@ -149,5 +164,31 @@ describe('InvitesController (e2e)', () => {
     const revokePayload = inviteResponseSchema.parse(revokeResponse.body);
 
     expect(revokePayload.invite.revokedAt).not.toBeNull();
+
+    const revokedLookupResponse = await request(httpServer)
+      .get(
+        `/v1/invites/resolve?invite=${encodeURIComponent(createPayload.rawCode)}`,
+      )
+      .expect(200);
+    const revokedLookupPayload = inviteLookupResponseSchema.parse(
+      revokedLookupResponse.body,
+    );
+
+    expect(revokedLookupPayload.status).toBe('REVOKED');
+
+    const auditEntry = await prisma.auditLog.findFirst({
+      where: {
+        action: 'invites.create',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    expect(auditEntry?.metadata).toEqual(
+      expect.objectContaining({
+        mode: 'LINK',
+      }),
+    );
   });
 });

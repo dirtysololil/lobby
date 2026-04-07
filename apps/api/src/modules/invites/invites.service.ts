@@ -6,8 +6,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
+  accessKeySchema,
   type CreateInviteInput,
   type InviteCreateResponse,
+  type InviteLookupDetails,
+  type InviteLookupResponse,
   type InviteSummary,
   type PublicUser,
   type UpdateInviteInput,
@@ -46,7 +49,10 @@ export class InvitesService {
     });
 
     if (!invite) {
-      throw new NotFoundException('Invite not found');
+      throw new NotFoundException({
+        code: 'INVITE_NOT_FOUND',
+        message: 'Инвайт не найден.',
+      });
     }
 
     return toInviteSummary(invite);
@@ -85,12 +91,44 @@ export class InvitesService {
       metadata: {
         role: invite.role,
         maxUses: invite.maxUses,
+        mode: input.mode,
       },
     });
 
     return {
       invite: toInviteSummary(invite),
       rawCode,
+      mode: input.mode,
+    };
+  }
+
+  public async lookupInvite(
+    rawAccessKey: string,
+  ): Promise<InviteLookupResponse> {
+    const normalizedAccessKey = this.normalizeAccessKey(rawAccessKey);
+    const parsedAccessKey = accessKeySchema.safeParse(normalizedAccessKey);
+
+    if (!parsedAccessKey.success) {
+      return {
+        status: 'INVALID',
+        invite: null,
+      };
+    }
+
+    const invite = await this.findInviteByAccessKey(parsedAccessKey.data);
+
+    if (!invite) {
+      return {
+        status: 'INVALID',
+        invite: null,
+      };
+    }
+
+    const status = this.getInviteStatus(invite);
+
+    return {
+      status,
+      invite: status === 'ACTIVE' ? this.toInviteLookupDetails(invite) : null,
     };
   }
 
@@ -111,7 +149,11 @@ export class InvitesService {
       typeof input.maxUses === 'number' &&
       input.maxUses < existingInvite.usedCount
     ) {
-      throw new ConflictException('maxUses cannot be lower than usedCount');
+      throw new ConflictException({
+        code: 'INVITE_MAX_USES_TOO_LOW',
+        message:
+          'Лимит использований не может быть меньше уже израсходованных активаций.',
+      });
     }
 
     const updatedInvite = await this.prisma.inviteKey.update({
@@ -179,29 +221,29 @@ export class InvitesService {
   ): Promise<InviteKey> {
     const target = client ?? this.prisma;
     const now = new Date();
-    const accessKeyHash = hashOpaqueToken(
-      rawAccessKey,
-      this.envService.getValues().SESSION_SECRET,
-      'invite',
+    const normalizedAccessKey = this.normalizeAccessKey(rawAccessKey);
+    const parsedAccessKey = accessKeySchema.safeParse(normalizedAccessKey);
+
+    if (!parsedAccessKey.success) {
+      throw new UnauthorizedException({
+        code: 'INVITE_INVALID',
+        message: 'Инвайт недействителен.',
+      });
+    }
+
+    const invite = await this.findInviteByAccessKey(
+      parsedAccessKey.data,
+      target,
     );
 
-    const invite = await target.inviteKey.findUnique({
-      where: {
-        codeHash: accessKeyHash,
-      },
-    });
-
     if (!invite) {
-      throw new UnauthorizedException('Access key is invalid');
+      throw new UnauthorizedException({
+        code: 'INVITE_INVALID',
+        message: 'Инвайт недействителен.',
+      });
     }
 
-    if (invite.revokedAt || (invite.expiresAt && invite.expiresAt <= now)) {
-      throw new ForbiddenException('Access key is no longer active');
-    }
-
-    if (invite.usedCount >= invite.maxUses) {
-      throw new ForbiddenException('Access key has no remaining uses');
-    }
+    this.assertInviteCanBeConsumed(invite);
 
     const { count } = await target.inviteKey.updateMany({
       where: {
@@ -229,7 +271,11 @@ export class InvitesService {
     });
 
     if (count !== 1) {
-      throw new ConflictException('Access key could not be claimed');
+      throw new ConflictException({
+        code: 'INVITE_CONSUME_CONFLICT',
+        message:
+          'Не удалось активировать инвайт. Попробуйте ещё раз или запросите новую ссылку.',
+      });
     }
 
     return invite;
@@ -243,10 +289,92 @@ export class InvitesService {
     });
 
     if (!invite) {
-      throw new NotFoundException('Invite not found');
+      throw new NotFoundException({
+        code: 'INVITE_NOT_FOUND',
+        message: 'Инвайт не найден.',
+      });
     }
 
     return invite;
+  }
+
+  private async findInviteByAccessKey(
+    accessKey: string,
+    client?: Prisma.TransactionClient,
+  ): Promise<InviteKey | null> {
+    const target = client ?? this.prisma;
+
+    return target.inviteKey.findUnique({
+      where: {
+        codeHash: hashOpaqueToken(
+          accessKey,
+          this.envService.getValues().SESSION_SECRET,
+          'invite',
+        ),
+      },
+    });
+  }
+
+  private normalizeAccessKey(rawAccessKey: string): string {
+    return rawAccessKey.trim().toUpperCase();
+  }
+
+  private getInviteStatus(invite: InviteKey): InviteLookupResponse['status'] {
+    const now = new Date();
+
+    if (invite.revokedAt) {
+      return 'REVOKED';
+    }
+
+    if (invite.expiresAt && invite.expiresAt <= now) {
+      return 'EXPIRED';
+    }
+
+    if (invite.usedCount >= invite.maxUses) {
+      return invite.maxUses === 1 ? 'USED' : 'EXHAUSTED';
+    }
+
+    return 'ACTIVE';
+  }
+
+  private assertInviteCanBeConsumed(invite: InviteKey): void {
+    const status = this.getInviteStatus(invite);
+
+    switch (status) {
+      case 'REVOKED':
+        throw new ForbiddenException({
+          code: 'INVITE_REVOKED',
+          message: 'Инвайт отключён администратором.',
+        });
+      case 'EXPIRED':
+        throw new ForbiddenException({
+          code: 'INVITE_EXPIRED',
+          message: 'Срок действия инвайта истёк.',
+        });
+      case 'USED':
+        throw new ForbiddenException({
+          code: 'INVITE_USED',
+          message: 'Инвайт уже использован.',
+        });
+      case 'EXHAUSTED':
+        throw new ForbiddenException({
+          code: 'INVITE_EXHAUSTED',
+          message: 'Лимит использований инвайта исчерпан.',
+        });
+      default:
+        return;
+    }
+  }
+
+  private toInviteLookupDetails(invite: InviteKey): InviteLookupDetails {
+    return {
+      label: invite.label,
+      role: invite.role,
+      maxUses: invite.maxUses,
+      usedCount: invite.usedCount,
+      remainingUses: Math.max(invite.maxUses - invite.usedCount, 0),
+      expiresAt: invite.expiresAt?.toISOString() ?? null,
+    };
   }
 
   private assertActorCanAssignRole(
@@ -254,7 +382,10 @@ export class InvitesService {
     role: UserRole,
   ): void {
     if (actorRole === 'ADMIN' && role === UserRole.OWNER) {
-      throw new ForbiddenException('Admins cannot create owner invites');
+      throw new ForbiddenException({
+        code: 'INVITE_ROLE_FORBIDDEN',
+        message: 'Администратор не может создавать инвайты владельца.',
+      });
     }
   }
 
@@ -263,7 +394,10 @@ export class InvitesService {
     inviteRole: UserRole,
   ): void {
     if (actorRole === 'ADMIN' && inviteRole === UserRole.OWNER) {
-      throw new ForbiddenException('Admins cannot modify owner invites');
+      throw new ForbiddenException({
+        code: 'INVITE_ROLE_FORBIDDEN',
+        message: 'Администратор не может изменять инвайты владельца.',
+      });
     }
   }
 }

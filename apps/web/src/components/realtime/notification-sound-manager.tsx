@@ -2,6 +2,7 @@
 
 import type {
   NotificationSetting,
+  PublicUser,
   UpdateViewerNotificationDefaultsInput,
 } from "@lobby/shared";
 import {
@@ -11,11 +12,12 @@ import {
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCallSession } from "@/components/calls/call-session-provider";
-import { apiClientFetch } from "@/lib/api-client";
+import { apiClientFetch, apiClientFetchBlob } from "@/lib/api-client";
 import {
   notificationPreferencesEventName,
   type NotificationPreferencesEventDetail,
 } from "@/lib/notification-preferences";
+import { getBuiltInRingtone, getCustomRingtoneApiPath } from "@/lib/ringtones";
 import { parseAppPath } from "@/lib/app-shell";
 import { useRealtime } from "./realtime-provider";
 
@@ -31,7 +33,7 @@ type ToneSpec = {
 };
 
 interface NotificationSoundManagerProps {
-  viewerId: string;
+  viewer: PublicUser;
 }
 
 interface ActiveDesktopNotification {
@@ -101,8 +103,9 @@ function trimNotificationBody(value: string | null | undefined, fallback: string
 }
 
 export function NotificationSoundManager({
-  viewerId,
+  viewer,
 }: NotificationSoundManagerProps) {
+  const viewerId = viewer.id;
   const pathname = usePathname();
   const route = useMemo(() => parseAppPath(pathname ?? ""), [pathname]);
   const { latestDmSignal, latestSignal, incomingCalls } = useRealtime();
@@ -127,6 +130,10 @@ export function NotificationSoundManager({
   const ringtoneCleanupRef = useRef(new Set<() => void>());
   const ringtoneIntervalRef = useRef<number | null>(null);
   const ringtoneCallIdRef = useRef<string | null>(null);
+  const ringtonePlaybackKeyRef = useRef<string | null>(null);
+  const ringtonePendingKeyRef = useRef<string | null>(null);
+  const ringtoneAudioRef = useRef<HTMLAudioElement | null>(null);
+  const ringtoneAudioUrlRef = useRef<string | null>(null);
 
   const storeConversationNotificationSetting = useCallback(
     (
@@ -474,12 +481,25 @@ export function NotificationSoundManager({
 
   const stopRingtone = useCallback(
     (reason: string) => {
+      ringtonePendingKeyRef.current = null;
+
       if (ringtoneIntervalRef.current !== null) {
         window.clearInterval(ringtoneIntervalRef.current);
         ringtoneIntervalRef.current = null;
       }
 
       clearSoundBucket("ringtone");
+
+      if (ringtoneAudioRef.current) {
+        ringtoneAudioRef.current.pause();
+        ringtoneAudioRef.current.currentTime = 0;
+        ringtoneAudioRef.current = null;
+      }
+
+      if (ringtoneAudioUrlRef.current) {
+        URL.revokeObjectURL(ringtoneAudioUrlRef.current);
+        ringtoneAudioUrlRef.current = null;
+      }
 
       if (ringtoneCallIdRef.current) {
         closeDesktopNotification(`call:${ringtoneCallIdRef.current}`, reason);
@@ -490,40 +510,117 @@ export function NotificationSoundManager({
       }
 
       ringtoneCallIdRef.current = null;
+      ringtonePlaybackKeyRef.current = null;
     },
     [clearSoundBucket, closeDesktopNotification, logDebug],
   );
 
+  const startBuiltInRingtone = useCallback(
+    (
+      callId: string,
+      preset: PublicUser["profile"]["callRingtonePreset"],
+      playbackKey: string,
+    ) => {
+      const ringtone = getBuiltInRingtone(preset);
+      const playBurst = () =>
+        scheduleToneSequence(ringtone.sequence, "ringtone", "ringtone");
+
+      const started = playBurst();
+
+      if (!started) {
+        return false;
+      }
+
+      ringtoneCallIdRef.current = callId;
+      ringtonePlaybackKeyRef.current = playbackKey;
+      ringtoneIntervalRef.current = window.setInterval(playBurst, ringtone.loopIntervalMs);
+      logDebug("ringtone-started", {
+        callId,
+        preset: ringtone.id,
+        source: "builtin",
+      });
+
+      return true;
+    },
+    [logDebug, scheduleToneSequence],
+  );
+
   const startRingtone = useCallback(
-    (callId: string) => {
-      if (ringtoneCallIdRef.current === callId) {
+    async (callId: string, profile: PublicUser["profile"]) => {
+      const source = profile.customRingtone.fileKey ? "custom" : "builtin";
+      const playbackKey = [
+        callId,
+        source,
+        profile.callRingtonePreset,
+        profile.customRingtone.fileKey ?? "none",
+        profile.updatedAt,
+      ].join(":");
+
+      if (
+        ringtonePlaybackKeyRef.current === playbackKey ||
+        ringtonePendingKeyRef.current === playbackKey
+      ) {
         return;
       }
 
       stopRingtone("replace");
 
-      const ringtoneSequence: ToneSpec[] = [
-        { frequency: 523, duration: 0.16, gap: 0.06, gain: 0.046, type: "triangle" },
-        { frequency: 659, duration: 0.2, gap: 0.08, gain: 0.054, type: "triangle" },
-        { frequency: 784, duration: 0.24, gap: 0.12, gain: 0.06, type: "triangle" },
-        { frequency: 659, duration: 0.18, gap: 0.08, gain: 0.05, type: "triangle" },
-        { frequency: 880, duration: 0.28, gap: 0.46, gain: 0.064, type: "triangle" },
-      ];
-
-      const playBurst = () =>
-        scheduleToneSequence(ringtoneSequence, "ringtone", "ringtone");
-
-      const started = playBurst();
-
-      if (!started) {
+      if (!profile.customRingtone.fileKey) {
+        startBuiltInRingtone(callId, profile.callRingtonePreset, playbackKey);
         return;
       }
 
-      ringtoneCallIdRef.current = callId;
-      ringtoneIntervalRef.current = window.setInterval(playBurst, 2400);
-      logDebug("ringtone-started", { callId });
+      ringtonePendingKeyRef.current = playbackKey;
+
+      try {
+        const blob = await apiClientFetchBlob(getCustomRingtoneApiPath(profile.updatedAt));
+
+        if (ringtonePendingKeyRef.current !== playbackKey) {
+          return;
+        }
+
+        const objectUrl = URL.createObjectURL(blob);
+        const audio = new Audio(objectUrl);
+        audio.loop = true;
+        audio.preload = "auto";
+
+        await audio.play();
+
+        if (ringtonePendingKeyRef.current !== playbackKey) {
+          audio.pause();
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+
+        ringtonePendingKeyRef.current = null;
+        ringtoneAudioRef.current = audio;
+        ringtoneAudioUrlRef.current = objectUrl;
+        ringtoneCallIdRef.current = callId;
+        ringtonePlaybackKeyRef.current = playbackKey;
+        logDebug("ringtone-started", {
+          callId,
+          mimeType: profile.customRingtone.mimeType,
+          source: "custom",
+        });
+        return;
+      } catch (error) {
+        if (ringtonePendingKeyRef.current === playbackKey) {
+          ringtonePendingKeyRef.current = null;
+        }
+
+        warnOnce(
+          `custom-ringtone:${playbackKey}`,
+          "Custom ringtone failed to load, falling back to builtin preset.",
+          {
+            callId,
+            error: normalizeErrorMessage(error),
+          },
+        );
+      }
+
+      startBuiltInRingtone(callId, profile.callRingtonePreset, playbackKey);
     },
-    [logDebug, scheduleToneSequence, stopRingtone],
+    [logDebug, startBuiltInRingtone, stopRingtone, warnOnce],
   );
 
   const playMessageSound = useCallback(() => {
@@ -857,7 +954,7 @@ export function NotificationSoundManager({
       closeDesktopNotification(`call:${incomingCall.id}`, "call-context-visible");
     }
 
-    startRingtone(incomingCall.id);
+    void startRingtone(incomingCall.id, viewer.profile);
   }, [
     audioState,
     buildCallNotificationRoute,
@@ -876,6 +973,10 @@ export function NotificationSoundManager({
     showDesktopNotification,
     startRingtone,
     stopRingtone,
+    viewer.profile.callRingtonePreset,
+    viewer.profile.customRingtone.fileKey,
+    viewer.profile.customRingtone.mimeType,
+    viewer.profile.updatedAt,
   ]);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { usernameSchema } from "./auth";
 import {
   dmNotificationSettingSchema,
   dmRetentionModeSchema,
@@ -9,52 +10,67 @@ import {
 export const dmMessageContentSchema = z.string().trim().min(1).max(4000);
 
 export const openDirectConversationSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(3)
-    .max(24)
-    .regex(/^[a-z0-9_]+$/),
+  username: usernameSchema,
 });
 
-export type OpenDirectConversationInput = z.infer<typeof openDirectConversationSchema>;
+export type OpenDirectConversationInput = z.infer<
+  typeof openDirectConversationSchema
+>;
 
 export const createDirectMessageSchema = z.object({
   content: dmMessageContentSchema,
   clientNonce: z.string().trim().min(1).max(120).optional(),
 });
 
-export type CreateDirectMessageInput = z.infer<typeof createDirectMessageSchema>;
+export type CreateDirectMessageInput = z.infer<
+  typeof createDirectMessageSchema
+>;
 
-export const updateDmSettingsSchema = z.object({
-  notificationSetting: dmNotificationSettingSchema.optional(),
-  retentionMode: dmRetentionModeSchema.optional(),
-  customHours: z.number().int().positive().max(24 * 365).nullable().optional(),
-}).superRefine((value, context) => {
-  if (value.retentionMode === "CUSTOM" && !value.customHours) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["customHours"],
-      message: "customHours is required for CUSTOM retention",
-    });
-  }
+export const updateDmSettingsSchema = z
+  .object({
+    notificationSetting: dmNotificationSettingSchema.optional(),
+    retentionMode: dmRetentionModeSchema.optional(),
+    customHours: z
+      .number()
+      .int()
+      .positive()
+      .max(24 * 365)
+      .nullable()
+      .optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.retentionMode === "CUSTOM" && !value.customHours) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customHours"],
+        message: "customHours is required for CUSTOM retention",
+      });
+    }
 
-  if (value.retentionMode && value.retentionMode !== "CUSTOM" && value.customHours) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["customHours"],
-      message: "customHours is allowed only for CUSTOM retention",
-    });
-  }
+    if (
+      value.retentionMode &&
+      value.retentionMode !== "CUSTOM" &&
+      value.customHours
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customHours"],
+        message: "customHours is allowed only for CUSTOM retention",
+      });
+    }
 
-  if (!value.notificationSetting && !value.retentionMode && value.customHours === undefined) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "At least one setting must be provided",
-      path: ["notificationSetting"],
-    });
-  }
-});
+    if (
+      !value.notificationSetting &&
+      !value.retentionMode &&
+      value.customHours === undefined
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one setting must be provided",
+        path: ["notificationSetting"],
+      });
+    }
+  });
 
 export type UpdateDmSettingsInput = z.infer<typeof updateDmSettingsSchema>;
 

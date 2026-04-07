@@ -1,28 +1,45 @@
 import { z } from "zod";
 import { publicUserSchema } from "./common";
 
-const usernameRegex = /^[a-z0-9_]+$/;
+const usernameRegex = /^[a-z0-9_-]+$/;
 const accessKeyRegex = /^LBY-[A-Z0-9]{8}-[A-Z0-9]{8}-[A-Z0-9]{8}$/;
 
 export const usernameSchema = z
   .string()
   .trim()
-  .min(3)
-  .max(24)
-  .regex(usernameRegex, "Only lowercase letters, numbers and underscores are allowed");
+  .min(3, "Логин должен содержать минимум 3 символа")
+  .max(24, "Логин должен содержать не больше 24 символов")
+  .regex(
+    usernameRegex,
+    "Логин может содержать только строчные латинские буквы, цифры, символы _ и -",
+  );
 
-export const displayNameSchema = z.string().trim().min(2).max(40);
+export const displayNameSchema = z
+  .string()
+  .trim()
+  .min(2, "Отображаемое имя должно содержать минимум 2 символа")
+  .max(40, "Отображаемое имя должно содержать не больше 40 символов");
 
-export const passwordSchema = z.string().min(12).max(128);
+export const passwordSchema = z
+  .string()
+  .min(8, "Пароль должен содержать минимум 8 символов")
+  .max(128, "Пароль должен содержать не больше 128 символов");
 
 export const accessKeySchema = z
   .string()
   .trim()
   .toUpperCase()
-  .regex(accessKeyRegex, "Invalid access key format");
+  .regex(
+    accessKeyRegex,
+    "Укажите корректный ключ доступа формата LBY-XXXXXXXX-XXXXXXXX-XXXXXXXX",
+  );
 
 export const loginSchema = z.object({
-  login: z.string().trim().min(3).max(254),
+  login: z
+    .string()
+    .trim()
+    .min(3, "Введите логин или почту")
+    .max(254, "Логин или почта слишком длинные"),
   password: passwordSchema,
 });
 
@@ -30,7 +47,11 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const registerSchema = z.object({
   username: usernameSchema.transform((value) => value.toLowerCase()),
-  email: z.string().trim().toLowerCase().email(),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Введите корректный адрес электронной почты"),
   displayName: displayNameSchema,
   password: passwordSchema,
   accessKey: accessKeySchema,

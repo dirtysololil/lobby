@@ -15,6 +15,17 @@ export const avatarPresetSchema = z.enum([
 ]);
 export type AvatarPreset = z.infer<typeof avatarPresetSchema>;
 
+export const callRingtonePresetSchema = z.enum([
+  "CLASSIC",
+  "SOFT",
+  "DIGITAL",
+  "PULSE",
+  "NIGHT",
+  "CLEAR_SIGNAL",
+]);
+export type CallRingtonePreset = z.infer<typeof callRingtonePresetSchema>;
+export const defaultCallRingtonePreset: CallRingtonePreset = "CLASSIC";
+
 export const hubMemberRoleSchema = z.enum(["OWNER", "ADMIN", "MODERATOR", "MEMBER"]);
 export type HubMemberRole = z.infer<typeof hubMemberRoleSchema>;
 
@@ -94,12 +105,23 @@ export const avatarMetadataSchema = z.object({
 
 export type AvatarMetadata = z.infer<typeof avatarMetadataSchema>;
 
+export const ringtoneMetadataSchema = z.object({
+  fileKey: z.string().nullable(),
+  originalName: z.string().nullable(),
+  mimeType: z.string().nullable(),
+  bytes: z.number().int().nonnegative().nullable(),
+});
+
+export type RingtoneMetadata = z.infer<typeof ringtoneMetadataSchema>;
+
 export const profileSchema = z.object({
   displayName: z.string(),
   bio: z.string().nullable(),
   presence: presenceStatusSchema,
   avatarPreset: avatarPresetSchema,
   avatar: avatarMetadataSchema,
+  callRingtonePreset: callRingtonePresetSchema,
+  customRingtone: ringtoneMetadataSchema,
   updatedAt: isoDateSchema,
 });
 

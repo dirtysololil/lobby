@@ -28,6 +28,15 @@ enum AvatarPreset {
   ANIMATED_RING
 }
 
+enum CallRingtonePreset {
+  CLASSIC
+  SOFT
+  DIGITAL
+  PULSE
+  NIGHT
+  CLEAR_SIGNAL
+}
+
 enum FriendshipStatus {
   PENDING
   ACCEPTED
@@ -155,6 +164,11 @@ model Profile {
   avatarAnimationDurationMs Int?
   avatarIsAnimated         Boolean              @default(false)
   avatarPreset             AvatarPreset         @default(NONE)
+  customRingtoneFileKey    String?
+  customRingtoneOriginalName String?
+  customRingtoneMimeType   String?
+  customRingtoneBytes      Int?
+  callRingtonePreset       CallRingtonePreset   @default(CLASSIC)
   dmNotificationDefault    DmNotificationSetting @default(ALL)
   hubNotificationDefault   DmNotificationSetting @default(ALL)
   lobbyNotificationDefault DmNotificationSetting @default(ALL)
