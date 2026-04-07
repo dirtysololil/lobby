@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Clock3, MessageSquareQuote, Pin, Tags, Waves } from "lucide-react";
+import {
+  ArrowLeft,
+  Clock3,
+  MessageSquareQuote,
+  Pin,
+  Tags,
+} from "lucide-react";
 import {
   forumTopicListResponseSchema,
   forumTopicResponseSchema,
@@ -53,7 +59,7 @@ export function ForumLobbyView({
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С„РѕСЂСѓРј",
+        error instanceof Error ? error.message : "Не удалось загрузить форум.",
       );
     }
   }, [hubId, lobbyId]);
@@ -61,6 +67,7 @@ export function ForumLobbyView({
   async function handleCreateTopic(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
+
     try {
       const payload = await apiClientFetch(
         `/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics`,
@@ -83,7 +90,7 @@ export function ForumLobbyView({
       await loadTopics();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ С‚РµРјСѓ",
+        error instanceof Error ? error.message : "Не удалось создать тему.",
       );
     } finally {
       setIsSubmitting(false);
@@ -100,37 +107,38 @@ export function ForumLobbyView({
 
   const lobby = hub.lobbies.find((item) => item.id === lobbyId);
   const canCreateTopic = Boolean(hub.membershipRole) && !hub.isViewerMuted;
+  const pinnedCount = topics.filter((topic) => topic.pinned).length;
 
   return (
     <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
       <HubShellBootstrap hub={hub} />
-      <div className="mx-auto grid max-w-[1120px] gap-3">
-        <section className="social-shell rounded-[24px] p-4 sm:p-5">
+
+      <div className="grid gap-3">
+        <section className="premium-panel rounded-[24px] px-4 py-3.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="eyebrow-pill">
-              <Waves className="h-3.5 w-3.5" />
-              Forum
+              <MessageSquareQuote className="h-3.5 w-3.5" />
+              Форум
             </span>
-            <span className="status-pill">{topics.length} topics</span>
-            <span className="status-pill">
-              {topics.filter((topic) => topic.pinned).length} pinned
-            </span>
+            <span className="status-pill">{topics.length} тем</span>
+            <span className="status-pill">{pinnedCount} закреплены</span>
           </div>
-          <h1 className="mt-3 text-xl font-semibold tracking-[-0.04em] text-white">
-            {lobby?.name ?? "Р¤РѕСЂСѓРј"}
+          <h1 className="mt-2 truncate text-lg font-semibold tracking-tight text-white">
+            {lobby?.name ?? "Форум"}
           </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
-            РљРѕРјРїР°РєС‚РЅС‹Р№ thread-based СЃРїРёСЃРѕРє С‚РµРј СЃ РѕС‚РІРµС‚Р°РјРё, С‚РµРіР°РјРё Рё РїРѕРЅСЏС‚РЅС‹Рј РёРµСЂР°СЂС…РёС‡РµСЃРєРёРј СЂРёС‚РјРѕРј.
+          <p className="mt-1 line-clamp-2 text-sm text-[var(--text-dim)]">
+            {lobby?.description?.trim() ||
+              "Темы, ответы и теги для длинных обсуждений без лишнего шума в ленте хаба."}
           </p>
         </section>
 
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
           <section className="premium-panel rounded-[24px] p-4">
             <div className="compact-toolbar">
               <div>
                 <p className="section-kicker">Темы</p>
                 <p className="mt-2 text-sm text-[var(--text-dim)]">
-                  Последняя активность и статус каждой темы считываются с одного взгляда.
+                  Основная колонка форума: активность, статусы и быстрый вход в нужную тему.
                 </p>
               </div>
               <span className="glass-badge">{topics.length}</span>
@@ -139,8 +147,8 @@ export function ForumLobbyView({
             <div className="mt-4 grid gap-2">
               {topics.length === 0 ? (
                 <EmptyState
-                  title="РўРµРј РїРѕРєР° РЅРµС‚"
-                  description="РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІСѓСЋ С‚РµРјСѓ РёР»Рё РґРѕР¶РґРёС‚РµСЃСЊ РЅРѕРІРѕР№ Р°РєС‚РёРІРЅРѕСЃС‚Рё РІ СЌС‚РѕРј С„РѕСЂСѓРјРµ."
+                  title="Тем пока нет"
+                  description="Создайте первую тему или дождитесь новой активности в этом форуме."
                 />
               ) : (
                 topics.map((topic) => (
@@ -158,11 +166,15 @@ export function ForumLobbyView({
                           {topic.pinned ? (
                             <span className="glass-badge">
                               <Pin className="h-3 w-3" />
-                              Pinned
+                              Закреплена
                             </span>
                           ) : null}
-                          {topic.locked ? <span className="glass-badge">Locked</span> : null}
-                          {topic.archived ? <span className="glass-badge">Archived</span> : null}
+                          {topic.locked ? (
+                            <span className="glass-badge">Закрыта</span>
+                          ) : null}
+                          {topic.archived ? (
+                            <span className="glass-badge">В архиве</span>
+                          ) : null}
                         </div>
 
                         <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-[var(--text-soft)]">
@@ -177,7 +189,7 @@ export function ForumLobbyView({
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <MessageSquareQuote className="h-3.5 w-3.5" />
-                            {topic.repliesCount}
+                            {topic.repliesCount} ответов
                           </span>
                         </div>
 
@@ -199,7 +211,7 @@ export function ForumLobbyView({
             </div>
           </section>
 
-          <aside className="grid gap-3">
+          <aside className="grid content-start gap-3">
             <section className="premium-panel rounded-[24px] p-4">
               <p className="section-kicker">Новая тема</p>
               {canCreateTopic ? (
@@ -207,12 +219,12 @@ export function ForumLobbyView({
                   <Input
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
-                    placeholder="Р—Р°РіРѕР»РѕРІРѕРє С‚РµРјС‹"
+                    placeholder="Заголовок темы"
                   />
                   <textarea
                     value={content}
                     onChange={(event) => setContent(event.target.value)}
-                    placeholder="РћСЃРЅРѕРІРЅР°СЏ РјС‹СЃР»СЊ, РєРѕРЅС‚РµРєСЃС‚ Рё РІРѕРїСЂРѕСЃ"
+                    placeholder="Коротко опишите контекст, вопрос или решение"
                     className="field-textarea min-h-[120px]"
                   />
                   <Input
@@ -221,16 +233,45 @@ export function ForumLobbyView({
                     placeholder="Теги через запятую"
                   />
                   <Button type="submit" disabled={isSubmitting} className="h-10 w-full">
-                    {isSubmitting ? "РџСѓР±Р»РёРєСѓРµРј..." : "РЎРѕР·РґР°С‚СЊ С‚РµРјСѓ"}
+                    {isSubmitting ? "Публикуем..." : "Опубликовать тему"}
                   </Button>
                 </form>
               ) : (
                 <div className="mt-3 rounded-[18px] border border-[var(--border-soft)] bg-white/[0.03] px-4 py-3 text-sm leading-6 text-[var(--text-soft)]">
                   {hub.isViewerMuted
-                    ? "Р’С‹ РѕРіСЂР°РЅРёС‡РµРЅС‹ РІ СЌС‚РѕРј С…Р°Р±Рµ Рё РЅРµ РјРѕР¶РµС‚Рµ СЃРѕР·РґР°РІР°С‚СЊ С‚РµРјС‹."
-                    : "Р’СЃС‚СѓРїРёС‚Рµ РІ С…Р°Р±, С‡С‚РѕР±С‹ СЃРѕР·РґР°РІР°С‚СЊ С‚РµРјС‹ Рё СѓС‡Р°СЃС‚РІРѕРІР°С‚СЊ РІ РѕР±СЃСѓР¶РґРµРЅРёРё."}
+                    ? "Вы ограничены в этом хабе и не можете создавать темы."
+                    : "Вступите в хаб, чтобы создавать темы и участвовать в обсуждении."}
                 </div>
               )}
+            </section>
+
+            <section className="premium-panel rounded-[24px] p-4">
+              <Link
+                href={`/app/hubs/${hubId}`}
+                className="status-pill transition-colors hover:text-white"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                К обзору хаба
+              </Link>
+
+              <div className="mt-4 grid gap-2">
+                <div className="surface-subtle rounded-[16px] px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    Текущая лента
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white">
+                    {topics.length} тем
+                  </p>
+                </div>
+                <div className="surface-subtle rounded-[16px] px-3 py-2.5">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    Закреплено
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white">
+                    {pinnedCount}
+                  </p>
+                </div>
+              </div>
             </section>
           </aside>
         </div>

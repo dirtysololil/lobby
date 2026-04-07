@@ -6,11 +6,22 @@ import {
   type CallStateResponse,
   type CallSummary,
 } from "@lobby/shared";
-import { Mic, Phone, PhoneCall, Users2, Waves } from "lucide-react";
+import { Clock3, Mic, Phone, PhoneCall, Users2, Waves } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  CompactList,
+  CompactListCount,
+  CompactListRow,
+} from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
-import { callModeLabels, callStatusLabels } from "@/lib/ui-labels";
+import {
+  callModeLabels,
+  callParticipantStateLabels,
+  callStatusLabels,
+} from "@/lib/ui-labels";
 import { LiveKitCallRoom } from "./livekit-call-room";
 import { useRealtime } from "../realtime/realtime-provider";
 import { useCallSession } from "./call-session-provider";
@@ -199,6 +210,32 @@ export function LobbyCallPanel({
     ],
     [activeCall, activeParticipants, state?.history.length],
   );
+  const recentCalls = useMemo(
+    () =>
+      (state?.history ?? [])
+        .filter((call) => call.id !== activeCall?.id)
+        .slice(0, 4),
+    [activeCall?.id, state?.history],
+  );
+  const currentParticipants = useMemo(
+    () =>
+      activeCall?.participants.filter((participant) =>
+        ["ACCEPTED", "JOINED"].includes(participant.state),
+      ) ?? [],
+    [activeCall?.participants],
+  );
+
+  function formatHistoryDate(call: CallSummary) {
+    return new Date(call.endedAt ?? call.acceptedAt ?? call.createdAt).toLocaleString(
+      "ru-RU",
+      {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      },
+    );
+  }
 
   return (
     <div className="grid gap-2.5">
@@ -282,11 +319,124 @@ export function LobbyCallPanel({
         </div>
       </section>
 
-      <LiveKitCallRoom
-        callId={activeCall?.id ?? null}
-        title="Голосовая сцена"
-        description="Комната остаётся доступной между переходами и продолжает жить через call dock."
-      />
+      {activeCall ? (
+        <LiveKitCallRoom
+          callId={activeCall.id}
+          title="Голосовая сцена"
+          description="Комната остаётся доступной между переходами и продолжает жить через call dock."
+        />
+      ) : (
+        <section className="premium-panel rounded-[22px] p-4">
+          <div className="compact-toolbar gap-3">
+            <div>
+              <p className="section-kicker">Комната готова</p>
+              <p className="mt-2 text-sm text-[var(--text-dim)]">
+                Как только кто-то откроет комнату, сцена появится здесь без переходов в отдельный экран.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="surface-subtle rounded-[16px] px-3 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                Подключение
+              </p>
+              <p className="mt-1 text-sm font-medium text-white">
+                В один клик из этого лобби
+              </p>
+            </div>
+            <div className="surface-subtle rounded-[16px] px-3 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                Возврат
+              </p>
+              <p className="mt-1 text-sm font-medium text-white">
+                Через закреплённый call dock
+              </p>
+            </div>
+            <div className="surface-subtle rounded-[16px] px-3 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                Режим
+              </p>
+              <p className="mt-1 text-sm font-medium text-white">
+                {isViewerMuted ? "Только прослушивание" : "Свободный вход"}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="premium-panel overflow-hidden rounded-[22px]">
+        <div className="px-4 py-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium tracking-tight text-white">
+              Участники сейчас
+            </p>
+            <CompactListCount>{currentParticipants.length}</CompactListCount>
+          </div>
+        </div>
+
+        {currentParticipants.length === 0 ? (
+          <div className="px-4 pb-4 text-sm text-[var(--text-dim)]">
+            Комната свободна. Откройте её, чтобы пригласить людей в созвон.
+          </div>
+        ) : (
+          <CompactList>
+            {currentParticipants.map((participant) => (
+              <CompactListRow key={participant.user.id} compact className="gap-3">
+                <UserAvatar user={participant.user} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-white">
+                      {participant.user.profile.displayName}
+                    </p>
+                    <PresenceIndicator user={participant.user} compact />
+                  </div>
+                  <p className="truncate text-xs text-[var(--text-muted)]">
+                    @{participant.user.username} ·{" "}
+                    {callParticipantStateLabels[participant.state]}
+                  </p>
+                </div>
+              </CompactListRow>
+            ))}
+          </CompactList>
+        )}
+      </section>
+
+      <section className="premium-panel overflow-hidden rounded-[22px]">
+        <div className="px-4 py-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium tracking-tight text-white">
+              Недавняя активность
+            </p>
+            <CompactListCount>{recentCalls.length}</CompactListCount>
+          </div>
+        </div>
+
+        {recentCalls.length === 0 ? (
+          <div className="px-4 pb-4 text-sm text-[var(--text-dim)]">
+            История появится после первых звонков в этом лобби.
+          </div>
+        ) : (
+          <CompactList>
+            {recentCalls.map((call) => (
+              <CompactListRow key={call.id} compact className="gap-3">
+                <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-white/8 bg-white/[0.04] text-[var(--accent)]">
+                  <Clock3 className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-white">
+                    {call.initiatedBy.profile.displayName}
+                  </p>
+                  <p className="truncate text-xs text-[var(--text-muted)]">
+                    {callStatusLabels[call.status]} · {formatHistoryDate(call)}
+                  </p>
+                </div>
+                <span className="glass-badge">{callModeLabels[call.mode]}</span>
+              </CompactListRow>
+            ))}
+          </CompactList>
+        )}
+      </section>
     </div>
   );
 }
