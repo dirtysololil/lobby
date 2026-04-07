@@ -69,13 +69,21 @@ export function LoginForm() {
     }
 
     if (error instanceof ApiClientError) {
+      if (error.status && error.status >= 500) {
+        return "Не удалось выполнить вход, попробуйте позже.";
+      }
+
       switch (error.apiCode) {
         case "AUTH_INVALID_CREDENTIALS":
-          return "Неверный логин, почта или пароль.";
+          return "Неверный логин или пароль.";
         case "AUTH_ACCOUNT_BLOCKED":
           return "Аккаунт заблокирован модерацией.";
+        case "VALIDATION_ERROR":
+          return extractValidationErrorMessage(error.details);
         case "RATE_LIMITED":
           return "Слишком много попыток входа. Подождите минуту и повторите.";
+        case "INTERNAL_SERVER_ERROR":
+          return "Не удалось выполнить вход, попробуйте позже.";
         default:
           return error.message || "Не удалось войти в аккаунт.";
       }
@@ -86,6 +94,32 @@ export function LoginForm() {
     }
 
     return "Не удалось войти в аккаунт.";
+  }
+
+  function extractValidationErrorMessage(details: unknown): string {
+    if (
+      details &&
+      typeof details === "object" &&
+      "fieldErrors" in details &&
+      details.fieldErrors &&
+      typeof details.fieldErrors === "object"
+    ) {
+      const fieldErrors = details.fieldErrors as Record<string, unknown>;
+      const firstLoginError = Array.isArray(fieldErrors.login)
+        ? fieldErrors.login.find((item): item is string => typeof item === "string")
+        : null;
+      const firstPasswordError = Array.isArray(fieldErrors.password)
+        ? fieldErrors.password.find((item): item is string => typeof item === "string")
+        : null;
+
+      return (
+        firstLoginError ??
+        firstPasswordError ??
+        "Проверьте корректность логина и пароля."
+      );
+    }
+
+    return "Проверьте корректность логина и пароля.";
   }
 
   return (

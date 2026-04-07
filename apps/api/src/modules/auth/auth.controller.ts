@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
   Post,
   Req,
   Res,
@@ -64,22 +65,44 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const requestMetadata = getRequestMetadata(request);
-    const result = await this.authService.login(body, requestMetadata);
-
-    setSessionCookie(
-      response,
-      this.envService.getValues(),
-      result.session.rawToken,
-      result.session.expiresAt,
-    );
-
     console.info(
-      `[auth/login] success userId=${result.user.id} ip=${requestMetadata.ipAddress ?? 'unknown'}`,
+      `[auth/login] controller:start login=${body.login} ip=${requestMetadata.ipAddress ?? 'unknown'}`,
     );
 
-    return authSessionResponseSchema.parse({
-      user: result.user,
-    });
+    try {
+      const result = await this.authService.login(body, requestMetadata);
+
+      console.info(
+        `[auth/login] controller:session_cookie:start userId=${result.user.id}`,
+      );
+      setSessionCookie(
+        response,
+        this.envService.getValues(),
+        result.session.rawToken,
+        result.session.expiresAt,
+      );
+
+      console.info(
+        `[auth/login] success userId=${result.user.id} ip=${requestMetadata.ipAddress ?? 'unknown'}`,
+      );
+
+      return authSessionResponseSchema.parse({
+        user: result.user,
+      });
+    } catch (error) {
+      if (error instanceof HttpException) {
+        console.warn(
+          `[auth/login] controller:fail login=${body.login} status=${error.getStatus()}`,
+        );
+      } else {
+        console.error(
+          `[auth/login] controller:unexpected login=${body.login}`,
+          error,
+        );
+      }
+
+      throw error;
+    }
   }
 
   @RequireAuth()
