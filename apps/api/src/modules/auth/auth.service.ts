@@ -1,6 +1,7 @@
 import {
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -142,99 +143,166 @@ export class AuthService {
   public async login(input: LoginInput, requestMetadata: RequestMetadata) {
     const normalizedLogin = input.login.trim().toLowerCase();
 
-    const user = await this.prisma.user.findFirst({
-      where: normalizedLogin.includes('@')
-        ? {
-            email: normalizedLogin,
-          }
-        : {
-            username: normalizedLogin,
+    console.info(`[auth/login] service:start login=${input.login}`);
+    console.info(`[auth/login] normalized login=${normalizedLogin}`);
+
+    try {
+      console.info(
+        `[auth/login] user_lookup:start mode=${normalizedLogin.includes('@') ? 'email' : 'username'} login=${normalizedLogin}`,
+      );
+
+      const user = await this.prisma.user.findFirst({
+        where: normalizedLogin.includes('@')
+          ? {
+              email: normalizedLogin,
+            }
+          : {
+              username: normalizedLogin,
+            },
+        select: {
+          ...publicUserSelect,
+          passwordHash: true,
+          platformBlock: {
+            select: {
+              id: true,
+            },
           },
-      select: {
-        ...publicUserSelect,
-        passwordHash: true,
-        platformBlock: {
-          select: {
-            id: true,
+        },
+      });
+
+      console.info(
+        `[auth/login] user_lookup:done login=${normalizedLogin} found=${Boolean(user)}`,
+      );
+
+      if (!user) {
+        console.info(`[auth/login] user_not_found login=${normalizedLogin}`);
+        throw new UnauthorizedException({
+          code: 'AUTH_INVALID_CREDENTIALS',
+          message: 'Неверный логин, почта или пароль.',
+        });
+      }
+
+      const hasPasswordHash =
+        typeof user.passwordHash === 'string' &&
+        user.passwordHash.trim().length > 0;
+
+      console.info(
+        `[auth/login] credentials:state userId=${user.id} hasPasswordHash=${hasPasswordHash}`,
+      );
+
+      if (!hasPasswordHash) {
+        console.warn(`[auth/login] missing_password_hash userId=${user.id}`);
+        throw new UnauthorizedException({
+          code: 'AUTH_INVALID_CREDENTIALS',
+          message: 'Неверный логин, почта или пароль.',
+        });
+      }
+
+      console.info(`[auth/login] verify:start userId=${user.id}`);
+      let passwordMatches = false;
+
+      try {
+        passwordMatches = await argon2.verify(
+          user.passwordHash,
+          input.password,
+        );
+      } catch (error) {
+        console.warn(
+          `[auth/login] verify:invalid_hash userId=${user.id}`,
+          error,
+        );
+        throw new UnauthorizedException({
+          code: 'AUTH_INVALID_CREDENTIALS',
+          message: 'Неверный логин, почта или пароль.',
+        });
+      }
+
+      console.info(
+        `[auth/login] verify:done userId=${user.id} matched=${passwordMatches}`,
+      );
+
+      if (!passwordMatches) {
+        console.info(`[auth/login] invalid_password userId=${user.id}`);
+        throw new UnauthorizedException({
+          code: 'AUTH_INVALID_CREDENTIALS',
+          message: 'Неверный логин, почта или пароль.',
+        });
+      }
+
+      if (user.platformBlock) {
+        console.warn(`[auth/login] blocked_user userId=${user.id}`);
+        throw new ForbiddenException({
+          code: 'AUTH_ACCOUNT_BLOCKED',
+          message: 'Аккаунт заблокирован модерацией.',
+        });
+      }
+
+      console.info(`[auth/login] session:create:start userId=${user.id}`);
+      const session = await this.sessionService.createSessionRecord(
+        user.id,
+        requestMetadata,
+      );
+      await this.sessionService.scheduleSessionExpiry(
+        session.sessionId,
+        session.expiresAt,
+      );
+      console.info(
+        `[auth/login] session:create:done userId=${user.id} sessionId=${session.sessionId}`,
+      );
+
+      console.info(`[auth/login] audit:start userId=${user.id}`);
+      await this.auditService.write({
+        action: 'auth.login',
+        entityType: 'User',
+        entityId: user.id,
+        actorUserId: user.id,
+        ipAddress: requestMetadata.ipAddress,
+        userAgent: requestMetadata.userAgent,
+      });
+      console.info(`[auth/login] audit:done userId=${user.id}`);
+
+      const profile =
+        user.profile ??
+        (await this.prisma.profile.upsert({
+          where: {
+            userId: user.id,
           },
-        },
-      },
-    });
+          update: {},
+          create: {
+            userId: user.id,
+            displayName: user.username,
+          },
+          select: publicProfileSelect,
+        }));
 
-    if (!user) {
-      console.info(`[auth/login] user_not_found login=${normalizedLogin}`);
-      throw new UnauthorizedException({
-        code: 'AUTH_INVALID_CREDENTIALS',
-        message: 'Неверный логин, почта или пароль.',
-      });
+      if (!user.profile) {
+        console.info(`[auth/login] profile:restored userId=${user.id}`);
+      }
+
+      console.info(`[auth/login] success userId=${user.id}`);
+
+      return {
+        session,
+        user: toPublicUser({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          createdAt: user.createdAt,
+          profile,
+        }),
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error(
+        `[auth/login] unexpected_failure login=${normalizedLogin}`,
+        error,
+      );
+      throw error;
     }
-
-    const passwordMatches = await argon2.verify(
-      user.passwordHash,
-      input.password,
-    );
-
-    if (!passwordMatches) {
-      console.info(`[auth/login] invalid_password userId=${user.id}`);
-      throw new UnauthorizedException({
-        code: 'AUTH_INVALID_CREDENTIALS',
-        message: 'Неверный логин, почта или пароль.',
-      });
-    }
-
-    if (user.platformBlock) {
-      console.warn(`[auth/login] blocked_user userId=${user.id}`);
-      throw new ForbiddenException({
-        code: 'AUTH_ACCOUNT_BLOCKED',
-        message: 'Аккаунт заблокирован модерацией.',
-      });
-    }
-
-    const session = await this.sessionService.createSessionRecord(
-      user.id,
-      requestMetadata,
-    );
-    await this.sessionService.scheduleSessionExpiry(
-      session.sessionId,
-      session.expiresAt,
-    );
-
-    await this.auditService.write({
-      action: 'auth.login',
-      entityType: 'User',
-      entityId: user.id,
-      actorUserId: user.id,
-      ipAddress: requestMetadata.ipAddress,
-      userAgent: requestMetadata.userAgent,
-    });
-
-    console.info(`[auth/login] session_created userId=${user.id}`);
-
-    const profile =
-      user.profile ??
-      (await this.prisma.profile.upsert({
-        where: {
-          userId: user.id,
-        },
-        update: {},
-        create: {
-          userId: user.id,
-          displayName: user.username,
-        },
-        select: publicProfileSelect,
-      }));
-
-    return {
-      session,
-      user: toPublicUser({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt,
-        profile,
-      }),
-    };
   }
 
   public async logout(
