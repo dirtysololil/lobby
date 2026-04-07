@@ -16,7 +16,11 @@ import type { RequestMetadata } from '../../common/interfaces/request-metadata.i
 import { AuditService } from '../audit/audit.service';
 import { EnvService } from '../env/env.service';
 import { InvitesService } from '../invites/invites.service';
-import { publicUserSelect, toPublicUser } from './auth.mapper';
+import {
+  publicProfileSelect,
+  publicUserSelect,
+  toPublicUser,
+} from './auth.mapper';
 import { SessionService } from './session.service';
 
 @Injectable()
@@ -206,6 +210,20 @@ export class AuthService {
 
     console.info(`[auth/login] session_created userId=${user.id}`);
 
+    const profile =
+      user.profile ??
+      (await this.prisma.profile.upsert({
+        where: {
+          userId: user.id,
+        },
+        update: {},
+        create: {
+          userId: user.id,
+          displayName: user.username,
+        },
+        select: publicProfileSelect,
+      }));
+
     return {
       session,
       user: toPublicUser({
@@ -214,9 +232,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         createdAt: user.createdAt,
-        profile: {
-          ...user.profile!,
-        },
+        profile,
       }),
     };
   }
