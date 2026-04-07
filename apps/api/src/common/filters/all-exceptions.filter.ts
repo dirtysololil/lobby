@@ -48,7 +48,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         body: {
           error: {
             code: 'CONFLICT',
-            message: 'Resource already exists',
+            message: 'Ресурс с такими данными уже существует.',
           },
         },
       };
@@ -77,7 +77,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const message =
         typeof responseObject.message === 'string'
           ? responseObject.message
-          : exception.message || 'Request failed';
+          : exception.message || 'Запрос завершился с ошибкой.';
 
       return {
         statusCode,
@@ -99,7 +99,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       body: {
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Internal server error',
+          message: 'Внутренняя ошибка сервера.',
         },
       },
     };

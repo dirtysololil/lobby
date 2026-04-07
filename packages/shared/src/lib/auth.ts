@@ -40,7 +40,10 @@ export const loginSchema = z.object({
     .trim()
     .min(3, "Введите логин или почту")
     .max(254, "Логин или почта слишком длинные"),
-  password: passwordSchema,
+  password: z
+    .string()
+    .min(1, "Введите пароль")
+    .max(128, "Пароль должен содержать не больше 128 символов"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

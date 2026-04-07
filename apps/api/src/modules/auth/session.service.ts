@@ -8,7 +8,11 @@ import {
 } from '../../common/utils/opaque-token.util';
 import { EnvService } from '../env/env.service';
 import { QueueService } from '../queue/queue.service';
-import { publicUserSelect, toPublicUser } from './auth.mapper';
+import {
+  publicProfileSelect,
+  publicUserSelect,
+  toPublicUser,
+} from './auth.mapper';
 import type { ResolvedSession } from './auth.types';
 
 type SessionClient = Prisma.TransactionClient | PrismaService;
@@ -123,9 +127,26 @@ export class SessionService {
       });
     }
 
+    const profile =
+      session.user.profile ??
+      (await this.prisma.profile.upsert({
+        where: {
+          userId: session.user.id,
+        },
+        update: {},
+        create: {
+          userId: session.user.id,
+          displayName: session.user.username,
+        },
+        select: publicProfileSelect,
+      }));
+
     return {
       sessionId: session.id,
-      user: toPublicUser(session.user),
+      user: toPublicUser({
+        ...session.user,
+        profile,
+      }),
     };
   }
 

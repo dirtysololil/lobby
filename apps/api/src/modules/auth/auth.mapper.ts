@@ -1,5 +1,32 @@
 import { publicUserSchema, type PublicUser } from '@lobby/shared';
-import { Prisma } from '@prisma/client';
+import {
+  AvatarPreset,
+  CallRingtonePreset,
+  PresenceStatus,
+  Prisma,
+} from '@prisma/client';
+
+export const publicProfileSelect = {
+  displayName: true,
+  bio: true,
+  presence: true,
+  avatarPreset: true,
+  avatarFileKey: true,
+  avatarOriginalName: true,
+  avatarMimeType: true,
+  avatarBytes: true,
+  avatarWidth: true,
+  avatarHeight: true,
+  avatarFrameCount: true,
+  avatarAnimationDurationMs: true,
+  avatarIsAnimated: true,
+  customRingtoneFileKey: true,
+  customRingtoneOriginalName: true,
+  customRingtoneMimeType: true,
+  customRingtoneBytes: true,
+  callRingtonePreset: true,
+  updatedAt: true,
+} satisfies Prisma.ProfileSelect;
 
 export const publicUserSelect = {
   id: true,
@@ -8,27 +35,7 @@ export const publicUserSelect = {
   role: true,
   createdAt: true,
   profile: {
-    select: {
-      displayName: true,
-      bio: true,
-      presence: true,
-      avatarPreset: true,
-      avatarFileKey: true,
-      avatarOriginalName: true,
-      avatarMimeType: true,
-      avatarBytes: true,
-      avatarWidth: true,
-      avatarHeight: true,
-      avatarFrameCount: true,
-      avatarAnimationDurationMs: true,
-      avatarIsAnimated: true,
-      customRingtoneFileKey: true,
-      customRingtoneOriginalName: true,
-      customRingtoneMimeType: true,
-      customRingtoneBytes: true,
-      callRingtonePreset: true,
-      updatedAt: true,
-    },
+    select: publicProfileSelect,
   },
 } satisfies Prisma.UserSelect;
 
@@ -42,9 +49,27 @@ export function toPublicUser(
     lastSeenAt?: Date | null;
   },
 ): PublicUser {
-  if (!user.profile) {
-    throw new Error(`Profile is missing for user ${user.id}`);
-  }
+  const profile = user.profile ?? {
+    displayName: user.username,
+    bio: null,
+    presence: PresenceStatus.OFFLINE,
+    avatarPreset: AvatarPreset.NONE,
+    avatarFileKey: null,
+    avatarOriginalName: null,
+    avatarMimeType: null,
+    avatarBytes: null,
+    avatarWidth: null,
+    avatarHeight: null,
+    avatarFrameCount: null,
+    avatarAnimationDurationMs: null,
+    avatarIsAnimated: false,
+    customRingtoneFileKey: null,
+    customRingtoneOriginalName: null,
+    customRingtoneMimeType: null,
+    customRingtoneBytes: null,
+    callRingtonePreset: CallRingtonePreset.CLASSIC,
+    updatedAt: user.createdAt,
+  };
 
   return publicUserSchema.parse({
     id: user.id,
@@ -55,29 +80,29 @@ export function toPublicUser(
     lastSeenAt: options?.lastSeenAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     profile: {
-      displayName: user.profile.displayName,
-      bio: user.profile.bio,
-      presence: user.profile.presence,
-      avatarPreset: user.profile.avatarPreset,
+      displayName: profile.displayName,
+      bio: profile.bio,
+      presence: profile.presence,
+      avatarPreset: profile.avatarPreset,
       avatar: {
-        fileKey: user.profile.avatarFileKey,
-        originalName: user.profile.avatarOriginalName,
-        mimeType: user.profile.avatarMimeType,
-        bytes: user.profile.avatarBytes,
-        width: user.profile.avatarWidth,
-        height: user.profile.avatarHeight,
-        frameCount: user.profile.avatarFrameCount,
-        animationDurationMs: user.profile.avatarAnimationDurationMs,
-        isAnimated: user.profile.avatarIsAnimated,
+        fileKey: profile.avatarFileKey,
+        originalName: profile.avatarOriginalName,
+        mimeType: profile.avatarMimeType,
+        bytes: profile.avatarBytes,
+        width: profile.avatarWidth,
+        height: profile.avatarHeight,
+        frameCount: profile.avatarFrameCount,
+        animationDurationMs: profile.avatarAnimationDurationMs,
+        isAnimated: profile.avatarIsAnimated,
       },
-      callRingtonePreset: user.profile.callRingtonePreset,
+      callRingtonePreset: profile.callRingtonePreset,
       customRingtone: {
-        fileKey: user.profile.customRingtoneFileKey,
-        originalName: user.profile.customRingtoneOriginalName,
-        mimeType: user.profile.customRingtoneMimeType,
-        bytes: user.profile.customRingtoneBytes,
+        fileKey: profile.customRingtoneFileKey,
+        originalName: profile.customRingtoneOriginalName,
+        mimeType: profile.customRingtoneMimeType,
+        bytes: profile.customRingtoneBytes,
       },
-      updatedAt: user.profile.updatedAt.toISOString(),
+      updatedAt: profile.updatedAt.toISOString(),
     },
   });
 }
