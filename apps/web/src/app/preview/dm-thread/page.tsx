@@ -4,7 +4,6 @@ import { ArrowLeft, BellRing, Clock3, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { MessageComposer } from "@/components/messages/message-composer";
 import {
   MessageThread,
   type ThreadMessageItem,
@@ -220,7 +219,12 @@ export default function PreviewDmThreadPage() {
         </div>
 
         <div className="border-t border-white/5 bg-[rgba(11,16,24,0.9)] px-4 py-3 backdrop-blur-xl">
-          <MessageComposer disabled={false} onSend={async () => undefined} />
+          <div className="premium-panel flex items-center gap-3 rounded-[24px] px-4 py-3">
+            <div className="flex min-w-0 flex-1 items-center rounded-[18px] border border-white/6 bg-white/[0.03] px-4 py-3 text-sm text-[var(--text-dim)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              Напишите сообщение…
+            </div>
+            <Button size="sm">Отправить</Button>
+          </div>
         </div>
       </div>
     </PreviewShell>
