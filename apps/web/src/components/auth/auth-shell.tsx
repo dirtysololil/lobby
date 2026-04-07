@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { KeyRound, MessageSquareMore, ShieldCheck, Waves } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface AuthShellProps {
   eyebrow: string;
@@ -28,17 +34,17 @@ export function AuthShell({
             </Link>
             <span className="status-pill">
               <ShieldCheck className="h-3.5 w-3.5 text-[var(--success)]" />
-              Closed network
+              Закрытая сеть
             </span>
           </div>
 
           <div className="mt-6 max-w-2xl">
             <p className="section-kicker">{eyebrow}</p>
             <h1 className="mt-2.5 font-[var(--font-heading)] text-3xl font-semibold tracking-[-0.05em] text-white sm:text-[2.6rem]">
-              Private communication, compact by default.
+              Приватные коммуникации в компактном контуре.
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-dim)]">
-              Inbox, people and hubs без лишнего слоя панели.
+              Диалоги, люди и хабы без лишнего слоя панели.
             </p>
           </div>
 
@@ -46,23 +52,28 @@ export function AuthShell({
             {[
               {
                 icon: MessageSquareMore,
-                label: "Inbox first",
-                text: "DM как основной сценарий.",
+                label: "Диалоги в центре",
+                text: "Личные сообщения как основной рабочий поток.",
               },
               {
                 icon: Waves,
-                label: "Hub structure",
-                text: "Хабы и каналы в плотной навигации.",
+                label: "Структура хабов",
+                text: "Хабы и каналы в плотной и понятной навигации.",
               },
               {
                 icon: KeyRound,
-                label: "Access control",
-                text: "Закрытый доступ и управляемые роли.",
+                label: "Управляемый доступ",
+                text: "Инвайты, роли и закрытый контур без открытой регистрации.",
               },
             ].map((item) => (
-              <div key={item.label} className="surface-subtle rounded-[16px] p-3.5">
+              <div
+                key={item.label}
+                className="surface-subtle rounded-[16px] p-3.5"
+              >
                 <item.icon className="h-4 w-4 text-[var(--accent)]" />
-                <p className="mt-2.5 text-sm font-semibold text-white">{item.label}</p>
+                <p className="mt-2.5 text-sm font-semibold text-white">
+                  {item.label}
+                </p>
                 <p className="mt-1.5 text-sm leading-5 text-[var(--text-dim)]">
                   {item.text}
                 </p>

@@ -9,27 +9,11 @@ export class StorageService {
   public constructor(private readonly envService: EnvService) {}
 
   public async writeAvatar(buffer: Buffer, extension: string): Promise<string> {
-    const env = this.envService.getValues();
+    return this.writeScopedObject('avatars', buffer, extension);
+  }
 
-    if (env.UPLOAD_DRIVER !== 'local') {
-      throw new ServiceUnavailableException(
-        'Configured upload driver is not available in this deployment',
-      );
-    }
-
-    const now = new Date();
-    const fileKey = [
-      'avatars',
-      String(now.getUTCFullYear()),
-      String(now.getUTCMonth() + 1).padStart(2, '0'),
-      `${randomUUID()}.${extension}`,
-    ].join('/');
-    const absolutePath = this.resolveLocalPath(fileKey);
-
-    await mkdir(dirname(absolutePath), { recursive: true });
-    await writeFile(absolutePath, buffer);
-
-    return fileKey;
+  public async writeRingtone(buffer: Buffer, extension: string): Promise<string> {
+    return this.writeScopedObject('ringtones', buffer, extension);
   }
 
   public async readObject(fileKey: string): Promise<Buffer> {
@@ -42,6 +26,34 @@ export class StorageService {
     }
 
     await rm(this.resolveLocalPath(fileKey), { force: true });
+  }
+
+  private async writeScopedObject(
+    scope: string,
+    buffer: Buffer,
+    extension: string,
+  ): Promise<string> {
+    const env = this.envService.getValues();
+
+    if (env.UPLOAD_DRIVER !== 'local') {
+      throw new ServiceUnavailableException(
+        'Configured upload driver is not available in this deployment',
+      );
+    }
+
+    const now = new Date();
+    const fileKey = [
+      scope,
+      String(now.getUTCFullYear()),
+      String(now.getUTCMonth() + 1).padStart(2, '0'),
+      `${randomUUID()}.${extension}`,
+    ].join('/');
+    const absolutePath = this.resolveLocalPath(fileKey);
+
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, buffer);
+
+    return fileKey;
   }
 
   private resolveLocalPath(fileKey: string): string {

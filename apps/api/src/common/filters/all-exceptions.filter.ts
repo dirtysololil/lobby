@@ -83,7 +83,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         statusCode,
         body: {
           error: {
-            code: this.getCodeByStatus(statusCode),
+            code:
+              typeof responseObject.code === 'string'
+                ? responseObject.code
+                : this.getCodeByStatus(statusCode),
             message,
             details: responseObject.details,
           },

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { usernameSchema } from "./auth";
 import {
   isoDateSchema,
   publicUserSchema,
@@ -9,9 +10,12 @@ export const usernameSearchSchema = z.object({
   query: z
     .string()
     .trim()
-    .min(1)
-    .max(24)
-    .regex(/^[a-z0-9_]+$/),
+    .min(1, "Введите запрос")
+    .max(24, "Запрос не должен превышать 24 символа")
+    .regex(
+      /^[a-z0-9_-]+$/,
+      "Запрос может содержать только строчные латинские буквы, цифры, символы _ и -",
+    ),
 });
 
 export type UsernameSearchInput = z.infer<typeof usernameSearchSchema>;
@@ -35,7 +39,12 @@ export const friendshipRecordSchema = z.object({
   updatedAt: isoDateSchema,
   respondedAt: isoDateSchema.nullable(),
   otherUser: publicUserSchema,
-  state: z.enum(["INCOMING_REQUEST", "OUTGOING_REQUEST", "ACCEPTED", "REMOVED"]),
+  state: z.enum([
+    "INCOMING_REQUEST",
+    "OUTGOING_REQUEST",
+    "ACCEPTED",
+    "REMOVED",
+  ]),
 });
 
 export type FriendshipRecord = z.infer<typeof friendshipRecordSchema>;
@@ -61,23 +70,13 @@ export const blocksResponseSchema = z.object({
 export type BlocksResponse = z.infer<typeof blocksResponseSchema>;
 
 export const friendshipActionSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(3)
-    .max(24)
-    .regex(/^[a-z0-9_]+$/),
+  username: usernameSchema,
 });
 
 export type FriendshipActionInput = z.infer<typeof friendshipActionSchema>;
 
 export const blockActionSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(3)
-    .max(24)
-    .regex(/^[a-z0-9_]+$/),
+  username: usernameSchema,
 });
 
 export type BlockActionInput = z.infer<typeof blockActionSchema>;

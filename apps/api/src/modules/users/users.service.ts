@@ -20,9 +20,10 @@ import { RelationshipsService } from '../relationships/relationships.service';
 import { EnvService } from '../env/env.service';
 import { StorageService } from '../storage/storage.service';
 import { parseAvatarImageMetadata } from '../storage/avatar-image.util';
+import { parseRingtoneAudioMetadata } from '../storage/ringtone-audio.util';
 
 type UserClient = Prisma.TransactionClient | PrismaService;
-type UploadedAvatarFile = {
+type UploadedBinaryFile = {
   buffer: Buffer;
   size: number;
   originalname: string;
@@ -69,6 +70,7 @@ export class UsersService {
             bio: input.bio?.trim() || null,
             presence: input.presence,
             avatarPreset: input.avatarPreset,
+            callRingtonePreset: input.callRingtonePreset,
           },
         },
       },
@@ -85,6 +87,7 @@ export class UsersService {
       metadata: {
         presence: input.presence,
         avatarPreset: input.avatarPreset,
+        callRingtonePreset: input.callRingtonePreset,
       },
     });
 
@@ -93,7 +96,7 @@ export class UsersService {
 
   public async uploadAvatar(
     userId: string,
-    file: UploadedAvatarFile | undefined,
+    file: UploadedBinaryFile | undefined,
     requestMetadata: RequestMetadata,
   ) {
     if (!file || !file.buffer || file.size === 0) {
@@ -251,6 +254,158 @@ export class UsersService {
     return {
       buffer: await this.storageService.readObject(profile.avatarFileKey),
       mimeType: profile.avatarMimeType,
+    };
+  }
+
+  public async uploadRingtone(
+    userId: string,
+    file: UploadedBinaryFile | undefined,
+    requestMetadata: RequestMetadata,
+  ) {
+    if (!file || !file.buffer || file.size === 0) {
+      throw new BadRequestException('Выберите аудиофайл для рингтона.');
+    }
+
+    const env = this.envService.getValues();
+    const maxBytes = Math.floor(env.MAX_RINGTONE_MB * 1024 * 1024);
+
+    if (file.size > maxBytes) {
+      throw new BadRequestException(
+        `Рингтон слишком большой. Максимальный размер: ${env.MAX_RINGTONE_MB} MB.`,
+      );
+    }
+
+    let metadata;
+
+    try {
+      metadata = parseRingtoneAudioMetadata(file.buffer, file.originalname);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось распознать формат рингтона.',
+      );
+    }
+
+    const existingProfile = await this.prisma.profile.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        customRingtoneFileKey: true,
+      },
+    });
+
+    if (!existingProfile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const fileKey = await this.storageService.writeRingtone(
+      file.buffer,
+      metadata.extension,
+    );
+
+    try {
+      const user = await this.prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          profile: {
+            update: {
+              customRingtoneFileKey: fileKey,
+              customRingtoneOriginalName: file.originalname || null,
+              customRingtoneMimeType: metadata.mimeType,
+              customRingtoneBytes: metadata.bytes,
+            },
+          },
+        },
+        select: publicUserSelect,
+      });
+
+      await this.storageService.deleteObject(existingProfile.customRingtoneFileKey);
+      await this.auditService.write({
+        action: 'users.ringtone.upload',
+        entityType: 'Profile',
+        entityId: userId,
+        actorUserId: userId,
+        ipAddress: requestMetadata.ipAddress,
+        userAgent: requestMetadata.userAgent,
+        metadata: {
+          mimeType: metadata.mimeType,
+          bytes: metadata.bytes,
+        },
+      });
+
+      return toPublicUser(user);
+    } catch (error) {
+      await this.storageService.deleteObject(fileKey);
+      throw error;
+    }
+  }
+
+  public async removeRingtone(userId: string, requestMetadata: RequestMetadata) {
+    const profile = await this.prisma.profile.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        customRingtoneFileKey: true,
+      },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const user = await this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        profile: {
+          update: {
+            customRingtoneFileKey: null,
+            customRingtoneOriginalName: null,
+            customRingtoneMimeType: null,
+            customRingtoneBytes: null,
+          },
+        },
+      },
+      select: publicUserSelect,
+    });
+
+    await this.storageService.deleteObject(profile.customRingtoneFileKey);
+    await this.auditService.write({
+      action: 'users.ringtone.remove',
+      entityType: 'Profile',
+      entityId: userId,
+      actorUserId: userId,
+      ipAddress: requestMetadata.ipAddress,
+      userAgent: requestMetadata.userAgent,
+    });
+
+    return toPublicUser(user);
+  }
+
+  public async getCustomRingtoneAsset(userId: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        customRingtoneFileKey: true,
+        customRingtoneMimeType: true,
+      },
+    });
+
+    if (!profile?.customRingtoneFileKey || !profile.customRingtoneMimeType) {
+      throw new NotFoundException('Custom ringtone not found');
+    }
+
+    return {
+      buffer: await this.storageService.readObject(profile.customRingtoneFileKey),
+      mimeType: profile.customRingtoneMimeType,
     };
   }
 

@@ -1,11 +1,24 @@
-import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   createInviteSchema,
   inviteCreateResponseSchema,
   inviteListResponseSchema,
+  inviteLookupQuerySchema,
+  inviteLookupResponseSchema,
   inviteResponseSchema,
   updateInviteSchema,
   type CreateInviteInput,
+  type InviteLookupQuery,
   type PublicUser,
   type UpdateInviteInput,
 } from '@lobby/shared';
@@ -19,6 +32,17 @@ import { InvitesService } from './invites.service';
 @Controller('invites')
 export class InvitesController {
   public constructor(private readonly invitesService: InvitesService) {}
+
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Get('resolve')
+  public async lookupInvite(
+    @Query(new ZodValidationPipe(inviteLookupQuerySchema))
+    query: InviteLookupQuery,
+  ) {
+    return inviteLookupResponseSchema.parse(
+      await this.invitesService.lookupInvite(query.invite),
+    );
+  }
 
   @RequireAuth('OWNER', 'ADMIN')
   @Get()

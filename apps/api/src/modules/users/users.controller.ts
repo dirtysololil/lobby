@@ -34,7 +34,7 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { getRequestMetadata } from '../../common/utils/request-metadata.util';
 import { UsersService } from './users.service';
 
-type UploadedAvatarFile = {
+type UploadedBinaryFile = {
   buffer: Buffer;
   size: number;
   originalname: string;
@@ -120,7 +120,7 @@ export class UsersController {
   @UseInterceptors(FileInterceptor('file'))
   public async uploadAvatar(
     @CurrentUser() currentUser: PublicUser,
-    @UploadedFile() file: UploadedAvatarFile | undefined,
+    @UploadedFile() file: UploadedBinaryFile | undefined,
     @Req() request: AuthenticatedRequest,
   ) {
     const user = await this.usersService.uploadAvatar(
@@ -148,6 +148,54 @@ export class UsersController {
     return userResponseSchema.parse({
       user,
     });
+  }
+
+  @RequireAuth()
+  @Post('me/ringtone')
+  @UseInterceptors(FileInterceptor('file'))
+  public async uploadRingtone(
+    @CurrentUser() currentUser: PublicUser,
+    @UploadedFile() file: UploadedBinaryFile | undefined,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const user = await this.usersService.uploadRingtone(
+      currentUser.id,
+      file,
+      getRequestMetadata(request),
+    );
+
+    return userResponseSchema.parse({
+      user,
+    });
+  }
+
+  @RequireAuth()
+  @Delete('me/ringtone')
+  public async removeRingtone(
+    @CurrentUser() currentUser: PublicUser,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const user = await this.usersService.removeRingtone(
+      currentUser.id,
+      getRequestMetadata(request),
+    );
+
+    return userResponseSchema.parse({
+      user,
+    });
+  }
+
+  @RequireAuth()
+  @Get('me/ringtone')
+  public async streamCustomRingtone(
+    @CurrentUser() currentUser: PublicUser,
+    @Res() response: Response,
+  ) {
+    const asset = await this.usersService.getCustomRingtoneAsset(currentUser.id);
+    response.setHeader('Content-Type', asset.mimeType);
+    response.setHeader('Cache-Control', 'private, max-age=300');
+
+    return response.send(asset.buffer);
   }
 
   @RequireAuth()

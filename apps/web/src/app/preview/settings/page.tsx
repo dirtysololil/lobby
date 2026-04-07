@@ -30,6 +30,7 @@ export default function PreviewSettingsPage() {
           viewer={previewViewer}
           maxAvatarMb={10}
           maxAvatarAnimationMs={15000}
+          maxRingtoneMb={25}
         />
       </div>
     </PreviewShell>

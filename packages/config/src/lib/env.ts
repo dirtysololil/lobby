@@ -35,6 +35,7 @@ const apiEnvSchema = z.object({
   MAX_AVATAR_MB: z.coerce.number().positive(),
   MAX_AVATAR_FRAMES: z.coerce.number().int().positive().default(180),
   MAX_AVATAR_ANIMATION_MS: z.coerce.number().int().positive().default(10000),
+  MAX_RINGTONE_MB: z.coerce.number().positive().default(25),
   MAX_FILE_MB: z.coerce.number().positive(),
   REALTIME_CORS_ORIGIN: z.string().url(),
 });
@@ -65,6 +66,7 @@ const webEnvSchema = z.object({
   WEB_HOST: z.string().min(1),
   MAX_AVATAR_MB: z.coerce.number().positive(),
   MAX_AVATAR_ANIMATION_MS: z.coerce.number().int().positive(),
+  MAX_RINGTONE_MB: z.coerce.number().positive().default(25),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

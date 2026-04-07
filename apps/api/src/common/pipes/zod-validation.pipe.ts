@@ -13,7 +13,8 @@ export class ZodValidationPipe<TSchemaOutput> implements PipeTransform<
 
     if (!parsed.success) {
       throw new BadRequestException({
-        message: 'Validation failed',
+        code: 'VALIDATION_ERROR',
+        message: 'Ошибка валидации данных',
         details: parsed.error.flatten(),
       });
     }
