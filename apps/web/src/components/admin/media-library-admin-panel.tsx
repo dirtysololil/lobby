@@ -25,6 +25,7 @@ import {
   Sticker,
   Trash2,
 } from "lucide-react";
+import type { MouseEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { apiClientFetch } from "@/lib/api-client";
 import { getCustomEmojiAssetUrl, reorderItems } from "@/lib/stickers";
@@ -541,6 +542,589 @@ export function MediaLibraryAdminPanel({
     });
   }
 
+  const renderEmojiTab = () => (
+    <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <div className="premium-panel rounded-[24px] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-white">Кастомные смайлики</h2>
+            <p className="mt-1 text-sm text-[var(--text-dim)]">
+              Загружайте свои смайлики, задавайте alias и управляйте видимостью в picker.
+            </p>
+          </div>
+          <span className="status-pill">
+            <Laugh {...iconProps} />
+            {library.emojis.length}
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input
+              value={newEmojiAlias}
+              onChange={(event) => setNewEmojiAlias(event.target.value)}
+              placeholder="Alias, например party_blob"
+              className="h-11 border-white/8 bg-white/[0.03] text-white"
+            />
+            <Input
+              value={newEmojiTitle}
+              onChange={(event) => setNewEmojiTitle(event.target.value)}
+              placeholder="Название смайлика"
+              className="h-11 border-white/8 bg-white/[0.03] text-white"
+            />
+          </div>
+
+          <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed border-white/10 bg-white/[0.02] px-4 py-5 text-center">
+            <ImagePlus {...iconProps} className="text-[var(--text-soft)]" />
+            <span className="mt-2 text-sm text-white">
+              {newEmojiFile ? newEmojiFile.name : "Выберите PNG / WEBP / GIF"}
+            </span>
+            <span className="mt-1 text-xs text-[var(--text-dim)]">
+              Файл будет доступен в picker после загрузки.
+            </span>
+            <input
+              type="file"
+              accept="image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(event) =>
+                setNewEmojiFile(event.target.files?.[0] ?? null)
+              }
+            />
+          </label>
+
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => void handleCreateEmoji()}
+              disabled={pendingKey === "emoji:create"}
+            >
+              Добавить смайлик
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          {filteredEmojis.length === 0 ? (
+            <EmptyState
+              title="Смайлики не найдены"
+              description="Загрузите первый смайлик или измените поисковый запрос."
+            />
+          ) : (
+            filteredEmojis.map((emoji) => {
+              const draft = emojiDrafts[emoji.id] ?? {
+                alias: emoji.alias,
+                title: emoji.title,
+              };
+
+              return (
+                <div
+                  key={emoji.id}
+                  className="grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4 xl:grid-cols-[72px_minmax(0,1fr)_auto]"
+                >
+                  <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[18px] border border-white/8 bg-[rgba(11,16,24,0.86)]">
+                    <img
+                      src={getCustomEmojiAssetUrl(emoji.id)}
+                      alt={emoji.title}
+                      className="max-h-12 max-w-12 object-contain"
+                    />
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input
+                      value={draft.alias}
+                      onChange={(event) =>
+                        setEmojiDrafts((current) => ({
+                          ...current,
+                          [emoji.id]: {
+                            ...draft,
+                            alias: event.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="Alias"
+                      className="h-10 border-white/8 bg-white/[0.03] text-white"
+                    />
+                    <Input
+                      value={draft.title}
+                      onChange={(event) =>
+                        setEmojiDrafts((current) => ({
+                          ...current,
+                          [emoji.id]: {
+                            ...draft,
+                            title: event.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="Название"
+                      className="h-10 border-white/8 bg-white/[0.03] text-white"
+                    />
+                    <div className="md:col-span-2 flex items-center justify-between gap-3">
+                      <StatusPill active={emoji.isActive} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => void handleSaveEmoji(emoji.id)}
+                          disabled={pendingKey === `emoji:save:${emoji.id}`}
+                        >
+                          Сохранить
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => void toggleEmoji(emoji.id, !emoji.isActive)}
+                          disabled={pendingKey === `emoji:toggle:${emoji.id}`}
+                        >
+                          {emoji.isActive ? "Скрыть" : "Включить"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start justify-end gap-2">
+                    <IconButton
+                      label="Поднять"
+                      disabled={
+                        pendingKey !== null ||
+                        library.emojis.findIndex((item) => item.id === emoji.id) === 0
+                      }
+                      onClick={() => moveEmoji(emoji.id, -1)}
+                      icon={<ArrowUp {...iconProps} />}
+                    />
+                    <IconButton
+                      label="Опустить"
+                      disabled={
+                        pendingKey !== null ||
+                        library.emojis.findIndex((item) => item.id === emoji.id) ===
+                          library.emojis.length - 1
+                      }
+                      onClick={() => moveEmoji(emoji.id, 1)}
+                      icon={<ArrowDown {...iconProps} />}
+                    />
+                    <IconButton
+                      label="Удалить"
+                      disabled={pendingKey === `emoji:delete:${emoji.id}`}
+                      onClick={() => deleteEmoji(emoji.id)}
+                      icon={<Trash2 {...iconProps} />}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      <aside className="premium-panel rounded-[24px] p-5">
+        <h3 className="text-sm font-semibold text-white">Как это работает</h3>
+        <div className="mt-4 grid gap-3 text-sm text-[var(--text-dim)]">
+          <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
+            1. Загрузите файл смайлика и задайте alias.
+          </div>
+          <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
+            2. При необходимости отредактируйте название и порядок.
+          </div>
+          <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
+            3. Скрытые смайлики остаются в истории, но исчезают из picker.
+          </div>
+        </div>
+      </aside>
+    </section>
+  );
+
+  const renderGifTab = () => (
+    <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <div className="premium-panel rounded-[24px] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-white">GIF-библиотека</h2>
+            <p className="mt-1 text-sm text-[var(--text-dim)]">
+              Загружайте свои GIF и управляйте тем, что доступно в picker.
+            </p>
+          </div>
+          <span className="status-pill">
+            <Film {...iconProps} />
+            {library.gifs.length}
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+          <Input
+            value={newGifTitle}
+            onChange={(event) => setNewGifTitle(event.target.value)}
+            placeholder="Название GIF"
+            className="h-11 border-white/8 bg-white/[0.03] text-white"
+          />
+          <Input
+            value={newGifTags}
+            onChange={(event) => setNewGifTags(event.target.value)}
+            placeholder="Теги через запятую"
+            className="h-11 border-white/8 bg-white/[0.03] text-white"
+          />
+          <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed border-white/10 bg-white/[0.02] px-4 py-5 text-center">
+            <Film {...iconProps} className="text-[var(--text-soft)]" />
+            <span className="mt-2 text-sm text-white">
+              {newGifFile ? newGifFile.name : "Выберите GIF"}
+            </span>
+            <input
+              type="file"
+              accept="image/gif"
+              className="hidden"
+              onChange={(event) => setNewGifFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => void handleCreateGif()}
+              disabled={pendingKey === "gif:create"}
+            >
+              Добавить GIF
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          {filteredGifs.length === 0 ? (
+            <EmptyState
+              title="GIF не найдены"
+              description="Загрузите первый GIF или измените поисковый запрос."
+            />
+          ) : (
+            filteredGifs.map((gif) => {
+              const draft = gifDrafts[gif.id] ?? {
+                title: gif.title,
+                tags: gif.tags.join(", "),
+              };
+
+              return (
+                <div
+                  key={gif.id}
+                  className="grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4 xl:grid-cols-[minmax(0,1fr)_auto]"
+                >
+                  <div className="grid gap-3">
+                    <Input
+                      value={draft.title}
+                      onChange={(event) =>
+                        setGifDrafts((current) => ({
+                          ...current,
+                          [gif.id]: {
+                            ...draft,
+                            title: event.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="Название GIF"
+                      className="h-10 border-white/8 bg-white/[0.03] text-white"
+                    />
+                    <Input
+                      value={draft.tags}
+                      onChange={(event) =>
+                        setGifDrafts((current) => ({
+                          ...current,
+                          [gif.id]: {
+                            ...draft,
+                            tags: event.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="Теги"
+                      className="h-10 border-white/8 bg-white/[0.03] text-white"
+                    />
+                    <div className="flex items-center justify-between gap-3">
+                      <StatusPill active={gif.isActive} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => void handleSaveGif(gif.id)}
+                          disabled={pendingKey === `gif:save:${gif.id}`}
+                        >
+                          Сохранить
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => void toggleGif(gif.id, !gif.isActive)}
+                          disabled={pendingKey === `gif:toggle:${gif.id}`}
+                        >
+                          {gif.isActive ? "Скрыть" : "Включить"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start justify-end gap-2">
+                    <IconButton
+                      label="Поднять"
+                      disabled={
+                        pendingKey !== null ||
+                        library.gifs.findIndex((item) => item.id === gif.id) === 0
+                      }
+                      onClick={() => moveGif(gif.id, -1)}
+                      icon={<ArrowUp {...iconProps} />}
+                    />
+                    <IconButton
+                      label="Опустить"
+                      disabled={
+                        pendingKey !== null ||
+                        library.gifs.findIndex((item) => item.id === gif.id) ===
+                          library.gifs.length - 1
+                      }
+                      onClick={() => moveGif(gif.id, 1)}
+                      icon={<ArrowDown {...iconProps} />}
+                    />
+                    <IconButton
+                      label="Удалить"
+                      disabled={pendingKey === `gif:delete:${gif.id}`}
+                      onClick={() => deleteGif(gif.id)}
+                      icon={<Trash2 {...iconProps} />}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      <aside className="premium-panel rounded-[24px] p-5">
+        <h3 className="text-sm font-semibold text-white">Подсказка</h3>
+        <p className="mt-3 text-sm text-[var(--text-dim)]">
+          Для GIF лучше использовать короткие названия и 2–5 тегов, чтобы picker оставался
+          быстрым и понятным.
+        </p>
+      </aside>
+    </section>
+  );
+
+  const renderStickerTab = () => (
+    <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+      <aside className="premium-panel rounded-[24px] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-white">Наборы стикеров</h2>
+            <p className="mt-1 text-sm text-[var(--text-dim)]">
+              Создавайте наборы, управляйте порядком и видимостью.
+            </p>
+          </div>
+          <span className="status-pill">
+            <FolderPlus {...iconProps} />
+            {library.stickerPacks.length}
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+          <Input
+            value={newPackTitle}
+            onChange={(event) => setNewPackTitle(event.target.value)}
+            placeholder="Название нового набора"
+            className="h-11 border-white/8 bg-white/[0.03] text-white"
+          />
+          <Button
+            type="button"
+            onClick={() => void handleCreatePack()}
+            disabled={pendingKey === "pack:create"}
+          >
+            Создать набор
+          </Button>
+        </div>
+
+        <div className="mt-4 grid gap-2">
+          {filteredPacks.length === 0 ? (
+            <EmptyState
+              title="Наборы не найдены"
+              description="Создайте первый набор или измените поисковый запрос."
+            />
+          ) : (
+            filteredPacks.map((pack) => (
+              <button
+                key={pack.id}
+                type="button"
+                onClick={() => setSelectedPackId(pack.id)}
+                className={cn(
+                  "rounded-[18px] border px-4 py-3 text-left transition-colors",
+                  selectedPackId === pack.id
+                    ? "border-white/14 bg-white/[0.08]"
+                    : "border-white/8 bg-white/[0.03] hover:bg-white/[0.05]",
+                )}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-white">{pack.title}</div>
+                    <div className="mt-1 text-xs text-[var(--text-dim)]">
+                      Стикеров: {pack.stickers.length}
+                    </div>
+                  </div>
+                  <StatusPill active={pack.isActive} />
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </aside>
+
+      <div className="premium-panel rounded-[24px] p-5">
+        {!selectedPack ? (
+          <EmptyState
+            title="Выберите набор"
+            description="Слева отображаются все доступные наборы стикеров."
+          />
+        ) : (
+          <>
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 flex-1">
+                <Input
+                  value={packTitleDraft}
+                  onChange={(event) => setPackTitleDraft(event.target.value)}
+                  placeholder="Название набора"
+                  className="h-11 border-white/8 bg-white/[0.03] text-white"
+                />
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => void handleSavePack()}
+                    disabled={pendingKey === `pack:save:${selectedPack.id}`}
+                  >
+                    Сохранить набор
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => void togglePack(!selectedPack.isActive)}
+                    disabled={pendingKey === `pack:toggle:${selectedPack.id}`}
+                  >
+                    {selectedPack.isActive ? "Скрыть набор" : "Включить набор"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <IconButton
+                  label="Поднять"
+                  disabled={
+                    pendingKey !== null ||
+                    library.stickerPacks.findIndex((item) => item.id === selectedPack.id) === 0
+                  }
+                  onClick={() => movePack(selectedPack.id, -1)}
+                  icon={<ArrowUp {...iconProps} />}
+                />
+                <IconButton
+                  label="Опустить"
+                  disabled={
+                    pendingKey !== null ||
+                    library.stickerPacks.findIndex((item) => item.id === selectedPack.id) ===
+                      library.stickerPacks.length - 1
+                  }
+                  onClick={() => movePack(selectedPack.id, 1)}
+                  icon={<ArrowDown {...iconProps} />}
+                />
+                <IconButton
+                  label="Удалить набор"
+                  disabled={pendingKey === `pack:delete:${selectedPack.id}`}
+                  onClick={() => deletePack()}
+                  icon={<Trash2 {...iconProps} />}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+              <Input
+                value={stickerTitleDraft}
+                onChange={(event) => setStickerTitleDraft(event.target.value)}
+                placeholder="Название стикера для одиночной загрузки"
+                className="h-11 border-white/8 bg-white/[0.03] text-white"
+              />
+              <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed border-white/10 bg-white/[0.02] px-4 py-5 text-center">
+                <ImagePlus {...iconProps} className="text-[var(--text-soft)]" />
+                <span className="mt-2 text-sm text-white">
+                  {stickerFiles.length > 0
+                    ? `Выбрано файлов: ${stickerFiles.length}`
+                    : "Выберите один или несколько стикеров"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/png,image/webp,image/gif"
+                  multiple
+                  className="hidden"
+                  onChange={(event) =>
+                    setStickerFiles(Array.from(event.target.files ?? []))
+                  }
+                />
+              </label>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={() => void handleUploadStickers()}
+                  disabled={pendingKey === `pack:upload:${selectedPack.id}`}
+                >
+                  Загрузить стикеры
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {visibleStickers.length === 0 ? (
+                <EmptyState
+                  title="Стикеры не найдены"
+                  description="Загрузите первый стикер в набор или измените поисковый запрос."
+                />
+              ) : (
+                visibleStickers.map((sticker) => (
+                  <div
+                    key={sticker.id}
+                    className="grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4 xl:grid-cols-[minmax(0,1fr)_auto]"
+                  >
+                    <div>
+                      <div className="text-sm font-medium text-white">{sticker.title}</div>
+                      <div className="mt-1 text-xs text-[var(--text-dim)]">
+                        {sticker.originalName ?? "Без исходного имени"}
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <StatusPill active={sticker.isActive} />
+                        <Button
+                          type="button"
+                          onClick={() => void toggleSticker(sticker, !sticker.isActive)}
+                          disabled={pendingKey === `sticker:toggle:${sticker.id}`}
+                        >
+                          {sticker.isActive ? "Скрыть" : "Включить"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start justify-end gap-2">
+                      <IconButton
+                        label="Поднять"
+                        disabled={
+                          pendingKey !== null ||
+                          selectedPack.stickers.findIndex((item) => item.id === sticker.id) === 0
+                        }
+                        onClick={() => moveSticker(sticker.id, -1)}
+                        icon={<ArrowUp {...iconProps} />}
+                      />
+                      <IconButton
+                        label="Опустить"
+                        disabled={
+                          pendingKey !== null ||
+                          selectedPack.stickers.findIndex((item) => item.id === sticker.id) ===
+                            selectedPack.stickers.length - 1
+                        }
+                        onClick={() => moveSticker(sticker.id, 1)}
+                        icon={<ArrowDown {...iconProps} />}
+                      />
+                      <IconButton
+                        label="Удалить"
+                        disabled={pendingKey === `sticker:delete:${sticker.id}`}
+                        onClick={() => deleteSticker(sticker.id)}
+                        icon={<Trash2 {...iconProps} />}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+
+
   return (
     <div className="grid gap-4">
       <section className="premium-panel rounded-[26px] p-5">
@@ -617,7 +1201,7 @@ function AdminTabButton({
   onClick,
 }: {
   active: boolean;
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   onClick: () => void;
 }) {
@@ -661,8 +1245,8 @@ function IconButton({
 }: {
   label: string;
   disabled: boolean;
-  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
-  icon: React.ReactNode;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  icon: ReactNode;
 }) {
   return (
     <button
