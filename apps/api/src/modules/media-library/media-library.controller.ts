@@ -112,7 +112,7 @@ export class MediaLibraryController {
     @Req() request: AuthenticatedRequest,
   ) {
     const parsed = createCustomEmojiSchema.parse({
-      alias: body?.alias,
+      alias: body.alias,
       title: body?.title,
     } satisfies CreateCustomEmojiInput);
 
@@ -192,7 +192,7 @@ export class MediaLibraryController {
     @Req() request: AuthenticatedRequest,
   ) {
     const parsed = createGifAssetSchema.parse({
-      title: body?.title,
+      title: body.title,
       tags: normalizeTags(body?.tags),
     } satisfies CreateGifAssetInput);
 
