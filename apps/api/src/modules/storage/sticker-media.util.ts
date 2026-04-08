@@ -131,7 +131,10 @@ async function inspectStickerSource(
         width: metadata.width ?? 0,
         height: metadata.pageHeight ?? metadata.height ?? 0,
         durationMs: Array.isArray(metadata.delay)
-          ? metadata.delay.reduce((sum, value) => sum + value, 0)
+          ? metadata.delay.reduce<number>(
+              (sum: number, value: number) => sum + value,
+              0,
+            )
           : null,
         isAnimated: (metadata.pages ?? 1) > 1,
       };
@@ -208,11 +211,16 @@ async function renderAnimatedSticker(
     `scale=${transform.width}:${transform.height}:flags=lanczos`,
     `pad=${outputSize}:${outputSize}:${transform.left}:${transform.top}:color=0x00000000`,
   ].join(',');
+  const ffmpegBinaryPath = getRequiredBinaryPath(
+    ffmpegPath,
+    'ffmpeg',
+    'Обработка анимированных стикеров недоступна: ffmpeg не найден.',
+  );
 
   try {
     await writeFile(inputPath, buffer);
 
-    await runBinary(ffmpegPath as string, [
+    await runBinary(ffmpegBinaryPath, [
       '-y',
       '-i',
       inputPath,
@@ -223,7 +231,7 @@ async function renderAnimatedSticker(
       posterPath,
     ]);
 
-    await runBinary(ffmpegPath as string, [
+    await runBinary(ffmpegBinaryPath, [
       '-y',
       '-i',
       inputPath,
@@ -434,4 +442,16 @@ function runBinary(binaryPath: string, args: string[]): Promise<string> {
       reject(new Error(stderr.trim() || `${binaryPath} exited with code ${code}`));
     });
   });
+}
+
+function getRequiredBinaryPath(
+  binaryPath: string | null | undefined,
+  name: string,
+  errorMessage: string,
+): string {
+  if (typeof binaryPath === 'string' && binaryPath.trim().length > 0) {
+    return binaryPath;
+  }
+
+  throw new Error(`${errorMessage} (${name})`);
 }
