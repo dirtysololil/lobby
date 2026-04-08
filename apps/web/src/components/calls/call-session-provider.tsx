@@ -470,7 +470,7 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [voiceEffect, setVoiceEffectState] = useState<VoiceEffectPreset>("normal");
   const [effectError, setEffectError] = useState<string | null>(null);
-  const outputSelectionSupported = useMemo(() => supportsAudioOutputSelection(), []);
+  const [outputSelectionSupported, setOutputSelectionSupported] = useState(false);
   const connectionKey = useMemo(() => {
     if (!session) {
       return null;
@@ -490,6 +490,15 @@ export function CallSessionProvider({ children }: { children: ReactNode }) {
     session?.connection.token,
     session?.connection.url,
   ]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      setOutputSelectionSupported(false);
+      return;
+    }
+
+    setOutputSelectionSupported(supportsAudioOutputSelection());
+  }, []);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {

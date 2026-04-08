@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,5 +36,6 @@ await run(getBinPath("prisma", rootDir), ["generate", "--schema", "prisma/schema
 await run(getBinPath("tsc", rootDir), ["-p", "packages/shared/tsconfig.build.json"]);
 await run(getBinPath("tsc", rootDir), ["-p", "packages/config/tsconfig.build.json"]);
 await run(getBinPath("nest", apiDir), ["build"], apiDir);
+await rm(path.join(webDir, ".next"), { recursive: true, force: true });
 await run(getBinPath("next", webDir), ["build"], webDir);
 await run(process.execPath, ["scripts/prepare-standalone-assets.mjs"], webDir);
