@@ -2,9 +2,11 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import ffmpegPath from 'ffmpeg-static';
-import ffprobe from 'ffprobe-static';
 import sharp from 'sharp';
+import {
+  resolveFfmpegBinaryPath,
+  resolveFfprobeBinaryPath,
+} from './ffmpeg-binaries.util';
 
 export interface StickerCropTransform {
   scale: number;
@@ -211,11 +213,7 @@ async function renderAnimatedSticker(
     `scale=${transform.width}:${transform.height}:flags=lanczos`,
     `pad=${outputSize}:${outputSize}:${transform.left}:${transform.top}:color=0x00000000`,
   ].join(',');
-  const ffmpegBinaryPath = getRequiredBinaryPath(
-    ffmpegPath,
-    'ffmpeg',
-    'Обработка анимированных стикеров недоступна: ffmpeg не найден.',
-  );
+  const ffmpegBinaryPath = await resolveFfmpegBinaryPath();
 
   try {
     await writeFile(inputPath, buffer);
@@ -277,7 +275,8 @@ async function probeVideoSource(
 
   try {
     await writeFile(inputPath, buffer);
-    const stdout = await runBinary(ffprobe.path, [
+    const ffprobeBinaryPath = await resolveFfprobeBinaryPath();
+    const stdout = await runBinary(ffprobeBinaryPath, [
       '-v',
       'error',
       '-print_format',
@@ -431,7 +430,17 @@ function runBinary(binaryPath: string, args: string[]): Promise<string> {
       stderr += chunk.toString();
     });
     child.on('error', (error) => {
-      reject(error);
+      const errorCode =
+        error && typeof error === 'object' && 'code' in error
+          ? String(error.code)
+          : null;
+      reject(
+        errorCode === 'ENOENT'
+          ? new Error(
+              `Не удалось запустить ${binaryPath}. Проверьте FFMPEG_PATH/FFPROBE_PATH или системный PATH.`,
+            )
+          : error,
+      );
     });
     child.on('close', (code) => {
       if (code === 0) {
@@ -442,16 +451,4 @@ function runBinary(binaryPath: string, args: string[]): Promise<string> {
       reject(new Error(stderr.trim() || `${binaryPath} exited with code ${code}`));
     });
   });
-}
-
-function getRequiredBinaryPath(
-  binaryPath: string | null | undefined,
-  name: string,
-  errorMessage: string,
-): string {
-  if (typeof binaryPath === 'string' && binaryPath.trim().length > 0) {
-    return binaryPath;
-  }
-
-  throw new Error(`${errorMessage} (${name})`);
 }

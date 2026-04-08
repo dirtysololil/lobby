@@ -47,6 +47,8 @@ const apiEnvSchema = z.object({
   MAX_GIF_ANIMATION_MS: z.coerce.number().int().positive().default(15000),
   MAX_RINGTONE_MB: z.coerce.number().positive().default(25),
   MAX_FILE_MB: z.coerce.number().positive(),
+  FFMPEG_PATH: z.string().min(1).optional(),
+  FFPROBE_PATH: z.string().min(1).optional(),
   REALTIME_CORS_ORIGIN: z.string().url(),
 });
 

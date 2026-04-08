@@ -433,7 +433,7 @@ export function StickerPacksAdminPanel({
                           {pack.title}
                         </div>
                         <div className="mt-1 truncate text-xs text-[var(--text-dim)]">
-                          /{pack.slug} • {pack.stickers.length} стикеров
+                          {pack.stickers.length} стикеров
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -469,9 +469,6 @@ export function StickerPacksAdminPanel({
                     placeholder="Название пака"
                     className="h-11 border-white/8 bg-white/[0.03] text-white"
                   />
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Стабильный slug: <span className="font-mono text-white">/{selectedPack.slug}</span>
-                  </p>
                   <textarea
                     value={draft.description}
                     onChange={(event) =>
