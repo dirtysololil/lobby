@@ -11,6 +11,7 @@ import { FileText, ImagePlus, Paperclip, SendHorizontal, SmilePlus } from "lucid
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type FormEvent,
@@ -126,12 +127,7 @@ export function MessageComposer({
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
 
-  useEffect(() => {
-    setRecentEmojis(readRecentStrings(RECENT_EMOJIS_KEY));
-    setRecentGifIds(readRecentStrings(RECENT_GIFS_KEY));
-  }, []);
-
-  useEffect(() => {
+  const syncTextareaHeight = useCallback(() => {
     const element = textareaRef.current;
 
     if (!element) {
@@ -142,7 +138,16 @@ export function MessageComposer({
     const nextHeight = Math.min(element.scrollHeight, MAX_HEIGHT);
     element.style.height = `${nextHeight}px`;
     element.style.overflowY = element.scrollHeight > MAX_HEIGHT ? "auto" : "hidden";
-  }, [content]);
+  }, []);
+
+  useEffect(() => {
+    setRecentEmojis(readRecentStrings(RECENT_EMOJIS_KEY));
+    setRecentGifIds(readRecentStrings(RECENT_GIFS_KEY));
+  }, []);
+
+  useLayoutEffect(() => {
+    syncTextareaHeight();
+  }, [content, syncTextareaHeight]);
 
   useEffect(() => {
     if (!pickerOpen) {
@@ -567,6 +572,7 @@ export function MessageComposer({
             ref={textareaRef}
             value={content}
             onChange={(event) => setContent(event.target.value)}
+            onInput={syncTextareaHeight}
             onPaste={handlePaste}
             onClick={syncSelection}
             onKeyUp={syncSelection}
@@ -577,6 +583,7 @@ export function MessageComposer({
             disabled={disabled || isSendingText || isUploadingFiles}
             rows={1}
             className="relative block min-h-9 max-h-28 w-full resize-none rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] text-transparent caret-white outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ resize: "none" }}
           />
         </div>
 
