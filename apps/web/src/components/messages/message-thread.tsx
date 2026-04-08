@@ -34,6 +34,7 @@ interface MessageThreadProps {
   isDeleting: string | null;
   lastReadAt: string | null;
   customEmojis: CustomEmojiAsset[];
+  searchQuery?: string;
   onDelete: (messageId: string) => Promise<void>;
   onRetry: (messageId: string) => Promise<void>;
 }
@@ -86,6 +87,19 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function buildSearchableMessageText(message: ThreadMessageItem) {
+  const parts = [
+    message.author.profile.displayName,
+    message.author.username,
+    message.content,
+    message.sticker?.title,
+    message.gif?.title,
+    message.attachment?.originalName,
+  ];
+
+  return parts.filter((value): value is string => Boolean(value)).join(" ").toLowerCase();
+}
+
 function clampContextMenuPosition(x: number, y: number) {
   if (typeof window === "undefined") {
     return { x, y };
@@ -106,12 +120,14 @@ export function MessageThread({
   isDeleting,
   lastReadAt,
   customEmojis,
+  searchQuery = "",
   onDelete,
   onRetry,
 }: MessageThreadProps) {
   const [mounted, setMounted] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [pendingEmbedTick, setPendingEmbedTick] = useState(0);
+  const messageElementRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const groupedMessages = useMemo(
     () =>
       messages.reduce<ThreadGroup[]>(
@@ -148,6 +164,20 @@ export function MessageThread({
   );
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const didInitScrollRef = useRef(false);
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const matchingMessageIds = useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      messages
+        .filter((message) =>
+          buildSearchableMessageText(message).includes(normalizedSearchQuery),
+        )
+        .map((message) => message.id),
+    );
+  }, [messages, normalizedSearchQuery]);
 
   useEffect(() => {
     setMounted(true);
@@ -216,6 +246,36 @@ export function MessageThread({
       window.clearTimeout(timer);
     };
   }, [messages]);
+
+  useEffect(() => {
+    if (!normalizedSearchQuery) {
+      return;
+    }
+
+    const firstMatchingId = messages.find((message) =>
+      matchingMessageIds.has(message.id),
+    )?.id;
+
+    if (!firstMatchingId) {
+      return;
+    }
+
+    const element = messageElementRefs.current.get(firstMatchingId);
+    if (!element) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      element.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [matchingMessageIds, messages, normalizedSearchQuery]);
 
   useEffect(() => {
     if (!contextMenu) {
@@ -388,10 +448,25 @@ export function MessageThread({
                         : "border-white/[0.16] bg-[linear-gradient(180deg,rgba(255,255,255,0.024),transparent_44%),rgba(255,255,255,0.07)] shadow-[0_10px_24px_rgba(8,16,28,0.12)]"),
                     message.localState === "failed" &&
                       "border-amber-400/30 bg-amber-400/10",
+                    normalizedSearchQuery &&
+                      matchingMessageIds.has(message.id) &&
+                      !isVisualMessage &&
+                      "border-[rgba(106,168,248,0.38)] shadow-[0_0_0_1px_rgba(106,168,248,0.18),0_10px_24px_rgba(8,16,28,0.12)]",
                   );
 
                   return (
-                    <div key={message.id}>
+                    <div
+                      key={message.id}
+                      data-message-id={message.id}
+                      ref={(node) => {
+                        if (node) {
+                          messageElementRefs.current.set(message.id, node);
+                          return;
+                        }
+
+                        messageElementRefs.current.delete(message.id);
+                      }}
+                    >
                       {isUnreadMarker ? (
                         <div className="mb-2 flex items-center gap-3 py-0.5">
                           <div className="h-px flex-1 bg-[color:var(--accent)]/35" />

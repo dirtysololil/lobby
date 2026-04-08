@@ -18,7 +18,9 @@ import {
   Video,
   VideoOff,
 } from "lucide-react";
+import type { ReactNode, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -34,6 +36,8 @@ interface DmCallPanelProps {
   counterpartUsername: string;
   counterpartAvailabilityLabel: string | null;
   counterpartIsOnline: boolean;
+  variant?: "panel" | "header";
+  stageHostRef?: RefObject<HTMLDivElement | null>;
 }
 
 const iconProps = { size: 16, strokeWidth: 1.5 } as const;
@@ -50,6 +54,8 @@ export function DmCallPanel({
   counterpartUsername,
   counterpartAvailabilityLabel,
   counterpartIsOnline,
+  variant = "panel",
+  stageHostRef,
 }: DmCallPanelProps) {
   const { socket, latestSignal, clearIncomingCall } = useRealtime();
   const {
@@ -72,6 +78,7 @@ export function DmCallPanel({
   const [state, setState] = useState<CallStateResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const loadRequestIdRef = useRef(0);
 
   const callRoute = `/app/messages/${conversationId}`;
@@ -416,6 +423,137 @@ export function DmCallPanel({
         : "Звонок";
   const screenShareButtonLabel = screenShareEnabled ? "Остановить показ" : "Показать экран";
   const cameraButtonLabel = cameraEnabled ? "Камера" : "Включить камеру";
+  const statusChip = (
+    <span className={cn("status-pill hidden lg:inline-flex", readinessToneClassName)}>
+      {readinessLabel}
+    </span>
+  );
+  const stageMarkup =
+    mounted && stageHostRef?.current && expandedCallId
+      ? createPortal(
+          <div className="mt-2 border-t border-white/6 pt-2">
+            <LiveKitCallRoom
+              callId={expandedCallId}
+              title="DM stage"
+              description=""
+              variant="conversation"
+            />
+          </div>,
+          stageHostRef.current,
+        )
+      : null;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (variant === "header") {
+    return (
+      <>
+        <div className="flex items-center gap-1.5">
+          {statusChip}
+
+          {!activeCall ? (
+            <>
+              <HeaderActionButton
+                label={pendingAction === "start:AUDIO" ? "Запускаем звонок" : "Аудиозвонок"}
+                disabled={isBlocked || pendingAction !== null}
+                onClick={() => void startCall("AUDIO")}
+                active={false}
+              >
+                <Phone {...iconProps} />
+              </HeaderActionButton>
+              <HeaderActionButton
+                label={pendingAction === "start:VIDEO" ? "Запускаем видеозвонок" : "Видеозвонок"}
+                disabled={isBlocked || pendingAction !== null}
+                onClick={() => void startCall("VIDEO")}
+                active={false}
+              >
+                <Video {...iconProps} />
+              </HeaderActionButton>
+            </>
+          ) : isIncomingCall ? (
+            <>
+              <Button
+                size="sm"
+                className="h-9 rounded-full px-3"
+                onClick={() => void acceptCall()}
+                disabled={pendingAction !== null || isBlocked}
+              >
+                <PhoneCall {...iconProps} />
+                {pendingAction === "accept" ? "Подключаем..." : "Принять"}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-9 rounded-full px-3"
+                onClick={() => void declineCall()}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction === "decline" ? "..." : "Отклонить"}
+              </Button>
+            </>
+          ) : (
+            <>
+              {!isCurrentSession ? (
+                <HeaderActionButton
+                  label={pendingAction === "join" ? "Открываем звонок" : "Открыть звонок"}
+                  disabled={pendingAction !== null || isBlocked}
+                  onClick={() => void joinCall()}
+                  active
+                >
+                  <PhoneCall {...iconProps} />
+                </HeaderActionButton>
+              ) : null}
+              {isCurrentSession ? (
+                <HeaderActionButton
+                  label={microphoneEnabled ? "Выключить микрофон" : "Включить микрофон"}
+                  disabled={pendingAction !== null || !canPublishMedia}
+                  onClick={() => void toggleMicrophone()}
+                  active={microphoneEnabled}
+                >
+                  {microphoneEnabled ? <Mic {...iconProps} /> : <MicOff {...iconProps} />}
+                </HeaderActionButton>
+              ) : null}
+              {isCurrentSession ? (
+                <HeaderActionButton
+                  label={cameraEnabled ? "Выключить камеру" : "Включить камеру"}
+                  disabled={pendingAction !== null || !canPublishMedia}
+                  onClick={() => void toggleCamera()}
+                  active={cameraEnabled}
+                >
+                  {cameraEnabled ? <Video {...iconProps} /> : <VideoOff {...iconProps} />}
+                </HeaderActionButton>
+              ) : null}
+              {isCurrentSession ? (
+                <HeaderActionButton
+                  label={screenShareButtonLabel}
+                  disabled={pendingAction !== null || !canPublishMedia}
+                  onClick={() => void toggleScreenShare()}
+                  active={screenShareEnabled}
+                >
+                  {screenShareEnabled ? (
+                    <MonitorX {...iconProps} />
+                  ) : (
+                    <MonitorUp {...iconProps} />
+                  )}
+                </HeaderActionButton>
+              ) : null}
+              <HeaderActionButton
+                label={pendingAction === "end" ? "Завершаем звонок" : "Завершить звонок"}
+                disabled={pendingAction !== null}
+                onClick={() => void endCall()}
+                tone="danger"
+              >
+                <Phone {...iconProps} />
+              </HeaderActionButton>
+            </>
+          )}
+        </div>
+        {stageMarkup}
+      </>
+    );
+  }
 
   return (
     <div className="grid gap-1.5">
@@ -577,5 +715,41 @@ export function DmCallPanel({
         />
       ) : null}
     </div>
+  );
+}
+
+function HeaderActionButton({
+  active = false,
+  children,
+  disabled,
+  label,
+  onClick,
+  tone = "default",
+}: {
+  active?: boolean;
+  children: ReactNode;
+  disabled: boolean;
+  label: string;
+  onClick: () => void;
+  tone?: "default" | "danger";
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 w-9 items-center justify-center rounded-full border text-[var(--text-soft)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] disabled:cursor-not-allowed disabled:opacity-50",
+        tone === "danger"
+          ? "border-rose-400/18 bg-rose-500/10 text-rose-100 hover:border-rose-400/28 hover:bg-rose-500/14"
+          : active
+            ? "border-[rgba(106,168,248,0.2)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)] hover:border-[rgba(106,168,248,0.3)] hover:bg-[rgba(106,168,248,0.18)]"
+            : "border-white/8 bg-white/[0.04] hover:border-white/12 hover:bg-white/[0.07] hover:text-white",
+      )}
+    >
+      {children}
+    </button>
   );
 }

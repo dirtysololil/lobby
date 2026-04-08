@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Clock3, ShieldAlert, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Clock3,
+  Info,
+  MoreHorizontal,
+  Search,
+  ShieldAlert,
+  UserRound,
+  X,
+} from "lucide-react";
 import {
   directConversationDetailSchema,
   directConversationSummaryResponseSchema,
@@ -13,8 +22,10 @@ import {
   type MediaPickerCatalog,
   type UserRole,
 } from "@lobby/shared";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { uploadDirectMessageAttachment } from "@/lib/direct-message-attachments";
@@ -342,8 +353,14 @@ export function ConversationView({
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
+  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [messageSearchQuery, setMessageSearchQuery] = useState("");
   const readInFlightRef = useRef(false);
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
+  const callStageHostRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
   const pendingReadRef = useRef<PendingReadState>({
@@ -501,6 +518,52 @@ export function ConversationView({
   }, []);
 
   useEffect(() => {
+    if (!isOverflowOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as HTMLElement | null;
+
+      if (target?.closest("[data-dm-header-menu]")) {
+        return;
+      }
+
+      setIsOverflowOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOverflowOpen(false);
+      }
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOverflowOpen]);
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      setMessageSearchQuery("");
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [isSearchOpen]);
+
+  useEffect(() => {
     if (!latestDmSignal || latestDmSignal.conversationId !== conversationId) {
       return;
     }
@@ -590,6 +653,7 @@ export function ConversationView({
   );
   const isBlocked =
     conversation?.isBlockedByViewer || conversation?.hasBlockedViewer || false;
+  const compactStatusLabel = counterpartAvailabilityLabel ?? "Не в сети";
 
   async function sendMessage(payload: ComposerSendPayload) {
     if (!conversation || !counterpart) {
@@ -865,83 +929,182 @@ export function ConversationView({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex shrink-0 flex-col gap-2 border-b border-white/5 bg-[rgba(11,16,24,0.88)] px-3 py-2 backdrop-blur-xl md:flex-row md:items-center md:justify-between md:gap-3">
-          <Link
-            href={buildUserProfileHref(counterpart.username)}
-            className="identity-link min-w-0 flex-1 rounded-[16px] px-1 py-0.5"
-          >
-            <UserAvatar user={counterpart} size="sm" />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-sm font-medium tracking-tight text-white">
-                  {counterpart.profile.displayName}
-                </p>
-              </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                <span>@{counterpart.username}</span>
-                {counterpartAvailabilityLabel ? (
-                  <>
-                    <span>•</span>
-                    <span
-                      className={cn(
-                        liveCounterpart?.isOnline
-                          ? "text-emerald-200"
-                          : "text-[var(--text-muted)]",
-                      )}
-                    >
-                      {counterpartAvailabilityLabel}
-                    </span>
-                  </>
-                ) : null}
-                {conversation.retentionMode !== "OFF" ? (
-                  <>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 text-[var(--text-muted)]">
-                      <Clock3 {...iconProps} />
-                      {dmRetentionLabels[conversation.retentionMode]}
-                    </span>
-                  </>
-                ) : null}
-                {isBlocked ? (
-                  <>
-                    <span>•</span>
-                    <span className="inline-flex items-center gap-1 text-amber-300">
-                      <ShieldAlert {...iconProps} />
+        <div className="relative shrink-0 border-b border-white/6 bg-[rgba(10,14,20,0.9)] backdrop-blur-xl">
+          <div className="flex min-h-[64px] items-center gap-3 px-3">
+            <Link
+              href="/app/messages"
+              aria-label="Назад к диалогам"
+              title="Назад к диалогам"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-[var(--text-soft)] transition-colors hover:border-white/12 hover:bg-white/[0.07] hover:text-white md:hidden"
+            >
+                <ArrowLeft {...iconProps} />
+            </Link>
+
+            <div className="min-w-0 flex flex-1 items-center gap-3">
+              <UserAvatar user={counterpart} size="sm" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-[15px] font-medium tracking-tight text-white">
+                    {counterpart.profile.displayName}
+                  </p>
+                  {isBlocked ? (
+                    <span className="hidden rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-200 lg:inline-flex">
                       Ограничено
                     </span>
-                  </>
+                  ) : null}
+                </div>
+                <p className="truncate text-xs text-[var(--text-muted)]">
+                  <span>@{counterpart.username}</span>
+                  <span className="px-1">•</span>
+                  <span
+                    className={cn(
+                      liveCounterpart?.isOnline
+                        ? "text-emerald-200"
+                        : "text-[var(--text-muted)]",
+                    )}
+                  >
+                    {compactStatusLabel}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="relative ml-auto flex items-center gap-1.5">
+              <ConversationHeaderIconButton
+                label="Поиск по диалогу"
+                active={isSearchOpen}
+                onClick={() => {
+                  setIsSearchOpen((current) => !current);
+                  setIsOverflowOpen(false);
+                }}
+                className="hidden sm:inline-flex"
+              >
+                <Search {...iconProps} />
+              </ConversationHeaderIconButton>
+
+              <DmCallPanel
+                conversationId={conversationId}
+                viewerId={viewerId}
+                isBlocked={isBlocked}
+                counterpartName={counterpart.profile.displayName}
+                counterpartUsername={counterpart.username}
+                counterpartAvailabilityLabel={counterpartAvailabilityLabel}
+                counterpartIsOnline={Boolean(liveCounterpart?.isOnline)}
+                variant="header"
+                stageHostRef={callStageHostRef}
+              />
+
+              <ConversationHeaderIconButton
+                label={isInfoPanelOpen ? "Скрыть детали" : "Открыть детали"}
+                active={isInfoPanelOpen}
+                onClick={() => {
+                  setIsInfoPanelOpen((current) => !current);
+                  setIsOverflowOpen(false);
+                }}
+              >
+                <Info {...iconProps} />
+              </ConversationHeaderIconButton>
+
+              <div className="relative" data-dm-header-menu="true">
+                <ConversationHeaderIconButton
+                  label="Другие действия"
+                  active={isOverflowOpen}
+                  onClick={() => setIsOverflowOpen((current) => !current)}
+                >
+                  <MoreHorizontal {...iconProps} />
+                </ConversationHeaderIconButton>
+
+                {isOverflowOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[240px] rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-1.5 shadow-[0_24px_60px_rgba(2,6,12,0.42)]">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05] sm:hidden"
+                      onClick={() => {
+                        setIsSearchOpen(true);
+                        setIsOverflowOpen(false);
+                      }}
+                    >
+                      <Search {...iconProps} />
+                      Поиск в диалоге
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
+                      onClick={() => {
+                        setIsInfoPanelOpen((current) => !current);
+                        setIsOverflowOpen(false);
+                      }}
+                    >
+                      <Info {...iconProps} />
+                      {isInfoPanelOpen ? "Скрыть детали" : "Открыть детали"}
+                    </button>
+                    <Link
+                      href={buildUserProfileHref(counterpart.username)}
+                      className="flex items-center gap-2 rounded-[12px] px-3 py-2 text-sm text-white transition-colors hover:bg-white/[0.05]"
+                      onClick={() => setIsOverflowOpen(false)}
+                    >
+                      <UserRound {...iconProps} />
+                      Профиль
+                    </Link>
+                    <Link
+                      href="/app/messages"
+                      className="flex items-center gap-2 rounded-[12px] px-3 py-2 text-sm text-white transition-colors hover:bg-white/[0.05]"
+                      onClick={() => setIsOverflowOpen(false)}
+                    >
+                      <ArrowLeft {...iconProps} />
+                      Назад к диалогам
+                    </Link>
+                    {(conversation.retentionMode !== "OFF" || isBlocked) ? (
+                      <div className="mt-1 border-t border-white/6 px-3 py-2 text-xs text-[var(--text-muted)]">
+                        {conversation.retentionMode !== "OFF" ? (
+                          <div className="flex items-center gap-2">
+                            <Clock3 className="h-3.5 w-3.5" />
+                            {dmRetentionLabels[conversation.retentionMode]}
+                          </div>
+                        ) : null}
+                        {isBlocked ? (
+                          <div className="mt-1 flex items-center gap-2 text-amber-200">
+                            <ShieldAlert className="h-3.5 w-3.5" />
+                            Звонки и отправка ограничены
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </div>
-          </Link>
-
-          <div className="utility-action-row md:ml-auto">
-            <Link href={buildUserProfileHref(counterpart.username)}>
-              <Button size="sm" variant="ghost" className="h-9 px-3">
-                <UserRound {...iconProps} />
-                Профиль
-              </Button>
-            </Link>
-            <Link href="/app/messages">
-              <Button size="sm" variant="ghost" className="h-9 px-3">
-                <ArrowLeft {...iconProps} />
-                Назад
-              </Button>
-            </Link>
           </div>
 
-        </div>
+          {isSearchOpen ? (
+            <div className="pointer-events-none absolute inset-x-3 top-1/2 z-20 -translate-y-1/2">
+              <div className="pointer-events-auto ml-auto flex h-10 w-full max-w-[min(420px,100%)] items-center gap-2 rounded-full border border-white/10 bg-[rgba(8,12,18,0.98)] px-3 shadow-[0_18px_44px_rgba(2,6,12,0.34)]">
+                <Search size={16} strokeWidth={1.5} className="shrink-0 text-[var(--text-soft)]" />
+                <Input
+                  ref={searchInputRef}
+                  value={messageSearchQuery}
+                  onChange={(event) => setMessageSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      setIsSearchOpen(false);
+                    }
+                  }}
+                  placeholder="Поиск по сообщениям"
+                  className="h-full border-0 bg-transparent px-0 text-sm text-white"
+                />
+                <button
+                  type="button"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-white/[0.06] hover:text-white"
+                  onClick={() => setIsSearchOpen(false)}
+                  aria-label="Закрыть поиск"
+                >
+                  <X size={15} strokeWidth={1.5} />
+                </button>
+              </div>
+            </div>
+          ) : null}
 
-        <div className="shrink-0 border-b border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_42%),rgba(20,29,40,0.62)] px-3 py-1.5">
-          <DmCallPanel
-            conversationId={conversationId}
-            viewerId={viewerId}
-            isBlocked={isBlocked}
-            counterpartName={counterpart.profile.displayName}
-            counterpartUsername={counterpart.username}
-            counterpartAvailabilityLabel={counterpartAvailabilityLabel}
-            counterpartIsOnline={Boolean(liveCounterpart?.isOnline)}
-          />
+          <div ref={callStageHostRef} className="contents" />
         </div>
 
         {errorMessage ? (
@@ -980,6 +1143,7 @@ export function ConversationView({
             isDeleting={isDeleting}
             lastReadAt={viewerParticipant.lastReadAt}
             customEmojis={pickerCatalog?.customEmojis ?? []}
+            searchQuery={messageSearchQuery}
             onDelete={deleteMessage}
             onRetry={retryMessage}
           />
@@ -992,9 +1156,11 @@ export function ConversationView({
             containerRef={messageViewportRef}
             conversationId={conversationId}
             counterpart={counterpart}
+            isOpen={isInfoPanelOpen}
             notificationSetting={viewerParticipant.notificationSetting}
             retentionMode={conversation.retentionMode}
             retentionSeconds={conversation.retentionSeconds}
+            onClose={() => setIsInfoPanelOpen(false)}
             onSave={saveSettings}
           />
         </div>
@@ -1034,5 +1200,36 @@ export function ConversationView({
         />
       </div>
     </div>
+  );
+}
+
+function ConversationHeaderIconButton({
+  active = false,
+  children,
+  className,
+  label,
+  onClick,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  className?: string;
+  label: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-[var(--text-soft)] transition-colors hover:border-white/12 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)]",
+        active &&
+          "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)]",
+        className,
+      )}
+    >
+      {children}
+    </button>
   );
 }
