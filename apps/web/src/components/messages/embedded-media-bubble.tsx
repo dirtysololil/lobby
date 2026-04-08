@@ -135,66 +135,73 @@ export function EmbeddedMediaBubble({
     mounted && isViewerOpen
       ? createPortal(
           <div
-            className="fixed inset-0 z-[120] bg-[rgba(3,6,10,0.82)] backdrop-blur-[8px]"
+            className="fixed inset-0 z-[120] bg-[rgba(4,7,11,0.88)] backdrop-blur-[10px]"
             onClick={() => setIsViewerOpen(false)}
           >
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <div
-                className="relative flex w-full max-w-[min(96vw,1320px)] items-center justify-center"
+                className="pointer-events-auto inline-flex max-w-full flex-col items-end gap-3"
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className="pointer-events-auto absolute right-0 top-[-52px] z-10 flex items-center gap-2">
+                <div className="dm-viewer-toolbar">
                   {href ? (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="dm-action-button"
-                      aria-label="Открыть источник"
-                      title="Открыть источник"
-                    >
-                      <ExternalLink size={15} strokeWidth={1.5} />
-                    </a>
+                    <>
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="dm-viewer-action"
+                        aria-label="Открыть отдельно"
+                        title="Открыть отдельно"
+                      >
+                        <ExternalLink size={15} strokeWidth={1.5} />
+                        <span className="dm-viewer-action-label">Открыть</span>
+                      </a>
+                      <span className="dm-viewer-toolbar-separator" aria-hidden="true" />
+                    </>
                   ) : null}
                   <button
                     type="button"
-                    className="dm-action-button"
+                    className="dm-viewer-action"
                     onClick={() => setIsViewerOpen(false)}
                     aria-label="Закрыть просмотр"
                     title="Закрыть просмотр"
                   >
                     <X size={15} strokeWidth={1.5} />
+                    <span className="dm-viewer-action-label">Закрыть</span>
                   </button>
                 </div>
 
-                {kind === "VIDEO" && viewerCanRenderVideo && effectivePlayableUrl ? (
-                  <video
-                    ref={viewerVideoRef}
-                    src={effectivePlayableUrl}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    poster={posterUrl ?? effectivePreviewUrl ?? undefined}
-                    onError={() => setViewerVideoFailed(true)}
-                    className="block max-h-[calc(100vh-7rem)] w-auto max-w-full rounded-[18px] bg-black/35 shadow-[0_28px_70px_rgba(2,6,12,0.34)]"
-                  />
-                ) : effectivePreviewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={effectivePreviewUrl}
-                    alt={label ?? ""}
-                    loading="eager"
-                    className="block max-h-[calc(100vh-6rem)] w-auto max-w-full rounded-[18px] object-contain shadow-[0_28px_70px_rgba(2,6,12,0.28)]"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="flex min-h-[320px] w-full max-w-[640px] items-center justify-center rounded-[24px] bg-[rgba(8,12,18,0.76)] text-center text-sm text-[var(--text-muted)] shadow-[0_24px_60px_rgba(2,6,12,0.3)]">
-                    <div className="grid gap-2 px-6">
-                      <ImageOff size={18} strokeWidth={1.5} className="mx-auto" />
-                      <span>{fallbackLabel}</span>
+                <div className="dm-viewer-stage">
+                  {kind === "VIDEO" && viewerCanRenderVideo && effectivePlayableUrl ? (
+                    <video
+                      ref={viewerVideoRef}
+                      src={effectivePlayableUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      poster={posterUrl ?? effectivePreviewUrl ?? undefined}
+                      onError={() => setViewerVideoFailed(true)}
+                      className="dm-viewer-media max-h-[calc(100vh-8.5rem)] w-auto"
+                    />
+                  ) : effectivePreviewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={effectivePreviewUrl}
+                      alt={label ?? ""}
+                      loading="eager"
+                      className="dm-viewer-media max-h-[calc(100vh-7.5rem)] w-auto object-contain"
+                      draggable={false}
+                    />
+                  ) : (
+                    <div className="flex min-h-[320px] w-full max-w-[640px] items-center justify-center rounded-[24px] bg-[rgba(8,12,18,0.5)] text-center text-sm text-[var(--text-muted)]">
+                      <div className="grid gap-2 px-6">
+                        <ImageOff size={18} strokeWidth={1.5} className="mx-auto" />
+                        <span>{fallbackLabel}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>,
@@ -209,7 +216,7 @@ export function EmbeddedMediaBubble({
         type="button"
         onClick={() => setIsViewerOpen(true)}
         className={cn(
-          "group relative block aspect-square w-full overflow-hidden rounded-[24px] bg-[rgba(6,10,16,0.78)] text-left shadow-[0_16px_34px_rgba(4,8,16,0.24)] transition-transform hover:-translate-y-[1px]",
+          "block aspect-square w-full overflow-hidden rounded-[12px] bg-transparent text-left transition-opacity hover:opacity-[0.98]",
           className,
         )}
       >
@@ -226,14 +233,6 @@ export function EmbeddedMediaBubble({
           mediaClassName="h-full w-full object-cover"
           fallbackLabel={fallbackLabel}
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-[linear-gradient(180deg,transparent,rgba(4,8,14,0.74))] px-3 pb-3 pt-10">
-          <span className="rounded-full bg-black/35 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-white/82">
-            {label ?? (kind === "VIDEO" ? "Видео" : "Медиа")}
-          </span>
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/60">
-            <ExternalLink size={12} strokeWidth={1.5} />
-          </span>
-        </div>
       </button>
       {viewerMarkup}
     </>

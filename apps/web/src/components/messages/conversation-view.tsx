@@ -943,6 +943,9 @@ export function ConversationView({
                 </Link>
                 <span className="dm-avatar-particle dm-avatar-particle-1" aria-hidden="true" />
                 <span className="dm-avatar-particle dm-avatar-particle-2" aria-hidden="true" />
+                <span className="dm-avatar-particle dm-avatar-particle-3" aria-hidden="true" />
+                <span className="dm-avatar-particle dm-avatar-particle-4" aria-hidden="true" />
+                <span className="dm-avatar-particle dm-avatar-particle-5" aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5">
@@ -1031,25 +1034,27 @@ export function ConversationView({
                   placeholder="Поиск по сообщениям"
                   className="dm-search-input text-sm"
                 />
-                {normalizedMessageSearchQuery ? (
-                  <span className="dm-message-meta-chip">{messageSearchMatches}</span>
-                ) : null}
-                <button
-                  type="button"
-                  className="dm-action-button h-7 w-7 border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/[0.04]"
-                  onClick={() => {
-                    if (messageSearchQuery) {
-                      setMessageSearchQuery("");
-                      searchInputRef.current?.focus();
-                      return;
-                    }
+                <div className="dm-search-actions">
+                  {normalizedMessageSearchQuery ? (
+                    <span className="dm-search-count">{messageSearchMatches}</span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="dm-search-clear"
+                    onClick={() => {
+                      if (messageSearchQuery) {
+                        setMessageSearchQuery("");
+                        searchInputRef.current?.focus();
+                        return;
+                      }
 
-                    setIsSearchOpen(false);
-                  }}
-                  aria-label="Закрыть поиск"
-                >
-                  <X size={15} strokeWidth={1.5} />
-                </button>
+                      setIsSearchOpen(false);
+                    }}
+                    aria-label="Закрыть поиск"
+                  >
+                    <X size={14} strokeWidth={1.5} />
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
