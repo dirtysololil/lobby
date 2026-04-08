@@ -34,7 +34,7 @@ export function EmbeddedMediaBubble({
   const effectivePreviewUrl = previewUrl ?? posterUrl ?? null;
   const showVideo = !videoFailed && Boolean(effectivePlayableUrl);
   const fallbackLabel =
-    kind === "VIDEO" ? "Видео недоступно" : "Медиа недоступно";
+    kind === "VIDEO" ? "Р’РёРґРµРѕ РЅРµРґРѕСЃС‚СѓРїРЅРѕ" : "РњРµРґРёР° РЅРµРґРѕСЃС‚СѓРїРЅРѕ";
 
   useEffect(() => {
     setMounted(true);
@@ -52,9 +52,7 @@ export function EmbeddedMediaBubble({
       (entries) => {
         setIsInView(entries.some((entry) => entry.isIntersecting));
       },
-      {
-        threshold: 0.35,
-      },
+      { threshold: 0.35 },
     );
 
     observer.observe(node);
@@ -97,7 +95,7 @@ export function EmbeddedMediaBubble({
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/35 text-white/80 transition-colors hover:text-white"
-                    aria-label="Открыть источник"
+                    aria-label="РћС‚РєСЂС‹С‚СЊ РёСЃС‚РѕС‡РЅРёРє"
                   >
                     <ExternalLink size={16} strokeWidth={1.5} />
                   </a>
@@ -130,7 +128,7 @@ export function EmbeddedMediaBubble({
         type="button"
         onClick={() => setIsLightboxOpen(true)}
         className={cn(
-          "group relative block aspect-square w-full overflow-hidden rounded-[24px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_58%),rgba(6,10,16,0.78)] text-left transition-colors hover:border-white/14",
+          "group relative block aspect-square w-full overflow-hidden rounded-[24px] bg-[rgba(6,10,16,0.78)] text-left shadow-[0_16px_34px_rgba(4,8,16,0.24)] transition-transform hover:-translate-y-[1px]",
           className,
         )}
       >
@@ -146,14 +144,19 @@ export function EmbeddedMediaBubble({
           mediaClassName="h-full w-full object-cover"
           fallbackLabel={fallbackLabel}
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-[linear-gradient(180deg,transparent,rgba(4,8,14,0.8))] px-3 pb-3 pt-10">
-          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-white/85">
-            {label ?? (kind === "VIDEO" ? "Видео" : "Медиа")}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-[linear-gradient(180deg,transparent,rgba(4,8,14,0.74))] px-3 pb-3 pt-10">
+          <span className="rounded-full bg-black/35 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-white/82">
+            {label ?? (kind === "VIDEO" ? "Р’РёРґРµРѕ" : "РњРµРґРёР°")}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/35 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-white/70">
-            <Film size={12} strokeWidth={1.5} />
-            открыть
-          </span>
+          {href ? (
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/35 text-white/68">
+              <ExternalLink size={12} strokeWidth={1.5} />
+            </span>
+          ) : (
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/28 text-white/52">
+              <Film size={12} strokeWidth={1.5} />
+            </span>
+          )}
         </div>
       </button>
       {lightboxMarkup}

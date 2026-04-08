@@ -450,7 +450,7 @@ export function MessageComposer({
       <form
         data-composer-picker-root="true"
         data-composer-attach-root="true"
-        className="relative flex items-end gap-2 rounded-[20px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_44%),rgba(18,25,36,0.94)] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
+        className="dm-composer-shell"
         onSubmit={handleSubmit}
       >
         {pickerOpen ? (
@@ -488,7 +488,7 @@ export function MessageComposer({
         ) : null}
 
         {attachMenuOpen ? (
-          <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
+          <div className="absolute bottom-full right-[88px] z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
             <button
               type="button"
               onClick={() => {
@@ -545,7 +545,7 @@ export function MessageComposer({
             setAttachMenuOpen((current) => !current);
             setPickerOpen(false);
           }}
-          className="h-9 w-9 shrink-0 rounded-full border border-white/6 bg-white/[0.03] px-0 text-[var(--text-soft)] hover:bg-white/[0.08] hover:text-white"
+          className="dm-composer-button order-2 shrink-0 px-0"
           aria-label="Прикрепить файл"
         >
           <Paperclip {...iconProps} />
@@ -562,18 +562,21 @@ export function MessageComposer({
             syncSelection();
             void refreshCatalogIfNeeded();
           }}
-          className="h-9 w-9 shrink-0 rounded-full border border-white/6 bg-white/[0.03] px-0 text-[var(--text-soft)] hover:bg-white/[0.08] hover:text-white"
+          className={cn(
+            "dm-composer-button order-2 shrink-0 px-0",
+            pickerOpen && "dm-action-button-active",
+          )}
           aria-label="Открыть смайлики, стикеры и GIF"
         >
           <SmilePlus {...iconProps} />
         </Button>
 
-        <div className="relative min-w-0 flex-1">
+        <div className="order-1 relative min-w-0 flex-1">
           {shouldRenderRichOverlay ? (
             <div
               ref={mirrorRef}
               aria-hidden
-              className="pointer-events-none absolute inset-0 overflow-hidden rounded-[16px] px-3 py-2 text-sm leading-[1.4] text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+              className="pointer-events-none absolute inset-0 overflow-hidden pr-1 text-sm leading-[1.44] text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
             >
               <InlineCustomEmojiText
                 text={content.endsWith("\n") ? `${content}\u200b` : content}
@@ -603,7 +606,7 @@ export function MessageComposer({
             disabled={disabled || isSendingText || isUploadingFiles}
             rows={1}
             className={cn(
-              "relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] outline-none transition-colors [overflow-wrap:anywhere] disabled:cursor-not-allowed disabled:opacity-60",
+              "relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words border-none bg-transparent pr-1 text-sm leading-[1.44] outline-none transition-colors [overflow-wrap:anywhere] disabled:cursor-not-allowed disabled:opacity-60",
               shouldRenderRichOverlay
                 ? "text-transparent caret-white"
                 : "text-white caret-white placeholder:text-[var(--text-muted)]",
@@ -622,10 +625,8 @@ export function MessageComposer({
           size="sm"
           disabled={disabled || isSendingText || isUploadingFiles || !content.trim()}
           className={cn(
-            "h-9 w-9 rounded-full border border-white/8 px-0 shadow-[0_10px_20px_rgba(8,16,26,0.18)]",
-            content.trim()
-              ? "bg-[var(--accent)] hover:bg-[var(--accent-strong)]"
-              : "bg-white/[0.08] text-[var(--text-muted)]",
+            "dm-composer-button dm-composer-send order-3 px-0",
+            content.trim() && "dm-composer-send-ready",
           )}
           aria-label={isSendingText ? "Отправляем сообщение" : "Отправить сообщение"}
         >
