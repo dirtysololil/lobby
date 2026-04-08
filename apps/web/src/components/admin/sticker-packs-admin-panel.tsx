@@ -189,7 +189,7 @@ export function StickerPacksAdminPanel({
       setError(
         actionError instanceof Error
           ? actionError.message
-          : "Не удалось выполнить действие.",
+          : "РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РїРѕР»РЅРёС‚СЊ РґРµР№СЃС‚РІРёРµ.",
       );
     } finally {
       setPendingKey(null);
@@ -220,7 +220,7 @@ export function StickerPacksAdminPanel({
 
   async function handleSavePack() {
     if (!packDraft.title.trim()) {
-      setError("Введите название пака.");
+      setError("Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РїР°РєР°.");
       return;
     }
 
@@ -239,7 +239,7 @@ export function StickerPacksAdminPanel({
           });
           const pack = stickerPackResponseSchema.parse(payload).pack;
           await refreshPacks({ selectedPackId: pack.id });
-          setStatus("Пак создан.");
+          setStatus("РџР°Рє СЃРѕР·РґР°РЅ.");
         } else if (selectedPack) {
           const payload = await apiClientFetch(`/v1/stickers/packs/${selectedPack.id}`, {
             method: "PATCH",
@@ -254,7 +254,7 @@ export function StickerPacksAdminPanel({
           });
           const pack = stickerPackResponseSchema.parse(payload).pack;
           await refreshPacks({ selectedPackId: pack.id });
-          setStatus("Пак обновлён.");
+          setStatus("РџР°Рє РѕР±РЅРѕРІР»С‘РЅ.");
         }
 
         setPackDrawerMode(null);
@@ -267,7 +267,7 @@ export function StickerPacksAdminPanel({
       return;
     }
 
-    if (!window.confirm(`Удалить пак «${pack.title}»?`)) {
+    if (!window.confirm(`РЈРґР°Р»РёС‚СЊ РїР°Рє В«${pack.title}В»?`)) {
       return;
     }
 
@@ -280,7 +280,7 @@ export function StickerPacksAdminPanel({
           packs.find((item) => item.id !== pack.id)?.id ?? null,
       });
       setPackDrawerMode(null);
-      setStatus("Пак удалён.");
+      setStatus("РџР°Рє СѓРґР°Р»С‘РЅ.");
     });
   }
 
@@ -317,7 +317,7 @@ export function StickerPacksAdminPanel({
         formData.append("file", file);
         formData.append(
           "title",
-          file.name.replace(/\.[^.]+$/, "").trim() || `Стикер ${index + 1}`,
+          file.name.replace(/\.[^.]+$/, "").trim() || `РЎС‚РёРєРµСЂ ${index + 1}`,
         );
 
         const payload = await apiClientFetch(`/v1/stickers/packs/${selectedPack.id}/stickers`, {
@@ -338,15 +338,15 @@ export function StickerPacksAdminPanel({
 
       setStatus(
         files.length === 1
-          ? "Стикер загружен."
-          : `Загружено стикеров: ${files.length}.`,
+          ? "РЎС‚РёРєРµСЂ Р·Р°РіСЂСѓР¶РµРЅ."
+          : `Р—Р°РіСЂСѓР¶РµРЅРѕ СЃС‚РёРєРµСЂРѕРІ: ${files.length}.`,
       );
     });
   }
 
   async function handleSaveSticker() {
     if (!selectedPack || !editingSticker || !stickerDraft.title.trim()) {
-      setError("Введите название стикера.");
+      setError("Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ СЃС‚РёРєРµСЂР°.");
       return;
     }
 
@@ -369,7 +369,7 @@ export function StickerPacksAdminPanel({
         selectedPackId: selectedPack.id,
         editingStickerId: editingSticker.id,
       });
-      setStatus("Стикер обновлён.");
+      setStatus("РЎС‚РёРєРµСЂ РѕР±РЅРѕРІР»С‘РЅ.");
     });
   }
 
@@ -378,7 +378,7 @@ export function StickerPacksAdminPanel({
       return;
     }
 
-    if (!window.confirm(`Удалить стикер «${sticker.title}»?`)) {
+    if (!window.confirm(`РЈРґР°Р»РёС‚СЊ СЃС‚РёРєРµСЂ В«${sticker.title}В»?`)) {
       return;
     }
 
@@ -388,7 +388,7 @@ export function StickerPacksAdminPanel({
       });
       await refreshPacks({ selectedPackId: selectedPack.id, editingStickerId: null });
       setEditingStickerId(null);
-      setStatus("Стикер удалён.");
+      setStatus("РЎС‚РёРєРµСЂ СѓРґР°Р»С‘РЅ.");
     });
   }
 
@@ -409,7 +409,7 @@ export function StickerPacksAdminPanel({
         selectedPackId: selectedPack.id,
         editingStickerId: sticker.id,
       });
-      setStatus("Обложка обновлена.");
+      setStatus("РћР±Р»РѕР¶РєР° РѕР±РЅРѕРІР»РµРЅР°.");
     });
   }
 
@@ -460,13 +460,13 @@ export function StickerPacksAdminPanel({
                 <Input
                   value={stickerSearch}
                   onChange={(event) => setStickerSearch(event.target.value)}
-                  placeholder="Поиск по стикерам"
+                  placeholder="РџРѕРёСЃРє РїРѕ СЃС‚РёРєРµСЂР°Рј"
                   className="h-9 border-0 bg-transparent px-0 text-sm text-white"
                 />
               </label>
               <Button type="button" size="sm" onClick={openCreatePackDrawer}>
                 <FolderPlus className="h-4 w-4" />
-                Создать пак
+                РЎРѕР·РґР°С‚СЊ РїР°Рє
               </Button>
               <Button
                 type="button"
@@ -476,7 +476,7 @@ export function StickerPacksAdminPanel({
                 onClick={() => uploadInputRef.current?.click()}
               >
                 <ImagePlus className="h-4 w-4" />
-                Добавить стикер
+                Р”РѕР±Р°РІРёС‚СЊ СЃС‚РёРєРµСЂ
               </Button>
               <input
                 ref={uploadInputRef}
@@ -508,10 +508,10 @@ export function StickerPacksAdminPanel({
         <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="premium-panel rounded-[24px] p-3">
             <div className="flex items-center justify-between gap-2 px-1 pb-3">
-              <div className="text-sm font-semibold text-white">Паки</div>
+              <div className="text-sm font-semibold text-white">РџР°РєРё</div>
               <Button type="button" size="sm" variant="ghost" onClick={openCreatePackDrawer}>
                 <FolderPlus className="h-4 w-4" />
-                Новый
+                РќРѕРІС‹Р№
               </Button>
             </div>
 
@@ -520,7 +520,7 @@ export function StickerPacksAdminPanel({
               <Input
                 value={packSearch}
                 onChange={(event) => setPackSearch(event.target.value)}
-                placeholder="Поиск по пакам"
+                placeholder="РџРѕРёСЃРє РїРѕ РїР°РєР°Рј"
                 className="h-9 border-0 bg-transparent px-0 text-sm text-white"
               />
             </label>
@@ -528,8 +528,8 @@ export function StickerPacksAdminPanel({
             <div className="grid gap-2">
               {filteredPacks.length === 0 ? (
                 <EmptyState
-                  title="Паки не найдены"
-                  description="Создайте новый пак или измените запрос."
+                  title="РџР°РєРё РЅРµ РЅР°Р№РґРµРЅС‹"
+                  description="РЎРѕР·РґР°Р№С‚Рµ РЅРѕРІС‹Р№ РїР°Рє РёР»Рё РёР·РјРµРЅРёС‚Рµ Р·Р°РїСЂРѕСЃ."
                 />
               ) : (
                 filteredPacks.map((pack) => (
@@ -555,8 +555,8 @@ export function StickerPacksAdminPanel({
           <section className="premium-panel rounded-[24px] p-3">
             {!selectedPack ? (
               <EmptyState
-                title="Выберите пак"
-                description="Слева показаны все доступные sticker packs."
+                title="Р’С‹Р±РµСЂРёС‚Рµ РїР°Рє"
+                description="РЎР»РµРІР° РїРѕРєР°Р·Р°РЅС‹ РІСЃРµ РґРѕСЃС‚СѓРїРЅС‹Рµ sticker packs."
               />
             ) : (
               <div className="grid gap-4">
@@ -606,23 +606,23 @@ export function StickerPacksAdminPanel({
                       <KebabMenu
                         items={[
                           {
-                            label: "Редактировать пак",
+                            label: "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїР°Рє",
                             onSelect: () => openEditPackDrawer(selectedPack),
                           },
                           {
-                            label: "Поднять выше",
+                            label: "РџРѕРґРЅСЏС‚СЊ РІС‹С€Рµ",
                             onSelect: () => void handleMovePack(selectedPack.id, -1),
                             disabled: packs.findIndex((pack) => pack.id === selectedPack.id) === 0,
                           },
                           {
-                            label: "Опустить ниже",
+                            label: "РћРїСѓСЃС‚РёС‚СЊ РЅРёР¶Рµ",
                             onSelect: () => void handleMovePack(selectedPack.id, 1),
                             disabled:
                               packs.findIndex((pack) => pack.id === selectedPack.id) ===
                               packs.length - 1,
                           },
                           {
-                            label: "Удалить пак",
+                            label: "РЈРґР°Р»РёС‚СЊ РїР°Рє",
                             onSelect: () => void handleDeletePack(selectedPack),
                             destructive: true,
                           },
@@ -634,11 +634,11 @@ export function StickerPacksAdminPanel({
 
                 {visibleStickers.length === 0 ? (
                   <EmptyState
-                    title="Стикеры не найдены"
+                    title="РЎС‚РёРєРµСЂС‹ РЅРµ РЅР°Р№РґРµРЅС‹"
                     description={
                       stickerSearch
-                        ? "Измените запрос или очистите поиск."
-                        : "Добавьте первый стикер в выбранный пак."
+                        ? "РР·РјРµРЅРёС‚Рµ Р·Р°РїСЂРѕСЃ РёР»Рё РѕС‡РёСЃС‚РёС‚Рµ РїРѕРёСЃРє."
+                        : "Р”РѕР±Р°РІСЊС‚Рµ РїРµСЂРІС‹Р№ СЃС‚РёРєРµСЂ РІ РІС‹Р±СЂР°РЅРЅС‹Р№ РїР°Рє."
                     }
                   />
                 ) : (
