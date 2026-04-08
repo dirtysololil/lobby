@@ -51,6 +51,11 @@ type PendingReadState = {
   lastReadAt: string | null;
 };
 
+type LoadConversationOptions = {
+  markAsRead?: boolean;
+  silent?: boolean;
+};
+
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 
 function stripConversationMessages(
@@ -182,6 +187,71 @@ function mergeThreadMessage(
   ]);
 }
 
+function mergeFetchedMessages(
+  currentItems: ThreadMessageItem[],
+  serverMessages: DirectMessage[],
+): ThreadMessageItem[] {
+  const nextItems: ThreadMessageItem[] = serverMessages.map((message) => {
+    const byId = currentItems.find((item) => item.id === message.id);
+
+    if (byId) {
+      return {
+        ...byId,
+        ...message,
+        localState: undefined,
+        uploadProgress: undefined,
+      };
+    }
+
+    if (message.clientNonce) {
+      const byNonce = currentItems.find(
+        (item) =>
+          item.clientNonce !== null &&
+          item.clientNonce !== undefined &&
+          item.clientNonce === message.clientNonce,
+      );
+
+      if (byNonce) {
+        return {
+          ...byNonce,
+          ...message,
+          localState: undefined,
+          uploadProgress: undefined,
+        };
+      }
+    }
+
+    return {
+      ...message,
+      localState: undefined,
+    };
+  });
+  const serverMessageIds = new Set(serverMessages.map((message) => message.id));
+  const serverClientNonces = new Set(
+    serverMessages
+      .map((message) => message.clientNonce)
+      .filter((value): value is string => Boolean(value)),
+  );
+
+  for (const item of currentItems) {
+    if (!item.localState) {
+      continue;
+    }
+
+    if (serverMessageIds.has(item.id)) {
+      continue;
+    }
+
+    if (item.clientNonce && serverClientNonces.has(item.clientNonce)) {
+      continue;
+    }
+
+    nextItems.push(item);
+  }
+
+  return sortDirectMessages(nextItems);
+}
+
 function markMessageAsFailed(
   items: ThreadMessageItem[],
   messageId: string,
@@ -282,13 +352,18 @@ export function ConversationView({
   });
   const hasPendingReadRef = useRef(false);
 
-  const loadConversation = useCallback(async () => {
+  const loadConversation = useCallback(async (options?: LoadConversationOptions) => {
     try {
       const payload = await apiClientFetch(`/v1/direct-messages/${conversationId}`);
       const parsed = directConversationDetailSchema.parse(payload);
       setConversation(stripConversationMessages(parsed.conversation));
-      setMessages(parsed.conversation.messages);
-      setErrorMessage(null);
+      setMessages((current) =>
+        mergeFetchedMessages(current, parsed.conversation.messages),
+      );
+
+      if (!options?.silent) {
+        setErrorMessage(null);
+      }
 
       const latestMessage = parsed.conversation.messages.at(-1) ?? null;
       setConversation((current) =>
@@ -300,15 +375,19 @@ export function ConversationView({
         ),
       );
 
-      if (latestMessage) {
-        await markConversationAsRead(latestMessage.id, latestMessage.createdAt);
-      } else {
-        await markConversationAsRead(null, null);
+      if (options?.markAsRead !== false) {
+        if (latestMessage) {
+          await markConversationAsRead(latestMessage.id, latestMessage.createdAt);
+        } else {
+          await markConversationAsRead(null, null);
+        }
       }
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Не удалось загрузить диалог.",
-      );
+      if (!options?.silent) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Не удалось загрузить диалог.",
+        );
+      }
     }
   // markConversationAsRead is intentionally called from the initial load flow.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -375,6 +454,37 @@ export function ConversationView({
   useEffect(() => {
     void loadConversation();
   }, [loadConversation]);
+
+  useEffect(() => {
+    const hasLocalDrafts = messages.some((message) => Boolean(message.localState));
+
+    if (hasLocalDrafts) {
+      return;
+    }
+
+    const hasFreshPendingEmbed = messages.some((message) => {
+      if (message.linkEmbed?.status !== "PENDING") {
+        return false;
+      }
+
+      return Date.now() - new Date(message.createdAt).getTime() < 90_000;
+    });
+
+    if (!hasFreshPendingEmbed) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void loadConversation({
+        markAsRead: false,
+        silent: true,
+      });
+    }, 3_000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [loadConversation, messages]);
 
   useEffect(() => {
     void refreshPickerCatalog();

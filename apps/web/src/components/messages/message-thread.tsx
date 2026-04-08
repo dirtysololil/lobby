@@ -44,6 +44,7 @@ type ContextMenuState = { messageId: string; x: number; y: number };
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 const contextMenuWidth = 196;
 const contextMenuMargin = 12;
+const pendingEmbedStaleAfterMs = 60_000;
 
 function isContinuation(
   previousMessage: ThreadMessageItem | undefined,
@@ -197,7 +198,9 @@ export function MessageThread({
 
     const timeoutMs = Math.max(
       0,
-      new Date(pendingMessage.createdAt).getTime() + 20_000 - Date.now(),
+      new Date(pendingMessage.createdAt).getTime() +
+        pendingEmbedStaleAfterMs -
+        Date.now(),
     );
 
     if (timeoutMs === 0) {
@@ -353,7 +356,8 @@ export function MessageThread({
                     hasRenderableLinkEmbedMedia(message.linkEmbed);
                   const isPendingEmbedStale =
                     message.linkEmbed?.status === "PENDING" &&
-                    Date.now() - new Date(message.createdAt).getTime() > 20_000;
+                    Date.now() - new Date(message.createdAt).getTime() >
+                      pendingEmbedStaleAfterMs;
                   const shouldRenderInlineEmbed =
                     hasInlineEmbed && !isPendingEmbedStale;
                   const isStandaloneEmbed =
