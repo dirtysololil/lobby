@@ -300,7 +300,12 @@ export class LinkUnfurlService {
       return null;
     }
 
-    const apiUrl = new URL('/posts', tenorConfig.baseUrl);
+    const apiBaseUrl = new URL(
+      tenorConfig.baseUrl.endsWith('/')
+        ? tenorConfig.baseUrl
+        : `${tenorConfig.baseUrl}/`,
+    );
+    const apiUrl = new URL('posts', apiBaseUrl);
     apiUrl.searchParams.set('ids', tenorId);
     apiUrl.searchParams.set('key', tenorConfig.key);
     apiUrl.searchParams.set('client_key', tenorConfig.clientKey);
