@@ -11,6 +11,7 @@ function run(command, args, cwd = rootDir) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
+      shell: isWindows && command.toLowerCase().endsWith(".cmd"),
       stdio: "inherit",
     });
 
@@ -26,53 +27,13 @@ function run(command, args, cwd = rootDir) {
   });
 }
 
-function quotePowerShellArg(value) {
-  return `'${String(value).replace(/'/g, "''")}'`;
+function getBinPath(name, cwd = rootDir) {
+  return path.join(cwd, "node_modules", ".bin", isWindows ? `${name}.cmd` : name);
 }
 
-function quotePosixArg(value) {
-  return `'${String(value).replace(/'/g, `'\"'\"'`)}'`;
-}
-
-function quoteArg(value) {
-  return isWindows ? quotePowerShellArg(value) : quotePosixArg(value);
-}
-
-function getShellCommand(command) {
-  return isWindows
-    ? { shell: "powershell.exe", args: ["-NoProfile", "-Command", command] }
-    : { shell: "sh", args: ["-lc", command] };
-}
-
-async function runShellCommand(command, cwd = rootDir) {
-  const shellCommand = getShellCommand(command);
-  await run(shellCommand.shell, shellCommand.args, cwd);
-}
-
-function getBinPath(name) {
-  return isWindows ? `.\\node_modules\\.bin\\${name}` : `./node_modules/.bin/${name}`;
-}
-
-function buildBinCommand(name, args = []) {
-  const binPath = quoteArg(getBinPath(name));
-  const serializedArgs = args.map(quoteArg).join(" ");
-
-  if (isWindows) {
-    return `& ${binPath}${serializedArgs ? ` ${serializedArgs}` : ""}`;
-  }
-
-  return `${binPath}${serializedArgs ? ` ${serializedArgs}` : ""}`;
-}
-
-await runShellCommand(
-  buildBinCommand("prisma", ["generate", "--schema", "prisma/schema.prisma"]),
-);
-await runShellCommand(
-  buildBinCommand("tsc", ["-p", "packages/shared/tsconfig.build.json"]),
-);
-await runShellCommand(
-  buildBinCommand("tsc", ["-p", "packages/config/tsconfig.build.json"]),
-);
-await runShellCommand(buildBinCommand("nest", ["build"]), apiDir);
-await runShellCommand(buildBinCommand("next", ["build"]), webDir);
+await run(getBinPath("prisma", rootDir), ["generate", "--schema", "prisma/schema.prisma"]);
+await run(getBinPath("tsc", rootDir), ["-p", "packages/shared/tsconfig.build.json"]);
+await run(getBinPath("tsc", rootDir), ["-p", "packages/config/tsconfig.build.json"]);
+await run(getBinPath("nest", apiDir), ["build"], apiDir);
+await run(getBinPath("next", webDir), ["build"], webDir);
 await run(process.execPath, ["scripts/prepare-standalone-assets.mjs"], webDir);
