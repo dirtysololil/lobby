@@ -209,10 +209,13 @@ async function renderAnimatedSticker(
   const posterPath = join(tempRoot, 'poster.webp');
   const animatedPath = join(tempRoot, 'animated.webp');
   const transform = createFrameTransform(source.width, source.height, crop);
-  const scaleFilter = [
-    `scale=${transform.width}:${transform.height}:flags=lanczos`,
-    `pad=${outputSize}:${outputSize}:${transform.left}:${transform.top}:color=0x00000000`,
-  ].join(',');
+  const posterFilter = buildAnimatedStickerCompositeFilter({
+    transform,
+  });
+  const animatedFilter = buildAnimatedStickerCompositeFilter({
+    transform,
+    fps: 24,
+  });
   const ffmpegBinaryPath = await resolveFfmpegBinaryPath();
 
   try {
@@ -222,10 +225,12 @@ async function renderAnimatedSticker(
       '-y',
       '-i',
       inputPath,
+      '-filter_complex',
+      posterFilter,
+      '-map',
+      '[out]',
       '-frames:v',
       '1',
-      '-vf',
-      scaleFilter,
       posterPath,
     ]);
 
@@ -234,8 +239,10 @@ async function renderAnimatedSticker(
       '-i',
       inputPath,
       '-an',
-      '-vf',
-      `${scaleFilter},fps=24`,
+      '-filter_complex',
+      animatedFilter,
+      '-map',
+      '[out]',
       '-loop',
       '0',
       '-preset',
@@ -369,6 +376,28 @@ function createFrameTransform(
     left: Math.round((outputSize - scaledWidth) / 2 + crop.translateX),
     top: Math.round((outputSize - scaledHeight) / 2 + crop.translateY),
   };
+}
+
+function buildAnimatedStickerCompositeFilter(args: {
+  transform: ReturnType<typeof createFrameTransform>;
+  fps?: number;
+}): string {
+  const background = `color=c=black@0.0:s=${outputSize}x${outputSize}${
+    args.fps ? `:r=${args.fps}` : ''
+  },format=rgba[canvas]`;
+  const sourceFilters = [
+    `scale=${args.transform.width}:${args.transform.height}:flags=lanczos`,
+    args.fps ? `fps=${args.fps}` : null,
+    'format=rgba',
+  ]
+    .filter(Boolean)
+    .join(',');
+
+  return [
+    background,
+    `[0:v]${sourceFilters}[sticker]`,
+    `[canvas][sticker]overlay=${args.transform.left}:${args.transform.top}:format=auto,format=rgba[out]`,
+  ].join(';');
 }
 
 function resolveImageExtension(format: string): string {
