@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Film, ImageOff } from "lucide-react";
+import { ExternalLink, ImageOff, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
@@ -25,16 +25,19 @@ export function EmbeddedMediaBubble({
   className,
 }: EmbeddedMediaBubbleProps) {
   const [mounted, setMounted] = useState(false);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [videoFailed, setVideoFailed] = useState(false);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [previewVideoFailed, setPreviewVideoFailed] = useState(false);
+  const [viewerVideoFailed, setViewerVideoFailed] = useState(false);
   const [isInView, setIsInView] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const viewerVideoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLButtonElement | null>(null);
   const effectivePlayableUrl = playableUrl ?? null;
   const effectivePreviewUrl = previewUrl ?? posterUrl ?? null;
-  const showVideo = !videoFailed && Boolean(effectivePlayableUrl);
+  const previewCanRenderVideo = !previewVideoFailed && Boolean(effectivePlayableUrl);
+  const viewerCanRenderVideo = !viewerVideoFailed && Boolean(effectivePlayableUrl);
   const fallbackLabel =
-    kind === "VIDEO" ? "Р’РёРґРµРѕ РЅРµРґРѕСЃС‚СѓРїРЅРѕ" : "РњРµРґРёР° РЅРµРґРѕСЃС‚СѓРїРЅРѕ";
+    kind === "VIDEO" ? "Видео недоступно" : "Медиа недоступно";
 
   useEffect(() => {
     setMounted(true);
@@ -63,57 +66,135 @@ export function EmbeddedMediaBubble({
   }, []);
 
   useEffect(() => {
-    const node = videoRef.current;
+    const node = previewVideoRef.current;
 
-    if (!node || !showVideo) {
+    if (!node || !previewCanRenderVideo) {
       return;
     }
 
-    if (isInView) {
+    if (isInView && !isViewerOpen) {
       void node.play().catch(() => undefined);
       return;
     }
 
     node.pause();
-  }, [isInView, showVideo]);
+  }, [isInView, isViewerOpen, previewCanRenderVideo]);
 
-  const lightboxMarkup =
-    mounted && isLightboxOpen
+  useEffect(() => {
+    if (!isViewerOpen) {
+      viewerVideoRef.current?.pause();
+      return;
+    }
+
+    function closeViewer() {
+      setIsViewerOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeViewer();
+        return;
+      }
+
+      if (event.key !== " " || kind !== "VIDEO") {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("button,a,input,textarea")) {
+        return;
+      }
+
+      const video = viewerVideoRef.current;
+      if (!video) {
+        return;
+      }
+
+      event.preventDefault();
+      if (video.paused) {
+        void video.play().catch(() => undefined);
+        return;
+      }
+
+      video.pause();
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      viewerVideoRef.current?.pause();
+    };
+  }, [isViewerOpen, kind]);
+
+  const viewerMarkup =
+    mounted && isViewerOpen
       ? createPortal(
           <div
-            className="fixed inset-0 z-[110] flex items-center justify-center bg-[rgba(3,6,10,0.88)] p-4 backdrop-blur-md"
-            onClick={() => setIsLightboxOpen(false)}
+            className="fixed inset-0 z-[120] bg-[rgba(3,6,10,0.82)] backdrop-blur-[8px]"
+            onClick={() => setIsViewerOpen(false)}
           >
-            <div
-              className="relative max-h-[88vh] w-full max-w-[min(82vw,720px)] overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(10,14,20,0.98)] shadow-[0_28px_80px_rgba(2,6,12,0.52)]"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
-                {href ? (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/35 text-white/80 transition-colors hover:text-white"
-                    aria-label="РћС‚РєСЂС‹С‚СЊ РёСЃС‚РѕС‡РЅРёРє"
+            <div className="absolute inset-0 flex items-center justify-center p-6">
+              <div
+                className="relative flex w-full max-w-[min(96vw,1320px)] items-center justify-center"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="pointer-events-auto absolute right-0 top-[-52px] z-10 flex items-center gap-2">
+                  {href ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="dm-action-button"
+                      aria-label="Открыть источник"
+                      title="Открыть источник"
+                    >
+                      <ExternalLink size={15} strokeWidth={1.5} />
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="dm-action-button"
+                    onClick={() => setIsViewerOpen(false)}
+                    aria-label="Закрыть просмотр"
+                    title="Закрыть просмотр"
                   >
-                    <ExternalLink size={16} strokeWidth={1.5} />
-                  </a>
-                ) : null}
-              </div>
-              <div className="max-h-[88vh]">
-                <MediaSurface
-                  kind={kind}
-                  playableUrl={effectivePlayableUrl}
-                  previewUrl={effectivePreviewUrl}
-                  posterUrl={posterUrl}
-                  videoRef={undefined}
-                  forcePlay
-                  onVideoError={() => setVideoFailed(true)}
-                  className="aspect-auto max-h-[88vh] min-h-[320px] bg-[rgba(6,10,16,0.88)]"
-                  mediaClassName="max-h-[88vh] object-contain"
-                  fallbackLabel={fallbackLabel}
-                />
+                    <X size={15} strokeWidth={1.5} />
+                  </button>
+                </div>
+
+                {kind === "VIDEO" && viewerCanRenderVideo && effectivePlayableUrl ? (
+                  <video
+                    ref={viewerVideoRef}
+                    src={effectivePlayableUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    poster={posterUrl ?? effectivePreviewUrl ?? undefined}
+                    onError={() => setViewerVideoFailed(true)}
+                    className="block max-h-[calc(100vh-7rem)] w-auto max-w-full rounded-[18px] bg-black/35 shadow-[0_28px_70px_rgba(2,6,12,0.34)]"
+                  />
+                ) : effectivePreviewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={effectivePreviewUrl}
+                    alt={label ?? ""}
+                    loading="eager"
+                    className="block max-h-[calc(100vh-6rem)] w-auto max-w-full rounded-[18px] object-contain shadow-[0_28px_70px_rgba(2,6,12,0.28)]"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="flex min-h-[320px] w-full max-w-[640px] items-center justify-center rounded-[24px] bg-[rgba(8,12,18,0.76)] text-center text-sm text-[var(--text-muted)] shadow-[0_24px_60px_rgba(2,6,12,0.3)]">
+                    <div className="grid gap-2 px-6">
+                      <ImageOff size={18} strokeWidth={1.5} className="mx-auto" />
+                      <span>{fallbackLabel}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>,
@@ -126,50 +207,46 @@ export function EmbeddedMediaBubble({
       <button
         ref={containerRef}
         type="button"
-        onClick={() => setIsLightboxOpen(true)}
+        onClick={() => setIsViewerOpen(true)}
         className={cn(
           "group relative block aspect-square w-full overflow-hidden rounded-[24px] bg-[rgba(6,10,16,0.78)] text-left shadow-[0_16px_34px_rgba(4,8,16,0.24)] transition-transform hover:-translate-y-[1px]",
           className,
         )}
       >
-        <MediaSurface
+        <PreviewSurface
           kind={kind}
           playableUrl={effectivePlayableUrl}
           previewUrl={effectivePreviewUrl}
           posterUrl={posterUrl}
-          videoRef={videoRef}
-          forcePlay={isInView}
-          onVideoError={() => setVideoFailed(true)}
+          videoRef={previewVideoRef}
+          allowVideo={previewCanRenderVideo}
+          forcePlay={isInView && !isViewerOpen}
+          onVideoError={() => setPreviewVideoFailed(true)}
           className="h-full w-full"
           mediaClassName="h-full w-full object-cover"
           fallbackLabel={fallbackLabel}
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-[linear-gradient(180deg,transparent,rgba(4,8,14,0.74))] px-3 pb-3 pt-10">
           <span className="rounded-full bg-black/35 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-white/82">
-            {label ?? (kind === "VIDEO" ? "Р’РёРґРµРѕ" : "РњРµРґРёР°")}
+            {label ?? (kind === "VIDEO" ? "Видео" : "Медиа")}
           </span>
-          {href ? (
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/35 text-white/68">
-              <ExternalLink size={12} strokeWidth={1.5} />
-            </span>
-          ) : (
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/28 text-white/52">
-              <Film size={12} strokeWidth={1.5} />
-            </span>
-          )}
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white/60">
+            <ExternalLink size={12} strokeWidth={1.5} />
+          </span>
         </div>
       </button>
-      {lightboxMarkup}
+      {viewerMarkup}
     </>
   );
 }
 
-function MediaSurface(args: {
+function PreviewSurface(args: {
   kind: "IMAGE" | "VIDEO" | "GIF";
   playableUrl: string | null;
   previewUrl: string | null;
   posterUrl: string | null;
   videoRef?: RefObject<HTMLVideoElement | null>;
+  allowVideo: boolean;
   forcePlay: boolean;
   onVideoError: () => void;
   className?: string;
@@ -177,7 +254,7 @@ function MediaSurface(args: {
   fallbackLabel: string;
 }) {
   const shouldRenderVideo = useMemo(() => {
-    if (!args.playableUrl) {
+    if (!args.playableUrl || !args.allowVideo) {
       return false;
     }
 
@@ -186,7 +263,7 @@ function MediaSurface(args: {
       args.kind === "GIF" ||
       /\.(mp4|webm|webp)(\?.*)?$/i.test(args.playableUrl)
     );
-  }, [args.kind, args.playableUrl]);
+  }, [args.allowVideo, args.kind, args.playableUrl]);
 
   useEffect(() => {
     const node = args.videoRef?.current;
