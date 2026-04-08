@@ -908,18 +908,25 @@ export function ConversationView({
                 <ArrowLeft {...iconProps} />
             </Link>
 
-            <Link
-              href={buildUserProfileHref(counterpart.username)}
-              aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
-              title="Открыть профиль"
-              className="min-w-0 flex flex-1 items-center gap-3 rounded-[16px] px-1 py-1 transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] cursor-pointer"
-            >
-              <UserAvatar user={counterpart} size="sm" />
+            <div className="min-w-0 flex flex-1 items-center gap-3">
+              <Link
+                href={buildUserProfileHref(counterpart.username)}
+                aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
+                title="Открыть профиль"
+                className="shrink-0 rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] cursor-pointer"
+              >
+                <UserAvatar user={counterpart} size="sm" />
+              </Link>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-[15px] font-medium tracking-tight text-white">
+                  <Link
+                    href={buildUserProfileHref(counterpart.username)}
+                    aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
+                    title="Открыть профиль"
+                    className="truncate text-[15px] font-medium tracking-tight text-white transition-colors hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] cursor-pointer"
+                  >
                     {counterpart.profile.displayName}
-                  </p>
+                  </Link>
                   {isBlocked ? (
                     <span className="hidden rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-200 lg:inline-flex">
                       Ограничено
@@ -940,7 +947,7 @@ export function ConversationView({
                   </span>
                 </p>
               </div>
-            </Link>
+            </div>
 
             <div className="relative ml-auto flex items-center gap-1.5">
               <ConversationHeaderIconButton
