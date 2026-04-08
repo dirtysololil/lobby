@@ -59,11 +59,12 @@ const settingsLinks = [
 ] as const;
 
 const adminLinks = [
-  { href: "/app/admin", label: "Обзор" },
-  { href: "/app/admin/users", label: "Пользователи" },
-  { href: "/app/admin/invites", label: "Инвайты" },
-  { href: "/app/admin/sticker-packs", label: "Стикер паки" },
-  { href: "/app/admin/audit", label: "Аудит" },
+  { href: "/app/admin", label: "Overview" },
+  { href: "/app/admin/users", label: "Users" },
+  { href: "/app/admin/invites", label: "Invites" },
+  { href: "/app/admin/audit", label: "Audit" },
+  { href: "/app/admin/media", label: "Media" },
+  { href: "/app/admin/sticker-packs", label: "Sticker packs" },
 ] as const;
 
 const peopleViews = [
@@ -649,3 +650,5 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
     </aside>
   );
 }
+
+

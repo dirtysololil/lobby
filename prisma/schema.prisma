@@ -165,6 +165,7 @@ model User {
   sentMessages             DirectMessage[]               @relation("MessageAuthor")
   deletedMessages          DirectMessage[]               @relation("MessageDeleter")
   stickerPacks             StickerPack[]
+  installedStickerPacks    UserStickerPack[]
   stickerRecents           StickerRecent[]
   customEmojis             CustomEmoji[]
   gifAssets                GifAsset[]
@@ -391,60 +392,72 @@ model DirectMessageAttachment {
 }
 
 model StickerPack {
-  id        String    @id @default(cuid())
-  ownerId   String
-  title     String
-  slug      String?   @unique
-  description String?
-  coverStickerId String?
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
-  publishedAt DateTime?
-  archivedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  stickers  Sticker[]
-  recents   StickerRecent[]
+  id               String            @id @default(cuid())
+  ownerId          String
+  title            String
+  slug             String?           @unique
+  description      String?
+  coverStickerId   String?
+  sortOrder        Int               @default(0)
+  isActive         Boolean           @default(true)
+  isPublished      Boolean           @default(false)
+  isDiscoverable   Boolean           @default(false)
+  isHidden         Boolean           @default(false)
+  isArchived       Boolean           @default(false)
+  publishedAt      DateTime?
+  archivedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  owner            User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  coverSticker     Sticker?          @relation("StickerPackCover", fields: [coverStickerId], references: [id], onDelete: SetNull)
+  stickers         Sticker[]
+  recents          StickerRecent[]
+  installedByUsers UserStickerPack[]
 
   @@index([ownerId, deletedAt, sortOrder])
   @@index([publishedAt, archivedAt, deletedAt, sortOrder])
+  @@index([deletedAt, isPublished, isDiscoverable, sortOrder])
 }
 
 model Sticker {
-  id           String          @id @default(cuid())
-  packId       String
-  title        String
-  type         StickerType     @default(STATIC)
-  fileKey      String
-  animatedFileKey String?
+  id               String          @id @default(cuid())
+  packId           String
+  title            String
+  type             StickerType     @default(STATIC)
+  fileKey          String
+  animatedFileKey  String?
   animatedMimeType String?
-  originalName String?
-  mimeType     String
-  fileSize     Int
-  sourceFileKey String?
-  sourceMimeType String?
-  sourceFileSize Int?
-  width        Int
-  height       Int
-  isAnimated   Boolean         @default(false)
-  durationMs   Int?
-  keywords     Json?
-  searchText   String?         @db.Text
-  sortOrder    Int             @default(0)
-  isActive     Boolean         @default(true)
-  publishedAt  DateTime?
-  archivedAt   DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  deletedAt    DateTime?
-  pack         StickerPack     @relation(fields: [packId], references: [id], onDelete: Cascade)
-  recents      StickerRecent[]
-  messages     DirectMessage[]
+  originalName     String?
+  mimeType         String
+  fileSize         Int
+  sourceFileKey    String?
+  sourceMimeType   String?
+  sourceFileSize   Int?
+  width            Int
+  height           Int
+  isAnimated       Boolean         @default(false)
+  durationMs       Int?
+  keywords         Json?
+  searchText       String?         @db.Text
+  sortOrder        Int             @default(0)
+  isActive         Boolean         @default(true)
+  isPublished      Boolean         @default(false)
+  isHidden         Boolean         @default(false)
+  isArchived       Boolean         @default(false)
+  publishedAt      DateTime?
+  archivedAt       DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+  pack             StickerPack     @relation(fields: [packId], references: [id], onDelete: Cascade)
+  coverForPacks    StickerPack[]   @relation("StickerPackCover")
+  recents          StickerRecent[]
+  messages         DirectMessage[]
 
   @@index([packId, deletedAt, sortOrder])
   @@index([packId, publishedAt, archivedAt, deletedAt, sortOrder])
+  @@index([packId, deletedAt, isPublished, sortOrder])
 }
 
 model StickerRecent {
@@ -460,6 +473,19 @@ model StickerRecent {
   @@id([userId, stickerId])
   @@index([userId, usedAt])
   @@index([packId, usedAt])
+}
+
+model UserStickerPack {
+  userId    String
+  packId    String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pack      StickerPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@id([userId, packId])
+  @@index([userId, sortOrder])
+  @@index([packId, createdAt])
 }
 
 model CustomEmoji {
