@@ -1056,7 +1056,6 @@ export function ConversationView({
           <MovableConversationInfoPanel
             containerRef={messageViewportRef}
             conversationId={conversationId}
-            counterpart={counterpart}
             isOpen={isInfoPanelOpen}
             notificationSetting={viewerParticipant.notificationSetting}
             retentionMode={conversation.retentionMode}
