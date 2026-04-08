@@ -13,6 +13,7 @@ import type {
   StickerPack as PrismaStickerPack,
   StickerRecent as PrismaStickerRecent,
 } from '@prisma/client';
+import { buildStickerPackSlugFallbackFromId } from './sticker-pack-slug.util';
 
 export type StickerPackWithStickers = PrismaStickerPack & {
   stickers: PrismaSticker[];
@@ -63,7 +64,7 @@ export function toStickerPack(pack: StickerPackWithStickers): StickerPack {
     ownerId: pack.ownerId,
     createdById: pack.ownerId,
     title: pack.title,
-    slug: pack.slug ?? createFallbackSlug(pack.title, pack.id),
+    slug: pack.slug ?? buildStickerPackSlugFallbackFromId(pack.id),
     description: pack.description ?? null,
     coverStickerId: pack.coverStickerId ?? null,
     sortOrder: pack.sortOrder,
@@ -97,15 +98,4 @@ export function toStickerCatalog(args: {
     packs: args.packs.map((pack) => toStickerPack(pack)),
     recent: args.recent.map((item) => toStickerRecent(item)),
   });
-}
-
-function createFallbackSlug(title: string, id: string): string {
-  const normalized = title
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-
-  return normalized ? `${normalized}-${id.slice(-6)}` : `pack-${id.slice(-8)}`;
 }
