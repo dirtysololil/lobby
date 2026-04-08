@@ -55,6 +55,36 @@ corepack pnpm start:web
 corepack pnpm start:worker
 ```
 
+## Обновление на сервере
+
+Для обычного деплоя после `git pull`:
+
+```bash
+cd /var/www/www-root/data/www/lobby
+corepack pnpm install --frozen-lockfile
+corepack pnpm prisma:migrate:deploy
+corepack pnpm build
+pm2 restart ecosystem.config.cjs --update-env
+```
+
+Если точно известно, что `package.json` и `pnpm-lock.yaml` не менялись, шаг `corepack pnpm install --frozen-lockfile` можно пропустить.
+
+Полезная проверка сразу после рестарта:
+
+```bash
+pm2 status
+pm2 logs lobby-api --lines 100
+pm2 logs lobby-worker --lines 100
+pm2 logs lobby-web --lines 100
+```
+
+Если обновление включает Prisma-миграции, а приложение не поднимается:
+
+```bash
+corepack pnpm prisma:generate
+pm2 restart ecosystem.config.cjs --update-env
+```
+
 ## Подсказки для меня
 
 - После изменений в Prisma почти всегда нужно выполнить `corepack pnpm prisma:generate`.
