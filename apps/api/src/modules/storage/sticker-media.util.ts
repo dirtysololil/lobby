@@ -401,17 +401,17 @@ function buildAnimatedStickerEncodeArgs(args: {
   format: 'webp' | 'gif';
 }): string[] {
   if (args.format === 'gif') {
-    const base = buildAnimatedStickerCompositeFilter({
-      transform: args.transform,
-      fps: 15,
-    });
-
     return [
       '-filter_complex',
-      `${base};[out]split[gif_base][gif_palette];[gif_palette]palettegen=reserve_transparent=0[palette];[gif_base][palette]paletteuse=dither=bayer[out_gif]`,
+      buildAnimatedStickerCompositeFilter({
+        transform: args.transform,
+        fps: 15,
+      }),
       '-map',
-      '[out_gif]',
+      '[out]',
       '-loop',
+      '0',
+      '-final_delay',
       '0',
       args.outputPath,
     ];
