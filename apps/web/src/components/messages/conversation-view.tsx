@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Clock3,
   Info,
-  MoreHorizontal,
   Search,
   ShieldAlert,
   UserRound,
@@ -23,8 +22,7 @@ import {
   type UserRole,
 } from "@lobby/shared";
 import type { ReactNode } from "react";
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -66,11 +64,6 @@ type PendingReadState = {
 type LoadConversationOptions = {
   markAsRead?: boolean;
   silent?: boolean;
-};
-
-type HeaderMenuPosition = {
-  top: number;
-  left: number;
 };
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
@@ -360,17 +353,12 @@ export function ConversationView({
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
-  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
-  const [mounted, setMounted] = useState(false);
-  const [overflowMenuPosition, setOverflowMenuPosition] =
-    useState<HeaderMenuPosition | null>(null);
   const readInFlightRef = useRef(false);
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
   const callStageHostRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const overflowButtonRef = useRef<HTMLButtonElement | null>(null);
   const dragDepthRef = useRef(0);
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
   const pendingReadRef = useRef<PendingReadState>({
@@ -518,10 +506,6 @@ export function ConversationView({
   }, [refreshPickerCatalog]);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     return () => {
       for (const url of localBlobUrlsRef.current) {
         URL.revokeObjectURL(url);
@@ -530,65 +514,6 @@ export function ConversationView({
       localBlobUrlsRef.current.clear();
     };
   }, []);
-
-  useEffect(() => {
-    if (!isOverflowOpen) {
-      return;
-    }
-
-    function syncOverflowMenuPosition() {
-      const trigger = overflowButtonRef.current;
-
-      if (!trigger) {
-        return;
-      }
-
-      const rect = trigger.getBoundingClientRect();
-      const menuWidth = 240;
-      const margin = 12;
-      const left = Math.max(
-        margin,
-        Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - margin),
-      );
-      const top = rect.bottom + 8;
-
-      setOverflowMenuPosition({ top, left });
-    }
-
-    syncOverflowMenuPosition();
-
-    function handlePointerDown(event: PointerEvent) {
-      const target = event.target as HTMLElement | null;
-
-      if (target?.closest("[data-dm-header-menu]")) {
-        return;
-      }
-
-      setIsOverflowOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOverflowOpen(false);
-      }
-    }
-
-    function handleLayoutChange() {
-      syncOverflowMenuPosition();
-    }
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("resize", handleLayoutChange);
-    window.addEventListener("scroll", handleLayoutChange, true);
-
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("resize", handleLayoutChange);
-      window.removeEventListener("scroll", handleLayoutChange, true);
-    };
-  }, [isOverflowOpen]);
 
   useEffect(() => {
     if (!isSearchOpen) {
@@ -969,76 +894,6 @@ export function ConversationView({
     );
   }
 
-  const headerMenuMarkup =
-    mounted && isOverflowOpen && overflowMenuPosition
-      ? createPortal(
-          <div
-            data-dm-header-menu="true"
-            className="fixed z-[140] w-[240px] rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-1.5 shadow-[0_24px_60px_rgba(2,6,12,0.42)]"
-            style={{
-              left: overflowMenuPosition.left,
-              top: overflowMenuPosition.top,
-            }}
-          >
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05] sm:hidden"
-              onClick={() => {
-                setIsSearchOpen(true);
-                setIsOverflowOpen(false);
-              }}
-            >
-              <Search {...iconProps} />
-              Поиск в диалоге
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
-              onClick={() => {
-                setIsInfoPanelOpen((current) => !current);
-                setIsOverflowOpen(false);
-              }}
-            >
-              <Info {...iconProps} />
-              {isInfoPanelOpen ? "Скрыть детали" : "Открыть детали"}
-            </button>
-            <Link
-              href={buildUserProfileHref(counterpart.username)}
-              className="flex items-center gap-2 rounded-[12px] px-3 py-2 text-sm text-white transition-colors hover:bg-white/[0.05]"
-              onClick={() => setIsOverflowOpen(false)}
-            >
-              <UserRound {...iconProps} />
-              Профиль
-            </Link>
-            <Link
-              href="/app/messages"
-              className="flex items-center gap-2 rounded-[12px] px-3 py-2 text-sm text-white transition-colors hover:bg-white/[0.05]"
-              onClick={() => setIsOverflowOpen(false)}
-            >
-              <ArrowLeft {...iconProps} />
-              Назад к диалогам
-            </Link>
-            {(conversation.retentionMode !== "OFF" || isBlocked) ? (
-              <div className="mt-1 border-t border-white/6 px-3 py-2 text-xs text-[var(--text-muted)]">
-                {conversation.retentionMode !== "OFF" ? (
-                  <div className="flex items-center gap-2">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    {dmRetentionLabels[conversation.retentionMode]}
-                  </div>
-                ) : null}
-                {isBlocked ? (
-                  <div className="mt-1 flex items-center gap-2 text-amber-200">
-                    <ShieldAlert className="h-3.5 w-3.5" />
-                    Звонки и отправка ограничены
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>,
-          document.body,
-        )
-      : null;
-
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -1086,11 +941,7 @@ export function ConversationView({
               <ConversationHeaderIconButton
                 label="Поиск по диалогу"
                 active={isSearchOpen}
-                onClick={() => {
-                  setIsSearchOpen((current) => !current);
-                  setIsOverflowOpen(false);
-                }}
-                className="hidden sm:inline-flex"
+                onClick={() => setIsSearchOpen((current) => !current)}
               >
                 <Search {...iconProps} />
               </ConversationHeaderIconButton>
@@ -1110,26 +961,19 @@ export function ConversationView({
               <ConversationHeaderIconButton
                 label={isInfoPanelOpen ? "Скрыть детали" : "Открыть детали"}
                 active={isInfoPanelOpen}
-                onClick={() => {
-                  setIsInfoPanelOpen((current) => !current);
-                  setIsOverflowOpen(false);
-                }}
+                onClick={() => setIsInfoPanelOpen((current) => !current)}
               >
                 <Info {...iconProps} />
               </ConversationHeaderIconButton>
 
-              <div className="relative" data-dm-header-menu="true">
-                <ConversationHeaderIconButton
-                  ref={overflowButtonRef}
-                  label="Другие действия"
-                  active={isOverflowOpen}
-                  onClick={() => {
-                    setIsOverflowOpen((current) => !current);
-                  }}
-                >
-                  <MoreHorizontal {...iconProps} />
-                </ConversationHeaderIconButton>
-              </div>
+              <Link
+                href={buildUserProfileHref(counterpart.username)}
+                aria-label="Открыть профиль"
+                title="Открыть профиль"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-[var(--text-soft)] transition-colors hover:border-white/12 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)]"
+              >
+                <UserRound {...iconProps} />
+              </Link>
             </div>
           </div>
 
@@ -1260,28 +1104,21 @@ export function ConversationView({
   );
 }
 
-const ConversationHeaderIconButton = forwardRef<
-  HTMLButtonElement,
-  {
-    active?: boolean;
-    children: ReactNode;
-    className?: string;
-    label: string;
-    onClick?: () => void;
-  }
->(function ConversationHeaderIconButton(
-{
+function ConversationHeaderIconButton({
   active = false,
   children,
   className,
   label,
   onClick,
-},
-ref,
-) {
+}: {
+  active?: boolean;
+  children: ReactNode;
+  className?: string;
+  label: string;
+  onClick?: () => void;
+}) {
   return (
     <button
-      ref={ref}
       type="button"
       aria-label={label}
       title={label}
@@ -1296,4 +1133,4 @@ ref,
       {children}
     </button>
   );
-});
+}
