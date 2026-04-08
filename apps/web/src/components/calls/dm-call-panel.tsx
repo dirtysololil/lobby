@@ -423,11 +423,6 @@ export function DmCallPanel({
         : "Звонок";
   const screenShareButtonLabel = screenShareEnabled ? "Остановить показ" : "Показать экран";
   const cameraButtonLabel = cameraEnabled ? "Камера" : "Включить камеру";
-  const statusChip = (
-    <span className={cn("status-pill hidden lg:inline-flex", readinessToneClassName)}>
-      {readinessLabel}
-    </span>
-  );
   const stageMarkup =
     mounted && stageHostRef?.current && expandedCallId
       ? createPortal(
@@ -451,8 +446,6 @@ export function DmCallPanel({
     return (
       <>
         <div className="flex items-center gap-1.5">
-          {statusChip}
-
           {!activeCall ? (
             <>
               <HeaderActionButton

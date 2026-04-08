@@ -231,7 +231,7 @@ export function MovableConversationInfoPanel({
   }
 
   return (
-    <div className="pointer-events-none absolute inset-0 hidden md:block 2xl:hidden">
+    <div className="pointer-events-none absolute inset-0 z-20 hidden md:block">
       <div
         ref={panelRef}
         className="pointer-events-auto absolute w-[min(320px,calc(100%-1.5rem))] max-w-[320px] rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_20%),rgba(10,15,23,0.96)] p-3 shadow-[0_24px_60px_rgba(4,8,16,0.34)] backdrop-blur-xl"
