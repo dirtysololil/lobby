@@ -1,6 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
 import type {
   AdminMediaLibrary,
   PublicUser,
@@ -1164,12 +1165,13 @@ export function MediaLibraryAdminPanel({
               label="GIF"
               onClick={() => setActiveTab("gif")}
             />
-            <AdminTabButton
-              active={activeTab === "sticker"}
-              icon={<Sticker {...iconProps} />}
-              label="Стикеры"
-              onClick={() => setActiveTab("sticker")}
-            />
+            <Link
+              href="/app/admin/sticker-packs"
+              className="inline-flex h-10 items-center gap-2 rounded-[14px] border border-transparent px-3 text-sm font-medium text-[var(--text-muted)] transition-colors hover:bg-white/[0.05] hover:text-white"
+            >
+              <Sticker {...iconProps} />
+              Sticker packs
+            </Link>
           </div>
 
           <label className="flex items-center gap-2 rounded-[16px] border border-white/8 bg-white/[0.03] px-3 text-[var(--text-muted)]">
@@ -1189,7 +1191,7 @@ export function MediaLibraryAdminPanel({
 
       {activeTab === "emoji" ? renderEmojiTab() : null}
       {activeTab === "gif" ? renderGifTab() : null}
-      {activeTab === "sticker" ? renderStickerTab() : null}
+
     </div>
   );
 }
@@ -1261,3 +1263,4 @@ function IconButton({
     </button>
   );
 }
+

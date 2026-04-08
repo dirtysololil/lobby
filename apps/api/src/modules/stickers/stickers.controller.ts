@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
@@ -13,17 +14,23 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  adminStickerPacksResponseSchema,
   createStickerPackSchema,
+  discoverStickerPacksQuerySchema,
+  discoverStickerPacksResponseSchema,
   reorderStickerPacksSchema,
   reorderStickersSchema,
+  setStickerPackCoverSchema,
   stickerActionResponseSchema,
   stickerCatalogResponseSchema,
   stickerPackResponseSchema,
   stickerResponseSchema,
   type CreateStickerPackInput,
+  type DiscoverStickerPacksQuery,
   type PublicUser,
   type ReorderStickerPacksInput,
   type ReorderStickersInput,
+  type SetStickerPackCoverInput,
   type UpdateStickerInput,
   type UpdateStickerPackInput,
   updateStickerPackSchema,
@@ -56,6 +63,58 @@ export class StickersController {
     });
   }
 
+  @RequireAuth()
+  @Get('discover')
+  public async discoverPacks(
+    @CurrentUser() currentUser: PublicUser,
+    @Query('query') query?: string,
+  ) {
+    const parsed = discoverStickerPacksQuerySchema.parse({
+      query: typeof query === 'string' ? query : '',
+    } satisfies DiscoverStickerPacksQuery);
+
+    return discoverStickerPacksResponseSchema.parse({
+      packs: await this.stickersService.discoverPacks(
+        currentUser.id,
+        parsed.query,
+      ),
+    });
+  }
+
+  @RequireAuth()
+  @Post('packs/:packId/install')
+  public async installPack(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('packId') packId: string,
+  ) {
+    await this.stickersService.installPackForUser(currentUser.id, packId);
+
+    return stickerActionResponseSchema.parse({
+      ok: true,
+    });
+  }
+
+  @RequireAuth()
+  @Delete('packs/:packId/install')
+  public async uninstallPack(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('packId') packId: string,
+  ) {
+    await this.stickersService.uninstallPackForUser(currentUser.id, packId);
+
+    return stickerActionResponseSchema.parse({
+      ok: true,
+    });
+  }
+
+  @RequireAuth('OWNER', 'ADMIN')
+  @Get('admin/packs')
+  public async listAdminPacks() {
+    return adminStickerPacksResponseSchema.parse({
+      packs: await this.stickersService.listAdminPacks(),
+    });
+  }
+
   @RequireAuth('OWNER', 'ADMIN')
   @Post('packs')
   public async createPack(
@@ -84,6 +143,25 @@ export class StickersController {
   ) {
     return stickerPackResponseSchema.parse({
       pack: await this.stickersService.updatePack(
+        currentUser.id,
+        packId,
+        body,
+        getRequestMetadata(request),
+      ),
+    });
+  }
+
+  @RequireAuth('OWNER', 'ADMIN')
+  @Post('packs/:packId/cover')
+  public async setPackCover(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('packId') packId: string,
+    @Body(new ZodValidationPipe(setStickerPackCoverSchema))
+    body: SetStickerPackCoverInput,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return stickerPackResponseSchema.parse({
+      pack: await this.stickersService.setPackCover(
         currentUser.id,
         packId,
         body,

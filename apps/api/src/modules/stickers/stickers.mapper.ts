@@ -1,11 +1,13 @@
 import {
   stickerAssetSchema,
   stickerCatalogSchema,
+  stickerPackDiscoverySchema,
   stickerPackSchema,
   stickerRecentSchema,
   type StickerAsset,
   type StickerCatalog,
   type StickerPack,
+  type StickerPackDiscovery,
   type StickerRecent,
 } from '@lobby/shared';
 import type {
@@ -19,10 +21,21 @@ export type StickerPackWithStickers = PrismaStickerPack & {
   stickers: PrismaSticker[];
 };
 
+export type StickerPackDiscoveryRecord = PrismaStickerPack & {
+  coverSticker: PrismaSticker | null;
+  stickers: PrismaSticker[];
+};
+
 export type StickerRecentRecord = PrismaStickerRecent & {
   pack: PrismaStickerPack;
   sticker: PrismaSticker;
 };
+
+function normalizeKeywords(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
 
 export function toStickerAsset(sticker: PrismaSticker): StickerAsset {
   return stickerAssetSchema.parse({
@@ -43,15 +56,15 @@ export function toStickerAsset(sticker: PrismaSticker): StickerAsset {
     height: sticker.height,
     isAnimated: sticker.isAnimated,
     durationMs: sticker.durationMs ?? null,
-    keywords: Array.isArray(sticker.keywords)
-      ? sticker.keywords.filter((item): item is string => typeof item === 'string')
-      : [],
+    keywords: normalizeKeywords(sticker.keywords),
+    searchText: sticker.searchText ?? null,
+    sortOrder: sticker.sortOrder,
     isActive: sticker.isActive,
-    publishedAt:
-      ('publishedAt' in sticker ? sticker.publishedAt : null)?.toISOString() ??
-      (sticker.isActive ? sticker.updatedAt.toISOString() : null),
-    archivedAt:
-      ('archivedAt' in sticker ? sticker.archivedAt : null)?.toISOString() ?? null,
+    isPublished: sticker.isPublished,
+    isHidden: sticker.isHidden,
+    isArchived: sticker.isArchived,
+    publishedAt: sticker.publishedAt?.toISOString() ?? null,
+    archivedAt: sticker.archivedAt?.toISOString() ?? null,
     deletedAt: sticker.deletedAt?.toISOString() ?? null,
     createdAt: sticker.createdAt.toISOString(),
     updatedAt: sticker.updatedAt.toISOString(),
@@ -67,16 +80,39 @@ export function toStickerPack(pack: StickerPackWithStickers): StickerPack {
     slug: pack.slug ?? buildStickerPackSlugFallbackFromId(pack.id),
     description: pack.description ?? null,
     coverStickerId: pack.coverStickerId ?? null,
+    stickerCount: pack.stickers.length,
     sortOrder: pack.sortOrder,
     isActive: pack.isActive,
-    publishedAt:
-      pack.publishedAt?.toISOString() ??
-      (pack.isActive ? pack.updatedAt.toISOString() : null),
+    isPublished: pack.isPublished,
+    isDiscoverable: pack.isDiscoverable,
+    isHidden: pack.isHidden,
+    isArchived: pack.isArchived,
+    publishedAt: pack.publishedAt?.toISOString() ?? null,
     archivedAt: pack.archivedAt?.toISOString() ?? null,
     deletedAt: pack.deletedAt?.toISOString() ?? null,
     createdAt: pack.createdAt.toISOString(),
     updatedAt: pack.updatedAt.toISOString(),
     stickers: pack.stickers.map((sticker) => toStickerAsset(sticker)),
+  });
+}
+
+export function toStickerPackDiscovery(
+  pack: StickerPackDiscoveryRecord,
+  isInstalled: boolean,
+): StickerPackDiscovery {
+  const coverSticker =
+    pack.coverSticker && !pack.coverSticker.deletedAt
+      ? pack.coverSticker
+      : (pack.stickers[0] ?? null);
+
+  return stickerPackDiscoverySchema.parse({
+    id: pack.id,
+    title: pack.title,
+    description: pack.description ?? null,
+    coverStickerId: pack.coverStickerId ?? null,
+    stickerCount: pack.stickers.length,
+    isInstalled,
+    coverSticker: coverSticker ? toStickerAsset(coverSticker) : null,
   });
 }
 
