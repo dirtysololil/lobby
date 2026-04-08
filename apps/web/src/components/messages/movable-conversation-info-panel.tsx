@@ -1,7 +1,7 @@
 "use client";
 
 import type { DmNotificationSetting, DmRetentionMode, PublicUser } from "@lobby/shared";
-import { Grip, RotateCcw } from "lucide-react";
+import { Grip, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
@@ -13,9 +13,11 @@ interface MovableConversationInfoPanelProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   conversationId: string;
   counterpart: PublicUser;
+  isOpen: boolean;
   notificationSetting: DmNotificationSetting;
   retentionMode: DmRetentionMode;
   retentionSeconds: number | null;
+  onClose?: () => void;
   onSave: (payload: {
     notificationSetting: DmNotificationSetting;
     retentionMode: DmRetentionMode;
@@ -65,9 +67,11 @@ export function MovableConversationInfoPanel({
   containerRef,
   conversationId,
   counterpart,
+  isOpen,
   notificationSetting,
   retentionMode,
   retentionSeconds,
+  onClose,
   onSave,
 }: MovableConversationInfoPanelProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -222,6 +226,10 @@ export function MovableConversationInfoPanel({
     [notificationSetting, retentionMode],
   );
 
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <div className="pointer-events-none absolute inset-0 hidden md:block 2xl:hidden">
       <div
@@ -258,16 +266,31 @@ export function MovableConversationInfoPanel({
             </div>
           </div>
 
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 px-2.5 text-[var(--text-muted)]"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => setPosition(defaultPosition())}
-          >
-            <RotateCcw className="h-4 w-4" />
-            Сброс
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 px-2.5 text-[var(--text-muted)]"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => setPosition(defaultPosition())}
+            >
+              <RotateCcw className="h-4 w-4" />
+              Сброс
+            </Button>
+            {onClose ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 px-0 text-[var(--text-muted)]"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={onClose}
+                aria-label="Закрыть панель"
+                title="Закрыть панель"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <div className="mt-3 flex items-center gap-3 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
