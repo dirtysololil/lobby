@@ -63,7 +63,7 @@ export function InlineCustomEmojiText({
             <EmojiGlyph
               key={`unicode-emoji-${index}`}
               emoji={part.value}
-              className="mx-[0.05em] inline-block h-[1.15em] w-[1.15em] translate-y-[0.16em]"
+              className="mx-[0.04em] inline-block h-[1.22em] w-[1.22em] translate-y-[0.14em]"
               fallbackClassName="mx-[0.02em] inline-block"
             />
           );
@@ -74,7 +74,7 @@ export function InlineCustomEmojiText({
             key={`emoji-${part.emoji.id}-${index}`}
             src={getCustomEmojiAssetUrl(part.emoji)}
             alt={part.emoji.title}
-            className="mx-[0.08em] inline-block h-[1.28em] w-[1.28em] translate-y-[0.22em] rounded-[0.32em] object-contain align-baseline"
+            className="mx-[0.06em] inline-block h-[1.36em] w-[1.36em] translate-y-[0.18em] rounded-[0.32em] object-contain align-baseline"
             draggable={false}
             loading="lazy"
           />

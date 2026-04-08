@@ -27,7 +27,7 @@ export function StickerAssetPreview({
     return (
       <div
         className={cn(
-          "flex aspect-square w-full items-center justify-center rounded-[20px] border border-white/8 bg-white/[0.03] px-4 text-center text-xs text-[var(--text-muted)]",
+          "flex aspect-square w-full items-center justify-center rounded-[20px] bg-white/[0.03] px-4 text-center text-xs text-[var(--text-muted)]",
           className,
         )}
       >

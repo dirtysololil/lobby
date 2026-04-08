@@ -24,7 +24,6 @@ import {
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { uploadDirectMessageAttachment } from "@/lib/direct-message-attachments";
@@ -74,6 +73,20 @@ function stripConversationMessages(
   const { messages: hiddenMessages, ...meta } = conversation;
   void hiddenMessages;
   return meta;
+}
+
+function buildSearchableMessageText(message: ThreadMessageItem) {
+  return [
+    message.author.profile.displayName,
+    message.author.username,
+    message.content,
+    message.sticker?.title,
+    message.gif?.title,
+    message.attachment?.originalName,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" ")
+    .toLowerCase();
 }
 
 function buildOptimisticMessage(args: {
@@ -355,6 +368,16 @@ export function ConversationView({
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const normalizedMessageSearchQuery = messageSearchQuery.trim().toLowerCase();
+  const messageSearchMatches = useMemo(() => {
+    if (!normalizedMessageSearchQuery) {
+      return 0;
+    }
+
+    return messages.filter((message) =>
+      buildSearchableMessageText(message).includes(normalizedMessageSearchQuery),
+    ).length;
+  }, [messages, normalizedMessageSearchQuery]);
   const readInFlightRef = useRef(false);
   const messageViewportRef = useRef<HTMLDivElement | null>(null);
   const callStageHostRef = useRef<HTMLDivElement | null>(null);
@@ -895,35 +918,39 @@ export function ConversationView({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent_16%)]">
+    <div className="dm-shell flex h-full min-h-0 flex-col overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="relative shrink-0 border-b border-white/6 bg-[rgba(10,14,20,0.9)] backdrop-blur-xl">
-          <div className="flex min-h-[64px] items-center gap-3 px-3">
+        <div className="dm-header relative shrink-0">
+          <div className="flex min-h-[66px] items-center gap-3 px-3 py-2">
             <Link
               href="/app/messages"
               aria-label="Назад к диалогам"
               title="Назад к диалогам"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-[var(--text-soft)] transition-colors hover:border-white/12 hover:bg-white/[0.07] hover:text-white md:hidden"
+              className="dm-action-button md:hidden"
             >
                 <ArrowLeft {...iconProps} />
             </Link>
 
             <div className="min-w-0 flex flex-1 items-center gap-3">
-              <Link
+              <div className="dm-avatar-aura shrink-0">
+                <Link
                 href={buildUserProfileHref(counterpart.username)}
                 aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
                 title="Открыть профиль"
-                className="shrink-0 rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] cursor-pointer"
+                className="rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)]"
               >
                 <UserAvatar user={counterpart} size="sm" />
-              </Link>
+                </Link>
+                <span className="dm-avatar-particle dm-avatar-particle-1" aria-hidden="true" />
+                <span className="dm-avatar-particle dm-avatar-particle-2" aria-hidden="true" />
+              </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <Link
                     href={buildUserProfileHref(counterpart.username)}
                     aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
                     title="Открыть профиль"
-                    className="truncate text-[15px] font-medium tracking-tight text-white transition-colors hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] cursor-pointer"
+                    className="dm-identity-title truncate text-[15px] font-semibold tracking-tight transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)]"
                   >
                     {counterpart.profile.displayName}
                   </Link>
@@ -933,7 +960,14 @@ export function ConversationView({
                     </span>
                   ) : null}
                 </div>
-                <p className="truncate text-xs text-[var(--text-muted)]">
+                <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-[var(--text-muted)]">
+                  <span
+                    className={cn(
+                      "inline-flex h-1.5 w-1.5 rounded-full bg-white/18",
+                      liveCounterpart?.isOnline &&
+                        "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.28)]",
+                    )}
+                  />
                   <span>@{counterpart.username}</span>
                   <span className="px-1">•</span>
                   <span
@@ -949,7 +983,7 @@ export function ConversationView({
               </div>
             </div>
 
-            <div className="relative ml-auto flex items-center gap-1.5">
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
               <ConversationHeaderIconButton
                 label="Поиск по диалогу"
                 active={isSearchOpen}
@@ -982,10 +1016,10 @@ export function ConversationView({
           </div>
 
           {isSearchOpen ? (
-            <div className="pointer-events-none absolute inset-x-3 top-1/2 z-20 -translate-y-1/2">
-              <div className="pointer-events-auto ml-auto flex h-10 w-full max-w-[min(420px,100%)] items-center gap-2 rounded-full border border-white/10 bg-[rgba(8,12,18,0.98)] px-3 shadow-[0_18px_44px_rgba(2,6,12,0.34)]">
+            <div className="dm-search-row px-3 pb-2 pt-1.5">
+              <div className="dm-search-shell">
                 <Search size={16} strokeWidth={1.5} className="shrink-0 text-[var(--text-soft)]" />
-                <Input
+                <input
                   ref={searchInputRef}
                   value={messageSearchQuery}
                   onChange={(event) => setMessageSearchQuery(event.target.value)}
@@ -995,12 +1029,23 @@ export function ConversationView({
                     }
                   }}
                   placeholder="Поиск по сообщениям"
-                  className="h-full border-0 bg-transparent px-0 text-sm text-white"
+                  className="dm-search-input text-sm"
                 />
+                {normalizedMessageSearchQuery ? (
+                  <span className="dm-message-meta-chip">{messageSearchMatches}</span>
+                ) : null}
                 <button
                   type="button"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-white/[0.06] hover:text-white"
-                  onClick={() => setIsSearchOpen(false)}
+                  className="dm-action-button h-7 w-7 border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/[0.04]"
+                  onClick={() => {
+                    if (messageSearchQuery) {
+                      setMessageSearchQuery("");
+                      searchInputRef.current?.focus();
+                      return;
+                    }
+
+                    setIsSearchOpen(false);
+                  }}
                   aria-label="Закрыть поиск"
                 >
                   <X size={15} strokeWidth={1.5} />
@@ -1127,9 +1172,8 @@ function ConversationHeaderIconButton({
       title={label}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-[var(--text-soft)] transition-colors hover:border-white/12 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)]",
-        active &&
-          "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)]",
+        "dm-action-button",
+        active && "dm-action-button-active",
         className,
       )}
     >

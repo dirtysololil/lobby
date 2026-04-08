@@ -7,11 +7,13 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getDirectMessageAttachmentAssetUrl, getDirectMessageAttachmentPreviewUrl } from "@/lib/direct-message-attachments";
+import { isEmojiCluster, splitGraphemes } from "@/lib/emoji/unicode";
 import {
   hasRenderableLinkEmbedMedia,
   isStandaloneEmbeddableMessage,
   stripEmbeddableLinkText,
 } from "@/lib/link-embeds";
+import { customEmojiTokenPattern } from "@/lib/stickers";
 import { cn } from "@/lib/utils";
 import { EmbeddedMediaBubble } from "./embedded-media-bubble";
 import { GifAssetPreview } from "./gif-asset-preview";
@@ -98,6 +100,31 @@ function buildSearchableMessageText(message: ThreadMessageItem) {
   ];
 
   return parts.filter((value): value is string => Boolean(value)).join(" ").toLowerCase();
+}
+
+function isExpressiveEmojiMessage(content: string | null) {
+  if (!content) {
+    return false;
+  }
+
+  const normalized = content.trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  customEmojiTokenPattern.lastIndex = 0;
+  const placeholderText = normalized.replace(customEmojiTokenPattern, "§");
+  customEmojiTokenPattern.lastIndex = 0;
+  const graphemes = splitGraphemes(placeholderText).filter(
+    (item) => item.trim().length > 0,
+  );
+
+  if (graphemes.length === 0 || graphemes.length > 3) {
+    return false;
+  }
+
+  return graphemes.every((item) => item === "§" || isEmojiCluster(item));
 }
 
 function clampContextMenuPosition(x: number, y: number) {
@@ -381,22 +408,22 @@ export function MessageThread({
     <>
       <div
         ref={viewportRef}
-        className="h-full min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.04),transparent_18%),transparent]"
+        className="dm-thread-surface h-full min-h-0 overflow-y-auto"
       >
         {messages.length === 0 ? (
           <div className="empty-state-minimal text-[var(--text-muted)]">
             <p className="text-sm">Сообщений пока нет.</p>
           </div>
         ) : (
-          <div className="space-y-2 px-3 py-3">
+          <div className="space-y-2.5 px-3 py-3">
             {groupedMessages.map((group) => (
               <div key={group.label} className="space-y-1.5">
                 <div className="flex items-center gap-3 py-0.5">
-                  <div className="h-px flex-1 bg-white/5" />
-                  <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                  <div className="dm-rule h-px flex-1" />
+                  <span className="dm-date-separator text-[10px] font-medium uppercase tracking-[0.16em]">
                     {group.label}
                   </span>
-                  <div className="h-px flex-1 bg-white/5" />
+                  <div className="dm-rule h-px flex-1" />
                 </div>
 
                 {group.items.map((message, index) => {
@@ -428,6 +455,10 @@ export function MessageThread({
                       ? stripEmbeddableLinkText(message.content, message.linkEmbed.sourceUrl)
                       : message.content;
                   const showText = !isStandaloneEmbed && Boolean(visibleText);
+                  const isExpressiveEmoji =
+                    !isVisualMessage &&
+                    !message.linkEmbed &&
+                    isExpressiveEmojiMessage(visibleText);
                   const previousMessage = group.items[index - 1];
                   const continuation = isContinuation(previousMessage, message);
                   const isUnreadMarker = unreadIndex >= 0 && globalIndex === unreadIndex;
@@ -435,23 +466,16 @@ export function MessageThread({
                     isOwn && !message.localState && message.canDelete;
                   const isContextMenuOpen = contextMenu?.messageId === message.id;
                   const bubbleClassName = cn(
-                    "relative rounded-[17px] border px-3 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-[border-color,background,box-shadow] duration-150",
-                    isVisualMessage && "border-transparent bg-transparent px-0 py-0 shadow-none",
-                    isOwn
-                      ? "ml-auto border-[rgba(106,168,248,0.15)] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_46%),rgba(88,132,191,0.15)] group-hover/message:border-[rgba(106,168,248,0.22)] group-hover/message:bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_46%),rgba(92,139,201,0.17)]"
-                      : "border-white/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.016),transparent_46%),rgba(255,255,255,0.04)] group-hover/message:border-white/[0.1] group-hover/message:bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_46%),rgba(255,255,255,0.052)]",
-                    continuation && !isVisualMessage && "rounded-[15px] py-1.5",
-                    isContextMenuOpen &&
-                      !isVisualMessage &&
-                      (isOwn
-                        ? "border-[rgba(106,168,248,0.3)] bg-[linear-gradient(180deg,rgba(255,255,255,0.022),transparent_44%),rgba(96,145,210,0.22)] shadow-[0_10px_24px_rgba(8,16,28,0.14)]"
-                        : "border-white/[0.16] bg-[linear-gradient(180deg,rgba(255,255,255,0.024),transparent_44%),rgba(255,255,255,0.07)] shadow-[0_10px_24px_rgba(8,16,28,0.12)]"),
-                    message.localState === "failed" &&
-                      "border-amber-400/30 bg-amber-400/10",
+                    "dm-bubble",
+                    isVisualMessage && "border-transparent bg-transparent p-0 shadow-none",
+                    !isVisualMessage && (isOwn ? "dm-bubble-out ml-auto" : "dm-bubble-in"),
+                    continuation && !isVisualMessage && "rounded-[18px] py-1.5",
+                    isContextMenuOpen && !isVisualMessage && "dm-bubble-highlight",
+                    message.localState === "failed" && "border-amber-400/22 bg-amber-400/10",
                     normalizedSearchQuery &&
                       matchingMessageIds.has(message.id) &&
                       !isVisualMessage &&
-                      "border-[rgba(106,168,248,0.38)] shadow-[0_0_0_1px_rgba(106,168,248,0.18),0_10px_24px_rgba(8,16,28,0.12)]",
+                      "dm-bubble-highlight",
                   );
 
                   return (
@@ -469,11 +493,11 @@ export function MessageThread({
                     >
                       {isUnreadMarker ? (
                         <div className="mb-2 flex items-center gap-3 py-0.5">
-                          <div className="h-px flex-1 bg-[color:var(--accent)]/35" />
+                          <div className="dm-unread-rule h-px flex-1" />
                           <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--accent)]">
                             Новое
                           </span>
-                          <div className="h-px flex-1 bg-[color:var(--accent)]/35" />
+                          <div className="dm-unread-rule h-px flex-1" />
                         </div>
                       ) : null}
 
@@ -505,31 +529,36 @@ export function MessageThread({
                         <div
                           className={cn(
                             isVisualMessage
-                              ? "min-w-0 max-w-[min(340px,100%)] flex-1"
-                              : "min-w-0 max-w-[min(76ch,100%)] flex-1",
+                              ? "min-w-0 max-w-[min(360px,100%)] flex-1"
+                              : "min-w-0 max-w-[min(72ch,100%)] flex-1",
                             isOwn && "text-right",
                           )}
                         >
                           {!continuation ? (
                             <div
                               className={cn(
-                                "mb-1 flex items-center gap-2",
+                                "mb-1 flex items-center gap-2.5",
                                 isOwn && "justify-end",
                               )}
                             >
-                              <p className="text-sm font-medium tracking-tight text-white">
+                              <p
+                                className={cn(
+                                  "dm-message-author",
+                                  isOwn && "dm-message-author-own",
+                                )}
+                              >
                                 {message.author.profile.displayName}
                               </p>
                               <span className="text-[11px] text-[var(--text-muted)]">
                                 {formatThreadTime(message.createdAt)}
                               </span>
                               {message.localState === "sending" ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                                <span className="dm-message-meta-chip">
                                   Отправляем
                                 </span>
                               ) : null}
                               {message.localState === "uploading" ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                                <span className="dm-message-meta-chip">
                                   Загрузка
                                   {typeof message.uploadProgress === "number"
                                     ? ` ${Math.round(message.uploadProgress * 100)}%`
@@ -562,7 +591,7 @@ export function MessageThread({
                                 }}
                                 disabled={isDeleting === message.id}
                                 className={cn(
-                                  "absolute -left-9 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/6 bg-[rgba(10,14,20,0.9)] text-[var(--text-muted)] opacity-0 transition-all hover:border-white/10 hover:bg-[rgba(20,28,40,0.96)] hover:text-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] disabled:cursor-not-allowed disabled:opacity-50",
+                                  "dm-action-button absolute -left-9 top-1/2 h-7 w-7 -translate-y-1/2 opacity-0 focus-visible:opacity-100 disabled:cursor-not-allowed disabled:opacity-50",
                                   (isContextMenuOpen || isDeleting === message.id) &&
                                     "opacity-100",
                                   "group-hover/message:opacity-100",
@@ -577,22 +606,22 @@ export function MessageThread({
                               {isSticker && message.sticker ? (
                                 <StickerAssetPreview
                                   sticker={message.sticker}
-                                  className="aspect-square rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_55%),rgba(255,255,255,0.03)]"
+                                  className="dm-media-surface aspect-square rounded-[26px]"
                                   imageClassName="pointer-events-none"
                                 />
                               ) : isSticker ? (
-                                <div className="flex aspect-square items-center justify-center rounded-[24px] border border-white/8 bg-white/[0.03] px-4 text-center text-sm text-[var(--text-muted)]">
+                                <div className="dm-media-surface flex aspect-square items-center justify-center rounded-[26px] px-4 text-center text-sm text-[var(--text-muted)]">
                                   Стикер недоступен
                                 </div>
                               ) : isGif && message.gif ? (
                                 <GifAssetPreview
                                   gif={message.gif}
-                                  className="aspect-[4/3] rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.1),transparent_55%),rgba(255,255,255,0.03)]"
+                                  className="dm-media-surface aspect-[4/3] rounded-[26px]"
                                   imageClassName="pointer-events-none"
-                                  showBadge
+                                  showBadge={false}
                                 />
                               ) : isGif ? (
-                                <div className="flex aspect-[4/3] items-center justify-center rounded-[24px] border border-white/8 bg-white/[0.03] px-4 text-center text-sm text-[var(--text-muted)]">
+                                <div className="dm-media-surface flex aspect-[4/3] items-center justify-center rounded-[26px] px-4 text-center text-sm text-[var(--text-muted)]">
                                   GIF недоступен
                                 </div>
                               ) : isMediaAttachment && message.attachment ? (
@@ -626,7 +655,7 @@ export function MessageThread({
                                   label={
                                     message.attachment.kind === "VIDEO" ? "Видео" : "Фото"
                                   }
-                                  className="w-[min(224px,72vw)]"
+                                  className="w-[min(248px,72vw)]"
                                 />
                               ) : isFileAttachment && message.attachment ? (
                                 <a
@@ -637,21 +666,26 @@ export function MessageThread({
                                   target="_blank"
                                   rel="noreferrer"
                                   className={cn(
-                                    "block rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3 text-left transition-colors hover:border-white/12 hover:bg-white/[0.05]",
+                                    "dm-file-card block rounded-[18px] px-3 py-3 text-left transition-colors hover:bg-white/[0.05]",
                                     isOwn && "ml-auto",
                                   )}
                                 >
                                   <p className="truncate text-sm font-medium text-white">
                                     {message.attachment.originalName}
                                   </p>
-                                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
                                     Документ • {formatFileSize(message.attachment.fileSize)}
                                   </p>
                                 </a>
                               ) : (
                                 <div className={cn("grid gap-2", !showText && !shouldRenderInlineEmbed && "gap-0")}>
                                   {showText ? (
-                                    <p className="text-[13px] leading-[1.42] text-white">
+                                    <p
+                                      className={cn(
+                                        "dm-message-text",
+                                        isExpressiveEmoji && "dm-message-text-expressive",
+                                      )}
+                                    >
                                       <InlineCustomEmojiText
                                         text={visibleText ?? ""}
                                         customEmojis={customEmojis}
@@ -663,7 +697,7 @@ export function MessageThread({
                                       embed={message.linkEmbed}
                                       messageCreatedAt={message.createdAt}
                                       className={cn(
-                                        "w-[min(224px,72vw)]",
+                                        "w-[min(248px,72vw)]",
                                         isOwn && "ml-auto",
                                       )}
                                     />

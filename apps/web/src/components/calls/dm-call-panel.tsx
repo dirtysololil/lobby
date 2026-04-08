@@ -7,6 +7,7 @@ import {
   type CallSummary,
 } from "@lobby/shared";
 import {
+  Maximize2,
   Mic,
   MicOff,
   Monitor,
@@ -80,6 +81,7 @@ export function DmCallPanel({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const loadRequestIdRef = useRef(0);
+  const stageShellRef = useRef<HTMLDivElement | null>(null);
 
   const callRoute = `/app/messages/${conversationId}`;
   const callTitle = `Звонок с ${counterpartName}`;
@@ -376,6 +378,20 @@ export function DmCallPanel({
     }
   }
 
+  async function openStageFullscreen() {
+    const element = stageShellRef.current;
+
+    if (!element || typeof element.requestFullscreen !== "function") {
+      return;
+    }
+
+    try {
+      await element.requestFullscreen();
+    } catch {
+      // Ignore fullscreen failures triggered by browser restrictions.
+    }
+  }
+
   const readinessLabel = isBlocked
     ? "Звонки недоступны"
     : activeCall
@@ -423,16 +439,47 @@ export function DmCallPanel({
         : "Звонок";
   const screenShareButtonLabel = screenShareEnabled ? "Остановить показ" : "Показать экран";
   const cameraButtonLabel = cameraEnabled ? "Камера" : "Включить камеру";
+  const canStopOwnScreenShare = Boolean(
+    isCurrentSession && screenShareEnabled && canPublishMedia,
+  );
   const stageMarkup =
     mounted && stageHostRef?.current && expandedCallId
       ? createPortal(
-          <div className="mt-2 border-t border-white/6 pt-2">
-            <LiveKitCallRoom
-              callId={expandedCallId}
-              title="DM stage"
-              description=""
-              variant="conversation"
-            />
+          <div ref={stageShellRef} className="mt-2 border-t border-white/6 px-3 pb-3 pt-2">
+            {screenShareVisible ? (
+              <div className="dm-screen-share-strip mb-2">
+                <button type="button" className="dm-screen-share-chip dm-screen-share-chip-active" disabled>
+                  <Monitor {...iconProps} />
+                  Р’ РґРёР°Р»РѕРіРµ
+                </button>
+                <button
+                  type="button"
+                  className="dm-screen-share-chip"
+                  onClick={() => void openStageFullscreen()}
+                >
+                  <Maximize2 {...iconProps} />
+                  РќР° РІРµСЃСЊ СЌРєСЂР°РЅ
+                </button>
+                {canStopOwnScreenShare ? (
+                  <button
+                    type="button"
+                    className="dm-screen-share-chip dm-screen-share-chip-danger"
+                    onClick={() => void toggleScreenShare()}
+                  >
+                    <MonitorX {...iconProps} />
+                    РћСЃС‚Р°РЅРѕРІРёС‚СЊ РїРѕРєР°Р·
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="overflow-hidden rounded-[22px] border border-white/6 bg-[rgba(8,12,18,0.82)] shadow-[0_20px_42px_rgba(4,8,16,0.22)]">
+              <LiveKitCallRoom
+                callId={expandedCallId}
+                title="DM stage"
+                description=""
+                variant="conversation"
+              />
+            </div>
           </div>,
           stageHostRef.current,
         )
@@ -469,7 +516,7 @@ export function DmCallPanel({
             <>
               <Button
                 size="sm"
-                className="h-9 rounded-full px-3"
+                className="h-8 rounded-full px-3"
                 onClick={() => void acceptCall()}
                 disabled={pendingAction !== null || isBlocked}
               >
@@ -479,7 +526,7 @@ export function DmCallPanel({
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-9 rounded-full px-3"
+                className="h-8 rounded-full px-3"
                 onClick={() => void declineCall()}
                 disabled={pendingAction !== null}
               >
@@ -518,7 +565,7 @@ export function DmCallPanel({
                   {cameraEnabled ? <Video {...iconProps} /> : <VideoOff {...iconProps} />}
                 </HeaderActionButton>
               ) : null}
-              {isCurrentSession ? (
+              {isCurrentSession && !screenShareVisible ? (
                 <HeaderActionButton
                   label={screenShareButtonLabel}
                   disabled={pendingAction !== null || !canPublishMedia}
@@ -734,12 +781,12 @@ function HeaderActionButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-full border text-[var(--text-soft)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] disabled:cursor-not-allowed disabled:opacity-50",
+        "dm-action-button",
         tone === "danger"
-          ? "border-rose-400/18 bg-rose-500/10 text-rose-100 hover:border-rose-400/28 hover:bg-rose-500/14"
+          ? "dm-action-button-danger"
           : active
-            ? "border-[rgba(106,168,248,0.2)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)] hover:border-[rgba(106,168,248,0.3)] hover:bg-[rgba(106,168,248,0.18)]"
-            : "border-white/8 bg-white/[0.04] hover:border-white/12 hover:bg-white/[0.07] hover:text-white",
+            ? "dm-action-button-active"
+            : "",
       )}
     >
       {children}
