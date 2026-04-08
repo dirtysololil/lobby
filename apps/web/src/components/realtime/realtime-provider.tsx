@@ -86,7 +86,28 @@ function getTransportName(socket: Socket): string {
 }
 
 export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
-  const [socket] = useState<Socket>(() => {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [latestSignal, setLatestSignal] = useState<CallSignal | null>(null);
+  const [latestDmSignal, setLatestDmSignal] = useState<DmSignal | null>(null);
+  const [incomingCalls, setIncomingCalls] = useState<CallSummary[]>([]);
+  const [presenceByUserId, setPresenceByUserId] = useState<Record<string, boolean>>({});
+  const clearIncomingCall = useCallback((callId: string) => {
+    setIncomingCalls((current) => current.filter((item) => item.id !== callId));
+  }, []);
+  const disconnectRealtime = useCallback(() => {
+    setLatestSignal(null);
+    setLatestDmSignal(null);
+    setIncomingCalls([]);
+    setPresenceByUserId({});
+
+    if (typeof window !== "undefined" && socket && window.__lobbySocket === socket) {
+      delete window.__lobbySocket;
+    }
+
+    socket?.disconnect();
+  }, [socket]);
+
+  useEffect(() => {
     const transportMode = resolveRealtimeTransportMode();
     const transports = resolveRealtimeTransports(transportMode);
     const baseUrl = resolveRealtimeBaseUrlForBrowser();
@@ -108,29 +129,23 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       window.__lobbySocket = nextSocket;
     }
 
-    return nextSocket;
-  });
-  const [latestSignal, setLatestSignal] = useState<CallSignal | null>(null);
-  const [latestDmSignal, setLatestDmSignal] = useState<DmSignal | null>(null);
-  const [incomingCalls, setIncomingCalls] = useState<CallSummary[]>([]);
-  const [presenceByUserId, setPresenceByUserId] = useState<Record<string, boolean>>({});
-  const clearIncomingCall = useCallback((callId: string) => {
-    setIncomingCalls((current) => current.filter((item) => item.id !== callId));
-  }, []);
-  const disconnectRealtime = useCallback(() => {
-    setLatestSignal(null);
-    setLatestDmSignal(null);
-    setIncomingCalls([]);
-    setPresenceByUserId({});
+    setSocket(nextSocket);
 
-    if (typeof window !== "undefined" && window.__lobbySocket === socket) {
-      delete window.__lobbySocket;
-    }
+    return () => {
+      if (typeof window !== "undefined" && window.__lobbySocket === nextSocket) {
+        delete window.__lobbySocket;
+      }
 
-    socket.disconnect();
-  }, [socket]);
+      nextSocket.disconnect();
+      setSocket((current) => (current === nextSocket ? null : current));
+    };
+  }, [viewer.id]);
 
   useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
     const handleConnect = () => {
       console.info("[realtime/client] connect", {
         socketId: socket.id,
