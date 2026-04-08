@@ -908,7 +908,12 @@ export function ConversationView({
                 <ArrowLeft {...iconProps} />
             </Link>
 
-            <div className="min-w-0 flex flex-1 items-center gap-3">
+            <Link
+              href={buildUserProfileHref(counterpart.username)}
+              aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
+              title="Открыть профиль"
+              className="min-w-0 flex flex-1 items-center gap-3 rounded-[16px] px-1 py-1 transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)] cursor-pointer"
+            >
               <UserAvatar user={counterpart} size="sm" />
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -935,7 +940,7 @@ export function ConversationView({
                   </span>
                 </p>
               </div>
-            </div>
+            </Link>
 
             <div className="relative ml-auto flex items-center gap-1.5">
               <ConversationHeaderIconButton
@@ -966,14 +971,6 @@ export function ConversationView({
                 <Info {...iconProps} />
               </ConversationHeaderIconButton>
 
-              <Link
-                href={buildUserProfileHref(counterpart.username)}
-                aria-label="Открыть профиль"
-                title="Открыть профиль"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-[var(--text-soft)] transition-colors hover:border-white/12 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)]"
-              >
-                <UserRound {...iconProps} />
-              </Link>
             </div>
           </div>
 
