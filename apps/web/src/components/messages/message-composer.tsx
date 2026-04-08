@@ -11,6 +11,7 @@ import { FileText, ImagePlus, Paperclip, SendHorizontal, SmilePlus } from "lucid
 import {
   useCallback,
   useEffect,
+  useMemo,
   useLayoutEffect,
   useRef,
   useState,
@@ -18,7 +19,9 @@ import {
   type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { isEmojiCluster, splitGraphemes } from "@/lib/emoji/unicode";
 import { buildCustomEmojiToken } from "@/lib/stickers";
+import { customEmojiTokenPattern } from "@/lib/stickers";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker, type PickerTab } from "./emoji-sticker-picker";
@@ -52,6 +55,21 @@ const MAX_RECENT_EMOJIS = 28;
 const MAX_RECENT_STICKERS = 24;
 const MAX_RECENT_GIFS = 20;
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+
+function needsRichComposerOverlay(text: string) {
+  if (!text) {
+    return false;
+  }
+
+  if (customEmojiTokenPattern.test(text)) {
+    customEmojiTokenPattern.lastIndex = 0;
+    return true;
+  }
+
+  customEmojiTokenPattern.lastIndex = 0;
+
+  return splitGraphemes(text).some((grapheme) => isEmojiCluster(grapheme));
+}
 
 function readRecentStrings(storageKey: string) {
   if (typeof window === "undefined") {
@@ -126,6 +144,10 @@ export function MessageComposer({
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
+  const shouldRenderRichOverlay = useMemo(
+    () => needsRichComposerOverlay(content),
+    [content],
+  );
 
   const syncTextareaHeight = useCallback(() => {
     const element = textareaRef.current;
@@ -547,26 +569,18 @@ export function MessageComposer({
         </Button>
 
         <div className="relative min-w-0 flex-1">
-          <div
-            ref={mirrorRef}
-            aria-hidden
-            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[16px] px-3 py-2 text-sm leading-[1.4] text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
-          >
-            {content ? (
+          {shouldRenderRichOverlay ? (
+            <div
+              ref={mirrorRef}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 overflow-hidden rounded-[16px] px-3 py-2 text-sm leading-[1.4] text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+            >
               <InlineCustomEmojiText
                 text={content.endsWith("\n") ? `${content}\u200b` : content}
                 customEmojis={pickerCatalog?.customEmojis ?? []}
               />
-            ) : (
-              <span className="text-[var(--text-muted)]">
-                {isUploadingFiles
-                  ? "Загружаем файлы…"
-                  : disabled
-                  ? "В этом диалоге нельзя отправлять сообщения."
-                  : "Сообщение"}
-              </span>
-            )}
-          </div>
+            </div>
+          ) : null}
 
           <textarea
             ref={textareaRef}
@@ -579,10 +593,21 @@ export function MessageComposer({
             onSelect={syncSelection}
             onScroll={syncMirrorScroll}
             onKeyDown={handleKeyDown}
-            placeholder=""
+            placeholder={
+              isUploadingFiles
+                ? "Загружаем файлы…"
+                : disabled
+                  ? "В этом диалоге нельзя отправлять сообщения."
+                  : "Сообщение"
+            }
             disabled={disabled || isSendingText || isUploadingFiles}
             rows={1}
-            className="relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] text-transparent caret-white outline-none transition-colors [overflow-wrap:anywhere] disabled:cursor-not-allowed disabled:opacity-60"
+            className={cn(
+              "relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] outline-none transition-colors [overflow-wrap:anywhere] disabled:cursor-not-allowed disabled:opacity-60",
+              shouldRenderRichOverlay
+                ? "text-transparent caret-white"
+                : "text-white caret-white placeholder:text-[var(--text-muted)]",
+            )}
             style={{
               resize: "none",
               overflowWrap: "anywhere",
