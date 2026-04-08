@@ -25,9 +25,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const pathname = usePathname();
   const safePathname = pathname ?? "";
   const route = parseAppPath(safePathname);
-  const activityAvailable =
-    (route.section === "messages" && Boolean(route.conversationId)) ||
-    (route.section === "hubs" && Boolean(route.hubId));
+  const activityAvailable = route.section === "hubs" && Boolean(route.hubId);
   const [activityOpen, setActivityOpen] = useState(false);
   const [isWideScreen, setIsWideScreen] = useState(false);
   const effectiveActivityOpen = activityAvailable && activityOpen;
