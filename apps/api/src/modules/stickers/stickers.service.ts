@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,13 +14,16 @@ import type {
   UpdateStickerInput,
   UpdateStickerPackInput,
 } from '@lobby/shared';
-import type { Prisma, Sticker } from '@prisma/client';
+import { Prisma, Sticker, StickerType } from '@prisma/client';
 import type { RequestMetadata } from '../../common/interfaces/request-metadata.interface';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { EnvService } from '../env/env.service';
 import { StorageService } from '../storage/storage.service';
-import { parseStickerImageMetadata } from '../storage/sticker-image.util';
+import {
+  processStickerUpload,
+  type StickerCropTransform,
+} from '../storage/sticker-media.util';
 import {
   toStickerAsset,
   toStickerCatalog,
@@ -33,6 +37,7 @@ type UploadedBinaryFile = {
   buffer: Buffer;
   size: number;
   originalname: string;
+  mimetype?: string;
 };
 
 const recentStickerLimit = 24;
@@ -51,11 +56,13 @@ export class StickersService {
       this.prisma.stickerPack.findMany({
         where: {
           deletedAt: null,
-          isActive: true,
+          archivedAt: null,
+          ...this.getPublishedPackWhere(),
           stickers: {
             some: {
               deletedAt: null,
-              isActive: true,
+              archivedAt: null,
+              ...this.getPublishedStickerWhere(),
             },
           },
         },
@@ -64,7 +71,8 @@ export class StickersService {
           stickers: {
             where: {
               deletedAt: null,
-              isActive: true,
+              archivedAt: null,
+              ...this.getPublishedStickerWhere(),
             },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
           },
@@ -76,13 +84,15 @@ export class StickersService {
           sticker: {
             is: {
               deletedAt: null,
-              isActive: true,
+              archivedAt: null,
+              ...this.getPublishedStickerWhere(),
             },
           },
           pack: {
             is: {
               deletedAt: null,
-              isActive: true,
+              archivedAt: null,
+              ...this.getPublishedPackWhere(),
             },
           },
         },
@@ -126,22 +136,32 @@ export class StickersService {
     requestMetadata: RequestMetadata,
   ): Promise<StickerPack> {
     const sortOrder = await this.getNextPackSortOrder();
-    const pack = await this.prisma.stickerPack.create({
-      data: {
-        ownerId: actorUserId,
-        title: input.title.trim(),
-        sortOrder,
-        isActive: true,
-      },
-      include: {
-        stickers: {
-          where: {
-            deletedAt: null,
-          },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    const published = input.published === true;
+    let pack;
+
+    try {
+      pack = await this.prisma.stickerPack.create({
+        data: {
+          ownerId: actorUserId,
+          title: input.title.trim(),
+          slug: this.resolvePackSlug(input.slug, input.title),
+          description: input.description?.trim() || null,
+          sortOrder,
+          isActive: published,
+          publishedAt: published ? new Date() : null,
         },
-      },
-    });
+        include: {
+          stickers: {
+            where: {
+              deletedAt: null,
+            },
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          },
+        },
+      });
+    } catch (error) {
+      this.rethrowKnownError(error, 'Слаг набора уже занят.');
+    }
 
     await this.auditService.write({
       action: 'stickers.pack.create',
@@ -152,6 +172,8 @@ export class StickersService {
       userAgent: requestMetadata.userAgent,
       metadata: {
         title: pack.title,
+        slug: pack.slug,
+        published: published,
       },
     });
 
@@ -164,25 +186,62 @@ export class StickersService {
     input: UpdateStickerPackInput,
     requestMetadata: RequestMetadata,
   ): Promise<StickerPack> {
-    await this.getPackOrThrow(packId);
-
-    const pack = await this.prisma.stickerPack.update({
+    const currentPack = await this.prisma.stickerPack.findFirst({
       where: {
         id: packId,
+        deletedAt: null,
       },
-      data: {
-        ...(input.title !== undefined ? { title: input.title.trim() } : {}),
-        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
-      },
-      include: {
-        stickers: {
-          where: {
-            deletedAt: null,
-          },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-        },
+      select: {
+        id: true,
+        title: true,
       },
     });
+
+    if (!currentPack) {
+      throw new NotFoundException('Набор стикеров не найден.');
+    }
+
+    if (input.coverStickerId) {
+      await this.getStickerOrThrow(packId, input.coverStickerId);
+    }
+
+    let pack;
+
+    try {
+      pack = await this.prisma.stickerPack.update({
+        where: {
+          id: packId,
+        },
+        data: {
+          ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+          ...(input.slug !== undefined
+            ? {
+                slug: this.resolvePackSlug(
+                  input.slug,
+                  input.title ?? currentPack.title,
+                ),
+              }
+            : {}),
+          ...(input.description !== undefined
+            ? { description: input.description?.trim() || null }
+            : {}),
+          ...(input.coverStickerId !== undefined
+            ? { coverStickerId: input.coverStickerId }
+            : {}),
+          ...this.buildPackLifecycleUpdate(input),
+        },
+        include: {
+          stickers: {
+            where: {
+              deletedAt: null,
+            },
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          },
+        },
+      });
+    } catch (error) {
+      this.rethrowKnownError(error, 'Слаг набора уже занят.');
+    }
 
     await this.auditService.write({
       action: 'stickers.pack.update',
@@ -193,7 +252,12 @@ export class StickersService {
       userAgent: requestMetadata.userAgent,
       metadata: {
         title: input.title ?? null,
+        slug: input.slug ?? null,
+        description: input.description ?? null,
+        coverStickerId: input.coverStickerId ?? null,
         isActive: input.isActive ?? null,
+        published: input.published ?? null,
+        archived: input.archived ?? null,
       },
     });
 
@@ -268,6 +332,8 @@ export class StickersService {
         data: {
           deletedAt,
           isActive: false,
+          publishedAt: null,
+          archivedAt: deletedAt,
         },
       });
 
@@ -279,6 +345,8 @@ export class StickersService {
         data: {
           deletedAt,
           isActive: false,
+          publishedAt: null,
+          archivedAt: deletedAt,
         },
       });
     });
@@ -298,6 +366,9 @@ export class StickersService {
     packId: string,
     file: UploadedBinaryFile | undefined,
     rawTitle: string | null | undefined,
+    rawKeywords: string[] | null | undefined,
+    crop: Partial<StickerCropTransform> | null | undefined,
+    published: boolean | null | undefined,
     requestMetadata: RequestMetadata,
   ): Promise<StickerAsset> {
     await this.getPackOrThrow(packId);
@@ -308,20 +379,23 @@ export class StickersService {
 
     const env = this.envService.getValues();
     const maxBytes = Math.floor(env.MAX_STICKER_MB * 1024 * 1024);
-
-    if (file.size > maxBytes) {
-      throw new BadRequestException(
-        `Стикер слишком большой. Максимальный размер: ${env.MAX_STICKER_MB} MB.`,
-      );
-    }
-
-    let metadata;
+    const isPublished = published === true;
+    const keywords = this.resolveKeywords(rawKeywords);
+    const sortOrder = await this.getNextStickerSortOrder(packId);
+    const title = this.resolveStickerTitle(rawTitle, file.originalname, sortOrder);
+    let processed;
 
     try {
-      metadata = parseStickerImageMetadata(file.buffer, {
-        maxFrames: env.MAX_STICKER_FRAMES,
-        maxAnimationMs: env.MAX_STICKER_ANIMATION_MS,
-        maxDimension: env.MAX_STICKER_DIMENSION,
+      processed = await processStickerUpload({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        limits: {
+          maxBytes,
+          maxDimension: env.MAX_STICKER_DIMENSION,
+          maxDurationMs: env.MAX_STICKER_ANIMATION_MS,
+        },
+        crop,
       });
     } catch (error) {
       throw new BadRequestException(
@@ -331,12 +405,20 @@ export class StickersService {
       );
     }
 
-    const fileKey = await this.storageService.writeSticker(
+    const sourceFileKey = await this.storageService.writeSticker(
       file.buffer,
-      metadata.extension,
+      processed.metadata.extension,
     );
-    const sortOrder = await this.getNextStickerSortOrder(packId);
-    const title = this.resolveStickerTitle(rawTitle, file.originalname, sortOrder);
+    const fileKey = await this.storageService.writeSticker(
+      processed.staticBuffer,
+      processed.staticExtension,
+    );
+    const animatedFileKey = processed.animatedBuffer
+      ? await this.storageService.writeSticker(
+          processed.animatedBuffer,
+          processed.animatedExtension ?? 'webp',
+        )
+      : null;
 
     try {
       const sticker = await this.prisma.sticker.create({
@@ -344,14 +426,36 @@ export class StickersService {
           packId,
           title,
           fileKey,
+          animatedFileKey,
+          animatedMimeType: processed.animatedMimeType,
           originalName: file.originalname || null,
-          mimeType: metadata.mimeType,
-          fileSize: metadata.bytes,
-          width: metadata.width,
-          height: metadata.height,
-          isAnimated: metadata.isAnimated,
+          mimeType: processed.staticMimeType,
+          fileSize: processed.staticBuffer.byteLength,
+          sourceFileKey,
+          sourceMimeType: processed.metadata.mimeType,
+          sourceFileSize: file.size,
+          width: 224,
+          height: 224,
+          type: processed.metadata.isAnimated
+            ? StickerType.ANIMATED
+            : StickerType.STATIC,
+          isAnimated: processed.metadata.isAnimated,
+          durationMs: processed.metadata.durationMs,
+          keywords,
+          searchText: [title, ...keywords].join(' ').trim(),
           sortOrder,
-          isActive: true,
+          isActive: isPublished,
+          publishedAt: isPublished ? new Date() : null,
+        },
+      });
+
+      await this.prisma.stickerPack.updateMany({
+        where: {
+          id: packId,
+          coverStickerId: null,
+        },
+        data: {
+          coverStickerId: sticker.id,
         },
       });
 
@@ -364,15 +468,20 @@ export class StickersService {
         userAgent: requestMetadata.userAgent,
         metadata: {
           packId,
-          mimeType: metadata.mimeType,
-          bytes: metadata.bytes,
-          isAnimated: metadata.isAnimated,
+          mimeType: processed.metadata.mimeType,
+          bytes: file.size,
+          isAnimated: processed.metadata.isAnimated,
+          keywords,
+          published: isPublished,
         },
       });
 
       return toStickerAsset(sticker);
     } catch (error) {
       await this.storageService.deleteObject(fileKey);
+      await this.storageService.deleteObject(animatedFileKey);
+      await this.storageService.deleteObject(sourceFileKey);
+      this.rethrowKnownError(error, 'Не удалось сохранить стикер.');
       throw error;
     }
   }
@@ -385,7 +494,21 @@ export class StickersService {
     requestMetadata: RequestMetadata,
   ): Promise<StickerAsset> {
     await this.getPackOrThrow(packId);
-    await this.getStickerOrThrow(packId, stickerId);
+    const currentSticker = await this.prisma.sticker.findFirst({
+      where: {
+        id: stickerId,
+        packId,
+      },
+      select: {
+        id: true,
+        title: true,
+        keywords: true,
+      },
+    });
+
+    if (!currentSticker) {
+      throw new NotFoundException('Стикер не найден.');
+    }
 
     const sticker = await this.prisma.sticker.update({
       where: {
@@ -393,7 +516,34 @@ export class StickersService {
       },
       data: {
         ...(input.title !== undefined ? { title: input.title.trim() } : {}),
-        ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+        ...(input.title !== undefined && input.keywords === undefined
+          ? {
+              searchText: [
+                input.title.trim(),
+                ...this.resolveKeywords(
+                  Array.isArray(currentSticker.keywords)
+                    ? currentSticker.keywords.filter(
+                        (item): item is string => typeof item === 'string',
+                      )
+                    : [],
+                ),
+              ]
+                .join(' ')
+                .trim(),
+            }
+          : {}),
+        ...(input.keywords !== undefined
+          ? {
+              keywords: this.resolveKeywords(input.keywords),
+              searchText: [
+                input.title?.trim() ?? currentSticker.title,
+                ...this.resolveKeywords(input.keywords),
+              ]
+                .join(' ')
+                .trim(),
+            }
+          : {}),
+        ...this.buildStickerLifecycleUpdate(input),
       },
     });
 
@@ -406,7 +556,10 @@ export class StickersService {
       userAgent: requestMetadata.userAgent,
       metadata: {
         title: input.title ?? null,
+        keywords: input.keywords ?? null,
         isActive: input.isActive ?? null,
+        published: input.published ?? null,
+        archived: input.archived ?? null,
       },
     });
 
@@ -486,6 +639,8 @@ export class StickersService {
         data: {
           deletedAt: new Date(),
           isActive: false,
+          publishedAt: null,
+          archivedAt: new Date(),
         },
       });
     }
@@ -508,11 +663,13 @@ export class StickersService {
       where: {
         id: stickerId,
         deletedAt: null,
-        isActive: true,
+        archivedAt: null,
+        ...this.getPublishedStickerWhere(),
         pack: {
           is: {
             deletedAt: null,
-            isActive: true,
+            archivedAt: null,
+            ...this.getPublishedPackWhere(),
           },
         },
       },
@@ -568,6 +725,8 @@ export class StickersService {
       select: {
         fileKey: true,
         mimeType: true,
+        animatedFileKey: true,
+        animatedMimeType: true,
       },
     });
 
@@ -577,8 +736,10 @@ export class StickersService {
 
     try {
       return {
-        buffer: await this.storageService.readObject(sticker.fileKey),
-        mimeType: sticker.mimeType,
+        buffer: await this.storageService.readObject(
+          sticker.animatedFileKey ?? sticker.fileKey,
+        ),
+        mimeType: sticker.animatedMimeType ?? sticker.mimeType,
       };
     } catch {
       throw new NotFoundException('Файл стикера недоступен.');
@@ -672,5 +833,137 @@ export class StickersService {
     }
 
     return `Стикер ${sortOrder + 1}`;
+  }
+
+  private resolvePackSlug(
+    rawSlug: string | null | undefined,
+    rawTitle: string | null | undefined,
+  ): string {
+    const candidate = (rawSlug?.trim() || rawTitle?.trim() || 'sticker-pack')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 120);
+
+    if (!candidate || candidate.length < 2) {
+      throw new BadRequestException('Укажите корректный slug набора.');
+    }
+
+    return candidate;
+  }
+
+  private resolveKeywords(value: string[] | null | undefined): string[] {
+    if (!value || value.length === 0) {
+      return [];
+    }
+
+    return [...new Set(value.map((item) => item.trim()).filter(Boolean))].slice(0, 24);
+  }
+
+  private getPublishedPackWhere(): Prisma.StickerPackWhereInput {
+    return {
+      OR: [
+        {
+          publishedAt: {
+            not: null,
+          },
+        },
+        {
+          publishedAt: null,
+          isActive: true,
+        },
+      ],
+    };
+  }
+
+  private getPublishedStickerWhere(): Prisma.StickerWhereInput {
+    return {
+      OR: [
+        {
+          publishedAt: {
+            not: null,
+          },
+        },
+        {
+          publishedAt: null,
+          isActive: true,
+        },
+      ],
+    };
+  }
+
+  private buildPackLifecycleUpdate(
+    input: UpdateStickerPackInput,
+  ): Prisma.StickerPackUpdateInput {
+    const now = new Date();
+    const update: Prisma.StickerPackUpdateInput = {};
+
+    if (input.archived === true) {
+      update.archivedAt = now;
+      update.publishedAt = null;
+      update.isActive = false;
+      return update;
+    }
+
+    if (input.archived === false) {
+      update.archivedAt = null;
+    }
+
+    if (input.published === true || input.isActive === true) {
+      update.publishedAt = now;
+      update.archivedAt = null;
+      update.isActive = true;
+      return update;
+    }
+
+    if (input.published === false || input.isActive === false) {
+      update.publishedAt = null;
+      update.isActive = false;
+    }
+
+    return update;
+  }
+
+  private buildStickerLifecycleUpdate(
+    input: UpdateStickerInput,
+  ): Prisma.StickerUpdateInput {
+    const now = new Date();
+    const update: Prisma.StickerUpdateInput = {};
+
+    if (input.archived === true) {
+      update.archivedAt = now;
+      update.publishedAt = null;
+      update.isActive = false;
+      return update;
+    }
+
+    if (input.archived === false) {
+      update.archivedAt = null;
+    }
+
+    if (input.published === true || input.isActive === true) {
+      update.publishedAt = now;
+      update.archivedAt = null;
+      update.isActive = true;
+      return update;
+    }
+
+    if (input.published === false || input.isActive === false) {
+      update.publishedAt = null;
+      update.isActive = false;
+    }
+
+    return update;
+  }
+
+  private rethrowKnownError(error: unknown, duplicateMessage: string): never {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw new ConflictException(duplicateMessage);
+    }
+
+    throw error;
   }
 }

@@ -1,18 +1,32 @@
 import { z } from "zod";
 import { actionMessageSchema, isoDateSchema } from "./common";
 
+export const stickerTypeSchema = z.enum(["STATIC", "ANIMATED"]);
+export type StickerType = z.infer<typeof stickerTypeSchema>;
+
 export const stickerAssetSchema = z.object({
   id: z.string().cuid(),
   packId: z.string().cuid(),
   title: z.string().trim().min(1).max(80),
+  type: stickerTypeSchema,
   fileKey: z.string(),
+  animatedFileKey: z.string().nullable().optional(),
+  animatedMimeType: z.string().nullable().optional(),
   originalName: z.string().nullable(),
   mimeType: z.string(),
   fileSize: z.number().int().positive(),
+  sourceFileKey: z.string().nullable().optional(),
+  sourceMimeType: z.string().nullable().optional(),
+  sourceFileSize: z.number().int().positive().nullable().optional(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   isAnimated: z.boolean(),
+  durationMs: z.number().int().positive().nullable().optional(),
+  keywords: z.array(z.string().trim().min(1).max(32)).max(24).default([]),
   isActive: z.boolean(),
+  publishedAt: isoDateSchema.nullable().optional(),
+  archivedAt: isoDateSchema.nullable().optional(),
+  deletedAt: isoDateSchema.nullable().optional(),
   createdAt: isoDateSchema,
   updatedAt: isoDateSchema,
 });
@@ -22,9 +36,21 @@ export type StickerAsset = z.infer<typeof stickerAssetSchema>;
 export const stickerPackSchema = z.object({
   id: z.string().cuid(),
   ownerId: z.string().cuid(),
+  createdById: z.string().cuid(),
   title: z.string().trim().min(1).max(80),
+  slug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(120)
+    .regex(/^[a-z0-9-]+$/i, "Допустимы только буквы, цифры и дефис."),
+  description: z.string().trim().max(300).nullable().optional(),
+  coverStickerId: z.string().cuid().nullable().optional(),
   sortOrder: z.number().int().nonnegative(),
   isActive: z.boolean(),
+  publishedAt: isoDateSchema.nullable().optional(),
+  archivedAt: isoDateSchema.nullable().optional(),
+  deletedAt: isoDateSchema.nullable().optional(),
   createdAt: isoDateSchema,
   updatedAt: isoDateSchema,
   stickers: z.array(stickerAssetSchema),
@@ -51,6 +77,15 @@ export type StickerCatalog = z.infer<typeof stickerCatalogSchema>;
 
 export const createStickerPackSchema = z.object({
   title: z.string().trim().min(1).max(80),
+  slug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(120)
+    .regex(/^[a-z0-9-]+$/i, "Допустимы только буквы, цифры и дефис.")
+    .optional(),
+  description: z.string().trim().max(300).nullable().optional(),
+  published: z.boolean().optional(),
 });
 
 export type CreateStickerPackInput = z.infer<typeof createStickerPackSchema>;
@@ -64,10 +99,28 @@ export type RenameStickerPackInput = z.infer<typeof renameStickerPackSchema>;
 export const updateStickerPackSchema = z
   .object({
     title: z.string().trim().min(1).max(80).optional(),
+    slug: z
+      .string()
+      .trim()
+      .min(2)
+      .max(120)
+      .regex(/^[a-z0-9-]+$/i, "Допустимы только буквы, цифры и дефис.")
+      .optional(),
+    description: z.string().trim().max(300).nullable().optional(),
+    coverStickerId: z.string().cuid().nullable().optional(),
     isActive: z.boolean().optional(),
+    published: z.boolean().optional(),
+    archived: z.boolean().optional(),
   })
   .refine(
-    (value) => value.title !== undefined || value.isActive !== undefined,
+    (value) =>
+      value.title !== undefined ||
+      value.slug !== undefined ||
+      value.description !== undefined ||
+      value.coverStickerId !== undefined ||
+      value.isActive !== undefined ||
+      value.published !== undefined ||
+      value.archived !== undefined,
     {
       message: "Нужно передать хотя бы одно изменение.",
     },
@@ -91,9 +144,17 @@ export const updateStickerSchema = z
   .object({
     title: z.string().trim().min(1).max(80).optional(),
     isActive: z.boolean().optional(),
+    keywords: z.array(z.string().trim().min(1).max(32)).max(24).optional(),
+    published: z.boolean().optional(),
+    archived: z.boolean().optional(),
   })
   .refine(
-    (value) => value.title !== undefined || value.isActive !== undefined,
+    (value) =>
+      value.title !== undefined ||
+      value.isActive !== undefined ||
+      value.keywords !== undefined ||
+      value.published !== undefined ||
+      value.archived !== undefined,
     {
       message: "Нужно передать хотя бы одно изменение.",
     },

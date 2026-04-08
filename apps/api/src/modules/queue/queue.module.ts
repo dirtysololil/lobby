@@ -3,6 +3,7 @@ import { Global, Module } from '@nestjs/common';
 import { EnvService } from '../env/env.service';
 import {
   CALL_TIMEOUT_QUEUE,
+  DM_LINK_UNFURL_QUEUE,
   DM_RETENTION_QUEUE,
   SESSION_EXPIRY_QUEUE,
 } from './queue.constants';
@@ -28,6 +29,9 @@ import { getBullConnection } from './queue.utils';
     }),
     BullModule.registerQueue({
       name: DM_RETENTION_QUEUE,
+    }),
+    BullModule.registerQueue({
+      name: DM_LINK_UNFURL_QUEUE,
     }),
     BullModule.registerQueue({
       name: CALL_TIMEOUT_QUEUE,

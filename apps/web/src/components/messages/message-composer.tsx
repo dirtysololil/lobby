@@ -20,7 +20,7 @@ import { buildCustomEmojiToken } from "@/lib/stickers";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker, type PickerTab } from "./emoji-sticker-picker";
-import { StickerPackManagerModal } from "./sticker-pack-manager-modal";
+import { InlineCustomEmojiText } from "./inline-custom-emoji-text";
 
 export type ComposerSendPayload =
   | { type: "TEXT"; content: string }
@@ -112,8 +112,8 @@ export function MessageComposer({
   const [recentGifIds, setRecentGifIds] = useState<string[]>([]);
   const [pendingStickerIds, setPendingStickerIds] = useState<string[]>([]);
   const [pendingGifIds, setPendingGifIds] = useState<string[]>([]);
-  const [isManagerOpen, setIsManagerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const mirrorRef = useRef<HTMLDivElement | null>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
 
   useEffect(() => {
@@ -184,6 +184,18 @@ export function MessageComposer({
       start: element.selectionStart ?? content.length,
       end: element.selectionEnd ?? content.length,
     };
+  }
+
+  function syncMirrorScroll() {
+    const textarea = textareaRef.current;
+    const mirror = mirrorRef.current;
+
+    if (!textarea || !mirror) {
+      return;
+    }
+
+    mirror.scrollTop = textarea.scrollTop;
+    mirror.scrollLeft = textarea.scrollLeft;
   }
 
   function focusTextarea(position?: number) {
@@ -371,8 +383,9 @@ export function MessageComposer({
                   return;
                 }
 
-                setIsManagerOpen(true);
-                void refreshCatalogIfNeeded();
+                if (typeof window !== "undefined") {
+                  window.location.assign("/app/admin/sticker-packs");
+                }
               }}
             />
           </div>
@@ -394,23 +407,41 @@ export function MessageComposer({
           <SmilePlus {...iconProps} />
         </Button>
 
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
-          onClick={syncSelection}
-          onKeyUp={syncSelection}
-          onSelect={syncSelection}
-          onKeyDown={handleKeyDown}
-          placeholder={
-            disabled
-              ? "В этом диалоге нельзя отправлять сообщения."
-              : "Сообщение"
-          }
-          disabled={disabled || isSendingText}
-          rows={1}
-          className="block min-h-9 max-h-28 flex-1 resize-none rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] text-white outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60"
-        />
+        <div className="relative min-w-0 flex-1">
+          <div
+            ref={mirrorRef}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[16px] px-3 py-2 text-sm leading-[1.4] text-white"
+          >
+            {content ? (
+              <InlineCustomEmojiText
+                text={content.endsWith("\n") ? `${content}\u200b` : content}
+                customEmojis={pickerCatalog?.customEmojis ?? []}
+              />
+            ) : (
+              <span className="text-[var(--text-muted)]">
+                {disabled
+                  ? "В этом диалоге нельзя отправлять сообщения."
+                  : "Сообщение"}
+              </span>
+            )}
+          </div>
+
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            onClick={syncSelection}
+            onKeyUp={syncSelection}
+            onSelect={syncSelection}
+            onScroll={syncMirrorScroll}
+            onKeyDown={handleKeyDown}
+            placeholder=""
+            disabled={disabled || isSendingText}
+            rows={1}
+            className="relative block min-h-9 max-h-28 w-full resize-none rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] text-transparent caret-white outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          />
+        </div>
 
         <Button
           type="submit"
@@ -427,19 +458,6 @@ export function MessageComposer({
           <SendHorizontal {...iconProps} />
         </Button>
       </form>
-
-      {canManageLibrary ? (
-        <StickerPackManagerModal
-          open={isManagerOpen}
-          catalog={pickerCatalog?.stickers ?? null}
-          onClose={() => {
-            setIsManagerOpen(false);
-            void onRefreshPickerCatalog();
-          }}
-          onCatalogChange={onStickerCatalogChange}
-          onRefreshCatalog={async () => (await onRefreshPickerCatalog())?.stickers ?? null}
-        />
-      ) : null}
     </>
   );
 }

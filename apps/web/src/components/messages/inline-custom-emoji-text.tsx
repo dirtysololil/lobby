@@ -3,6 +3,8 @@
 /* eslint-disable @next/next/no-img-element */
 import type { CustomEmojiAsset } from "@lobby/shared";
 import { Fragment, useMemo } from "react";
+import { EmojiGlyph } from "@/lib/emoji/emoji-glyph";
+import { isEmojiCluster, splitGraphemes } from "@/lib/emoji/unicode";
 import {
   customEmojiTokenPattern,
   getCustomEmojiAssetUrl,
@@ -14,6 +16,14 @@ interface InlineCustomEmojiTextProps {
   customEmojis: CustomEmojiAsset[];
   className?: string;
 }
+
+type InlinePart =
+  | { type: "text"; value: string }
+  | { type: "emoji"; emoji: CustomEmojiAsset }
+  | { type: "unicodeEmoji"; value: string }
+  | { type: "url"; value: string; href: string };
+
+const urlPattern = /https?:\/\/[^\s<>"'`]+/giu;
 
 export function InlineCustomEmojiText({
   text,
@@ -34,6 +44,31 @@ export function InlineCustomEmojiText({
           return <Fragment key={`text-${index}`}>{part.value}</Fragment>;
         }
 
+        if (part.type === "url") {
+          return (
+            <a
+              key={`url-${part.href}-${index}`}
+              href={part.href}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[color:var(--accent)] underline decoration-white/10 underline-offset-2 transition-colors hover:text-white"
+            >
+              {part.value}
+            </a>
+          );
+        }
+
+        if (part.type === "unicodeEmoji") {
+          return (
+            <EmojiGlyph
+              key={`unicode-emoji-${index}`}
+              emoji={part.value}
+              className="mx-[0.05em] inline-block h-[1.15em] w-[1.15em] translate-y-[0.16em]"
+              fallbackClassName="mx-[0.02em] inline-block"
+            />
+          );
+        }
+
         return (
           <img
             key={`emoji-${part.emoji.id}-${index}`}
@@ -48,10 +83,6 @@ export function InlineCustomEmojiText({
     </span>
   );
 }
-
-type InlinePart =
-  | { type: "text"; value: string }
-  | { type: "emoji"; emoji: CustomEmojiAsset };
 
 function buildInlineParts(
   text: string,
@@ -70,10 +101,7 @@ function buildInlineParts(
     }
 
     if (index > lastIndex) {
-      parts.push({
-        type: "text",
-        value: text.slice(lastIndex, index),
-      });
+      parts.push(...buildPlainTextParts(text.slice(lastIndex, index)));
     }
 
     const emoji = emojiByAlias.get(alias);
@@ -84,21 +112,96 @@ function buildInlineParts(
         emoji,
       });
     } else {
-      parts.push({
-        type: "text",
-        value: fullMatch,
-      });
+      parts.push(...buildPlainTextParts(fullMatch));
     }
 
     lastIndex = index + fullMatch.length;
   }
 
   if (lastIndex < text.length) {
-    parts.push({
-      type: "text",
-      value: text.slice(lastIndex),
-    });
+    parts.push(...buildPlainTextParts(text.slice(lastIndex)));
   }
 
   return parts.length > 0 ? parts : [{ type: "text", value: text }];
+}
+
+function buildPlainTextParts(text: string): InlinePart[] {
+  const parts: InlinePart[] = [];
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(urlPattern)) {
+    const rawUrl = match[0];
+    const index = match.index ?? -1;
+
+    if (index < 0) {
+      continue;
+    }
+
+    if (index > lastIndex) {
+      parts.push(...buildUnicodeParts(text.slice(lastIndex, index)));
+    }
+
+    const sanitizedUrl = sanitizeUrl(rawUrl);
+
+    if (sanitizedUrl) {
+      parts.push({
+        type: "url",
+        value: rawUrl,
+        href: sanitizedUrl,
+      });
+    } else {
+      parts.push(...buildUnicodeParts(rawUrl));
+    }
+
+    lastIndex = index + rawUrl.length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(...buildUnicodeParts(text.slice(lastIndex)));
+  }
+
+  return parts;
+}
+
+function buildUnicodeParts(text: string): InlinePart[] {
+  const parts: InlinePart[] = [];
+  let currentText = "";
+
+  for (const grapheme of splitGraphemes(text)) {
+    if (isEmojiCluster(grapheme)) {
+      if (currentText) {
+        parts.push({
+          type: "text",
+          value: currentText,
+        });
+        currentText = "";
+      }
+
+      parts.push({
+        type: "unicodeEmoji",
+        value: grapheme,
+      });
+      continue;
+    }
+
+    currentText += grapheme;
+  }
+
+  if (currentText) {
+    parts.push({
+      type: "text",
+      value: currentText,
+    });
+  }
+
+  return parts;
+}
+
+function sanitizeUrl(value: string): string | null {
+  try {
+    const url = new URL(value.replace(/[),.;!?]+$/g, ""));
+    return /^https?:$/i.test(url.protocol) ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }

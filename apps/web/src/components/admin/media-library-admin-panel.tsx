@@ -623,7 +623,7 @@ export function MediaLibraryAdminPanel({
                 >
                   <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[18px] border border-white/8 bg-[rgba(11,16,24,0.86)]">
                     <img
-                      src={getCustomEmojiAssetUrl(emoji.id)}
+                      src={getCustomEmojiAssetUrl(emoji)}
                       alt={emoji.title}
                       className="max-h-12 max-w-12 object-contain"
                     />

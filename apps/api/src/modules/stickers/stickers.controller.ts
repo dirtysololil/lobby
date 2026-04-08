@@ -41,6 +41,7 @@ type UploadedBinaryFile = {
   buffer: Buffer;
   size: number;
   originalname: string;
+  mimetype?: string;
 };
 
 @Controller('stickers')
@@ -135,7 +136,15 @@ export class StickersController {
     @CurrentUser() currentUser: PublicUser,
     @Param('packId') packId: string,
     @UploadedFile() file: UploadedBinaryFile | undefined,
-    @Body() body: { title?: string } | undefined,
+    @Body()
+    body:
+      | {
+          title?: string;
+          keywords?: string | string[];
+          crop?: string;
+          published?: string;
+        }
+      | undefined,
     @Req() request: AuthenticatedRequest,
   ) {
     return stickerResponseSchema.parse({
@@ -144,6 +153,9 @@ export class StickersController {
         packId,
         file,
         body?.title,
+        normalizeKeywords(body?.keywords),
+        parseCropPayload(body?.crop),
+        body?.published === 'true',
         getRequestMetadata(request),
       ),
     });
@@ -226,5 +238,41 @@ export class StickersController {
     response.setHeader('Cache-Control', 'private, max-age=300');
 
     return response.send(asset.buffer);
+  }
+}
+
+function normalizeKeywords(value: string | string[] | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((item) => item.split(','))
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseCropPayload(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as {
+      scale?: number;
+      translateX?: number;
+      translateY?: number;
+    };
+
+    return parsed;
+  } catch {
+    return null;
   }
 }

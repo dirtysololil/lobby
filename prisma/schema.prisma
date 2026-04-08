@@ -64,6 +64,21 @@ enum DirectMessageType {
   GIF
 }
 
+enum LinkEmbedProvider {
+  TENOR
+}
+
+enum LinkEmbedStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+enum StickerType {
+  STATIC
+  ANIMATED
+}
+
 enum HubMemberRole {
   OWNER
   ADMIN
@@ -295,6 +310,8 @@ model DirectMessage {
   content                String?
   stickerId              String?
   gifId                  String?
+  stickerSnapshot        Json?
+  linkEmbed              DirectMessageLinkEmbed?
   deletedAt              DateTime?
   deletedByUserId        String?
   createdAt              DateTime                       @default(now())
@@ -313,12 +330,43 @@ model DirectMessage {
   @@index([type])
 }
 
+model DirectMessageLinkEmbed {
+  id              String            @id @default(cuid())
+  messageId       String            @unique
+  provider        LinkEmbedProvider
+  status          LinkEmbedStatus   @default(PENDING)
+  sourceUrl       String            @db.Text
+  sourceUrlHash   String            @db.Char(64)
+  canonicalUrl    String?           @db.Text
+  canonicalUrlHash String?          @db.Char(64)
+  title           String?
+  previewImage    String?           @db.Text
+  animatedMediaUrl String?          @db.Text
+  width           Int?
+  height          Int?
+  aspectRatio     Float?
+  contentType     String?
+  failureCode     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  message         DirectMessage     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([provider, sourceUrlHash])
+  @@index([provider, canonicalUrlHash])
+  @@index([status, updatedAt])
+}
+
 model StickerPack {
   id        String    @id @default(cuid())
   ownerId   String
   title     String
+  slug      String?   @unique
+  description String?
+  coverStickerId String?
   sortOrder Int       @default(0)
   isActive  Boolean   @default(true)
+  publishedAt DateTime?
+  archivedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -327,21 +375,33 @@ model StickerPack {
   recents   StickerRecent[]
 
   @@index([ownerId, deletedAt, sortOrder])
+  @@index([publishedAt, archivedAt, deletedAt, sortOrder])
 }
 
 model Sticker {
   id           String          @id @default(cuid())
   packId       String
   title        String
+  type         StickerType     @default(STATIC)
   fileKey      String
+  animatedFileKey String?
+  animatedMimeType String?
   originalName String?
   mimeType     String
   fileSize     Int
+  sourceFileKey String?
+  sourceMimeType String?
+  sourceFileSize Int?
   width        Int
   height       Int
   isAnimated   Boolean         @default(false)
+  durationMs   Int?
+  keywords     Json?
+  searchText   String?         @db.Text
   sortOrder    Int             @default(0)
   isActive     Boolean         @default(true)
+  publishedAt  DateTime?
+  archivedAt   DateTime?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   deletedAt    DateTime?
@@ -350,6 +410,7 @@ model Sticker {
   messages     DirectMessage[]
 
   @@index([packId, deletedAt, sortOrder])
+  @@index([packId, publishedAt, archivedAt, deletedAt, sortOrder])
 }
 
 model StickerRecent {

@@ -6,6 +6,8 @@ import { DirectMessagesController } from './direct-messages.controller';
 import { DirectMessagesService } from './direct-messages.service';
 import { DmRetentionProcessor } from './dm-retention.processor';
 import { DmRetentionScheduler } from './dm-retention.scheduler';
+import { LinkUnfurlProcessor } from '../link-unfurl/link-unfurl.processor';
+import { LinkUnfurlService } from '../link-unfurl/link-unfurl.service';
 
 @Module({
   imports: [CallsModule, StickersModule, MediaLibraryModule],
@@ -14,6 +16,8 @@ import { DmRetentionScheduler } from './dm-retention.scheduler';
     DirectMessagesService,
     DmRetentionProcessor,
     DmRetentionScheduler,
+    LinkUnfurlService,
+    LinkUnfurlProcessor,
   ],
   exports: [DirectMessagesService],
 })

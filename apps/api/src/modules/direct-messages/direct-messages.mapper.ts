@@ -2,6 +2,7 @@ import {
   directConversationDetailSchema,
   directConversationSummarySchema,
   directMessageSchema,
+  stickerAssetSchema,
   type DirectConversationDetail,
   type DirectConversationSummary,
   type DirectMessage,
@@ -9,6 +10,7 @@ import {
 import type {
   DirectConversationParticipant,
   DirectMessage as PrismaDirectMessage,
+  DirectMessageLinkEmbed as PrismaDirectMessageLinkEmbed,
   GifAsset as PrismaGifAsset,
   Sticker as PrismaSticker,
 } from '@prisma/client';
@@ -20,6 +22,7 @@ export type MessageWithAuthor = PrismaDirectMessage & {
   author: PublicUserRecord;
   sticker: PrismaSticker | null;
   gif: PrismaGifAsset | null;
+  linkEmbed: PrismaDirectMessageLinkEmbed | null;
 };
 
 export type ParticipantWithUser = DirectConversationParticipant & {
@@ -41,8 +44,24 @@ export function toDirectMessage(
     type: message.type,
     author: toPublicUser(message.author),
     content: message.deletedAt ? null : message.content,
-    sticker: message.sticker ? toStickerAsset(message.sticker) : null,
+    sticker: resolveStickerPayload(message),
     gif: message.gif ? toGifAsset(message.gif) : null,
+    linkEmbed:
+      !message.deletedAt && message.linkEmbed
+        ? {
+            status: message.linkEmbed.status,
+            provider: message.linkEmbed.provider,
+            sourceUrl: message.linkEmbed.sourceUrl,
+            canonicalUrl: message.linkEmbed.canonicalUrl,
+            title: message.linkEmbed.title,
+            previewImage: message.linkEmbed.previewImage,
+            animatedMediaUrl: message.linkEmbed.animatedMediaUrl,
+            width: message.linkEmbed.width,
+            height: message.linkEmbed.height,
+            aspectRatio: message.linkEmbed.aspectRatio,
+            contentType: message.linkEmbed.contentType,
+          }
+        : null,
     isDeleted: Boolean(message.deletedAt),
     canDelete,
     deleteExpiresAt: null,
@@ -50,6 +69,22 @@ export function toDirectMessage(
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),
   });
+}
+
+function resolveStickerPayload(message: MessageWithAuthor) {
+  if (message.deletedAt) {
+    return null;
+  }
+
+  if (message.sticker) {
+    return toStickerAsset(message.sticker);
+  }
+
+  if (!message.stickerSnapshot) {
+    return null;
+  }
+
+  return stickerAssetSchema.parse(message.stickerSnapshot);
 }
 
 export function toDirectConversationSummary(args: {

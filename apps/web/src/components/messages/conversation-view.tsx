@@ -25,6 +25,7 @@ import {
 import { sortDirectMessages } from "@/lib/direct-message-state";
 import { getAvailabilityLabel } from "@/lib/last-seen";
 import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
+import { buildPendingLinkEmbed } from "@/lib/link-embeds";
 import { dmRetentionLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 import { ConversationSettings } from "./conversation-settings";
@@ -73,6 +74,10 @@ function buildOptimisticMessage(args: {
     content: args.payload.type === "TEXT" ? args.payload.content : null,
     sticker: args.payload.type === "STICKER" ? args.payload.sticker : null,
     gif: args.payload.type === "GIF" ? args.payload.gif : null,
+    linkEmbed:
+      args.payload.type === "TEXT"
+        ? buildPendingLinkEmbed(args.payload.content)
+        : null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: null,
@@ -291,12 +296,20 @@ export function ConversationView({
       return;
     }
 
-    if (latestDmSignal.event === "MESSAGE_CREATED" && latestDmSignal.message) {
+    const signalEvent = latestDmSignal.event as string;
+
+    if (
+      (signalEvent === "MESSAGE_CREATED" || signalEvent === "MESSAGE_UPDATED") &&
+      latestDmSignal.message
+    ) {
       setMessages((current) =>
         mergeThreadMessage(current, latestDmSignal.message as DirectMessage),
       );
 
-      if (latestDmSignal.actorUserId !== viewerId) {
+      if (
+        signalEvent === "MESSAGE_CREATED" &&
+        latestDmSignal.actorUserId !== viewerId
+      ) {
         void markConversationAsRead(
           latestDmSignal.message.id,
           latestDmSignal.message.createdAt,
@@ -306,14 +319,14 @@ export function ConversationView({
       return;
     }
 
-    if (latestDmSignal.event === "MESSAGE_DELETED" && latestDmSignal.messageId) {
+    if (signalEvent === "MESSAGE_DELETED" && latestDmSignal.messageId) {
       setMessages((current) =>
         removeThreadMessage(current, latestDmSignal.messageId!),
       );
       return;
     }
 
-    if (latestDmSignal.event === "CONVERSATION_READ") {
+    if (signalEvent === "CONVERSATION_READ") {
       setConversation((current) =>
         applyLocalRead(
           current,
@@ -325,7 +338,7 @@ export function ConversationView({
       return;
     }
 
-    if (latestDmSignal.event === "CONVERSATION_UPDATED") {
+    if (signalEvent === "CONVERSATION_UPDATED") {
       setConversation((current) =>
         current
           ? {

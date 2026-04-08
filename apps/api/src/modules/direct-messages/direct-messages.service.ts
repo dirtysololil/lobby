@@ -12,7 +12,13 @@ import type {
   UpdateDmSettingsInput,
   UserRelationshipSummary,
 } from '@lobby/shared';
-import { DirectMessageType, DmRetentionMode, Prisma } from '@prisma/client';
+import {
+  DirectMessageType,
+  DmRetentionMode,
+  LinkEmbedProvider,
+  LinkEmbedStatus,
+  Prisma,
+} from '@prisma/client';
 import type { RequestMetadata } from '../../common/interfaces/request-metadata.interface';
 import { buildUserPairKey } from '../../common/utils/user-pair-key.util';
 import { PrismaService } from '../../database/prisma.service';
@@ -23,6 +29,10 @@ import { MediaLibraryService } from '../media-library/media-library.service';
 import { QueueService } from '../queue/queue.service';
 import { RelationshipsService } from '../relationships/relationships.service';
 import { StickersService } from '../stickers/stickers.service';
+import {
+  createUrlHash,
+  extractFirstSupportedLink,
+} from '../link-unfurl/link-unfurl.util';
 import {
   toDirectConversationDetail,
   toDirectConversationSummary,
@@ -37,6 +47,7 @@ const directMessageWithAuthorInclude = {
   },
   sticker: true,
   gif: true,
+  linkEmbed: true,
 } satisfies Prisma.DirectMessageInclude;
 
 const participantWithUserInclude = {
@@ -255,6 +266,13 @@ export class DirectMessagesService {
     input: CreateDirectMessageInput,
     requestMetadata: RequestMetadata,
   ) {
+    const messageType = (
+      input as CreateDirectMessageInput & {
+        type?: 'TEXT' | 'STICKER' | 'GIF';
+        stickerId?: string | null;
+        gifId?: string | null;
+      }
+    ).type ?? 'TEXT';
     const conversation = await this.getConversationOrThrow(
       conversationId,
       actor.id,
@@ -270,32 +288,48 @@ export class DirectMessagesService {
     );
 
     const trimmedContent = input.content?.trim() ?? null;
+    const linkCandidate =
+      messageType === 'TEXT' ? extractFirstSupportedLink(trimmedContent) : null;
     const sticker =
-      input.type === 'STICKER' && input.stickerId
+      messageType === 'STICKER' && input.stickerId
         ? await this.stickersService.getActiveStickerOrThrow(input.stickerId)
         : null;
     const gif =
-      input.type === 'GIF' && input.gifId
+      messageType === 'GIF' && input.gifId
         ? await this.mediaLibraryService.getActiveGifOrThrow(input.gifId)
         : null;
 
-    const message = await this.prisma.$transaction(async (transaction) => {
+    const messageId = await this.prisma.$transaction(async (transaction) => {
       const createdMessage = await transaction.directMessage.create({
         data: {
           conversationId,
           authorId: actor.id,
           type:
-            input.type === 'STICKER'
+            messageType === 'STICKER'
               ? DirectMessageType.STICKER
-              : input.type === 'GIF'
+              : messageType === 'GIF'
                 ? DirectMessageType.GIF
-              : DirectMessageType.TEXT,
-          content: input.type === 'TEXT' ? trimmedContent : null,
+                : DirectMessageType.TEXT,
+          content: messageType === 'TEXT' ? trimmedContent : null,
           stickerId: sticker?.id ?? null,
+          stickerSnapshot: sticker
+            ? this.buildStickerSnapshot(sticker)
+            : Prisma.JsonNull,
           gifId: gif?.id ?? null,
         },
         include: directMessageWithAuthorInclude,
       });
+
+      if (linkCandidate) {
+        await transaction.directMessageLinkEmbed.create({
+          data: {
+            messageId: createdMessage.id,
+            provider: LinkEmbedProvider[linkCandidate.provider],
+            sourceUrl: linkCandidate.sourceUrl,
+            sourceUrlHash: createUrlHash(linkCandidate.sourceUrl),
+          },
+        });
+      }
 
       await transaction.directConversation.update({
         where: {
@@ -328,13 +362,14 @@ export class DirectMessagesService {
         );
       }
 
-      return createdMessage;
+      return createdMessage.id;
     });
+    const message = await this.loadMessageOrThrow(messageId);
 
     await this.auditService.write({
       action: 'dm.message.create',
       entityType: 'DirectMessage',
-      entityId: message.id,
+      entityId: messageId,
       actorUserId: actor.id,
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
@@ -343,6 +378,8 @@ export class DirectMessagesService {
         type: message.type,
         stickerId: message.stickerId ?? null,
         gifId: message.gifId ?? null,
+        linkProvider: linkCandidate?.provider ?? null,
+        linkUrl: linkCandidate?.sourceUrl ?? null,
       },
     });
 
@@ -353,6 +390,23 @@ export class DirectMessagesService {
       message,
       clientNonce: input.clientNonce ?? null,
     });
+
+    if (linkCandidate) {
+      try {
+        await this.queueService.enqueueDmLinkUnfurl(messageId);
+      } catch {
+        await this.prisma.directMessageLinkEmbed.update({
+          where: {
+            messageId,
+          },
+          data: {
+            status: LinkEmbedStatus.FAILED,
+            failureCode: 'QUEUE_ENQUEUE_FAILED',
+          },
+        });
+        await this.emitMessageUpdatedSignal(messageId);
+      }
+    }
 
     return toDirectMessage(message, {
       viewerId: actor.id,
@@ -586,6 +640,17 @@ export class DirectMessagesService {
     return cleanedMessagesCount;
   }
 
+  public async emitMessageUpdatedSignal(messageId: string): Promise<void> {
+    const message = await this.loadMessageOrThrow(messageId);
+
+    await this.emitConversationSignal({
+      event: 'MESSAGE_UPDATED',
+      conversationId: message.conversationId,
+      actorUserId: null,
+      message,
+    });
+  }
+
   private async toConversationSummary(
     conversation: ConversationSummaryRecord,
     viewerId: string,
@@ -798,8 +863,17 @@ export class DirectMessagesService {
     return this.toConversationSummary(conversation, viewerId);
   }
 
+  private async loadMessageOrThrow(messageId: string): Promise<MessageWithAuthor> {
+    return await this.prisma.directMessage.findUniqueOrThrow({
+      where: {
+        id: messageId,
+      },
+      include: directMessageWithAuthorInclude,
+    });
+  }
+
   private async emitConversationSignal(args: {
-    event: DmSignal['event'];
+    event: DmSignal['event'] | 'MESSAGE_UPDATED';
     conversationId: string;
     actorUserId: string | null;
     message?: MessageWithAuthor | null;
@@ -845,7 +919,7 @@ export class DirectMessagesService {
           : null,
         messageId: args.messageId ?? null,
         actorUserId: args.actorUserId,
-      });
+      } as DmSignal);
     }
   }
 
@@ -895,5 +969,61 @@ export class DirectMessagesService {
     }
 
     return counterpart;
+  }
+
+  private buildStickerSnapshot(sticker: {
+    id: string;
+    packId: string;
+    title: string;
+    fileKey: string;
+    animatedFileKey?: string | null;
+    animatedMimeType?: string | null;
+    originalName: string | null;
+    mimeType: string;
+    fileSize: number;
+    sourceFileKey?: string | null;
+    sourceMimeType?: string | null;
+    sourceFileSize?: number | null;
+    width: number;
+    height: number;
+    type?: 'STATIC' | 'ANIMATED' | null;
+    isAnimated: boolean;
+    durationMs?: number | null;
+    keywords?: Prisma.JsonValue | null;
+    isActive: boolean;
+    publishedAt?: Date | null;
+    archivedAt?: Date | null;
+    deletedAt?: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Prisma.InputJsonValue {
+    return {
+      id: sticker.id,
+      packId: sticker.packId,
+      title: sticker.title,
+      type: sticker.type ?? (sticker.isAnimated ? 'ANIMATED' : 'STATIC'),
+      fileKey: sticker.fileKey,
+      animatedFileKey: sticker.animatedFileKey ?? null,
+      animatedMimeType: sticker.animatedMimeType ?? null,
+      originalName: sticker.originalName,
+      mimeType: sticker.mimeType,
+      fileSize: sticker.fileSize,
+      sourceFileKey: sticker.sourceFileKey ?? null,
+      sourceMimeType: sticker.sourceMimeType ?? null,
+      sourceFileSize: sticker.sourceFileSize ?? null,
+      width: sticker.width,
+      height: sticker.height,
+      isAnimated: sticker.isAnimated,
+      durationMs: sticker.durationMs ?? null,
+      keywords: Array.isArray(sticker.keywords)
+        ? sticker.keywords.filter((item): item is string => typeof item === 'string')
+        : [],
+      isActive: sticker.isActive,
+      publishedAt: sticker.publishedAt?.toISOString() ?? null,
+      archivedAt: sticker.archivedAt?.toISOString() ?? null,
+      deletedAt: sticker.deletedAt?.toISOString() ?? null,
+      createdAt: sticker.createdAt.toISOString(),
+      updatedAt: sticker.updatedAt.toISOString(),
+    } satisfies Record<string, Prisma.InputJsonValue | null>;
   }
 }

@@ -13,6 +13,28 @@ export const dmMessageContentSchema = z.string().trim().min(1).max(4000);
 export const dmMessageTypeSchema = z.enum(["TEXT", "STICKER", "GIF"]);
 export type DmMessageType = z.infer<typeof dmMessageTypeSchema>;
 
+export const dmLinkEmbedProviderSchema = z.enum(["TENOR"]);
+export type DmLinkEmbedProvider = z.infer<typeof dmLinkEmbedProviderSchema>;
+
+export const dmLinkEmbedStatusSchema = z.enum(["PENDING", "READY", "FAILED"]);
+export type DmLinkEmbedStatus = z.infer<typeof dmLinkEmbedStatusSchema>;
+
+export const dmLinkEmbedSchema = z.object({
+  status: dmLinkEmbedStatusSchema,
+  provider: dmLinkEmbedProviderSchema,
+  sourceUrl: z.string().url(),
+  canonicalUrl: z.string().url().nullable(),
+  title: z.string().trim().max(300).nullable(),
+  previewImage: z.string().url().nullable(),
+  animatedMediaUrl: z.string().url().nullable(),
+  width: z.number().int().positive().nullable(),
+  height: z.number().int().positive().nullable(),
+  aspectRatio: z.number().positive().nullable(),
+  contentType: z.string().trim().max(120).nullable(),
+});
+
+export type DmLinkEmbed = z.infer<typeof dmLinkEmbedSchema>;
+
 export const openDirectConversationSchema = z.object({
   username: usernameSchema,
 });
@@ -163,6 +185,7 @@ export const directMessageSchema = z.object({
   content: z.string().nullable(),
   sticker: stickerAssetSchema.nullable(),
   gif: gifAssetSchema.nullable(),
+  linkEmbed: dmLinkEmbedSchema.nullable(),
   isDeleted: z.boolean(),
   canDelete: z.boolean(),
   deleteExpiresAt: isoDateSchema.nullable(),
@@ -247,6 +270,7 @@ export type DirectMessageResponse = z.infer<typeof directMessageResponseSchema>;
 export const dmSignalSchema = z.object({
   event: z.enum([
     "MESSAGE_CREATED",
+    "MESSAGE_UPDATED",
     "MESSAGE_DELETED",
     "CONVERSATION_READ",
     "CONVERSATION_UPDATED",

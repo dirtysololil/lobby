@@ -122,6 +122,11 @@ export async function resetDatabase(prisma: PrismaClient) {
   await prisma.directConversationParticipant.deleteMany();
   await prisma.directMessage.deleteMany();
   await prisma.directConversation.deleteMany();
+  await prisma.stickerRecent.deleteMany();
+  await prisma.sticker.deleteMany();
+  await prisma.stickerPack.deleteMany();
+  await prisma.customEmoji.deleteMany();
+  await prisma.gifAsset.deleteMany();
   await prisma.block.deleteMany();
   await prisma.friendship.deleteMany();
   await prisma.user.deleteMany();
