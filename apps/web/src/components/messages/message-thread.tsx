@@ -606,22 +606,22 @@ export function MessageThread({
                               {isSticker && message.sticker ? (
                                 <StickerAssetPreview
                                   sticker={message.sticker}
-                                  className="dm-media-surface aspect-square rounded-[26px]"
+                                  className="aspect-square"
                                   imageClassName="pointer-events-none"
                                 />
                               ) : isSticker ? (
-                                <div className="dm-media-surface flex aspect-square items-center justify-center rounded-[26px] px-4 text-center text-sm text-[var(--text-muted)]">
+                                <div className="flex aspect-square items-center justify-center px-4 text-center text-sm text-[var(--text-muted)]">
                                   Стикер недоступен
                                 </div>
                               ) : isGif && message.gif ? (
                                 <GifAssetPreview
                                   gif={message.gif}
-                                  className="dm-media-surface aspect-[4/3] rounded-[26px]"
+                                  className="aspect-[4/3] rounded-[12px]"
                                   imageClassName="pointer-events-none"
                                   showBadge={false}
                                 />
                               ) : isGif ? (
-                                <div className="dm-media-surface flex aspect-[4/3] items-center justify-center rounded-[26px] px-4 text-center text-sm text-[var(--text-muted)]">
+                                <div className="flex aspect-[4/3] items-center justify-center px-4 text-center text-sm text-[var(--text-muted)]">
                                   GIF недоступен
                                 </div>
                               ) : isMediaAttachment && message.attachment ? (

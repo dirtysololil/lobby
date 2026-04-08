@@ -9,7 +9,7 @@ import type {
   MediaPickerCatalog,
   StickerAsset,
 } from "@lobby/shared";
-import { Film, Search, Settings2, SmilePlus, Sticker } from "lucide-react";
+import { Film, Search, Settings2, SmilePlus, Sticker, X } from "lucide-react";
 import {
   useDeferredValue,
   useEffect,
@@ -19,11 +19,7 @@ import {
   type ReactNode,
 } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  getCustomEmojiAssetUrl,
-  getGifAssetUrl,
-} from "@/lib/stickers";
+import { getCustomEmojiAssetUrl } from "@/lib/stickers";
 import { EmojiGlyph } from "@/lib/emoji/emoji-glyph";
 import { cn } from "@/lib/utils";
 import {
@@ -291,80 +287,91 @@ export function EmojiStickerPicker({
     };
   }, [catalog, deferredGifSearch, recentGifIds]);
 
+  const activeSearchValue =
+    activeTab === "emoji"
+      ? emojiSearch
+      : activeTab === "sticker"
+        ? stickerSearch
+        : gifSearch;
+
+  const activeSearchPlaceholder =
+    activeTab === "emoji"
+      ? "Поиск смайликов"
+      : activeTab === "sticker"
+        ? "Поиск стикеров"
+        : "Поиск GIF";
+
+  function setActiveSearchValue(nextValue: string) {
+    if (activeTab === "emoji") {
+      setEmojiSearch(nextValue);
+      return;
+    }
+
+    if (activeTab === "sticker") {
+      setStickerSearch(nextValue);
+      return;
+    }
+
+    setGifSearch(nextValue);
+  }
+
   return (
-    <div className="flex h-[min(70vh,560px)] w-[min(92vw,408px)] flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#091019] shadow-[0_32px_90px_rgba(2,6,12,0.72)] ring-1 ring-black/35">
-      <div className="flex items-center gap-1 border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-2 py-2">
-        <PickerTabButton
-          active={activeTab === "emoji"}
-          label="Смайлики"
-          icon={<SmilePlus size={16} strokeWidth={1.5} />}
-          onClick={() => onTabChange("emoji")}
-        />
-        <PickerTabButton
-          active={activeTab === "sticker"}
-          label="Стикеры"
-          icon={<Sticker size={16} strokeWidth={1.5} />}
-          onClick={() => onTabChange("sticker")}
-        />
-        <PickerTabButton
-          active={activeTab === "gif"}
-          label="GIF"
-          icon={<Film size={16} strokeWidth={1.5} />}
-          onClick={() => onTabChange("gif")}
-        />
+    <div className="dm-picker-shell" role="dialog" aria-label="Выбор смайликов, стикеров и GIF">
+      <div className="dm-picker-topbar">
+        <div className="dm-picker-tabs" role="tablist" aria-label="Тип контента">
+          <PickerTabButton
+            active={activeTab === "emoji"}
+            label="Смайлики"
+            icon={<SmilePlus size={16} strokeWidth={1.5} />}
+            onClick={() => onTabChange("emoji")}
+          />
+          <PickerTabButton
+            active={activeTab === "sticker"}
+            label="Стикеры"
+            icon={<Sticker size={16} strokeWidth={1.5} />}
+            onClick={() => onTabChange("sticker")}
+          />
+          <PickerTabButton
+            active={activeTab === "gif"}
+            label="GIF"
+            icon={<Film size={16} strokeWidth={1.5} />}
+            onClick={() => onTabChange("gif")}
+          />
+        </div>
         {canManageLibrary ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="ml-auto h-9 rounded-[12px] px-3 text-[var(--text-soft)]"
-            onClick={onOpenManager}
-          >
-            <Settings2 size={16} strokeWidth={1.5} />
+          <button type="button" className="dm-picker-manage" onClick={onOpenManager}>
+            <Settings2 size={15} strokeWidth={1.5} />
             Управление
-          </Button>
+          </button>
         ) : null}
       </div>
 
-      <div className="border-b border-white/8 px-3 py-2.5">
-        <label className="flex items-center gap-2 rounded-[14px] border border-white/10 bg-black/20 px-3 text-[var(--text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-          <Search size={16} strokeWidth={1.5} className="shrink-0" />
-          <Input
-            value={
-              activeTab === "emoji"
-                ? emojiSearch
-                : activeTab === "sticker"
-                  ? stickerSearch
-                  : gifSearch
-            }
-            onChange={(event) => {
-              if (activeTab === "emoji") {
-                setEmojiSearch(event.target.value);
-                return;
-              }
-
-              if (activeTab === "sticker") {
-                setStickerSearch(event.target.value);
-                return;
-              }
-
-              setGifSearch(event.target.value);
-            }}
-            placeholder={
-              activeTab === "emoji"
-                ? "Поиск смайликов"
-                : activeTab === "sticker"
-                  ? "Поиск стикеров"
-                  : "Поиск GIF"
-            }
-            className="h-9 border-0 bg-transparent px-0 text-sm text-white"
+      <div className="dm-picker-search-wrap">
+        <label className="dm-picker-search">
+          <Search size={15} strokeWidth={1.5} className="shrink-0" />
+          <input
+            value={activeSearchValue}
+            onChange={(event) => setActiveSearchValue(event.target.value)}
+            placeholder={activeSearchPlaceholder}
+            className="dm-picker-search-input text-sm"
           />
+          {activeSearchValue ? (
+            <button
+              type="button"
+              onMouseDown={preventFocusLoss}
+              onClick={() => setActiveSearchValue("")}
+              className="dm-picker-search-clear"
+              aria-label="Сбросить поиск"
+            >
+              <X size={14} strokeWidth={1.5} />
+            </button>
+          ) : null}
         </label>
       </div>
 
       {activeTab === "emoji" ? (
         <>
-          <div className="flex gap-1 overflow-x-auto border-b border-white/8 px-2 py-2">
+          <div className="dm-picker-control-row">
             <EmojiCategoryButton
               active={selectedEmojiCategory === "recent"}
               label="Недавние"
@@ -387,35 +394,34 @@ export function EmojiStickerPicker({
             ))}
           </div>
 
-          <div className="flex gap-1 overflow-x-auto border-b border-white/8 px-2 py-2">
+          <div className="dm-picker-control-row dm-picker-control-row-muted">
             {emojiToneOptions.map((tone) => (
               <EmojiCategoryButton
                 key={tone.id}
                 active={selectedTone === tone.id}
                 label={tone.label}
                 onClick={() => setSelectedTone(tone.id)}
+                className="dm-picker-segment-tone"
               />
             ))}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          <div className="dm-picker-body">
             {filteredEmojiSections.system.length === 0 && filteredEmojiSections.custom.length === 0 ? (
               <PickerState>Ничего не найдено.</PickerState>
             ) : (
-              <div className="grid gap-4">
+              <div className="dm-picker-sections">
                 {filteredEmojiSections.custom.length > 0 ? (
-                  <section className="grid gap-2">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                      Кастомные
-                    </div>
-                    <div className="grid grid-cols-7 gap-1.5">
+                  <section className="dm-picker-section">
+                    <div className="dm-picker-section-title">Кастомные</div>
+                    <div className="dm-picker-custom-grid">
                       {filteredEmojiSections.custom.map((emoji) => (
                         <button
                           key={emoji.id}
                           type="button"
                           onMouseDown={preventFocusLoss}
                           onClick={() => onCustomEmojiSelect(emoji)}
-                          className="flex h-11 items-center justify-center rounded-[12px] border border-transparent bg-white/[0.03] transition-colors hover:border-white/10 hover:bg-white/[0.08]"
+                          className="dm-picker-custom-cell"
                           title={`:${emoji.alias}:`}
                         >
                           <img
@@ -432,25 +438,23 @@ export function EmojiStickerPicker({
                 ) : null}
 
                 {filteredEmojiSections.system.map((section) => (
-                  <section key={section.id} className="grid gap-2">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                      {section.label}
-                    </div>
-                    <div className="grid grid-cols-8 gap-1.5">
+                  <section key={section.id} className="dm-picker-section">
+                    <div className="dm-picker-section-title">{section.label}</div>
+                    <div className="dm-picker-emoji-grid">
                       {section.emojis.map((item) => (
                         <button
                           key={`${section.id}-${item.emoji}`}
                           type="button"
                           onMouseDown={preventFocusLoss}
                           onClick={() => onEmojiSelect(resolveEmojiTone(item, selectedTone))}
-                          className="flex h-10 items-center justify-center rounded-[12px] border border-transparent bg-white/[0.02] text-[22px] transition-colors hover:border-white/8 hover:bg-white/[0.06]"
+                          className="dm-picker-emoji-cell"
                           title={item.label}
                         >
                           <EmojiGlyph
                             emoji={resolveEmojiTone(item, selectedTone)}
                             label={item.label}
-                            className="h-6 w-6"
-                            fallbackClassName="text-[22px]"
+                            className="h-7 w-7"
+                            fallbackClassName="text-[24px]"
                           />
                           <span className="sr-only">{item.label}</span>
                         </button>
@@ -464,7 +468,7 @@ export function EmojiStickerPicker({
         </>
       ) : activeTab === "sticker" ? (
         <>
-          <div className="flex gap-1 overflow-x-auto border-b border-white/8 px-2 py-2">
+          <div className="dm-picker-control-row">
             {catalog?.stickers.recent.length ? (
               <SourceButton
                 active={selectedStickerSource === "recent"}
@@ -482,7 +486,7 @@ export function EmojiStickerPicker({
             ))}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          <div className="dm-picker-body">
             {isCatalogLoading && !catalog ? (
               <PickerState>Загружаем стикеры...</PickerState>
             ) : catalogError ? (
@@ -498,7 +502,8 @@ export function EmojiStickerPicker({
                 {canManageLibrary ? (
                   <Button
                     type="button"
-                    className="h-9 rounded-[14px] px-3"
+                    size="sm"
+                    className="h-8 rounded-full px-3"
                     onClick={onOpenManager}
                   >
                     Создать набор
@@ -514,7 +519,7 @@ export function EmojiStickerPicker({
                     : "В этом наборе пока нет стикеров."}
               </PickerState>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="dm-picker-asset-grid">
                 {visibleStickers.map(({ sticker, packTitle }) => {
                   const isPending = pendingStickerIds.includes(sticker.id);
 
@@ -525,18 +530,16 @@ export function EmojiStickerPicker({
                       onMouseDown={preventFocusLoss}
                       onClick={() => onStickerSelect(sticker)}
                       disabled={isPending}
-                      className="group rounded-[18px] border border-white/8 bg-white/[0.03] p-2 text-left transition-colors hover:border-white/12 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="dm-picker-sticker-item disabled:cursor-not-allowed disabled:opacity-60"
                       title={`${packTitle} · ${sticker.title}`}
                     >
                       <StickerAssetPreview
                         sticker={sticker}
-                        className="aspect-square rounded-[18px] bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_55%),rgba(255,255,255,0.03)]"
+                        className="aspect-square rounded-[14px]"
                       />
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="truncate text-[11px] text-[var(--text-muted)]">
-                          {packTitle}
-                        </span>
-                        <span className="text-[11px] text-white/70">
+                      <div className="dm-picker-sticker-meta">
+                        <span className="dm-picker-meta-text">{packTitle}</span>
+                        <span className="dm-picker-meta-text">
                           {isPending ? "..." : ""}
                         </span>
                       </div>
@@ -548,7 +551,7 @@ export function EmojiStickerPicker({
           </div>
         </>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <div className="dm-picker-body">
           {isCatalogLoading && !catalog ? (
             <PickerState>Загружаем GIF...</PickerState>
           ) : catalogError ? (
@@ -558,11 +561,16 @@ export function EmojiStickerPicker({
               <div>
                 <p className="text-sm font-medium text-white">GIF пока нет</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  Загрузите первые GIF в библиотеку, чтобы отправлять их в 1 клик.
+                  Загрузите первые GIF в библиотеку, чтобы отправлять их в один клик.
                 </p>
               </div>
               {canManageLibrary ? (
-                <Button type="button" className="h-9 rounded-[14px] px-3" onClick={onOpenManager}>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 rounded-full px-3"
+                  onClick={onOpenManager}
+                >
                   Открыть библиотеку
                 </Button>
               ) : null}
@@ -570,13 +578,11 @@ export function EmojiStickerPicker({
           ) : gifSections.items.length === 0 ? (
             <PickerState>По запросу ничего не нашлось.</PickerState>
           ) : (
-            <div className="grid gap-4">
+            <div className="dm-picker-sections">
               {gifSections.recent.length > 0 && !deferredGifSearch ? (
-                <section className="grid gap-2">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                    Недавние
-                  </div>
-                  <div className="grid gap-2">
+                <section className="dm-picker-section">
+                  <div className="dm-picker-section-title">Недавние</div>
+                  <div className="dm-picker-gif-grid">
                     {gifSections.recent.slice(0, 4).map((gif) => (
                       <GifPickerCard
                         key={`recent-${gif.id}`}
@@ -589,11 +595,9 @@ export function EmojiStickerPicker({
                 </section>
               ) : null}
 
-              <section className="grid gap-2">
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                  Библиотека
-                </div>
-                <div className="grid gap-2">
+              <section className="dm-picker-section">
+                <div className="dm-picker-section-title">Библиотека</div>
+                <div className="dm-picker-gif-grid">
                   {gifSections.items.map((gif) => (
                     <GifPickerCard
                       key={gif.id}
@@ -627,23 +631,22 @@ function GifPickerCard({
       onMouseDown={preventFocusLoss}
       onClick={() => onSelect(gif)}
       disabled={isPending}
-      className="overflow-hidden rounded-[18px] border border-white/8 bg-white/[0.03] text-left transition-colors hover:border-white/12 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60"
+      className="dm-picker-gif-item disabled:cursor-not-allowed disabled:opacity-60"
       title={gif.title}
     >
       <GifAssetPreview
         gif={gif}
-        className="aspect-[4/3] rounded-none"
-        showBadge
+        className="aspect-[4/3] rounded-[14px]"
       />
-      <div className="flex items-center justify-between gap-3 px-3 py-2">
+      <div className="dm-picker-gif-meta">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-white">{gif.title}</p>
-          <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">
+          <p className="dm-picker-gif-title">{gif.title}</p>
+          <p className="dm-picker-gif-tags">
             {gif.tags.length > 0 ? gif.tags.join(" · ") : "Без тегов"}
           </p>
         </div>
         {isPending ? (
-          <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--accent)]">
+          <span className="dm-picker-meta-text text-[var(--accent)]">
             ...
           </span>
         ) : null}
@@ -668,10 +671,8 @@ function PickerTabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 items-center gap-2 rounded-[14px] border px-3 text-sm font-medium transition-colors",
-        active
-          ? "border-white/14 bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-          : "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-white",
+        "dm-picker-tab",
+        active && "dm-picker-tab-active",
       )}
     >
       {icon}
@@ -684,20 +685,21 @@ function EmojiCategoryButton({
   active,
   label,
   onClick,
+  className,
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? "border-white/14 bg-white/[0.08] text-white"
-          : "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-white",
+        "dm-picker-segment",
+        active && "dm-picker-segment-active",
+        className,
       )}
     >
       {label}
@@ -709,20 +711,21 @@ function SourceButton({
   active,
   label,
   onClick,
+  className,
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? "border-white/14 bg-white/[0.08] text-white"
-          : "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-white",
+        "dm-picker-segment",
+        active && "dm-picker-segment-active",
+        className,
       )}
     >
       {label}
@@ -732,7 +735,7 @@ function SourceButton({
 
 function PickerState({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full items-center justify-center text-center text-sm text-[var(--text-muted)]">
+    <div className="dm-picker-state">
       <div className="max-w-[240px]">{children}</div>
     </div>
   );
@@ -746,9 +749,14 @@ function ErrorState({
   onRetry: () => void | Promise<void>;
 }) {
   return (
-    <div className="grid h-full place-items-center gap-3 text-center">
+    <div className="dm-picker-state grid gap-3">
       <p className="max-w-[260px] text-sm text-rose-200">{message}</p>
-      <Button type="button" size="sm" onClick={() => void onRetry()}>
+      <Button
+        type="button"
+        size="sm"
+        className="h-8 rounded-full px-3"
+        onClick={() => void onRetry()}
+      >
         Повторить
       </Button>
     </div>
