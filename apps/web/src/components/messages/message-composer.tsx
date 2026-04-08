@@ -550,7 +550,7 @@ export function MessageComposer({
           <div
             ref={mirrorRef}
             aria-hidden
-            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[16px] px-3 py-2 text-sm leading-[1.4] text-white"
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-[16px] px-3 py-2 text-sm leading-[1.4] text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
           >
             {content ? (
               <InlineCustomEmojiText
@@ -582,8 +582,13 @@ export function MessageComposer({
             placeholder=""
             disabled={disabled || isSendingText || isUploadingFiles}
             rows={1}
-            className="relative block min-h-9 max-h-28 w-full resize-none rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] text-transparent caret-white outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-            style={{ resize: "none" }}
+            className="relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] text-transparent caret-white outline-none transition-colors [overflow-wrap:anywhere] disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              resize: "none",
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
+              whiteSpace: "pre-wrap",
+            }}
           />
         </div>
 
