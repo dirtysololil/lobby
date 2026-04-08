@@ -7,13 +7,14 @@ import type {
   StickerAsset,
   StickerCatalog,
 } from "@lobby/shared";
-import { SendHorizontal, SmilePlus } from "lucide-react";
+import { FileText, ImagePlus, Paperclip, SendHorizontal, SmilePlus } from "lucide-react";
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
   type FormEvent,
+  type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { buildCustomEmojiToken } from "@/lib/stickers";
@@ -27,14 +28,18 @@ export type ComposerSendPayload =
   | { type: "STICKER"; stickerId: string; sticker: StickerAsset }
   | { type: "GIF"; gifId: string; gif: GifAsset };
 
+export type ComposerFileUploadMode = "media" | "document";
+
 interface MessageComposerProps {
   disabled: boolean;
   canManageLibrary: boolean;
   pickerCatalog: MediaPickerCatalog | null;
   isPickerCatalogLoading: boolean;
   pickerCatalogError: string | null;
+  isUploadingFiles: boolean;
   onRefreshPickerCatalog: () => Promise<MediaPickerCatalog | null>;
   onStickerCatalogChange: (catalog: StickerCatalog) => void;
+  onUploadFiles: (files: File[], mode: ComposerFileUploadMode) => Promise<void>;
   onSend: (payload: ComposerSendPayload) => Promise<void>;
 }
 
@@ -100,13 +105,16 @@ export function MessageComposer({
   pickerCatalog,
   isPickerCatalogLoading,
   pickerCatalogError,
+  isUploadingFiles,
   onRefreshPickerCatalog,
   onStickerCatalogChange,
+  onUploadFiles,
   onSend,
 }: MessageComposerProps) {
   const [content, setContent] = useState("");
   const [isSendingText, setIsSendingText] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PickerTab>("emoji");
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [recentGifIds, setRecentGifIds] = useState<string[]>([]);
@@ -114,6 +122,8 @@ export function MessageComposer({
   const [pendingGifIds, setPendingGifIds] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const mirrorRef = useRef<HTMLDivElement | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
+  const documentInputRef = useRef<HTMLInputElement | null>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
 
   useEffect(() => {
@@ -164,6 +174,36 @@ export function MessageComposer({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [pickerOpen]);
+
+  useEffect(() => {
+    if (!attachMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as HTMLElement | null;
+
+      if (target?.closest("[data-composer-attach-root]")) {
+        return;
+      }
+
+      setAttachMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAttachMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [attachMenuOpen]);
 
   const refreshCatalogIfNeeded = useCallback(async () => {
     if (pickerCatalog || isPickerCatalogLoading) {
@@ -350,10 +390,39 @@ export function MessageComposer({
     }
   }
 
+  async function handleFilesSelected(
+    fileList: FileList | null,
+    mode: ComposerFileUploadMode,
+  ) {
+    if (disabled || !fileList || fileList.length === 0) {
+      return;
+    }
+
+    await onUploadFiles(Array.from(fileList), mode);
+    textareaRef.current?.focus();
+  }
+
+  function handlePaste(event: ReactClipboardEvent<HTMLTextAreaElement>) {
+    const files = Array.from(event.clipboardData.files ?? []);
+
+    if (files.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    void onUploadFiles(
+      files,
+      files.every((file) => file.type.startsWith("image/") || file.type.startsWith("video/"))
+        ? "media"
+        : "document",
+    );
+  }
+
   return (
     <>
       <form
         data-composer-picker-root="true"
+        data-composer-attach-root="true"
         className="relative flex items-end gap-2 rounded-[20px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_44%),rgba(18,25,36,0.94)] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
         onSubmit={handleSubmit}
       >
@@ -391,12 +460,77 @@ export function MessageComposer({
           </div>
         ) : null}
 
+        {attachMenuOpen ? (
+          <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
+            <button
+              type="button"
+              onClick={() => {
+                setAttachMenuOpen(false);
+                mediaInputRef.current?.click();
+              }}
+              className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
+            >
+              <ImagePlus {...iconProps} />
+              Фото или видео
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAttachMenuOpen(false);
+                documentInputRef.current?.click();
+              }}
+              className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
+            >
+              <FileText {...iconProps} />
+              Документ
+            </button>
+          </div>
+        ) : null}
+
+        <input
+          ref={mediaInputRef}
+          type="file"
+          accept="image/*,video/mp4,video/webm"
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            void handleFilesSelected(event.currentTarget.files, "media");
+            event.currentTarget.value = "";
+          }}
+        />
+        <input
+          ref={documentInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            void handleFilesSelected(event.currentTarget.files, "document");
+            event.currentTarget.value = "";
+          }}
+        />
+
         <Button
           type="button"
           size="sm"
           variant="ghost"
-          disabled={disabled}
+          disabled={disabled || isUploadingFiles}
           onClick={() => {
+            setAttachMenuOpen((current) => !current);
+            setPickerOpen(false);
+          }}
+          className="h-9 w-9 shrink-0 rounded-full border border-white/6 bg-white/[0.03] px-0 text-[var(--text-soft)] hover:bg-white/[0.08] hover:text-white"
+          aria-label="Прикрепить файл"
+        >
+          <Paperclip {...iconProps} />
+        </Button>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={disabled || isUploadingFiles}
+          onClick={() => {
+            setAttachMenuOpen(false);
             setPickerOpen((current) => !current);
             syncSelection();
             void refreshCatalogIfNeeded();
@@ -420,7 +554,9 @@ export function MessageComposer({
               />
             ) : (
               <span className="text-[var(--text-muted)]">
-                {disabled
+                {isUploadingFiles
+                  ? "Загружаем файлы…"
+                  : disabled
                   ? "В этом диалоге нельзя отправлять сообщения."
                   : "Сообщение"}
               </span>
@@ -431,13 +567,14 @@ export function MessageComposer({
             ref={textareaRef}
             value={content}
             onChange={(event) => setContent(event.target.value)}
+            onPaste={handlePaste}
             onClick={syncSelection}
             onKeyUp={syncSelection}
             onSelect={syncSelection}
             onScroll={syncMirrorScroll}
             onKeyDown={handleKeyDown}
             placeholder=""
-            disabled={disabled || isSendingText}
+            disabled={disabled || isSendingText || isUploadingFiles}
             rows={1}
             className="relative block min-h-9 max-h-28 w-full resize-none rounded-[16px] border-none bg-transparent px-3 py-2 text-sm leading-[1.4] text-transparent caret-white outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           />
@@ -446,7 +583,7 @@ export function MessageComposer({
         <Button
           type="submit"
           size="sm"
-          disabled={disabled || isSendingText || !content.trim()}
+          disabled={disabled || isSendingText || isUploadingFiles || !content.trim()}
           className={cn(
             "h-9 w-9 rounded-full border border-white/8 px-0 shadow-[0_10px_20px_rgba(8,16,26,0.18)]",
             content.trim()
