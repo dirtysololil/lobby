@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type {
@@ -48,6 +49,8 @@ const recentStickerLimit = 24;
 
 @Injectable()
 export class StickersService {
+  private readonly logger = new Logger(StickersService.name);
+
   public constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
@@ -359,6 +362,9 @@ export class StickersService {
     let processed;
 
     try {
+      this.logger.log(
+        `Processing sticker upload for pack ${packId} (${file.originalname})`,
+      );
       processed = await processStickerUpload({
         buffer: file.buffer,
         originalName: file.originalname,
@@ -371,6 +377,11 @@ export class StickersService {
         crop,
       });
     } catch (error) {
+      this.logger.warn(
+        `Sticker upload failed for pack ${packId}: ${
+          error instanceof Error ? error.message : 'UNKNOWN_ERROR'
+        }`,
+      );
       throw new BadRequestException(
         error instanceof Error
           ? error.message
@@ -448,6 +459,10 @@ export class StickersService {
           published: isPublished,
         },
       });
+
+      this.logger.log(
+        `Sticker ${sticker.id} created in pack ${packId} (${processed.metadata.isAnimated ? 'animated' : 'static'})`,
+      );
 
       return toStickerAsset(sticker);
     } catch (error) {
