@@ -39,7 +39,7 @@ export function StickerPackManagerModal({
   onCatalogChange,
   onRefreshCatalog,
 }: StickerPackManagerModalProps) {
-  const [mounted, setMounted] = useState(open);
+  const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [newPackTitle, setNewPackTitle] = useState("");
@@ -109,6 +109,12 @@ export function StickerPackManagerModal({
   }, [selectedPack?.id, selectedPack?.title]);
 
   if (!mounted) {
+    return null;
+  }
+
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
+
+  if (!portalTarget) {
     return null;
   }
 
@@ -593,7 +599,7 @@ export function StickerPackManagerModal({
         </div>
       </div>
     </div>,
-    document.body,
+    portalTarget,
   );
 }
 

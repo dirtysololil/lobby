@@ -89,6 +89,20 @@ export function isStandaloneEmbeddableMessage(
   return stripEmbeddableLinkText(text, embed.sourceUrl) === null;
 }
 
+export function hasRenderableLinkEmbedMedia(
+  embed: DmLinkEmbed | null | undefined,
+): boolean {
+  if (!embed) {
+    return false;
+  }
+
+  if (embed.status === "PENDING") {
+    return true;
+  }
+
+  return Boolean(embed.previewUrl || embed.playableUrl || embed.posterUrl);
+}
+
 export function stripEmbeddableLinkText(
   text: string | null | undefined,
   sourceUrl: string | null | undefined,

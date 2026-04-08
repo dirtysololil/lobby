@@ -7,7 +7,11 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getDirectMessageAttachmentAssetUrl, getDirectMessageAttachmentPreviewUrl } from "@/lib/direct-message-attachments";
-import { isStandaloneEmbeddableMessage, stripEmbeddableLinkText } from "@/lib/link-embeds";
+import {
+  hasRenderableLinkEmbedMedia,
+  isStandaloneEmbeddableMessage,
+  stripEmbeddableLinkText,
+} from "@/lib/link-embeds";
 import { cn } from "@/lib/utils";
 import { EmbeddedMediaBubble } from "./embedded-media-bubble";
 import { GifAssetPreview } from "./gif-asset-preview";
@@ -104,6 +108,7 @@ export function MessageThread({
   onDelete,
   onRetry,
 }: MessageThreadProps) {
+  const [mounted, setMounted] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [pendingEmbedTick, setPendingEmbedTick] = useState(0);
   const groupedMessages = useMemo(
@@ -142,6 +147,10 @@ export function MessageThread({
   );
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const didInitScrollRef = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -279,7 +288,7 @@ export function MessageThread({
   }
 
   const contextMenuMarkup =
-    contextMenu && typeof document !== "undefined"
+    mounted && contextMenu
       ? createPortal(
           <div
             data-dm-context-menu="true"
@@ -340,7 +349,8 @@ export function MessageThread({
                   const hasInlineEmbed =
                     !isVisualMessage &&
                     message.linkEmbed !== null &&
-                    message.linkEmbed.status !== "FAILED";
+                    message.linkEmbed.status !== "FAILED" &&
+                    hasRenderableLinkEmbedMedia(message.linkEmbed);
                   const isPendingEmbedStale =
                     message.linkEmbed?.status === "PENDING" &&
                     Date.now() - new Date(message.createdAt).getTime() > 20_000;
@@ -560,7 +570,7 @@ export function MessageThread({
                                   </p>
                                 </a>
                               ) : (
-                                <div className={cn("grid gap-2", !showText && !hasInlineEmbed && "gap-0")}>
+                                <div className={cn("grid gap-2", !showText && !shouldRenderInlineEmbed && "gap-0")}>
                                   {showText ? (
                                     <p className="text-[13px] leading-[1.42] text-white">
                                       <InlineCustomEmojiText
