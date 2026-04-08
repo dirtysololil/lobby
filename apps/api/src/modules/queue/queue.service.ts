@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import {
   CALL_TIMEOUT_QUEUE,
+  DM_LINK_UNFURL_QUEUE,
   DM_RETENTION_QUEUE,
   SESSION_EXPIRY_QUEUE,
 } from './queue.constants';
@@ -14,6 +15,8 @@ export class QueueService {
     private readonly sessionExpiryQueue: Queue,
     @InjectQueue(DM_RETENTION_QUEUE)
     private readonly dmRetentionQueue: Queue,
+    @InjectQueue(DM_LINK_UNFURL_QUEUE)
+    private readonly dmLinkUnfurlQueue: Queue,
     @InjectQueue(CALL_TIMEOUT_QUEUE)
     private readonly callTimeoutQueue: Queue,
   ) {}
@@ -46,6 +49,25 @@ export class QueueService {
         jobId: 'dm-retention-sweep',
         repeat: {
           every: 15 * 60 * 1_000,
+        },
+        removeOnComplete: 1000,
+        removeOnFail: 1000,
+      },
+    );
+  }
+
+  public async enqueueDmLinkUnfurl(messageId: string): Promise<void> {
+    await this.dmLinkUnfurlQueue.add(
+      'unfurl-dm-link',
+      {
+        messageId,
+      },
+      {
+        jobId: `dm-link-unfurl:${messageId}`,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1_500,
         },
         removeOnComplete: 1000,
         removeOnFail: 1000,

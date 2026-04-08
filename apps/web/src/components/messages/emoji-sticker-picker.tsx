@@ -3,6 +3,8 @@
 /* eslint-disable @next/next/no-img-element */
 import type {
   CustomEmojiAsset,
+  EmojiCategoryId,
+  EmojiTone,
   GifAsset,
   MediaPickerCatalog,
   StickerAsset,
@@ -22,8 +24,13 @@ import {
   getCustomEmojiAssetUrl,
   getGifAssetUrl,
 } from "@/lib/stickers";
+import { EmojiGlyph } from "@/lib/emoji/emoji-glyph";
 import { cn } from "@/lib/utils";
-import { emojiCategories, type EmojiCategoryId, type EmojiEntry } from "./emoji-data";
+import {
+  emojiCategories,
+  emojiToneOptions,
+  type EmojiEntry,
+} from "./emoji-data";
 import { GifAssetPreview } from "./gif-asset-preview";
 import { StickerAssetPreview } from "./sticker-asset-preview";
 
@@ -51,6 +58,7 @@ interface EmojiStickerPickerProps {
 type ExtendedEmojiCategoryId = EmojiCategoryId | "custom";
 
 const allEmojiEntries = emojiCategories.flatMap((category) => category.emojis);
+const EMOJI_TONE_STORAGE_KEY = "lobby:dm:emoji-tone";
 
 export function EmojiStickerPicker({
   activeTab,
@@ -73,6 +81,7 @@ export function EmojiStickerPicker({
   const [emojiSearch, setEmojiSearch] = useState("");
   const [selectedEmojiCategory, setSelectedEmojiCategory] =
     useState<ExtendedEmojiCategoryId>("recent");
+  const [selectedTone, setSelectedTone] = useState<EmojiTone>("default");
   const [stickerSearch, setStickerSearch] = useState("");
   const [selectedStickerSource, setSelectedStickerSource] = useState("recent");
   const [gifSearch, setGifSearch] = useState("");
@@ -96,6 +105,31 @@ export function EmojiStickerPicker({
       hasRecent ? "recent" : (catalog.stickers.packs[0]?.id ?? "recent"),
     );
   }, [activeTab, catalog, selectedStickerSource]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const stored = window.localStorage.getItem(EMOJI_TONE_STORAGE_KEY);
+
+    if (
+      stored === "default" ||
+      stored === "light" ||
+      stored === "medium-light" ||
+      stored === "medium" ||
+      stored === "medium-dark" ||
+      stored === "dark"
+    ) {
+      setSelectedTone(stored);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(EMOJI_TONE_STORAGE_KEY, selectedTone);
+    }
+  }, [selectedTone]);
 
   const recentEmojiEntries = useMemo(() => {
     const emojiMap = new Map(allEmojiEntries.map((item) => [item.emoji, item]));
@@ -353,6 +387,17 @@ export function EmojiStickerPicker({
             ))}
           </div>
 
+          <div className="flex gap-1 overflow-x-auto border-b border-white/8 px-2 py-2">
+            {emojiToneOptions.map((tone) => (
+              <EmojiCategoryButton
+                key={tone.id}
+                active={selectedTone === tone.id}
+                label={tone.label}
+                onClick={() => setSelectedTone(tone.id)}
+              />
+            ))}
+          </div>
+
           <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
             {filteredEmojiSections.system.length === 0 && filteredEmojiSections.custom.length === 0 ? (
               <PickerState>Ничего не найдено.</PickerState>
@@ -397,11 +442,16 @@ export function EmojiStickerPicker({
                           key={`${section.id}-${item.emoji}`}
                           type="button"
                           onMouseDown={preventFocusLoss}
-                          onClick={() => onEmojiSelect(item.emoji)}
+                          onClick={() => onEmojiSelect(resolveEmojiTone(item, selectedTone))}
                           className="flex h-10 items-center justify-center rounded-[12px] border border-transparent bg-white/[0.02] text-[22px] transition-colors hover:border-white/8 hover:bg-white/[0.06]"
                           title={item.label}
                         >
-                          <span aria-hidden>{item.emoji}</span>
+                          <EmojiGlyph
+                            emoji={resolveEmojiTone(item, selectedTone)}
+                            label={item.label}
+                            className="h-6 w-6"
+                            fallbackClassName="text-[22px]"
+                          />
                           <span className="sr-only">{item.label}</span>
                         </button>
                       ))}
@@ -714,5 +764,10 @@ function createLooseEmojiEntry(emoji: string): EmojiEntry {
     emoji,
     label: emoji,
     keywords: [],
+    category: "symbols",
   };
+}
+
+function resolveEmojiTone(entry: EmojiEntry, tone: EmojiTone): string {
+  return entry.toneVariants?.[tone] ?? entry.emoji;
 }

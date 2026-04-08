@@ -62,6 +62,7 @@ const adminLinks = [
   { href: "/app/admin", label: "Обзор" },
   { href: "/app/admin/users", label: "Пользователи" },
   { href: "/app/admin/invites", label: "Инвайты" },
+  { href: "/app/admin/sticker-packs", label: "Стикер паки" },
   { href: "/app/admin/audit", label: "Аудит" },
 ] as const;
 

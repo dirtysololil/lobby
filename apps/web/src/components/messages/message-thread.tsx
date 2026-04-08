@@ -9,6 +9,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 import { GifAssetPreview } from "./gif-asset-preview";
 import { InlineCustomEmojiText } from "./inline-custom-emoji-text";
+import { LinkEmbedCard } from "./link-embed-card";
 import { StickerAssetPreview } from "./sticker-asset-preview";
 
 export type ThreadMessageItem =
@@ -285,6 +286,10 @@ export function MessageThread({
                   const isSticker = message.type === "STICKER";
                   const isGif = message.type === "GIF";
                   const isVisualMessage = isSticker || isGif;
+                  const hasInlineEmbed =
+                    !isVisualMessage &&
+                    message.linkEmbed !== null &&
+                    message.linkEmbed.status !== "FAILED";
                   const previousMessage = group.items[index - 1];
                   const continuation = isContinuation(previousMessage, message);
                   const isUnreadMarker = unreadIndex >= 0 && globalIndex === unreadIndex;
@@ -430,12 +435,25 @@ export function MessageThread({
                                   GIF недоступен
                                 </div>
                               ) : (
-                                <p className="text-[13px] leading-[1.42] text-white">
-                                  <InlineCustomEmojiText
-                                    text={message.content ?? ""}
-                                    customEmojis={customEmojis}
-                                  />
-                                </p>
+                                <div className={cn("grid gap-2", !message.content && "gap-0")}>
+                                  {message.content ? (
+                                    <p className="text-[13px] leading-[1.42] text-white">
+                                      <InlineCustomEmojiText
+                                        text={message.content}
+                                        customEmojis={customEmojis}
+                                      />
+                                    </p>
+                                  ) : null}
+                                  {hasInlineEmbed && message.linkEmbed ? (
+                                    <LinkEmbedCard
+                                      embed={message.linkEmbed}
+                                      className={cn(
+                                        "max-w-[min(360px,72vw)]",
+                                        isOwn && "ml-auto",
+                                      )}
+                                    />
+                                  ) : null}
+                                </div>
                               )}
                             </div>
                           </div>

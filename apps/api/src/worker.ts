@@ -9,6 +9,7 @@ async function bootstrap() {
   });
 
   logger.log('Worker process is running');
+  logger.log('Bull processors active: dm-retention, dm-link-unfurl, call-timeout');
 
   const shutdown = async () => {
     logger.log('Shutting down worker process');

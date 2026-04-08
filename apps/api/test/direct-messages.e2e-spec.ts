@@ -99,6 +99,60 @@ describe('DirectMessagesController (e2e)', () => {
     ).toBe('hello from delta');
   });
 
+  it('creates a pending Tenor embed without delaying text message delivery', async () => {
+    const alpha = await createTestUser(prisma, {
+      username: 'tenoralpha',
+      email: 'tenoralpha@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Tenor Alpha',
+    });
+    const beta = await createTestUser(prisma, {
+      username: 'tenorbeta',
+      email: 'tenorbeta@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Tenor Beta',
+    });
+    const alphaCookies = await loginAs(
+      app,
+      alpha.username,
+      'VeryStrongPass123',
+    );
+    const openResponse = await request(httpServer)
+      .post('/v1/direct-messages/open')
+      .set('Cookie', alphaCookies)
+      .send({ username: beta.username })
+      .expect(201);
+    const conversation = directConversationSummaryResponseSchema.parse(
+      openResponse.body,
+    ).conversation;
+    const messageResponse = await request(httpServer)
+      .post(`/v1/direct-messages/${conversation.id}/messages`)
+      .set('Cookie', alphaCookies)
+      .send({
+        content:
+          'https://tenor.com/view/cat-kitten-pet-gif-15031226867688336559',
+      })
+      .expect(201);
+    const message = directMessageResponseSchema.parse(messageResponse.body).message;
+
+    expect(message.type).toBe('TEXT');
+    expect(message.linkEmbed?.status).toBe('PENDING');
+    expect(message.linkEmbed?.provider).toBe('TENOR');
+
+    const storedEmbed = await prisma.directMessageLinkEmbed.findUnique({
+      where: {
+        messageId: message.id,
+      },
+      select: {
+        status: true,
+        sourceUrl: true,
+      },
+    });
+
+    expect(storedEmbed?.status).toBe('PENDING');
+    expect(storedEmbed?.sourceUrl).toContain('tenor.com/view/');
+  });
+
   it('sends a sticker as a direct message and tracks recent usage', async () => {
     const alpha = await createTestUser(prisma, {
       username: 'stickeralpha',
@@ -172,6 +226,87 @@ describe('DirectMessagesController (e2e)', () => {
     });
 
     expect(recent?.usageCount).toBe(1);
+  });
+
+  it('renders a sticker message from snapshot even when the sticker relation is missing', async () => {
+    const alpha = await createTestUser(prisma, {
+      username: 'snapshotalpha',
+      email: 'snapshotalpha@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Snapshot Alpha',
+    });
+    const beta = await createTestUser(prisma, {
+      username: 'snapshotbeta',
+      email: 'snapshotbeta@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Snapshot Beta',
+    });
+
+    const pack = await prisma.stickerPack.create({
+      data: {
+        ownerId: alpha.id,
+        title: 'Snapshot Pack',
+        slug: 'snapshot-pack',
+        sortOrder: 0,
+        isActive: true,
+        publishedAt: new Date(),
+      },
+    });
+    const sticker = await prisma.sticker.create({
+      data: {
+        packId: pack.id,
+        title: 'Snapshot Sticker',
+        type: 'STATIC',
+        fileKey: 'stickers/test/snapshot.webp',
+        originalName: 'snapshot.webp',
+        mimeType: 'image/webp',
+        fileSize: 1024,
+        width: 224,
+        height: 224,
+        sortOrder: 0,
+        isActive: true,
+        publishedAt: new Date(),
+      },
+    });
+
+    const alphaCookies = await loginAs(
+      app,
+      alpha.username,
+      'VeryStrongPass123',
+    );
+    const openResponse = await request(httpServer)
+      .post('/v1/direct-messages/open')
+      .set('Cookie', alphaCookies)
+      .send({ username: beta.username })
+      .expect(201);
+    const conversation = directConversationSummaryResponseSchema.parse(
+      openResponse.body,
+    ).conversation;
+    const messageResponse = await request(httpServer)
+      .post(`/v1/direct-messages/${conversation.id}/messages`)
+      .set('Cookie', alphaCookies)
+      .send({ type: 'STICKER', stickerId: sticker.id })
+      .expect(201);
+    const message = directMessageResponseSchema.parse(messageResponse.body).message;
+
+    await prisma.directMessage.update({
+      where: {
+        id: message.id,
+      },
+      data: {
+        stickerId: null,
+      },
+    });
+
+    const detailResponse = await request(httpServer)
+      .get(`/v1/direct-messages/${conversation.id}`)
+      .set('Cookie', alphaCookies)
+      .expect(200);
+    const detail = directConversationDetailSchema.parse(detailResponse.body);
+    const snapshotMessage = detail.conversation.messages.at(-1);
+
+    expect(snapshotMessage?.sticker?.id).toBe(sticker.id);
+    expect(snapshotMessage?.sticker?.title).toBe('Snapshot Sticker');
   });
 
   it('exposes counterpart last seen separately from online status', async () => {
