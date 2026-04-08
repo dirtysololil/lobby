@@ -8,6 +8,7 @@ import {
   type DirectMessage,
 } from '@lobby/shared';
 import type {
+  DirectMessageAttachment as PrismaDirectMessageAttachment,
   DirectConversationParticipant,
   DirectMessage as PrismaDirectMessage,
   DirectMessageLinkEmbed as PrismaDirectMessageLinkEmbed,
@@ -22,6 +23,7 @@ export type MessageWithAuthor = PrismaDirectMessage & {
   author: PublicUserRecord;
   sticker: PrismaSticker | null;
   gif: PrismaGifAsset | null;
+  attachment: PrismaDirectMessageAttachment | null;
   linkEmbed: PrismaDirectMessageLinkEmbed | null;
 };
 
@@ -46,20 +48,37 @@ export function toDirectMessage(
     content: message.deletedAt ? null : message.content,
     sticker: resolveStickerPayload(message),
     gif: message.gif ? toGifAsset(message.gif) : null,
+    attachment:
+      !message.deletedAt && message.attachment
+        ? {
+            id: message.attachment.id,
+            kind: message.attachment.kind,
+            originalName: message.attachment.originalName,
+            mimeType: message.attachment.mimeType,
+            fileSize: message.attachment.fileSize,
+            width: message.attachment.width,
+            height: message.attachment.height,
+            durationMs: message.attachment.durationMs,
+            hasPreview: Boolean(message.attachment.previewKey),
+            createdAt: message.attachment.createdAt.toISOString(),
+            updatedAt: message.attachment.updatedAt.toISOString(),
+          }
+        : null,
     linkEmbed:
       !message.deletedAt && message.linkEmbed
         ? {
             status: message.linkEmbed.status,
             provider: message.linkEmbed.provider,
+            kind: message.linkEmbed.kind,
             sourceUrl: message.linkEmbed.sourceUrl,
             canonicalUrl: message.linkEmbed.canonicalUrl,
-            title: message.linkEmbed.title,
-            previewImage: message.linkEmbed.previewImage,
-            animatedMediaUrl: message.linkEmbed.animatedMediaUrl,
+            previewUrl: message.linkEmbed.previewUrl,
+            playableUrl: message.linkEmbed.playableUrl,
+            posterUrl: message.linkEmbed.posterUrl,
             width: message.linkEmbed.width,
             height: message.linkEmbed.height,
             aspectRatio: message.linkEmbed.aspectRatio,
-            contentType: message.linkEmbed.contentType,
+            failureCode: message.linkEmbed.failureCode,
           }
         : null,
     isDeleted: Boolean(message.deletedAt),
@@ -177,6 +196,18 @@ function getDirectMessagePreview(
 
   if (message.type === 'GIF') {
     return message.authorId === viewerId ? 'Вы отправили GIF' : 'GIF';
+  }
+
+  if (message.type === 'MEDIA') {
+    if (message.attachment?.kind === 'VIDEO') {
+      return message.authorId === viewerId ? 'Вы отправили видео' : 'Видео';
+    }
+
+    return message.authorId === viewerId ? 'Вы отправили фото' : 'Фото';
+  }
+
+  if (message.type === 'FILE') {
+    return message.authorId === viewerId ? 'Вы отправили файл' : 'Файл';
   }
 
   return message.content?.trim() || null;

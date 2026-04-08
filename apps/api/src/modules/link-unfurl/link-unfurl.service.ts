@@ -1,41 +1,48 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LinkEmbedProvider, LinkEmbedStatus, Prisma } from '@prisma/client';
+import {
+  LinkEmbedKind,
+  LinkEmbedProvider,
+  LinkEmbedStatus,
+  Prisma,
+} from '@prisma/client';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { PrismaService } from '../../database/prisma.service';
 import {
   createUrlHash,
-  isSupportedTenorHost,
-  type LinkUnfurlCandidate,
+  inferDirectMediaKind,
 } from './link-unfurl.util';
 
 const requestTimeoutMs = 4_500;
 const responseSizeLimitBytes = 512 * 1024;
 const maxRedirects = 2;
+const maxResolverAttempts = 3;
 
 type ResolvedEmbedPayload = {
+  provider: LinkEmbedProvider;
+  kind: LinkEmbedKind | null;
   canonicalUrl: string | null;
   canonicalUrlHash: string | null;
-  title: string | null;
-  previewImage: string | null;
-  animatedMediaUrl: string | null;
+  previewUrl: string | null;
+  playableUrl: string | null;
+  posterUrl: string | null;
   width: number | null;
   height: number | null;
   aspectRatio: number | null;
-  contentType: string | null;
 };
 
 type EmbedProjection = {
   status: LinkEmbedStatus;
+  provider: LinkEmbedProvider;
+  kind: LinkEmbedKind | null;
   canonicalUrl: string | null;
   canonicalUrlHash: string | null;
-  title: string | null;
-  previewImage: string | null;
-  animatedMediaUrl: string | null;
+  previewUrl: string | null;
+  playableUrl: string | null;
+  posterUrl: string | null;
   width: number | null;
   height: number | null;
   aspectRatio: number | null;
-  contentType: string | null;
 };
 
 @Injectable()
@@ -82,14 +89,14 @@ export class LinkUnfurlService {
     }
 
     try {
-      const resolved = await this.resolveTenorEmbed({
-        provider: 'TENOR',
+      const resolved = await this.resolveCandidate({
+        provider: embed.provider,
         sourceUrl: embed.sourceUrl,
       });
 
       if (resolved.canonicalUrlHash) {
         const cachedByCanonical = await this.findReusableEmbed({
-          provider: embed.provider,
+          provider: resolved.provider,
           canonicalUrlHash: resolved.canonicalUrlHash,
           excludeMessageId: messageId,
         });
@@ -97,8 +104,17 @@ export class LinkUnfurlService {
         if (cachedByCanonical) {
           await this.markEmbedReady(messageId, {
             ...cachedByCanonical,
-            canonicalUrl: resolved.canonicalUrl,
-            canonicalUrlHash: resolved.canonicalUrlHash,
+            provider: resolved.provider,
+            kind: resolved.kind ?? cachedByCanonical.kind,
+            canonicalUrl: resolved.canonicalUrl ?? cachedByCanonical.canonicalUrl,
+            canonicalUrlHash:
+              resolved.canonicalUrlHash ?? cachedByCanonical.canonicalUrlHash,
+            previewUrl: resolved.previewUrl ?? cachedByCanonical.previewUrl,
+            playableUrl: resolved.playableUrl ?? cachedByCanonical.playableUrl,
+            posterUrl: resolved.posterUrl ?? cachedByCanonical.posterUrl,
+            width: resolved.width ?? cachedByCanonical.width,
+            height: resolved.height ?? cachedByCanonical.height,
+            aspectRatio: resolved.aspectRatio ?? cachedByCanonical.aspectRatio,
           });
           return true;
         }
@@ -129,149 +145,273 @@ export class LinkUnfurlService {
     }
   }
 
-  private async findReusableEmbed(args: {
-    provider: LinkEmbedProvider;
-    sourceUrlHash?: string;
-    canonicalUrlHash?: string | null;
-    excludeMessageId: string;
-  }): Promise<EmbedProjection | null> {
-    const where: Prisma.DirectMessageLinkEmbedWhereInput = {
-      provider: args.provider,
-      status: LinkEmbedStatus.READY,
-      messageId: {
-        not: args.excludeMessageId,
-      },
-      ...(args.sourceUrlHash
-        ? {
-            sourceUrlHash: args.sourceUrlHash,
-          }
-        : {}),
-      ...(args.canonicalUrlHash
-        ? {
-            canonicalUrlHash: args.canonicalUrlHash,
-          }
-        : {}),
-    };
+  private async resolveCandidate(
+    candidate: { provider: LinkEmbedProvider | string; sourceUrl: string },
+  ): Promise<ResolvedEmbedPayload> {
+    if (candidate.provider === LinkEmbedProvider.DIRECT_MEDIA) {
+      return await this.resolveDirectMedia(candidate.sourceUrl);
+    }
 
-    const reusable = await this.prisma.directMessageLinkEmbed.findFirst({
-      where,
-      select: {
-        status: true,
-        canonicalUrl: true,
-        canonicalUrlHash: true,
-        title: true,
-        previewImage: true,
-        animatedMediaUrl: true,
-        width: true,
-        height: true,
-        aspectRatio: true,
-        contentType: true,
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
+    if (candidate.provider === LinkEmbedProvider.TENOR) {
+      return await this.resolveTenorEmbed(candidate.sourceUrl);
+    }
 
-    return reusable;
+    return await this.resolveGenericEmbed(candidate.sourceUrl);
   }
 
-  private async markEmbedReady(
-    messageId: string,
-    payload: EmbedProjection,
-  ): Promise<void> {
-    await this.prisma.directMessageLinkEmbed.update({
-      where: {
-        messageId,
-      },
-      data: {
-        status: payload.status,
-        canonicalUrl: payload.canonicalUrl,
-        canonicalUrlHash: payload.canonicalUrlHash,
-        title: payload.title,
-        previewImage: payload.previewImage,
-        animatedMediaUrl: payload.animatedMediaUrl,
-        width: payload.width,
-        height: payload.height,
-        aspectRatio: payload.aspectRatio,
-        contentType: payload.contentType,
-        failureCode: null,
-      },
-    });
+  private async resolveDirectMedia(
+    sourceUrl: string,
+  ): Promise<ResolvedEmbedPayload> {
+    const parsedUrl = new URL(sourceUrl);
+
+    await assertSafeRemoteUrl(parsedUrl, null);
+
+    const kind = inferDirectMediaKind(parsedUrl);
+
+    if (!kind) {
+      throw new Error('UNSUPPORTED_DIRECT_MEDIA');
+    }
+
+    return {
+      provider: LinkEmbedProvider.DIRECT_MEDIA,
+      kind: toPrismaLinkEmbedKind(kind),
+      canonicalUrl: parsedUrl.toString(),
+      canonicalUrlHash: createUrlHash(parsedUrl.toString()),
+      previewUrl:
+        kind === 'VIDEO'
+          ? null
+          : parsedUrl.toString(),
+      playableUrl:
+        kind === 'VIDEO' || kind === 'GIF'
+          ? parsedUrl.toString()
+          : null,
+      posterUrl: kind === 'VIDEO' ? null : parsedUrl.toString(),
+      width: null,
+      height: null,
+      aspectRatio: null,
+    };
   }
 
   private async resolveTenorEmbed(
-    candidate: LinkUnfurlCandidate,
+    sourceUrl: string,
   ): Promise<ResolvedEmbedPayload> {
-    const { responseUrl, html } = await this.fetchHtml(candidate.sourceUrl);
-
+    const { responseUrl, html } = await this.fetchHtml(sourceUrl, {
+      allowedHosts: ['tenor.com', 'tenor.co'],
+    });
     const canonicalUrl =
-      sanitizeExternalMediaUrl(
+      sanitizePublicMediaUrl(
         getLinkHref(html, 'canonical') ?? getMetaContent(html, 'og:url'),
       ) ?? responseUrl;
-    const title =
-      decodeHtmlEntities(
-        getMetaContent(html, 'og:title') ??
-          getMetaContent(html, 'twitter:title') ??
-          getDocumentTitle(html) ??
-          '',
-      ) || null;
-    const previewImage = sanitizeExternalMediaUrl(
-      getMetaContent(html, 'twitter:image') ??
-        getMetaContent(html, 'og:image') ??
-        getJsonLdValue(html, ['thumbnailUrl']) ??
-        getJsonLdValue(html, ['image', 'url']) ??
-        getJsonLdValue(html, ['image', 'contentUrl']),
+
+    const tenorCandidates = extractTenorMediaCandidates(html);
+    const openGraphFallback = await this.resolveOpenGraphFromHtml(
+      html,
+      responseUrl,
+      LinkEmbedProvider.TENOR,
     );
-    const animatedMediaUrl = sanitizeExternalMediaUrl(
-      getMetaContent(html, 'twitter:player:stream') ??
-        getMetaContent(html, 'og:video:url') ??
-        getMetaContent(html, 'og:video:secure_url') ??
-        getMetaContent(html, 'og:video') ??
-        getJsonLdValue(html, ['video', 'contentUrl']),
+    const playableUrl =
+      tenorCandidates.playableUrl ?? openGraphFallback.playableUrl ?? null;
+    const previewUrl =
+      tenorCandidates.previewUrl ??
+      openGraphFallback.previewUrl ??
+      openGraphFallback.posterUrl ??
+      null;
+    const posterUrl =
+      tenorCandidates.posterUrl ??
+      openGraphFallback.posterUrl ??
+      previewUrl ??
+      null;
+    const width = tenorCandidates.width ?? openGraphFallback.width;
+    const height = tenorCandidates.height ?? openGraphFallback.height;
+    const kind =
+      tenorCandidates.kind ??
+      openGraphFallback.kind ??
+      inferKindFromResolvedUrls({
+        playableUrl,
+        previewUrl,
+      });
+
+    if (!playableUrl && !previewUrl) {
+      throw new Error('EMBED_EMPTY');
+    }
+
+    return {
+      provider: LinkEmbedProvider.TENOR,
+      kind,
+      canonicalUrl,
+      canonicalUrlHash: canonicalUrl ? createUrlHash(canonicalUrl) : null,
+      previewUrl,
+      playableUrl,
+      posterUrl,
+      width,
+      height,
+      aspectRatio: resolveAspectRatio(width, height),
+    };
+  }
+
+  private async resolveGenericEmbed(
+    sourceUrl: string,
+  ): Promise<ResolvedEmbedPayload> {
+    const { responseUrl, html } = await this.fetchHtml(sourceUrl, {
+      allowedHosts: null,
+    });
+    const resolved = await this.resolveOpenGraphFromHtml(
+      html,
+      responseUrl,
+      LinkEmbedProvider.OPEN_GRAPH,
     );
+
+    if (!resolved.playableUrl && !resolved.previewUrl) {
+      throw new Error('EMBED_EMPTY');
+    }
+
+    return resolved;
+  }
+
+  private async resolveOpenGraphFromHtml(
+    html: string,
+    responseUrl: string,
+    provider: LinkEmbedProvider,
+  ): Promise<ResolvedEmbedPayload> {
+    const oEmbedResult = getLinkHref(html, 'alternate')?.includes('oembed')
+      ? await this.tryResolveOEmbed(
+          getLinkHref(html, 'alternate'),
+          provider,
+        )
+      : null;
+    const canonicalUrl =
+      sanitizePublicMediaUrl(
+        getLinkHref(html, 'canonical') ?? getMetaContent(html, 'og:url'),
+      ) ?? responseUrl;
+    const previewUrl =
+      oEmbedResult?.previewUrl ??
+      sanitizePublicMediaUrl(
+        getMetaContent(html, 'twitter:image') ??
+          getMetaContent(html, 'og:image') ??
+          getJsonLdValue(html, ['thumbnailUrl']) ??
+          getJsonLdValue(html, ['image', 'url']) ??
+          getJsonLdValue(html, ['image', 'contentUrl']),
+      );
+    const playableUrl =
+      oEmbedResult?.playableUrl ??
+      sanitizePublicMediaUrl(
+        getMetaContent(html, 'twitter:player:stream') ??
+          getMetaContent(html, 'og:video:url') ??
+          getMetaContent(html, 'og:video:secure_url') ??
+          getMetaContent(html, 'og:video') ??
+          getJsonLdValue(html, ['video', 'contentUrl']),
+      );
+    const posterUrl = previewUrl;
     const width = coercePositiveInt(
       getMetaContent(html, 'og:video:width') ??
         getMetaContent(html, 'og:image:width') ??
         getJsonLdValue(html, ['video', 'width']) ??
-        getJsonLdValue(html, ['image', 'width']),
+        getJsonLdValue(html, ['image', 'width']) ??
+        oEmbedResult?.width ??
+        null,
     );
     const height = coercePositiveInt(
       getMetaContent(html, 'og:video:height') ??
         getMetaContent(html, 'og:image:height') ??
         getJsonLdValue(html, ['video', 'height']) ??
-        getJsonLdValue(html, ['image', 'height']),
+        getJsonLdValue(html, ['image', 'height']) ??
+        oEmbedResult?.height ??
+        null,
     );
-    const aspectRatio =
-      width && height ? Number((width / height).toFixed(4)) : null;
-    const contentType =
-      getMetaContent(html, 'og:video:type') ??
-      getMetaContent(html, 'twitter:player:stream:content_type') ??
-      inferContentType(animatedMediaUrl);
-
-    if (!previewImage && !animatedMediaUrl) {
-      throw new Error('EMBED_EMPTY');
-    }
 
     return {
+      provider,
+      kind: inferKindFromResolvedUrls({
+        playableUrl,
+        previewUrl,
+      }),
       canonicalUrl,
       canonicalUrlHash: canonicalUrl ? createUrlHash(canonicalUrl) : null,
-      title,
-      previewImage,
-      animatedMediaUrl,
+      previewUrl,
+      playableUrl,
+      posterUrl,
       width,
       height,
-      aspectRatio,
-      contentType,
+      aspectRatio: resolveAspectRatio(width, height),
     };
+  }
+
+  private async tryResolveOEmbed(
+    value: string | null,
+    provider: LinkEmbedProvider,
+  ): Promise<{
+    previewUrl: string | null;
+    playableUrl: string | null;
+    width: string | null;
+    height: string | null;
+    provider: LinkEmbedProvider;
+  } | null> {
+    if (!value) {
+      return null;
+    }
+
+    let oEmbedUrl: URL;
+
+    try {
+      oEmbedUrl = new URL(value);
+    } catch {
+      return null;
+    }
+
+    if (!/^https?:$/i.test(oEmbedUrl.protocol)) {
+      return null;
+    }
+
+    await assertSafeRemoteUrl(oEmbedUrl, null);
+    const response = await fetch(oEmbedUrl, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'LobbyLinkUnfurl/1.0',
+      },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(requestTimeoutMs),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const rawText = await readTextWithLimit(response, responseSizeLimitBytes);
+
+    try {
+      const payload = JSON.parse(rawText) as {
+        thumbnail_url?: string;
+        url?: string;
+        width?: string | number;
+        height?: string | number;
+      };
+
+      return {
+        provider,
+        previewUrl: sanitizePublicMediaUrl(payload.thumbnail_url ?? null),
+        playableUrl: sanitizePublicMediaUrl(payload.url ?? null),
+        width:
+          typeof payload.width === 'number'
+            ? String(payload.width)
+            : payload.width ?? null,
+        height:
+          typeof payload.height === 'number'
+            ? String(payload.height)
+            : payload.height ?? null,
+      };
+    } catch {
+      return null;
+    }
   }
 
   private async fetchHtml(
     url: string,
+    options: { allowedHosts: string[] | null },
   ): Promise<{ responseUrl: string; html: string }> {
     let currentUrl = new URL(url);
 
     for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
-      await assertSafeRemoteUrl(currentUrl);
+      await assertSafeRemoteUrl(currentUrl, options.allowedHosts);
       const response = await fetch(currentUrl, {
         headers: {
           Accept: 'text/html,application/xhtml+xml',
@@ -311,6 +451,85 @@ export class LinkUnfurlService {
     }
 
     throw new Error('TOO_MANY_REDIRECTS');
+  }
+
+  private async findReusableEmbed(args: {
+    provider: LinkEmbedProvider;
+    sourceUrlHash?: string;
+    canonicalUrlHash?: string | null;
+    excludeMessageId: string;
+  }): Promise<EmbedProjection | null> {
+    const conditions: Prisma.DirectMessageLinkEmbedWhereInput[] = [];
+
+    if (args.sourceUrlHash) {
+      conditions.push({
+        sourceUrlHash: args.sourceUrlHash,
+      });
+    }
+
+    if (args.canonicalUrlHash) {
+      conditions.push({
+        canonicalUrlHash: args.canonicalUrlHash,
+      });
+    }
+
+    if (conditions.length === 0) {
+      return null;
+    }
+
+    const reusable = await this.prisma.directMessageLinkEmbed.findFirst({
+      where: {
+        provider: args.provider,
+        status: LinkEmbedStatus.READY,
+        messageId: {
+          not: args.excludeMessageId,
+        },
+        OR: conditions,
+      },
+      select: {
+        status: true,
+        provider: true,
+        kind: true,
+        canonicalUrl: true,
+        canonicalUrlHash: true,
+        previewUrl: true,
+        playableUrl: true,
+        posterUrl: true,
+        width: true,
+        height: true,
+        aspectRatio: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return reusable;
+  }
+
+  private async markEmbedReady(
+    messageId: string,
+    payload: EmbedProjection,
+  ): Promise<void> {
+    await this.prisma.directMessageLinkEmbed.update({
+      where: {
+        messageId,
+      },
+      data: {
+        status: payload.status,
+        provider: payload.provider,
+        kind: payload.kind,
+        canonicalUrl: payload.canonicalUrl,
+        canonicalUrlHash: payload.canonicalUrlHash,
+        previewUrl: payload.previewUrl,
+        playableUrl: payload.playableUrl,
+        posterUrl: payload.posterUrl,
+        width: payload.width,
+        height: payload.height,
+        aspectRatio: payload.aspectRatio,
+        failureCode: null,
+      },
+    });
   }
 }
 
@@ -359,13 +578,20 @@ async function readTextWithLimit(
   return new TextDecoder('utf-8').decode(output);
 }
 
-async function assertSafeRemoteUrl(url: URL): Promise<void> {
+async function assertSafeRemoteUrl(
+  url: URL,
+  allowedHosts: string[] | null,
+): Promise<void> {
   if (!/^https?:$/i.test(url.protocol)) {
     throw new Error('UNSUPPORTED_PROTOCOL');
   }
 
-  if (!isSupportedTenorHost(url.hostname)) {
+  if (allowedHosts && !isHostnameAllowed(url.hostname, allowedHosts)) {
     throw new Error('HOST_NOT_ALLOWED');
+  }
+
+  if (isPrivateAddress(url.hostname)) {
+    throw new Error('BLOCKED_IP_RANGE');
   }
 
   const addresses = await lookup(url.hostname, {
@@ -382,6 +608,18 @@ async function assertSafeRemoteUrl(url: URL): Promise<void> {
       throw new Error('BLOCKED_IP_RANGE');
     }
   }
+}
+
+function isHostnameAllowed(hostname: string, allowedHosts: string[]): boolean {
+  const normalizedHost = hostname.trim().toLowerCase();
+
+  return allowedHosts.some((host) => {
+    const normalizedAllowedHost = host.trim().toLowerCase();
+    return (
+      normalizedHost === normalizedAllowedHost ||
+      normalizedHost.endsWith(`.${normalizedAllowedHost}`)
+    );
+  });
 }
 
 function isPrivateAddress(address: string): boolean {
@@ -441,7 +679,7 @@ function isPrivateAddress(address: string): boolean {
     );
   }
 
-  return true;
+  return false;
 }
 
 function getMetaContent(html: string, key: string): string | null {
@@ -492,13 +730,12 @@ function getLinkHref(html: string, rel: string): string | null {
   return null;
 }
 
-function getDocumentTitle(html: string): string | null {
-  const match = /<title[^>]*>([^<]+)<\/title>/i.exec(html);
-  return match?.[1] ? decodeHtmlEntities(match[1].trim()) : null;
-}
-
 function getJsonLdValue(html: string, path: string[]): string | null {
-  const blocks = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  const blocks = [
+    ...html.matchAll(
+      /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+    ),
+  ];
 
   for (const block of blocks) {
     const rawJson = block[1]?.trim();
@@ -540,7 +777,66 @@ function readJsonPath(value: unknown, path: string[]): unknown {
   return current;
 }
 
-function sanitizeExternalMediaUrl(value: string | null): string | null {
+function extractTenorMediaCandidates(html: string): {
+  kind: LinkEmbedKind | null;
+  playableUrl: string | null;
+  previewUrl: string | null;
+  posterUrl: string | null;
+  width: number | null;
+  height: number | null;
+} {
+  const rawUrls = [
+    ...new Set([
+      ...html.matchAll(/https?:\/\/[^"'\\<>\s]+/gi),
+    ].map((match) => decodeHtmlEntities(match[0]))),
+  ];
+  const mediaUrls = rawUrls
+    .map((value) => sanitizePublicMediaUrl(value))
+    .filter((value): value is string => Boolean(value))
+    .filter((value) => {
+      try {
+        const url = new URL(value);
+        return url.hostname.toLowerCase().includes('tenor');
+      } catch {
+        return false;
+      }
+    });
+
+  const playableUrl =
+    mediaUrls.find((value) => value.match(/\.mp4(\?|$)/i)) ??
+    mediaUrls.find((value) => value.match(/\.webm(\?|$)/i)) ??
+    mediaUrls.find((value) => value.match(/\.webp(\?|$)/i)) ??
+    mediaUrls.find((value) => value.match(/\.gif(\?|$)/i)) ??
+    null;
+  const previewUrl =
+    mediaUrls.find((value) => value.match(/\.(jpg|jpeg|png)(\?|$)/i)) ??
+    mediaUrls.find((value) => value.match(/\.webp(\?|$)/i)) ??
+    null;
+
+  return {
+    kind: inferKindFromResolvedUrls({
+      playableUrl,
+      previewUrl,
+    }),
+    playableUrl,
+    previewUrl,
+    posterUrl: previewUrl,
+    width: coercePositiveInt(
+      getMetaContent(html, 'og:video:width') ??
+        getMetaContent(html, 'og:image:width') ??
+        getJsonLdValue(html, ['video', 'width']) ??
+        getJsonLdValue(html, ['image', 'width']),
+    ),
+    height: coercePositiveInt(
+      getMetaContent(html, 'og:video:height') ??
+        getMetaContent(html, 'og:image:height') ??
+        getJsonLdValue(html, ['video', 'height']) ??
+        getJsonLdValue(html, ['image', 'height']),
+    ),
+  };
+}
+
+function sanitizePublicMediaUrl(value: string | null): string | null {
   if (!value) {
     return null;
   }
@@ -552,7 +848,7 @@ function sanitizeExternalMediaUrl(value: string | null): string | null {
       return null;
     }
 
-    if (!isSupportedTenorHost(url.hostname)) {
+    if (isPrivateAddress(url.hostname)) {
       return null;
     }
 
@@ -563,24 +859,50 @@ function sanitizeExternalMediaUrl(value: string | null): string | null {
   }
 }
 
-function inferContentType(value: string | null): string | null {
-  if (!value) {
-    return null;
+function inferKindFromResolvedUrls(args: {
+  playableUrl: string | null;
+  previewUrl: string | null;
+}): LinkEmbedKind | null {
+  if (args.playableUrl) {
+    if (args.playableUrl.match(/\.(mp4|webm)(\?|$)/i)) {
+      return LinkEmbedKind.VIDEO;
+    }
+
+    if (args.playableUrl.match(/\.(gif|webp)(\?|$)/i)) {
+      return LinkEmbedKind.GIF;
+    }
   }
 
-  if (value.endsWith('.mp4')) {
-    return 'video/mp4';
-  }
+  if (args.previewUrl) {
+    if (args.previewUrl.match(/\.gif(\?|$)/i)) {
+      return LinkEmbedKind.GIF;
+    }
 
-  if (value.endsWith('.webm')) {
-    return 'video/webm';
-  }
-
-  if (value.endsWith('.gif')) {
-    return 'image/gif';
+    return LinkEmbedKind.IMAGE;
   }
 
   return null;
+}
+
+function toPrismaLinkEmbedKind(
+  kind: 'IMAGE' | 'VIDEO' | 'GIF',
+): LinkEmbedKind {
+  if (kind === 'VIDEO') {
+    return LinkEmbedKind.VIDEO;
+  }
+
+  if (kind === 'GIF') {
+    return LinkEmbedKind.GIF;
+  }
+
+  return LinkEmbedKind.IMAGE;
+}
+
+function resolveAspectRatio(
+  width: number | null,
+  height: number | null,
+): number | null {
+  return width && height ? Number((width / height).toFixed(4)) : null;
 }
 
 function coercePositiveInt(value: string | null): number | null {

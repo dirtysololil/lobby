@@ -31,6 +31,20 @@ export class StorageService {
     return this.writeScopedObject('stickers', buffer, extension);
   }
 
+  public async writeDirectMessageAttachment(
+    buffer: Buffer,
+    extension: string,
+  ): Promise<string> {
+    return this.writeScopedObject('dm-attachments', buffer, extension);
+  }
+
+  public async writeDirectMessageAttachmentPreview(
+    buffer: Buffer,
+    extension: string,
+  ): Promise<string> {
+    return this.writeScopedObject('dm-attachment-previews', buffer, extension);
+  }
+
   public async readObject(fileKey: string): Promise<Buffer> {
     return readFile(this.resolveLocalPath(fileKey));
   }

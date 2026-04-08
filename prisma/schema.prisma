@@ -62,16 +62,32 @@ enum DirectMessageType {
   TEXT
   STICKER
   GIF
+  MEDIA
+  FILE
 }
 
 enum LinkEmbedProvider {
   TENOR
+  DIRECT_MEDIA
+  OPEN_GRAPH
 }
 
 enum LinkEmbedStatus {
   PENDING
   READY
   FAILED
+}
+
+enum LinkEmbedKind {
+  IMAGE
+  VIDEO
+  GIF
+}
+
+enum DirectMessageAttachmentKind {
+  IMAGE
+  VIDEO
+  DOCUMENT
 }
 
 enum StickerType {
@@ -310,6 +326,7 @@ model DirectMessage {
   content                String?
   stickerId              String?
   gifId                  String?
+  attachment             DirectMessageAttachment?
   stickerSnapshot        Json?
   linkEmbed              DirectMessageLinkEmbed?
   deletedAt              DateTime?
@@ -335,17 +352,17 @@ model DirectMessageLinkEmbed {
   messageId       String            @unique
   provider        LinkEmbedProvider
   status          LinkEmbedStatus   @default(PENDING)
+  kind            LinkEmbedKind?
   sourceUrl       String            @db.Text
   sourceUrlHash   String            @db.Char(64)
   canonicalUrl    String?           @db.Text
   canonicalUrlHash String?          @db.Char(64)
-  title           String?
-  previewImage    String?           @db.Text
-  animatedMediaUrl String?          @db.Text
+  previewUrl      String?           @db.Text
+  playableUrl     String?           @db.Text
+  posterUrl       String?           @db.Text
   width           Int?
   height          Int?
   aspectRatio     Float?
-  contentType     String?
   failureCode     String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -354,6 +371,23 @@ model DirectMessageLinkEmbed {
   @@index([provider, sourceUrlHash])
   @@index([provider, canonicalUrlHash])
   @@index([status, updatedAt])
+}
+
+model DirectMessageAttachment {
+  id           String                      @id @default(cuid())
+  messageId    String                      @unique
+  kind         DirectMessageAttachmentKind
+  fileKey      String
+  previewKey   String?
+  originalName String
+  mimeType     String
+  fileSize     Int
+  width        Int?
+  height       Int?
+  durationMs   Int?
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+  message      DirectMessage               @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 model StickerPack {

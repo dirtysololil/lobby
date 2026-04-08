@@ -1,15 +1,26 @@
 import { createHash } from 'node:crypto';
 
 const urlPattern = /https?:\/\/[^\s<>"'`]+/giu;
+const tenorHosts = ['tenor.com', 'tenor.co'] as const;
+const directMediaExtensions = new Map<
+  string,
+  'IMAGE' | 'VIDEO' | 'GIF'
+>([
+  ['gif', 'GIF'],
+  ['webp', 'GIF'],
+  ['mp4', 'VIDEO'],
+  ['webm', 'VIDEO'],
+  ['png', 'IMAGE'],
+  ['jpg', 'IMAGE'],
+  ['jpeg', 'IMAGE'],
+]);
 
 export interface LinkUnfurlCandidate {
-  provider: 'TENOR';
+  provider: 'TENOR' | 'DIRECT_MEDIA';
   sourceUrl: string;
 }
 
-const supportedHosts = ['tenor.com', 'tenor.co'] as const;
-
-export function extractFirstSupportedLink(
+export function extractFirstEmbeddableLink(
   text: string | null | undefined,
 ): LinkUnfurlCandidate | null {
   if (!text) {
@@ -23,7 +34,7 @@ export function extractFirstSupportedLink(
       continue;
     }
 
-    const candidate = toSupportedCandidate(rawUrl);
+    const candidate = toEmbeddableCandidate(rawUrl);
 
     if (candidate) {
       return candidate;
@@ -33,7 +44,7 @@ export function extractFirstSupportedLink(
   return null;
 }
 
-export function toSupportedCandidate(
+export function toEmbeddableCandidate(
   rawUrl: string,
 ): LinkUnfurlCandidate | null {
   let parsedUrl: URL;
@@ -44,20 +55,27 @@ export function toSupportedCandidate(
     return null;
   }
 
-  if (!isSupportedTenorHost(parsedUrl.hostname)) {
-    return null;
-  }
-
   if (!/^https?:$/i.test(parsedUrl.protocol)) {
     return null;
   }
 
   parsedUrl.hash = '';
 
-  return {
-    provider: 'TENOR',
-    sourceUrl: parsedUrl.toString(),
-  };
+  if (isSupportedTenorHost(parsedUrl.hostname)) {
+    return {
+      provider: 'TENOR',
+      sourceUrl: parsedUrl.toString(),
+    };
+  }
+
+  if (inferDirectMediaKind(parsedUrl)) {
+    return {
+      provider: 'DIRECT_MEDIA',
+      sourceUrl: parsedUrl.toString(),
+    };
+  }
+
+  return null;
 }
 
 export function createUrlHash(value: string): string {
@@ -67,12 +85,31 @@ export function createUrlHash(value: string): string {
 export function isSupportedTenorHost(hostname: string): boolean {
   const normalizedHost = hostname.trim().toLowerCase();
 
-  return supportedHosts.some(
+  return tenorHosts.some(
     (host) => normalizedHost === host || normalizedHost.endsWith(`.${host}`),
   );
 }
 
-function sanitizeDetectedUrl(rawUrl: string): string | null {
+export function inferDirectMediaKind(
+  url: URL | string,
+): 'IMAGE' | 'VIDEO' | 'GIF' | null {
+  const parsedUrl = typeof url === 'string' ? safeParseUrl(url) : url;
+
+  if (!parsedUrl) {
+    return null;
+  }
+
+  const match = /\.([a-z0-9]+)$/i.exec(parsedUrl.pathname);
+  const extension = match?.[1]?.toLowerCase() ?? null;
+
+  if (!extension) {
+    return null;
+  }
+
+  return directMediaExtensions.get(extension) ?? null;
+}
+
+export function sanitizeDetectedUrl(rawUrl: string): string | null {
   const trimmed = rawUrl.trim();
 
   if (!trimmed) {
@@ -80,4 +117,12 @@ function sanitizeDetectedUrl(rawUrl: string): string | null {
   }
 
   return trimmed.replace(/[),.;!?]+$/g, '');
+}
+
+function safeParseUrl(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
 }

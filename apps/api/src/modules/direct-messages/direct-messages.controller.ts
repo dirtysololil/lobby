@@ -7,27 +7,41 @@ import {
   Patch,
   Post,
   Req,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   actionMessageSchema,
   createDirectMessageSchema,
   directConversationDetailSchema,
+  directMessageAttachmentUploadResponseSchema,
   directConversationListResponseSchema,
   directConversationSummaryResponseSchema,
   directMessageResponseSchema,
   openDirectConversationSchema,
+  uploadDirectMessageAttachmentSchema,
   updateDmSettingsSchema,
   type CreateDirectMessageInput,
   type OpenDirectConversationInput,
   type PublicUser,
   type UpdateDmSettingsInput,
 } from '@lobby/shared';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireAuth } from '../../common/decorators/require-auth.decorator';
 import type { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { getRequestMetadata } from '../../common/utils/request-metadata.util';
 import { DirectMessagesService } from './direct-messages.service';
+
+type UploadedBinaryFile = {
+  buffer: Buffer;
+  size: number;
+  originalname: string;
+  mimetype?: string;
+};
 
 @Controller('direct-messages')
 export class DirectMessagesController {
@@ -99,6 +113,69 @@ export class DirectMessagesController {
     return directMessageResponseSchema.parse({
       message,
     });
+  }
+
+  @RequireAuth()
+  @Post(':conversationId/attachments')
+  @UseInterceptors(FileInterceptor('file'))
+  public async uploadAttachment(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('conversationId') conversationId: string,
+    @UploadedFile() file: UploadedBinaryFile | undefined,
+    @Body() body: { clientNonce?: string } | undefined,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const parsed = uploadDirectMessageAttachmentSchema.parse({
+      clientNonce:
+        typeof body?.clientNonce === 'string' ? body.clientNonce : undefined,
+    });
+    const message = await this.directMessagesService.createAttachmentMessage(
+      currentUser,
+      conversationId,
+      parsed,
+      file,
+      getRequestMetadata(request),
+    );
+
+    return directMessageAttachmentUploadResponseSchema.parse({
+      message,
+    });
+  }
+
+  @RequireAuth()
+  @Get('attachments/:attachmentId/asset')
+  public async streamAttachmentAsset(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('attachmentId') attachmentId: string,
+    @Res() response: Response,
+  ) {
+    const asset = await this.directMessagesService.getAttachmentAssetForViewer(
+      currentUser.id,
+      attachmentId,
+      'asset',
+    );
+    response.setHeader('Content-Type', asset.mimeType);
+    response.setHeader('Cache-Control', 'private, max-age=300');
+
+    return response.send(asset.buffer);
+  }
+
+  @RequireAuth()
+  @Get('attachments/:attachmentId/preview')
+  public async streamAttachmentPreview(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('attachmentId') attachmentId: string,
+    @Res() response: Response,
+  ) {
+    const asset = await this.directMessagesService.getAttachmentAssetForViewer(
+      currentUser.id,
+      attachmentId,
+      'preview',
+    );
+    response.setHeader('Content-Type', asset.mimeType);
+    response.setHeader('Cache-Control', 'private, max-age=300');
+
+    return response.send(asset.buffer);
   }
 
   @RequireAuth()

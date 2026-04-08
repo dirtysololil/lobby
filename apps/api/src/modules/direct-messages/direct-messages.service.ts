@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -9,10 +10,12 @@ import type {
   DirectConversationSummary,
   DmSignal,
   PublicUser,
+  UploadDirectMessageAttachmentInput,
   UpdateDmSettingsInput,
   UserRelationshipSummary,
 } from '@lobby/shared';
 import {
+  DirectMessageAttachmentKind,
   DirectMessageType,
   DmRetentionMode,
   LinkEmbedProvider,
@@ -25,14 +28,17 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { publicUserSelect } from '../auth/auth.mapper';
 import { CallsRealtimeService } from '../calls/calls-realtime.service';
+import { EnvService } from '../env/env.service';
 import { MediaLibraryService } from '../media-library/media-library.service';
 import { QueueService } from '../queue/queue.service';
 import { RelationshipsService } from '../relationships/relationships.service';
 import { StickersService } from '../stickers/stickers.service';
 import {
   createUrlHash,
-  extractFirstSupportedLink,
+  extractFirstEmbeddableLink,
 } from '../link-unfurl/link-unfurl.util';
+import { StorageService } from '../storage/storage.service';
+import { processDirectMessageAttachmentUpload } from '../storage/direct-message-attachment.util';
 import {
   toDirectConversationDetail,
   toDirectConversationSummary,
@@ -47,6 +53,7 @@ const directMessageWithAuthorInclude = {
   },
   sticker: true,
   gif: true,
+  attachment: true,
   linkEmbed: true,
 } satisfies Prisma.DirectMessageInclude;
 
@@ -87,6 +94,13 @@ type ConversationDetailRecord = Prisma.DirectConversationGetPayload<{
   };
 }>;
 
+type UploadedBinaryFile = {
+  buffer: Buffer;
+  size: number;
+  originalname: string;
+  mimetype?: string;
+};
+
 @Injectable()
 export class DirectMessagesService {
   public constructor(
@@ -97,6 +111,8 @@ export class DirectMessagesService {
     private readonly queueService: QueueService,
     private readonly stickersService: StickersService,
     private readonly mediaLibraryService: MediaLibraryService,
+    private readonly envService: EnvService,
+    private readonly storageService: StorageService,
   ) {}
 
   public async ensureRetentionSweepJob(): Promise<void> {
@@ -289,7 +305,7 @@ export class DirectMessagesService {
 
     const trimmedContent = input.content?.trim() ?? null;
     const linkCandidate =
-      messageType === 'TEXT' ? extractFirstSupportedLink(trimmedContent) : null;
+      messageType === 'TEXT' ? extractFirstEmbeddableLink(trimmedContent) : null;
     const sticker =
       messageType === 'STICKER' && input.stickerId
         ? await this.stickersService.getActiveStickerOrThrow(input.stickerId)
@@ -412,6 +428,187 @@ export class DirectMessagesService {
       viewerId: actor.id,
       clientNonce: input.clientNonce ?? null,
     });
+  }
+
+  public async createAttachmentMessage(
+    actor: PublicUser,
+    conversationId: string,
+    input: UploadDirectMessageAttachmentInput,
+    file: UploadedBinaryFile | undefined,
+    requestMetadata: RequestMetadata,
+  ) {
+    if (!file?.buffer || file.size === 0) {
+      throw new BadRequestException('Выберите файл для отправки.');
+    }
+
+    const conversation = await this.getConversationOrThrow(
+      conversationId,
+      actor.id,
+    );
+    const counterpart = this.getCounterpart(conversation.participants, actor.id);
+
+    await this.relationshipsService.assertInteractionAllowed(
+      actor.id,
+      counterpart.userId,
+    );
+
+    const env = this.envService.getValues();
+    const processed = await this.processAttachmentUpload(file, env.MAX_FILE_MB);
+    const fileKey = await this.storageService.writeDirectMessageAttachment(
+      file.buffer,
+      processed.extension,
+    );
+    const previewKey =
+      processed.previewBuffer && processed.previewExtension
+        ? await this.storageService.writeDirectMessageAttachmentPreview(
+            processed.previewBuffer,
+            processed.previewExtension,
+          )
+        : null;
+
+    try {
+      const messageId = await this.prisma.$transaction(async (transaction) => {
+        const createdMessage = await transaction.directMessage.create({
+          data: {
+            conversationId,
+            authorId: actor.id,
+            type:
+              processed.kind === 'DOCUMENT'
+                ? DirectMessageType.FILE
+                : DirectMessageType.MEDIA,
+            content: null,
+            stickerSnapshot: Prisma.JsonNull,
+            attachment: {
+              create: {
+                kind:
+                  processed.kind === 'VIDEO'
+                    ? DirectMessageAttachmentKind.VIDEO
+                    : processed.kind === 'DOCUMENT'
+                      ? DirectMessageAttachmentKind.DOCUMENT
+                      : DirectMessageAttachmentKind.IMAGE,
+                fileKey,
+                previewKey,
+                originalName: processed.originalName,
+                mimeType: processed.mimeType,
+                fileSize: processed.fileSize,
+                width: processed.width,
+                height: processed.height,
+                durationMs: processed.durationMs,
+              },
+            },
+          },
+          include: directMessageWithAuthorInclude,
+        });
+
+        await transaction.directConversation.update({
+          where: {
+            id: conversationId,
+          },
+          data: {
+            lastMessageAt: createdMessage.createdAt,
+          },
+        });
+
+        await transaction.directConversationParticipant.update({
+          where: {
+            conversationId_userId: {
+              conversationId,
+              userId: actor.id,
+            },
+          },
+          data: {
+            lastReadMessageId: createdMessage.id,
+            lastReadAt: createdMessage.createdAt,
+          },
+        });
+
+        return createdMessage.id;
+      });
+      const message = await this.loadMessageOrThrow(messageId);
+
+      await this.auditService.write({
+        action: 'dm.message.attachment.create',
+        entityType: 'DirectMessage',
+        entityId: messageId,
+        actorUserId: actor.id,
+        ipAddress: requestMetadata.ipAddress,
+        userAgent: requestMetadata.userAgent,
+        metadata: {
+          conversationId,
+          attachmentKind: processed.kind,
+          mimeType: processed.mimeType,
+          fileSize: processed.fileSize,
+          originalName: processed.originalName,
+        },
+      });
+
+      await this.emitConversationSignal({
+        event: 'MESSAGE_CREATED',
+        conversationId,
+        actorUserId: actor.id,
+        message,
+        clientNonce: input.clientNonce ?? null,
+      });
+
+      return toDirectMessage(message, {
+        viewerId: actor.id,
+        clientNonce: input.clientNonce ?? null,
+      });
+    } catch (error) {
+      await Promise.all([
+        this.storageService.deleteObject(fileKey),
+        this.storageService.deleteObject(previewKey),
+      ]);
+      throw error;
+    }
+  }
+
+  public async getAttachmentAssetForViewer(
+    viewerId: string,
+    attachmentId: string,
+    variant: 'asset' | 'preview',
+  ): Promise<{ buffer: Buffer; mimeType: string }> {
+    const attachment = await this.prisma.directMessageAttachment.findFirst({
+      where: {
+        id: attachmentId,
+        message: {
+          deletedAt: null,
+          conversation: {
+            participants: {
+              some: {
+                userId: viewerId,
+              },
+            },
+          },
+        },
+      },
+      select: {
+        fileKey: true,
+        previewKey: true,
+        mimeType: true,
+      },
+    });
+
+    if (!attachment) {
+      throw new NotFoundException('Вложение недоступно.');
+    }
+
+    const fileKey =
+      variant === 'preview' ? attachment.previewKey : attachment.fileKey;
+
+    if (!fileKey) {
+      throw new NotFoundException('Превью вложения недоступно.');
+    }
+
+    try {
+      return {
+        buffer: await this.storageService.readObject(fileKey),
+        mimeType:
+          variant === 'preview' ? 'image/webp' : attachment.mimeType,
+      };
+    } catch {
+      throw new NotFoundException('Файл вложения недоступен.');
+    }
   }
 
   public async deleteMessage(
@@ -838,6 +1035,31 @@ export class DirectMessagesService {
         lastMessageAt: latestMessage?.createdAt ?? null,
       },
     });
+  }
+
+  private async processAttachmentUpload(
+    file: UploadedBinaryFile,
+    maxFileMb: number,
+  ) {
+    try {
+      return await processDirectMessageAttachmentUpload({
+        buffer: file.buffer,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        limits: {
+          maxBytes: Math.floor(maxFileMb * 1024 * 1024),
+          maxImageDimension: 6_000,
+          maxVideoDimension: 3_840,
+          maxVideoDurationMs: 5 * 60 * 1_000,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось обработать вложение.',
+      );
+    }
   }
 
   private async loadConversationSummaryForViewer(

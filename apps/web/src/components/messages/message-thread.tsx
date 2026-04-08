@@ -6,7 +6,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { getDirectMessageAttachmentAssetUrl, getDirectMessageAttachmentPreviewUrl } from "@/lib/direct-message-attachments";
+import { isStandaloneEmbeddableMessage, stripEmbeddableLinkText } from "@/lib/link-embeds";
 import { cn } from "@/lib/utils";
+import { EmbeddedMediaBubble } from "./embedded-media-bubble";
 import { GifAssetPreview } from "./gif-asset-preview";
 import { InlineCustomEmojiText } from "./inline-custom-emoji-text";
 import { LinkEmbedCard } from "./link-embed-card";
@@ -14,7 +17,11 @@ import { StickerAssetPreview } from "./sticker-asset-preview";
 
 export type ThreadMessageItem =
   DirectConversationDetail["conversation"]["messages"][number] & {
-    localState?: "sending" | "failed";
+    localState?: "sending" | "uploading" | "failed";
+    uploadProgress?: number | null;
+    localAttachmentPreviewUrl?: string | null;
+    localAttachmentAssetUrl?: string | null;
+    retryUploadFile?: File | null;
   };
 
 interface MessageThreadProps {
@@ -66,6 +73,14 @@ function formatThreadTime(value: string) {
   });
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function clampContextMenuPosition(x: number, y: number) {
   if (typeof window === "undefined") {
     return { x, y };
@@ -90,6 +105,7 @@ export function MessageThread({
   onRetry,
 }: MessageThreadProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [pendingEmbedTick, setPendingEmbedTick] = useState(0);
   const groupedMessages = useMemo(
     () =>
       messages.reduce<ThreadGroup[]>(
@@ -157,6 +173,37 @@ export function MessageThread({
       setContextMenu(null);
     }
   }, [contextMenu, messages]);
+
+  useEffect(() => {
+    const pendingMessage = messages
+      .filter((message) => message.linkEmbed?.status === "PENDING")
+      .sort(
+        (left, right) =>
+          new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+      )[0];
+
+    if (!pendingMessage) {
+      return;
+    }
+
+    const timeoutMs = Math.max(
+      0,
+      new Date(pendingMessage.createdAt).getTime() + 20_000 - Date.now(),
+    );
+
+    if (timeoutMs === 0) {
+      setPendingEmbedTick((current) => current + 1);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setPendingEmbedTick((current) => current + 1);
+    }, timeoutMs);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [messages]);
 
   useEffect(() => {
     if (!contextMenu) {
@@ -285,11 +332,28 @@ export function MessageThread({
                   const isOwn = message.author.id === viewerId;
                   const isSticker = message.type === "STICKER";
                   const isGif = message.type === "GIF";
-                  const isVisualMessage = isSticker || isGif;
+                  const isMediaAttachment =
+                    message.type === "MEDIA" && message.attachment !== null;
+                  const isFileAttachment =
+                    message.type === "FILE" && message.attachment !== null;
+                  const isVisualMessage = isSticker || isGif || isMediaAttachment;
                   const hasInlineEmbed =
                     !isVisualMessage &&
                     message.linkEmbed !== null &&
                     message.linkEmbed.status !== "FAILED";
+                  const isPendingEmbedStale =
+                    message.linkEmbed?.status === "PENDING" &&
+                    Date.now() - new Date(message.createdAt).getTime() > 20_000;
+                  const shouldRenderInlineEmbed =
+                    hasInlineEmbed && !isPendingEmbedStale;
+                  const isStandaloneEmbed =
+                    shouldRenderInlineEmbed &&
+                    isStandaloneEmbeddableMessage(message.content, message.linkEmbed);
+                  const visibleText =
+                    shouldRenderInlineEmbed && message.linkEmbed
+                      ? stripEmbeddableLinkText(message.content, message.linkEmbed.sourceUrl)
+                      : message.content;
+                  const showText = !isStandaloneEmbed && Boolean(visibleText);
                   const previousMessage = group.items[index - 1];
                   const continuation = isContinuation(previousMessage, message);
                   const isUnreadMarker = unreadIndex >= 0 && globalIndex === unreadIndex;
@@ -375,6 +439,14 @@ export function MessageThread({
                                   Отправляем
                                 </span>
                               ) : null}
+                              {message.localState === "uploading" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+                                  Загрузка
+                                  {typeof message.uploadProgress === "number"
+                                    ? ` ${Math.round(message.uploadProgress * 100)}%`
+                                    : ""}
+                                </span>
+                              ) : null}
                               {message.localState === "failed" ? (
                                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[11px] text-amber-300">
                                   <AlertCircle size={14} strokeWidth={1.5} />
@@ -434,21 +506,75 @@ export function MessageThread({
                                 <div className="flex aspect-[4/3] items-center justify-center rounded-[24px] border border-white/8 bg-white/[0.03] px-4 text-center text-sm text-[var(--text-muted)]">
                                   GIF недоступен
                                 </div>
+                              ) : isMediaAttachment && message.attachment ? (
+                                <EmbeddedMediaBubble
+                                  kind={
+                                    message.attachment.kind === "VIDEO"
+                                      ? "VIDEO"
+                                      : "IMAGE"
+                                  }
+                                  previewUrl={
+                                    message.localAttachmentPreviewUrl ??
+                                    (message.attachment.hasPreview
+                                      ? getDirectMessageAttachmentPreviewUrl(message.attachment)
+                                      : getDirectMessageAttachmentAssetUrl(message.attachment))
+                                  }
+                                  playableUrl={
+                                    message.attachment.kind === "VIDEO"
+                                      ? message.localAttachmentAssetUrl ??
+                                        getDirectMessageAttachmentAssetUrl(message.attachment)
+                                      : null
+                                  }
+                                  posterUrl={
+                                    message.attachment.hasPreview
+                                      ? getDirectMessageAttachmentPreviewUrl(message.attachment)
+                                      : message.localAttachmentPreviewUrl ?? null
+                                  }
+                                  href={
+                                    message.localAttachmentAssetUrl ??
+                                    getDirectMessageAttachmentAssetUrl(message.attachment)
+                                  }
+                                  label={
+                                    message.attachment.kind === "VIDEO" ? "Видео" : "Фото"
+                                  }
+                                  className="w-[min(224px,72vw)]"
+                                />
+                              ) : isFileAttachment && message.attachment ? (
+                                <a
+                                  href={
+                                    message.localAttachmentAssetUrl ??
+                                    getDirectMessageAttachmentAssetUrl(message.attachment)
+                                  }
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={cn(
+                                    "block rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3 text-left transition-colors hover:border-white/12 hover:bg-white/[0.05]",
+                                    isOwn && "ml-auto",
+                                  )}
+                                >
+                                  <p className="truncate text-sm font-medium text-white">
+                                    {message.attachment.originalName}
+                                  </p>
+                                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                                    Документ • {formatFileSize(message.attachment.fileSize)}
+                                  </p>
+                                </a>
                               ) : (
-                                <div className={cn("grid gap-2", !message.content && "gap-0")}>
-                                  {message.content ? (
+                                <div className={cn("grid gap-2", !showText && !hasInlineEmbed && "gap-0")}>
+                                  {showText ? (
                                     <p className="text-[13px] leading-[1.42] text-white">
                                       <InlineCustomEmojiText
-                                        text={message.content}
+                                        text={visibleText ?? ""}
                                         customEmojis={customEmojis}
                                       />
                                     </p>
                                   ) : null}
-                                  {hasInlineEmbed && message.linkEmbed ? (
+                                  {shouldRenderInlineEmbed && message.linkEmbed ? (
                                     <LinkEmbedCard
                                       embed={message.linkEmbed}
+                                      messageCreatedAt={message.createdAt}
                                       className={cn(
-                                        "max-w-[min(360px,72vw)]",
+                                        "w-[min(224px,72vw)]",
                                         isOwn && "ml-auto",
                                       )}
                                     />

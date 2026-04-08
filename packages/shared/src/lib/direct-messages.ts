@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { usernameSchema } from "./auth";
 import {
+  actionMessageSchema,
   dmNotificationSettingSchema,
   dmRetentionModeSchema,
   isoDateSchema,
@@ -10,30 +11,65 @@ import { gifAssetSchema } from "./media-library";
 import { stickerAssetSchema } from "./stickers";
 
 export const dmMessageContentSchema = z.string().trim().min(1).max(4000);
-export const dmMessageTypeSchema = z.enum(["TEXT", "STICKER", "GIF"]);
+export const dmMessageTypeSchema = z.enum([
+  "TEXT",
+  "STICKER",
+  "GIF",
+  "MEDIA",
+  "FILE",
+]);
 export type DmMessageType = z.infer<typeof dmMessageTypeSchema>;
 
-export const dmLinkEmbedProviderSchema = z.enum(["TENOR"]);
+const dmComposerMessageTypeSchema = z.enum(["TEXT", "STICKER", "GIF"]);
+
+export const dmLinkEmbedProviderSchema = z.enum([
+  "TENOR",
+  "DIRECT_MEDIA",
+  "OPEN_GRAPH",
+]);
 export type DmLinkEmbedProvider = z.infer<typeof dmLinkEmbedProviderSchema>;
 
 export const dmLinkEmbedStatusSchema = z.enum(["PENDING", "READY", "FAILED"]);
 export type DmLinkEmbedStatus = z.infer<typeof dmLinkEmbedStatusSchema>;
 
+export const dmLinkEmbedKindSchema = z.enum(["IMAGE", "VIDEO", "GIF"]);
+export type DmLinkEmbedKind = z.infer<typeof dmLinkEmbedKindSchema>;
+
 export const dmLinkEmbedSchema = z.object({
   status: dmLinkEmbedStatusSchema,
   provider: dmLinkEmbedProviderSchema,
+  kind: dmLinkEmbedKindSchema.nullable(),
   sourceUrl: z.string().url(),
   canonicalUrl: z.string().url().nullable(),
-  title: z.string().trim().max(300).nullable(),
-  previewImage: z.string().url().nullable(),
-  animatedMediaUrl: z.string().url().nullable(),
+  previewUrl: z.string().url().nullable(),
+  playableUrl: z.string().url().nullable(),
+  posterUrl: z.string().url().nullable(),
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),
   aspectRatio: z.number().positive().nullable(),
-  contentType: z.string().trim().max(120).nullable(),
+  failureCode: z.string().trim().max(120).nullable().optional(),
 });
 
 export type DmLinkEmbed = z.infer<typeof dmLinkEmbedSchema>;
+
+export const dmAttachmentKindSchema = z.enum(["IMAGE", "VIDEO", "DOCUMENT"]);
+export type DmAttachmentKind = z.infer<typeof dmAttachmentKindSchema>;
+
+export const dmAttachmentSchema = z.object({
+  id: z.string().cuid(),
+  kind: dmAttachmentKindSchema,
+  originalName: z.string().trim().min(1).max(255),
+  mimeType: z.string().trim().min(1).max(191),
+  fileSize: z.number().int().positive(),
+  width: z.number().int().positive().nullable(),
+  height: z.number().int().positive().nullable(),
+  durationMs: z.number().int().positive().nullable(),
+  hasPreview: z.boolean(),
+  createdAt: isoDateSchema,
+  updatedAt: isoDateSchema,
+});
+
+export type DmAttachment = z.infer<typeof dmAttachmentSchema>;
 
 export const openDirectConversationSchema = z.object({
   username: usernameSchema,
@@ -45,7 +81,7 @@ export type OpenDirectConversationInput = z.infer<
 
 export const createDirectMessageSchema = z
   .object({
-    type: dmMessageTypeSchema.default("TEXT"),
+    type: dmComposerMessageTypeSchema.default("TEXT"),
     content: z.string().trim().max(4000).nullable().optional(),
     stickerId: z.string().cuid().nullable().optional(),
     gifId: z.string().cuid().nullable().optional(),
@@ -129,6 +165,14 @@ export type CreateDirectMessageInput = z.infer<
   typeof createDirectMessageSchema
 >;
 
+export const uploadDirectMessageAttachmentSchema = z.object({
+  clientNonce: z.string().trim().min(1).max(120).optional(),
+});
+
+export type UploadDirectMessageAttachmentInput = z.infer<
+  typeof uploadDirectMessageAttachmentSchema
+>;
+
 export const updateDmSettingsSchema = z
   .object({
     notificationSetting: dmNotificationSettingSchema.optional(),
@@ -185,6 +229,7 @@ export const directMessageSchema = z.object({
   content: z.string().nullable(),
   sticker: stickerAssetSchema.nullable(),
   gif: gifAssetSchema.nullable(),
+  attachment: dmAttachmentSchema.nullable(),
   linkEmbed: dmLinkEmbedSchema.nullable(),
   isDeleted: z.boolean(),
   canDelete: z.boolean(),
@@ -266,6 +311,27 @@ export const directMessageResponseSchema = z.object({
 });
 
 export type DirectMessageResponse = z.infer<typeof directMessageResponseSchema>;
+
+export const directMessageAttachmentResponseSchema = z.object({
+  message: directMessageSchema,
+});
+
+export type DirectMessageAttachmentResponse = z.infer<
+  typeof directMessageAttachmentResponseSchema
+>;
+
+export const directMessageAttachmentUploadResponseSchema =
+  directMessageAttachmentResponseSchema;
+
+export type DirectMessageAttachmentUploadResponse = z.infer<
+  typeof directMessageAttachmentUploadResponseSchema
+>;
+
+export const directMessageActionResponseSchema = actionMessageSchema;
+
+export type DirectMessageActionResponse = z.infer<
+  typeof directMessageActionResponseSchema
+>;
 
 export const dmSignalSchema = z.object({
   event: z.enum([
