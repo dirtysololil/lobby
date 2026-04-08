@@ -24,6 +24,7 @@ export function EmbeddedMediaBubble({
   label = null,
   className,
 }: EmbeddedMediaBubbleProps) {
+  const [mounted, setMounted] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const [isInView, setIsInView] = useState(false);
@@ -34,6 +35,10 @@ export function EmbeddedMediaBubble({
   const showVideo = !videoFailed && Boolean(effectivePlayableUrl);
   const fallbackLabel =
     kind === "VIDEO" ? "Видео недоступно" : "Медиа недоступно";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const node = containerRef.current;
@@ -75,7 +80,7 @@ export function EmbeddedMediaBubble({
   }, [isInView, showVideo]);
 
   const lightboxMarkup =
-    isLightboxOpen && typeof document !== "undefined"
+    mounted && isLightboxOpen
       ? createPortal(
           <div
             className="fixed inset-0 z-[110] flex items-center justify-center bg-[rgba(3,6,10,0.88)] p-4 backdrop-blur-md"

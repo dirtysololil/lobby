@@ -4,6 +4,7 @@ import type { DmLinkEmbed } from "@lobby/shared";
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { EmbeddedMediaBubble } from "@/components/messages/embedded-media-bubble";
+import { hasRenderableLinkEmbedMedia } from "@/lib/link-embeds";
 import { cn } from "@/lib/utils";
 
 interface LinkEmbedCardProps {
@@ -68,6 +69,10 @@ export function LinkEmbedCard({
         </div>
       </div>
     );
+  }
+
+  if (!hasRenderableLinkEmbedMedia(embed)) {
+    return null;
   }
 
   return (

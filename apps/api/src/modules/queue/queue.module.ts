@@ -38,6 +38,6 @@ import { getBullConnection } from './queue.utils';
     }),
   ],
   providers: [QueueService],
-  exports: [QueueService],
+  exports: [QueueService, BullModule],
 })
 export class QueueModule {}

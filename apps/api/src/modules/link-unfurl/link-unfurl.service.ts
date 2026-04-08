@@ -16,7 +16,6 @@ import {
 const requestTimeoutMs = 4_500;
 const responseSizeLimitBytes = 512 * 1024;
 const maxRedirects = 2;
-const maxResolverAttempts = 3;
 
 type ResolvedEmbedPayload = {
   provider: LinkEmbedProvider;
@@ -50,6 +49,30 @@ export class LinkUnfurlService {
   private readonly logger = new Logger(LinkUnfurlService.name);
 
   public constructor(private readonly prisma: PrismaService) {}
+
+  public async findStalePendingMessageIds(
+    olderThanMs: number,
+    limit = 20,
+  ): Promise<string[]> {
+    const before = new Date(Date.now() - olderThanMs);
+    const items = await this.prisma.directMessageLinkEmbed.findMany({
+      where: {
+        status: LinkEmbedStatus.PENDING,
+        updatedAt: {
+          lte: before,
+        },
+      },
+      select: {
+        messageId: true,
+      },
+      orderBy: {
+        updatedAt: 'asc',
+      },
+      take: limit,
+    });
+
+    return items.map((item) => item.messageId);
+  }
 
   public async processMessage(messageId: string): Promise<boolean> {
     const embed = await this.prisma.directMessageLinkEmbed.findUnique({
@@ -197,11 +220,13 @@ export class LinkUnfurlService {
   ): Promise<ResolvedEmbedPayload> {
     const { responseUrl, html } = await this.fetchHtml(sourceUrl, {
       allowedHosts: ['tenor.com', 'tenor.co'],
+      allowHtmlStatuses: [404],
     });
     const canonicalUrl =
       sanitizePublicMediaUrl(
         getLinkHref(html, 'canonical') ?? getMetaContent(html, 'og:url'),
       ) ?? responseUrl;
+    const tenorApiResult = await this.resolveTenorViaApi(sourceUrl, html);
 
     const tenorCandidates = extractTenorMediaCandidates(html);
     const openGraphFallback = await this.resolveOpenGraphFromHtml(
@@ -210,20 +235,28 @@ export class LinkUnfurlService {
       LinkEmbedProvider.TENOR,
     );
     const playableUrl =
-      tenorCandidates.playableUrl ?? openGraphFallback.playableUrl ?? null;
+      tenorApiResult?.playableUrl ??
+      tenorCandidates.playableUrl ??
+      openGraphFallback.playableUrl ??
+      null;
     const previewUrl =
+      tenorApiResult?.previewUrl ??
       tenorCandidates.previewUrl ??
       openGraphFallback.previewUrl ??
       openGraphFallback.posterUrl ??
       null;
     const posterUrl =
+      tenorApiResult?.posterUrl ??
       tenorCandidates.posterUrl ??
       openGraphFallback.posterUrl ??
       previewUrl ??
       null;
-    const width = tenorCandidates.width ?? openGraphFallback.width;
-    const height = tenorCandidates.height ?? openGraphFallback.height;
+    const width =
+      tenorApiResult?.width ?? tenorCandidates.width ?? openGraphFallback.width;
+    const height =
+      tenorApiResult?.height ?? tenorCandidates.height ?? openGraphFallback.height;
     const kind =
+      tenorApiResult?.kind ??
       tenorCandidates.kind ??
       openGraphFallback.kind ??
       inferKindFromResolvedUrls({
@@ -247,6 +280,120 @@ export class LinkUnfurlService {
       height,
       aspectRatio: resolveAspectRatio(width, height),
     };
+  }
+
+  private async resolveTenorViaApi(
+    sourceUrl: string,
+    html: string,
+  ): Promise<{
+    kind: LinkEmbedKind | null;
+    playableUrl: string | null;
+    previewUrl: string | null;
+    posterUrl: string | null;
+    width: number | null;
+    height: number | null;
+  } | null> {
+    const tenorId = extractTenorIdFromUrl(sourceUrl);
+    const tenorConfig = extractTenorApiConfig(html);
+
+    if (!tenorId || !tenorConfig) {
+      return null;
+    }
+
+    const apiUrl = new URL('/posts', tenorConfig.baseUrl);
+    apiUrl.searchParams.set('ids', tenorId);
+    apiUrl.searchParams.set('key', tenorConfig.key);
+    apiUrl.searchParams.set('client_key', tenorConfig.clientKey);
+    apiUrl.searchParams.set(
+      'media_filter',
+      'mp4,webm,tinymp4,tinywebm,nanomp4,nanowebm,webp,tinywebp,gif,tinygif,nanogif',
+    );
+    apiUrl.searchParams.set('contentfilter', 'off');
+
+    await assertSafeRemoteUrl(apiUrl, ['tenor.googleapis.com']);
+    const response = await fetch(apiUrl, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'LobbyLinkUnfurl/1.0',
+      },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(requestTimeoutMs),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const rawText = await readTextWithLimit(response, responseSizeLimitBytes);
+
+    try {
+      const payload = JSON.parse(rawText) as {
+        results?: Array<{
+          media_formats?: Record<
+            string,
+            {
+              url?: string;
+              dims?: [number, number];
+            }
+          >;
+        }>;
+      };
+      const mediaFormats = payload.results?.[0]?.media_formats;
+
+      if (!mediaFormats) {
+        return null;
+      }
+
+      const playableUrl = pickTenorMediaUrl(mediaFormats, [
+        'mp4',
+        'tinymp4',
+        'nanomp4',
+        'webm',
+        'tinywebm',
+        'nanowebm',
+        'webp',
+        'tinywebp',
+        'gif',
+        'tinygif',
+        'nanogif',
+      ]);
+      const previewUrl =
+        pickTenorMediaUrl(mediaFormats, [
+          'tinygif',
+          'nanogif',
+          'gif',
+          'tinywebp',
+          'webp',
+          'mp4',
+          'tinymp4',
+        ]) ?? playableUrl;
+      const posterUrl = previewUrl;
+      const dims =
+        pickTenorMediaDims(mediaFormats, [
+          'mp4',
+          'tinymp4',
+          'webm',
+          'tinywebm',
+          'gif',
+          'tinygif',
+        ]) ?? null;
+      const width = dims?.[0] ?? null;
+      const height = dims?.[1] ?? null;
+
+      return {
+        kind: inferKindFromResolvedUrls({
+          playableUrl,
+          previewUrl,
+        }),
+        playableUrl,
+        previewUrl,
+        posterUrl,
+        width,
+        height,
+      };
+    } catch {
+      return null;
+    }
   }
 
   private async resolveGenericEmbed(
@@ -406,7 +553,10 @@ export class LinkUnfurlService {
 
   private async fetchHtml(
     url: string,
-    options: { allowedHosts: string[] | null },
+    options: {
+      allowedHosts: string[] | null;
+      allowHtmlStatuses?: number[];
+    },
   ): Promise<{ responseUrl: string; html: string }> {
     let currentUrl = new URL(url);
 
@@ -432,11 +582,14 @@ export class LinkUnfurlService {
         continue;
       }
 
-      if (!response.ok) {
+      const contentType = response.headers.get('content-type') ?? '';
+
+      if (
+        !response.ok &&
+        !options.allowHtmlStatuses?.includes(response.status)
+      ) {
         throw new Error(`HTTP_${response.status}`);
       }
-
-      const contentType = response.headers.get('content-type') ?? '';
 
       if (!contentType.toLowerCase().includes('text/html')) {
         throw new Error('UNSUPPORTED_CONTENT_TYPE');
@@ -834,6 +987,93 @@ function extractTenorMediaCandidates(html: string): {
         getJsonLdValue(html, ['image', 'height']),
     ),
   };
+}
+
+function extractTenorApiConfig(html: string): {
+  baseUrl: string;
+  key: string;
+  clientKey: string;
+} | null {
+  const match = html.match(
+    /<script id="data" type="text\/x-cache"[^>]*>([^<]+)<\/script>/i,
+  );
+
+  if (!match?.[1]) {
+    return null;
+  }
+
+  try {
+    const decoded = Buffer.from(match[1], 'base64').toString('utf8');
+    const payload = JSON.parse(decoded) as {
+      API_V2_URL?: string;
+      API_V2_KEY?: string;
+      API_V2_CLIENT_KEY?: string;
+    };
+
+    if (
+      typeof payload.API_V2_URL !== 'string' ||
+      typeof payload.API_V2_KEY !== 'string' ||
+      typeof payload.API_V2_CLIENT_KEY !== 'string'
+    ) {
+      return null;
+    }
+
+    return {
+      baseUrl: payload.API_V2_URL,
+      key: payload.API_V2_KEY,
+      clientKey: payload.API_V2_CLIENT_KEY,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function extractTenorIdFromUrl(sourceUrl: string): string | null {
+  try {
+    const parsedUrl = new URL(sourceUrl);
+    const path = parsedUrl.pathname.replace(/\/+$/, '');
+    const match = path.match(/-([0-9]{6,})$/);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function pickTenorMediaUrl(
+  mediaFormats: Record<string, { url?: string; dims?: [number, number] }>,
+  keys: string[],
+): string | null {
+  for (const key of keys) {
+    const value = sanitizePublicMediaUrl(mediaFormats[key]?.url ?? null);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function pickTenorMediaDims(
+  mediaFormats: Record<string, { url?: string; dims?: [number, number] }>,
+  keys: string[],
+): [number, number] | null {
+  for (const key of keys) {
+    const dims = mediaFormats[key]?.dims;
+
+    if (
+      Array.isArray(dims) &&
+      dims.length === 2 &&
+      Number.isFinite(dims[0]) &&
+      Number.isFinite(dims[1]) &&
+      dims[0] > 0 &&
+      dims[1] > 0
+    ) {
+      return [dims[0], dims[1]];
+    }
+  }
+
+  return null;
 }
 
 function sanitizePublicMediaUrl(value: string | null): string | null {
