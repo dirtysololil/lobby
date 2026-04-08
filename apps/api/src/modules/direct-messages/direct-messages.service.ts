@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type {
@@ -103,6 +104,8 @@ type UploadedBinaryFile = {
 
 @Injectable()
 export class DirectMessagesService {
+  private readonly logger = new Logger(DirectMessagesService.name);
+
   public constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
@@ -380,7 +383,7 @@ export class DirectMessagesService {
 
       return createdMessage.id;
     });
-    const message = await this.loadMessageOrThrow(messageId);
+    let message = await this.loadMessageOrThrow(messageId);
 
     await this.auditService.write({
       action: 'dm.message.create',
@@ -421,6 +424,10 @@ export class DirectMessagesService {
           },
         });
         await this.emitMessageUpdatedSignal(messageId);
+        this.logger.warn(
+          `Failed to enqueue DM link unfurl for message ${messageId}`,
+        );
+        message = await this.loadMessageOrThrow(messageId);
       }
     }
 

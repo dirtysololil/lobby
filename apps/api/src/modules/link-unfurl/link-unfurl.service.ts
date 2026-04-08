@@ -108,6 +108,9 @@ export class LinkUnfurlService {
 
     if (cachedBySource) {
       await this.markEmbedReady(messageId, cachedBySource);
+      this.logger.log(
+        `Reused cached DM link embed for message ${messageId} by source hash`,
+      );
       return true;
     }
 
@@ -139,6 +142,9 @@ export class LinkUnfurlService {
             height: resolved.height ?? cachedByCanonical.height,
             aspectRatio: resolved.aspectRatio ?? cachedByCanonical.aspectRatio,
           });
+          this.logger.log(
+            `Reused cached DM link embed for message ${messageId} by canonical hash`,
+          );
           return true;
         }
       }
@@ -147,6 +153,9 @@ export class LinkUnfurlService {
         status: LinkEmbedStatus.READY,
         ...resolved,
       });
+      this.logger.log(
+        `Resolved DM link embed for message ${messageId} (${resolved.provider})`,
+      );
 
       return true;
     } catch (error) {
@@ -163,6 +172,7 @@ export class LinkUnfurlService {
           failureCode: message,
         },
       });
+      this.logger.warn(`Marked DM link embed as FAILED for ${messageId}: ${message}`);
 
       return true;
     }
