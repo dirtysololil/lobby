@@ -278,20 +278,48 @@ export function StickerPacksAdminPanel({
     }
 
     await runAction(`sticker:upload:${selectedPack.id}`, async () => {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => {
+        controller.abort();
+      }, 120_000);
       const formData = new FormData();
       formData.append("file", draftValue.file);
       formData.append("title", draftValue.title.trim());
       formData.append("keywords", draftValue.keywords.join(","));
       formData.append("crop", JSON.stringify(draftValue.crop));
       formData.append("published", String(draftValue.published));
-      const payload = await apiClientFetch(`/v1/stickers/packs/${selectedPack.id}/stickers`, {
-        method: "POST",
-        body: formData,
-      });
-      stickerResponseSchema.parse(payload);
-      await refreshPacks(selectedPack.id);
-      setEditorOpen(false);
-      setStatus("Стикер сохранён.");
+
+      try {
+        const payload = await apiClientFetch(
+          `/v1/stickers/packs/${selectedPack.id}/stickers`,
+          {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
+          },
+        );
+        const sticker = stickerResponseSchema.parse(payload).sticker;
+
+        setPacks((current) =>
+          current.map((pack) =>
+            pack.id === selectedPack.id
+              ? {
+                  ...pack,
+                  coverStickerId: pack.coverStickerId ?? sticker.id,
+                  stickers: [...pack.stickers, sticker].sort(
+                    (left, right) =>
+                      left.createdAt.localeCompare(right.createdAt),
+                  ),
+                }
+              : pack,
+          ),
+        );
+        setEditorOpen(false);
+        setStatus("Стикер сохранён.");
+        void refreshPacks(selectedPack.id);
+      } finally {
+        window.clearTimeout(timeout);
+      }
     });
   }
 

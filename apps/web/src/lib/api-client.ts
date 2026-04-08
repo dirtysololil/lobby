@@ -54,6 +54,16 @@ async function performApiRequest(path: string, init?: RequestInit) {
 
     return response;
   } catch (error) {
+    if (
+      error instanceof DOMException &&
+      error.name === "AbortError"
+    ) {
+      throw new ApiClientError(
+        "Запрос превысил лимит ожидания. Попробуйте ещё раз.",
+        "network_or_cors",
+      );
+    }
+
     if (error instanceof TypeError) {
       throw new ApiClientError(
         "Не удалось связаться с API. Проверьте адрес API, CORS и HTTPS-прокси.",

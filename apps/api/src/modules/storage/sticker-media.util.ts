@@ -35,8 +35,8 @@ export interface ProcessedStickerResult {
   staticExtension: 'webp';
   staticMimeType: 'image/webp';
   animatedBuffer: Buffer | null;
-  animatedExtension: 'webp' | null;
-  animatedMimeType: 'image/webp' | null;
+  animatedExtension: 'webp' | 'gif' | null;
+  animatedMimeType: 'image/webp' | 'image/gif' | null;
 }
 
 const outputSize = 224;
@@ -106,8 +106,8 @@ export async function processStickerUpload(args: {
     staticExtension: 'webp',
     staticMimeType: 'image/webp',
     animatedBuffer: animated.animatedBuffer,
-    animatedExtension: 'webp',
-    animatedMimeType: 'image/webp',
+    animatedExtension: animated.animatedExtension,
+    animatedMimeType: animated.animatedMimeType,
   };
 }
 
@@ -203,18 +203,19 @@ async function renderAnimatedSticker(
   buffer: Buffer,
   source: StickerSourceMetadata,
   crop: StickerCropTransform,
-): Promise<{ posterBuffer: Buffer; animatedBuffer: Buffer }> {
+): Promise<{
+  posterBuffer: Buffer;
+  animatedBuffer: Buffer;
+  animatedExtension: 'webp' | 'gif';
+  animatedMimeType: 'image/webp' | 'image/gif';
+}> {
   const tempRoot = await mkdtemp(join(tmpdir(), 'lobby-sticker-'));
   const inputPath = join(tempRoot, `input.${source.extension}`);
   const posterPath = join(tempRoot, 'poster.webp');
-  const animatedPath = join(tempRoot, 'animated.webp');
+  const animatedOutput = resolveAnimatedStickerOutput(source, tempRoot);
   const transform = createFrameTransform(source.width, source.height, crop);
   const posterFilter = buildAnimatedStickerCompositeFilter({
     transform,
-  });
-  const animatedFilter = buildAnimatedStickerCompositeFilter({
-    transform,
-    fps: 24,
   });
   const ffmpegBinaryPath = await resolveFfmpegBinaryPath();
 
@@ -239,29 +240,23 @@ async function renderAnimatedSticker(
       '-i',
       inputPath,
       '-an',
-      '-filter_complex',
-      animatedFilter,
-      '-map',
-      '[out]',
-      '-loop',
-      '0',
-      '-preset',
-      'picture',
-      '-q:v',
-      '70',
-      '-compression_level',
-      '4',
-      animatedPath,
+      ...buildAnimatedStickerEncodeArgs({
+        transform,
+        outputPath: animatedOutput.outputPath,
+        format: animatedOutput.format,
+      }),
     ]);
 
     const [posterBuffer, animatedBuffer] = await Promise.all([
       readFile(posterPath),
-      readFile(animatedPath),
+      readFile(animatedOutput.outputPath),
     ]);
 
     return {
       posterBuffer,
       animatedBuffer,
+      animatedExtension: animatedOutput.extension,
+      animatedMimeType: animatedOutput.mimeType,
     };
   } finally {
     await rm(tempRoot, {
@@ -398,6 +393,79 @@ function buildAnimatedStickerCompositeFilter(args: {
     `[0:v]${sourceFilters}[sticker]`,
     `[canvas][sticker]overlay=${args.transform.left}:${args.transform.top}:format=auto,format=rgba[out]`,
   ].join(';');
+}
+
+function buildAnimatedStickerEncodeArgs(args: {
+  transform: ReturnType<typeof createFrameTransform>;
+  outputPath: string;
+  format: 'webp' | 'gif';
+}): string[] {
+  if (args.format === 'gif') {
+    const base = buildAnimatedStickerCompositeFilter({
+      transform: args.transform,
+      fps: 15,
+    });
+
+    return [
+      '-filter_complex',
+      `${base};[out]split[gif_base][gif_palette];[gif_palette]palettegen=reserve_transparent=0[palette];[gif_base][palette]paletteuse=dither=bayer[out_gif]`,
+      '-map',
+      '[out_gif]',
+      '-loop',
+      '0',
+      args.outputPath,
+    ];
+  }
+
+  return [
+    '-filter_complex',
+    buildAnimatedStickerCompositeFilter({
+      transform: args.transform,
+      fps: 24,
+    }),
+    '-map',
+    '[out]',
+    '-loop',
+    '0',
+    '-preset',
+    'picture',
+    '-q:v',
+    '70',
+    '-compression_level',
+    '4',
+    args.outputPath,
+  ];
+}
+
+function resolveAnimatedStickerOutput(
+  source: StickerSourceMetadata,
+  tempRoot: string,
+): {
+  format: 'webp' | 'gif';
+  extension: 'webp' | 'gif';
+  mimeType: 'image/webp' | 'image/gif';
+  outputPath: string;
+} {
+  const shouldUseGif =
+    source.mimeType.startsWith('video/') ||
+    source.extension === 'mp4' ||
+    source.extension === 'webm';
+
+  if (shouldUseGif) {
+    return {
+      format: 'gif',
+      extension: 'gif',
+      mimeType: 'image/gif',
+      outputPath: join(tempRoot, 'animated.gif'),
+    };
+  }
+
+  return {
+    format: 'webp',
+    extension: 'webp',
+    mimeType: 'image/webp',
+    outputPath: join(tempRoot, 'animated.webp'),
+  };
 }
 
 function resolveImageExtension(format: string): string {
