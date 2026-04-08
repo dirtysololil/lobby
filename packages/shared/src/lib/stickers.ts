@@ -77,13 +77,6 @@ export type StickerCatalog = z.infer<typeof stickerCatalogSchema>;
 
 export const createStickerPackSchema = z.object({
   title: z.string().trim().min(1).max(80),
-  slug: z
-    .string()
-    .trim()
-    .min(2)
-    .max(120)
-    .regex(/^[a-z0-9-]+$/i, "Допустимы только буквы, цифры и дефис.")
-    .optional(),
   description: z.string().trim().max(300).nullable().optional(),
   published: z.boolean().optional(),
 });
@@ -99,13 +92,6 @@ export type RenameStickerPackInput = z.infer<typeof renameStickerPackSchema>;
 export const updateStickerPackSchema = z
   .object({
     title: z.string().trim().min(1).max(80).optional(),
-    slug: z
-      .string()
-      .trim()
-      .min(2)
-      .max(120)
-      .regex(/^[a-z0-9-]+$/i, "Допустимы только буквы, цифры и дефис.")
-      .optional(),
     description: z.string().trim().max(300).nullable().optional(),
     coverStickerId: z.string().cuid().nullable().optional(),
     isActive: z.boolean().optional(),
@@ -115,7 +101,6 @@ export const updateStickerPackSchema = z
   .refine(
     (value) =>
       value.title !== undefined ||
-      value.slug !== undefined ||
       value.description !== undefined ||
       value.coverStickerId !== undefined ||
       value.isActive !== undefined ||

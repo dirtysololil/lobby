@@ -2,7 +2,6 @@
 
 import type { StickerCatalog } from "@lobby/shared";
 import {
-  createStickerPackSchema,
   stickerCatalogResponseSchema,
   stickerPackResponseSchema,
   stickerResponseSchema,
@@ -126,11 +125,7 @@ export function StickerPackManagerModal({
   }
 
   async function handleCreatePack() {
-    const parsed = createStickerPackSchema.safeParse({
-      title: newPackTitle,
-    });
-
-    if (!parsed.success) {
+    if (!newPackTitle.trim()) {
       setErrorMessage("Введите название набора.");
       return;
     }
@@ -141,7 +136,9 @@ export function StickerPackManagerModal({
     try {
       const payload = await apiClientFetch("/v1/stickers/packs", {
         method: "POST",
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({
+          title: newPackTitle.trim(),
+        }),
       });
       const pack = stickerPackResponseSchema.parse(payload).pack;
       await refreshCatalog(pack.id);

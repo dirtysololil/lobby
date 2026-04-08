@@ -42,13 +42,11 @@ export function StickerPacksAdminPanel({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newPackTitle, setNewPackTitle] = useState("");
-  const [newPackSlug, setNewPackSlug] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
   const [draggedPackId, setDraggedPackId] = useState<string | null>(null);
   const [draggedStickerId, setDraggedStickerId] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     title: "",
-    slug: "",
     description: "",
   });
 
@@ -62,7 +60,6 @@ export function StickerPacksAdminPanel({
     setSelectedPackId(selected?.id ?? null);
     setDraft({
       title: selected?.title ?? "",
-      slug: selected?.slug ?? "",
       description: selected?.description ?? "",
     });
   }, [packs, selectedPackId]);
@@ -151,13 +148,11 @@ export function StickerPacksAdminPanel({
         method: "POST",
         body: JSON.stringify({
           title: newPackTitle.trim(),
-          slug: newPackSlug.trim() || undefined,
         }),
       });
       const pack = stickerPackResponseSchema.parse(payload).pack;
       await refreshPacks(pack.id);
       setNewPackTitle("");
-      setNewPackSlug("");
       setStatus("Пак создан.");
     });
   }
@@ -172,7 +167,6 @@ export function StickerPacksAdminPanel({
         method: "PATCH",
         body: JSON.stringify({
           title: draft.title.trim(),
-          slug: draft.slug.trim() || undefined,
           description: draft.description.trim() || null,
           coverStickerId: selectedPack.coverStickerId ?? null,
         }),
@@ -383,12 +377,9 @@ export function StickerPacksAdminPanel({
                 placeholder="Название пака"
                 className="h-11 border-white/8 bg-white/[0.03] text-white"
               />
-              <Input
-                value={newPackSlug}
-                onChange={(event) => setNewPackSlug(event.target.value)}
-                placeholder="slug"
-                className="h-11 border-white/8 bg-white/[0.03] text-white"
-              />
+              <p className="rounded-[16px] border border-dashed border-white/8 bg-white/[0.02] px-3 py-2 text-xs text-[var(--text-muted)]">
+                Slug сгенерируется автоматически из названия.
+              </p>
               <Button
                 type="button"
                 onClick={() => void handleCreatePack()}
@@ -470,24 +461,17 @@ export function StickerPacksAdminPanel({
             ) : (
               <div className="grid gap-5">
                 <div className="grid gap-4 rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <Input
-                      value={draft.title}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, title: event.target.value }))
-                      }
-                      placeholder="Название пака"
-                      className="h-11 border-white/8 bg-white/[0.03] text-white"
-                    />
-                    <Input
-                      value={draft.slug}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, slug: event.target.value }))
-                      }
-                      placeholder="slug"
-                      className="h-11 border-white/8 bg-white/[0.03] text-white"
-                    />
-                  </div>
+                  <Input
+                    value={draft.title}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, title: event.target.value }))
+                    }
+                    placeholder="Название пака"
+                    className="h-11 border-white/8 bg-white/[0.03] text-white"
+                  />
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Стабильный slug: <span className="font-mono text-white">/{selectedPack.slug}</span>
+                  </p>
                   <textarea
                     value={draft.description}
                     onChange={(event) =>

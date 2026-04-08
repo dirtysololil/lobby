@@ -25,6 +25,10 @@ import {
   type StickerCropTransform,
 } from '../storage/sticker-media.util';
 import {
+  buildStickerPackSlug,
+  buildStickerPackSlugVariant,
+} from './sticker-pack-slug.util';
+import {
   toStickerAsset,
   toStickerCatalog,
   toStickerPack,
@@ -137,31 +141,13 @@ export class StickersService {
   ): Promise<StickerPack> {
     const sortOrder = await this.getNextPackSortOrder();
     const published = input.published === true;
-    let pack;
-
-    try {
-      pack = await this.prisma.stickerPack.create({
-        data: {
-          ownerId: actorUserId,
-          title: input.title.trim(),
-          slug: this.resolvePackSlug(input.slug, input.title),
-          description: input.description?.trim() || null,
-          sortOrder,
-          isActive: published,
-          publishedAt: published ? new Date() : null,
-        },
-        include: {
-          stickers: {
-            where: {
-              deletedAt: null,
-            },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          },
-        },
-      });
-    } catch (error) {
-      this.rethrowKnownError(error, 'Слаг набора уже занят.');
-    }
+    const pack = await this.createPackWithGeneratedSlug({
+      actorUserId,
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      sortOrder,
+      published,
+    });
 
     await this.auditService.write({
       action: 'stickers.pack.create',
@@ -173,7 +159,7 @@ export class StickersService {
       metadata: {
         title: pack.title,
         slug: pack.slug,
-        published: published,
+        published,
       },
     });
 
@@ -194,6 +180,7 @@ export class StickersService {
       select: {
         id: true,
         title: true,
+        slug: true,
       },
     });
 
@@ -205,43 +192,29 @@ export class StickersService {
       await this.getStickerOrThrow(packId, input.coverStickerId);
     }
 
-    let pack;
-
-    try {
-      pack = await this.prisma.stickerPack.update({
-        where: {
-          id: packId,
-        },
-        data: {
-          ...(input.title !== undefined ? { title: input.title.trim() } : {}),
-          ...(input.slug !== undefined
-            ? {
-                slug: this.resolvePackSlug(
-                  input.slug,
-                  input.title ?? currentPack.title,
-                ),
-              }
-            : {}),
-          ...(input.description !== undefined
-            ? { description: input.description?.trim() || null }
-            : {}),
-          ...(input.coverStickerId !== undefined
-            ? { coverStickerId: input.coverStickerId }
-            : {}),
-          ...this.buildPackLifecycleUpdate(input),
-        },
-        include: {
-          stickers: {
-            where: {
-              deletedAt: null,
-            },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    const pack = await this.prisma.stickerPack.update({
+      where: {
+        id: packId,
+      },
+      data: {
+        ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+        ...(input.description !== undefined
+          ? { description: input.description?.trim() || null }
+          : {}),
+        ...(input.coverStickerId !== undefined
+          ? { coverStickerId: input.coverStickerId }
+          : {}),
+        ...this.buildPackLifecycleUpdate(input),
+      },
+      include: {
+        stickers: {
+          where: {
+            deletedAt: null,
           },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         },
-      });
-    } catch (error) {
-      this.rethrowKnownError(error, 'Слаг набора уже занят.');
-    }
+      },
+    });
 
     await this.auditService.write({
       action: 'stickers.pack.update',
@@ -252,7 +225,7 @@ export class StickersService {
       userAgent: requestMetadata.userAgent,
       metadata: {
         title: input.title ?? null,
-        slug: input.slug ?? null,
+        slug: currentPack.slug,
         description: input.description ?? null,
         coverStickerId: input.coverStickerId ?? null,
         isActive: input.isActive ?? null,
@@ -835,23 +808,6 @@ export class StickersService {
     return `Стикер ${sortOrder + 1}`;
   }
 
-  private resolvePackSlug(
-    rawSlug: string | null | undefined,
-    rawTitle: string | null | undefined,
-  ): string {
-    const candidate = (rawSlug?.trim() || rawTitle?.trim() || 'sticker-pack')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 120);
-
-    if (!candidate || candidate.length < 2) {
-      throw new BadRequestException('Укажите корректный slug набора.');
-    }
-
-    return candidate;
-  }
-
   private resolveKeywords(value: string[] | null | undefined): string[] {
     if (!value || value.length === 0) {
       return [];
@@ -965,5 +921,54 @@ export class StickersService {
     }
 
     throw error;
+  }
+
+  private async createPackWithGeneratedSlug(args: {
+    actorUserId: string;
+    title: string;
+    description: string | null;
+    sortOrder: number;
+    published: boolean;
+  }): Promise<StickerPackWithStickers> {
+    const baseSlug = buildStickerPackSlug(args.title);
+
+    for (let sequence = 1; sequence <= 100; sequence += 1) {
+      try {
+        const pack = await this.prisma.stickerPack.create({
+          data: {
+            ownerId: args.actorUserId,
+            title: args.title,
+            slug: buildStickerPackSlugVariant(baseSlug, sequence),
+            description: args.description,
+            sortOrder: args.sortOrder,
+            isActive: args.published,
+            publishedAt: args.published ? new Date() : null,
+          },
+          include: {
+            stickers: {
+              where: {
+                deletedAt: null,
+              },
+              orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+            },
+          },
+        });
+
+        return pack as StickerPackWithStickers;
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new ConflictException(
+      'Не удалось подобрать уникальный slug для набора. Попробуйте ещё раз.',
+    );
   }
 }
