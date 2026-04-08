@@ -13,7 +13,7 @@ interface LinkEmbedCardProps {
   messageCreatedAt?: string | null;
 }
 
-const pendingStaleAfterMs = 20_000;
+const pendingStaleAfterMs = 60_000;
 
 export function LinkEmbedCard({
   embed,
