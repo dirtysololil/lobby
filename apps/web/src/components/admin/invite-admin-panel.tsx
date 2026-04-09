@@ -58,22 +58,22 @@ const inviteStateMeta: Record<
     label: "Активен",
     badgeClassName:
       "border-emerald-300/15 bg-emerald-300/[0.08] text-emerald-100",
-    progressClassName: "from-sky-400 via-cyan-300 to-emerald-300",
+    progressClassName: "bg-emerald-300",
   },
   REVOKED: {
     label: "Отозван",
     badgeClassName: "border-white/8 bg-white/[0.05] text-[var(--text-muted)]",
-    progressClassName: "from-white/25 to-white/10",
+    progressClassName: "bg-white/15",
   },
   EXPIRED: {
     label: "Истек",
     badgeClassName: "border-amber-300/15 bg-amber-300/[0.08] text-amber-100",
-    progressClassName: "from-amber-400 to-amber-200",
+    progressClassName: "bg-amber-300",
   },
   EXHAUSTED: {
     label: "Исчерпан",
     badgeClassName: "border-indigo-300/15 bg-indigo-300/[0.08] text-indigo-100",
-    progressClassName: "from-indigo-400 via-sky-400 to-sky-300",
+    progressClassName: "bg-sky-300",
   },
 };
 
@@ -99,7 +99,7 @@ function getInviteUsagePercent(invite: InviteSummary) {
 
 function formatInvitePreviewExpiry(expiresAt: string) {
   if (!expiresAt) {
-    return "Без срока";
+    return "Без ограничения";
   }
 
   const parsedDate = new Date(expiresAt);
@@ -254,7 +254,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
   return (
     <div className="grid gap-4 2xl:grid-cols-[380px_minmax(0,1fr)]">
       <form
-        className="premium-panel relative overflow-hidden rounded-[24px] p-5"
+        className="premium-panel rounded-[24px] p-5"
         onSubmit={form.handleSubmit((values, event) => {
           const nativeEvent = event?.nativeEvent;
           const submitter =
@@ -267,12 +267,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
           void createInvite(values, mode);
         })}
       >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_left,rgba(106,168,248,0.16),transparent_58%),radial-gradient(circle_at_top_right,rgba(52,211,153,0.08),transparent_38%)]"
-        />
-
-        <div className="relative">
+        <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="eyebrow-pill">
               <KeyRound {...keyIconProps} />
@@ -340,7 +335,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
               </p>
             </div>
 
-            <div className="grid gap-3 rounded-[20px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] p-3">
+            <div className="grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="section-kicker">Профиль инвайта</p>
@@ -348,48 +343,62 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
                     Предпросмотр настроек доступа
                   </p>
                 </div>
-                <span className="glass-badge">
-                  {previewMaxUses === 1 ? "Точечный доступ" : "Группа доступа"}
+                <span className="inline-flex items-center rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-[var(--text-soft)]">
+                  {previewMaxUses === 1
+                    ? "Персональный инвайт"
+                    : "Многоразовый инвайт"}
                 </span>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="metric-tile rounded-[16px] px-3 py-3">
-                  <p className="section-kicker">Роль</p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {roleLabels[previewRole]}
-                  </p>
-                </div>
-
-                <div className="metric-tile rounded-[16px] px-3 py-3">
-                  <p className="section-kicker">Лимит</p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {previewMaxUses}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--text-dim)]">
-                    {previewMaxUses === 1
-                      ? "Одно использование"
-                      : "Использований до отзыва"}
-                  </p>
-                </div>
-
-                <div className="metric-tile rounded-[16px] px-3 py-3">
-                  <p className="section-kicker">Срок</p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {formatInvitePreviewExpiry(previewExpiresAt)}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--text-dim)]">
-                    {previewExpiresAt
-                      ? "Дата зафиксирована"
-                      : "Будет активен без дедлайна"}
-                  </p>
-                </div>
+              <div className="overflow-hidden rounded-[18px] border border-white/8 bg-black/10">
+                {[
+                  {
+                    label: "Роль",
+                    note: "Права после входа",
+                    value: roleLabels[previewRole],
+                  },
+                  {
+                    label: "Лимит",
+                    note:
+                      previewMaxUses === 1
+                        ? "Один вход по этому ключу"
+                        : `До ${previewMaxUses} активаций`,
+                    value:
+                      previewMaxUses === 1
+                        ? "1 использование"
+                        : `${previewMaxUses} использований`,
+                  },
+                  {
+                    label: "Срок",
+                    note: previewExpiresAt
+                      ? "Инвайт закроется автоматически"
+                      : "Работает, пока его не отзовут",
+                    value: formatInvitePreviewExpiry(previewExpiresAt),
+                  },
+                ].map((item, index) => (
+                  <div
+                    key={item.label}
+                    className={`px-3.5 py-3 ${index > 0 ? "border-t border-white/6" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="section-kicker">{item.label}</p>
+                        <p className="mt-1 text-xs text-[var(--text-dim)]">
+                          {item.note}
+                        </p>
+                      </div>
+                      <p className="max-w-[180px] text-right text-sm font-medium text-white">
+                        {item.value}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
           {latestInviteResult ? (
-            <div className="mt-5 rounded-[20px] border border-emerald-300/15 bg-[linear-gradient(180deg,rgba(110,231,183,0.1),rgba(16,185,129,0.05))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div className="mt-5 rounded-[20px] border border-emerald-300/15 bg-emerald-300/[0.07] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-emerald-100/75">
@@ -513,17 +522,14 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
         </div>
       </form>
 
-      <section className="premium-panel relative overflow-hidden rounded-[24px] p-0">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,rgba(106,168,248,0.1),transparent_34%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.04),transparent_26%)]"
-        />
-
-        <div className="relative">
+      <section className="premium-panel rounded-[24px] p-0">
+        <div>
           <div className="border-b border-[var(--border)] px-4 py-4">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
               <div>
-                <p className="text-sm font-medium text-white">Журнал инвайтов</p>
+                <p className="text-sm font-medium text-white">
+                  Журнал инвайтов
+                </p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   Сразу видно, какие ключи активны, закрыты или уже остановлены.
                 </p>
@@ -535,7 +541,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
             </div>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              <div className="metric-tile rounded-[16px] px-3 py-3">
+              <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3.5 py-3">
                 <p className="section-kicker">Активные</p>
                 <p className="mt-2 text-lg font-semibold tracking-tight text-white">
                   {inviteMetrics.ACTIVE}
@@ -545,7 +551,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
                 </p>
               </div>
 
-              <div className="metric-tile rounded-[16px] px-3 py-3">
+              <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3.5 py-3">
                 <p className="section-kicker">Завершенные</p>
                 <p className="mt-2 text-lg font-semibold tracking-tight text-white">
                   {closedInvitesCount}
@@ -555,7 +561,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
                 </p>
               </div>
 
-              <div className="metric-tile rounded-[16px] px-3 py-3">
+              <div className="rounded-[16px] border border-white/8 bg-white/[0.03] px-3.5 py-3">
                 <p className="section-kicker">Отозванные</p>
                 <p className="mt-2 text-lg font-semibold tracking-tight text-white">
                   {inviteMetrics.REVOKED}
@@ -584,7 +590,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
                   return (
                     <article
                       key={invite.id}
-                      className="rounded-[20px] border border-transparent bg-white/[0.02] px-4 py-4 transition-[background,border-color] duration-150 hover:border-[var(--border)] hover:bg-[var(--bg-hover)]"
+                      className="rounded-[20px] border border-white/6 bg-white/[0.02] px-4 py-4 transition-[background,border-color] duration-150 hover:border-white/10 hover:bg-white/[0.03]"
                     >
                       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                         <div className="min-w-0 flex-1">
@@ -622,9 +628,9 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
                               <span>Прогресс доступа</span>
                               <span>{usagePercent}%</span>
                             </div>
-                            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/5">
+                            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/6">
                               <div
-                                className={`h-full rounded-full bg-gradient-to-r ${stateMeta.progressClassName}`}
+                                className={`h-full rounded-full ${stateMeta.progressClassName}`}
                                 style={{ width: `${usagePercent}%` }}
                               />
                             </div>
