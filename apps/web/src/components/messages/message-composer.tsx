@@ -7,7 +7,13 @@ import type {
   StickerAsset,
   StickerCatalog,
 } from "@lobby/shared";
-import { FileText, ImagePlus, Paperclip, SendHorizontal, SmilePlus } from "lucide-react";
+import {
+  FileText,
+  ImagePlus,
+  Paperclip,
+  SendHorizontal,
+  SmilePlus,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -98,15 +104,16 @@ function moveStickerToRecent(
   sticker: StickerAsset,
 ): StickerCatalog {
   const packTitle =
-    catalog.packs.find((pack) => pack.id === sticker.packId)?.title ?? "Стикеры";
+    catalog.packs.find((pack) => pack.id === sticker.packId)?.title ??
+    "Стикеры";
   const nextRecent = [
     {
       packId: sticker.packId,
       packTitle,
       usedAt: new Date().toISOString(),
       usageCount:
-        (catalog.recent.find((item) => item.sticker.id === sticker.id)?.usageCount ?? 0) +
-        1,
+        (catalog.recent.find((item) => item.sticker.id === sticker.id)
+          ?.usageCount ?? 0) + 1,
       sticker,
     },
     ...catalog.recent.filter((item) => item.sticker.id !== sticker.id),
@@ -159,7 +166,8 @@ export function MessageComposer({
     element.style.height = `${BASE_HEIGHT}px`;
     const nextHeight = Math.min(element.scrollHeight, MAX_HEIGHT);
     element.style.height = `${nextHeight}px`;
-    element.style.overflowY = element.scrollHeight > MAX_HEIGHT ? "auto" : "hidden";
+    element.style.overflowY =
+      element.scrollHeight > MAX_HEIGHT ? "auto" : "hidden";
   }, []);
 
   useEffect(() => {
@@ -285,10 +293,10 @@ export function MessageComposer({
 
   function pushRecentEmoji(emoji: string) {
     setRecentEmojis((current) => {
-      const nextItems = [emoji, ...current.filter((item) => item !== emoji)].slice(
-        0,
-        MAX_RECENT_EMOJIS,
-      );
+      const nextItems = [
+        emoji,
+        ...current.filter((item) => item !== emoji),
+      ].slice(0, MAX_RECENT_EMOJIS);
       writeRecentStrings(RECENT_EMOJIS_KEY, nextItems);
       return nextItems;
     });
@@ -296,10 +304,10 @@ export function MessageComposer({
 
   function pushRecentGif(gifId: string) {
     setRecentGifIds((current) => {
-      const nextItems = [gifId, ...current.filter((item) => item !== gifId)].slice(
-        0,
-        MAX_RECENT_GIFS,
-      );
+      const nextItems = [
+        gifId,
+        ...current.filter((item) => item !== gifId),
+      ].slice(0, MAX_RECENT_GIFS);
       writeRecentStrings(RECENT_GIFS_KEY, nextItems);
       return nextItems;
     });
@@ -379,12 +387,16 @@ export function MessageComposer({
       });
 
       if (pickerCatalog) {
-        onStickerCatalogChange(moveStickerToRecent(pickerCatalog.stickers, sticker));
+        onStickerCatalogChange(
+          moveStickerToRecent(pickerCatalog.stickers, sticker),
+        );
       }
 
       textareaRef.current?.focus();
     } finally {
-      setPendingStickerIds((current) => current.filter((item) => item !== sticker.id));
+      setPendingStickerIds((current) =>
+        current.filter((item) => item !== sticker.id),
+      );
     }
   }
 
@@ -439,7 +451,10 @@ export function MessageComposer({
     event.preventDefault();
     void onUploadFiles(
       files,
-      files.every((file) => file.type.startsWith("image/") || file.type.startsWith("video/"))
+      files.every(
+        (file) =>
+          file.type.startsWith("image/") || file.type.startsWith("video/"),
+      )
         ? "media"
         : "document",
     );
@@ -454,7 +469,7 @@ export function MessageComposer({
         onSubmit={handleSubmit}
       >
         {pickerOpen ? (
-          <div className="absolute bottom-full right-0 z-50 mb-3">
+          <div className="absolute bottom-full left-0 z-50 mb-4 md:left-auto md:right-0">
             <EmojiStickerPicker
               activeTab={activeTab}
               recentEmojis={recentEmojis}
@@ -488,7 +503,7 @@ export function MessageComposer({
         ) : null}
 
         {attachMenuOpen ? (
-          <div className="absolute bottom-full right-[88px] z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
+          <div className="absolute bottom-[calc(100%-3.5rem)] left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
             <button
               type="button"
               onClick={() => {
@@ -536,47 +551,12 @@ export function MessageComposer({
           }}
         />
 
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={disabled || isUploadingFiles}
-          onClick={() => {
-            setAttachMenuOpen((current) => !current);
-            setPickerOpen(false);
-          }}
-          className="dm-composer-button order-2 shrink-0 px-0"
-          aria-label="Прикрепить файл"
-        >
-          <Paperclip {...iconProps} />
-        </Button>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={disabled || isUploadingFiles}
-          onClick={() => {
-            setAttachMenuOpen(false);
-            setPickerOpen((current) => !current);
-            syncSelection();
-            void refreshCatalogIfNeeded();
-          }}
-          className={cn(
-            "dm-composer-button order-2 shrink-0 px-0",
-            pickerOpen && "dm-action-button-active",
-          )}
-          aria-label="Открыть смайлики, стикеры и GIF"
-        >
-          <SmilePlus {...iconProps} />
-        </Button>
-
-        <div className="order-1 relative min-w-0 flex-1">
+        <div className="dm-composer-main">
           {shouldRenderRichOverlay ? (
             <div
               ref={mirrorRef}
               aria-hidden
-              className="pointer-events-none absolute inset-0 overflow-hidden pr-1 text-sm leading-[1.44] text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+              className="dm-composer-overlay pointer-events-none absolute inset-0 overflow-hidden text-sm leading-[1.44] text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
             >
               <InlineCustomEmojiText
                 text={content.endsWith("\n") ? `${content}\u200b` : content}
@@ -606,7 +586,7 @@ export function MessageComposer({
             disabled={disabled || isSendingText || isUploadingFiles}
             rows={1}
             className={cn(
-              "relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words border-none bg-transparent pr-1 text-sm leading-[1.44] outline-none transition-colors [overflow-wrap:anywhere] disabled:cursor-not-allowed disabled:opacity-60",
+              "dm-composer-textarea relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words border-none bg-transparent text-sm leading-[1.44] outline-none transition-colors [overflow-wrap:anywhere] disabled:cursor-not-allowed disabled:opacity-60",
               shouldRenderRichOverlay
                 ? "text-transparent caret-white"
                 : "text-white caret-white placeholder:text-[var(--text-muted)]",
@@ -620,18 +600,61 @@ export function MessageComposer({
           />
         </div>
 
-        <Button
-          type="submit"
-          size="sm"
-          disabled={disabled || isSendingText || isUploadingFiles || !content.trim()}
-          className={cn(
-            "dm-composer-button dm-composer-send order-3 px-0",
-            content.trim() && "dm-composer-send-ready",
-          )}
-          aria-label={isSendingText ? "Отправляем сообщение" : "Отправить сообщение"}
-        >
-          <SendHorizontal {...iconProps} />
-        </Button>
+        <div className="dm-composer-footer">
+          <div className="dm-composer-tools">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={disabled || isUploadingFiles}
+              onClick={() => {
+                setAttachMenuOpen((current) => !current);
+                setPickerOpen(false);
+              }}
+              className="dm-composer-button px-0"
+              aria-label="Прикрепить файл"
+            >
+              <Paperclip {...iconProps} />
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={disabled || isUploadingFiles}
+              onClick={() => {
+                setAttachMenuOpen(false);
+                setPickerOpen((current) => !current);
+                syncSelection();
+                void refreshCatalogIfNeeded();
+              }}
+              className={cn(
+                "dm-composer-button px-0",
+                pickerOpen && "dm-action-button-active",
+              )}
+              aria-label="Открыть смайлики, стикеры и GIF"
+            >
+              <SmilePlus {...iconProps} />
+            </Button>
+          </div>
+
+          <Button
+            type="submit"
+            size="sm"
+            disabled={
+              disabled || isSendingText || isUploadingFiles || !content.trim()
+            }
+            className={cn(
+              "dm-composer-button dm-composer-send px-0",
+              content.trim() && "dm-composer-send-ready",
+            )}
+            aria-label={
+              isSendingText ? "Отправляем сообщение" : "Отправить сообщение"
+            }
+          >
+            <SendHorizontal {...iconProps} />
+          </Button>
+        </div>
       </form>
     </>
   );

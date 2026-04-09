@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from "react";
 import {
   ArrowUpRight,
   Check,
+  GripVertical,
   Maximize2,
   LoaderCircle,
   Mic,
@@ -205,6 +210,93 @@ const connectionQualityLabels: Record<string, string> = {
 };
 
 const screenShareDebugStorageKey = "lobby:debug-screen-share";
+const persistentCallDockStorageKey = "lobby:call-dock-position";
+const persistentCallDockMarginPx = 16;
+
+type PersistentCallDockPosition = {
+  x: number;
+  y: number;
+};
+
+type PersistentCallDockDragState = {
+  panelHeight: number;
+  panelWidth: number;
+  pointerId: number;
+  pointerX: number;
+  pointerY: number;
+  startX: number;
+  startY: number;
+};
+
+function clampPersistentCallDockPosition(
+  position: PersistentCallDockPosition,
+  panelWidth: number,
+  panelHeight: number,
+): PersistentCallDockPosition {
+  if (typeof window === "undefined") {
+    return position;
+  }
+
+  const maxX = Math.max(
+    persistentCallDockMarginPx,
+    window.innerWidth - panelWidth - persistentCallDockMarginPx,
+  );
+  const maxY = Math.max(
+    persistentCallDockMarginPx,
+    window.innerHeight - panelHeight - persistentCallDockMarginPx,
+  );
+
+  return {
+    x: Math.min(maxX, Math.max(persistentCallDockMarginPx, position.x)),
+    y: Math.min(maxY, Math.max(persistentCallDockMarginPx, position.y)),
+  };
+}
+
+function readPersistentCallDockPosition(): PersistentCallDockPosition | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(persistentCallDockStorageKey);
+
+    if (!rawValue) {
+      return null;
+    }
+
+    const parsed = JSON.parse(rawValue) as Partial<PersistentCallDockPosition>;
+
+    if (typeof parsed.x !== "number" || typeof parsed.y !== "number") {
+      return null;
+    }
+
+    return { x: parsed.x, y: parsed.y };
+  } catch {
+    return null;
+  }
+}
+
+function writePersistentCallDockPosition(
+  position: PersistentCallDockPosition | null,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (!position) {
+      window.localStorage.removeItem(persistentCallDockStorageKey);
+      return;
+    }
+
+    window.localStorage.setItem(
+      persistentCallDockStorageKey,
+      JSON.stringify(position),
+    );
+  } catch {
+    // Ignore localStorage failures.
+  }
+}
 
 function isScreenShareDebugEnabled() {
   if (typeof window === "undefined") {
@@ -2116,83 +2208,327 @@ export function PersistentCallDock() {
     leaveCall,
     toggleMicrophone,
   } = useCallSession();
+  const desktopDockRef = useRef<HTMLDivElement | null>(null);
+  const [desktopDockPosition, setDesktopDockPosition] =
+    useState<PersistentCallDockPosition | null>(() =>
+      readPersistentCallDockPosition(),
+    );
+  const [desktopDockDragState, setDesktopDockDragState] =
+    useState<PersistentCallDockDragState | null>(null);
+  const safePathname = pathname ?? "";
+  const onActiveRoute = session ? safePathname === session.route : false;
+  const desktopDockStyle: CSSProperties = desktopDockPosition
+    ? {
+        left: `${desktopDockPosition.x}px`,
+        top: `${desktopDockPosition.y}px`,
+      }
+    : {
+        right: `${persistentCallDockMarginPx}px`,
+        bottom: `${persistentCallDockMarginPx}px`,
+      };
 
-  if (!session) {
-    return null;
+  const clampDesktopDockToViewport = useCallback(() => {
+    const panel = desktopDockRef.current;
+
+    if (!panel || panel.offsetWidth === 0 || panel.offsetHeight === 0) {
+      return;
+    }
+
+    setDesktopDockPosition((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const nextPosition = clampPersistentCallDockPosition(
+        current,
+        panel.offsetWidth,
+        panel.offsetHeight,
+      );
+
+      return nextPosition.x === current.x && nextPosition.y === current.y
+        ? current
+        : nextPosition;
+    });
+  }, []);
+
+  useEffect(() => {
+    writePersistentCallDockPosition(desktopDockPosition);
+  }, [desktopDockPosition]);
+
+  useEffect(() => {
+    window.addEventListener("resize", clampDesktopDockToViewport);
+
+    return () => {
+      window.removeEventListener("resize", clampDesktopDockToViewport);
+    };
+  }, [clampDesktopDockToViewport]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    clampDesktopDockToViewport();
+  }, [
+    clampDesktopDockToViewport,
+    desktopDockPosition,
+    microphoneEnabled,
+    participantCount,
+    session,
+    status,
+  ]);
+
+  useEffect(() => {
+    if (!desktopDockDragState) {
+      return;
+    }
+
+    const activeDragState = desktopDockDragState;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+
+    function handlePointerMove(event: PointerEvent) {
+      if (event.pointerId !== activeDragState.pointerId) {
+        return;
+      }
+
+      setDesktopDockPosition(
+        clampPersistentCallDockPosition(
+          {
+            x: activeDragState.startX + (event.clientX - activeDragState.pointerX),
+            y: activeDragState.startY + (event.clientY - activeDragState.pointerY),
+          },
+          activeDragState.panelWidth,
+          activeDragState.panelHeight,
+        ),
+      );
+    }
+
+    function handlePointerEnd(event: PointerEvent) {
+      if (event.pointerId !== activeDragState.pointerId) {
+        return;
+      }
+
+      setDesktopDockDragState(null);
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerEnd);
+    window.addEventListener("pointercancel", handlePointerEnd);
+
+    return () => {
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerEnd);
+      window.removeEventListener("pointercancel", handlePointerEnd);
+    };
+  }, [desktopDockDragState]);
+
+  function handleDesktopDockPointerDown(
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const panel = desktopDockRef.current;
+
+    if (!panel) {
+      return;
+    }
+
+    const rect = panel.getBoundingClientRect();
+    const startPosition = desktopDockPosition ?? { x: rect.left, y: rect.top };
+
+    setDesktopDockPosition(startPosition);
+    setDesktopDockDragState({
+      panelHeight: rect.height,
+      panelWidth: rect.width,
+      pointerId: event.pointerId,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      startX: startPosition.x,
+      startY: startPosition.y,
+    });
+    event.preventDefault();
   }
 
-  const safePathname = pathname ?? "";
-  const onActiveRoute = safePathname === session.route;
-
-  if (onActiveRoute) {
+  if (!session || onActiveRoute) {
     return null;
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--app-mobile-dock-clearance)+0.75rem)] z-40 flex justify-end px-3 md:bottom-4 md:px-4">
-      <div className="pointer-events-auto w-full max-w-[430px] rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_34%),rgba(11,16,24,0.94)] p-3 shadow-[0_24px_60px_rgba(4,8,16,0.42)] backdrop-blur-xl">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.24)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)]">
-            <PhoneCall size={18} strokeWidth={1.5} />
+    <>
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--app-mobile-dock-clearance)+0.5rem)] z-40 px-2.5 md:hidden">
+        <div className="pointer-events-auto rounded-[20px] border border-white/8 bg-[rgba(11,16,24,0.94)] px-3 py-2.5 shadow-[0_22px_56px_rgba(4,8,16,0.4)] backdrop-blur-xl">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-[rgba(106,168,248,0.24)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)]">
+              <PhoneCall size={16} strokeWidth={1.5} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="truncate text-sm font-semibold text-white">
+                  {session.title}
+                </p>
+                <span className="status-pill shrink-0">
+                  {connectionStatusLabels[status]}
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--text-dim)]">
+                <span className="inline-flex items-center gap-1">
+                  <Users2 size={12} strokeWidth={1.5} />
+                  {participantCount}
+                </span>
+                <span className="truncate">
+                  {microphoneEnabled
+                    ? "Микрофон включен"
+                    : "Микрофон выключен"}
+                </span>
+              </div>
+            </div>
+
+            <Link
+              href={session.route}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-white/8 bg-white/[0.05] text-white transition-colors hover:bg-white/[0.09]"
+              aria-label="Вернуться в звонок"
+            >
+              <ArrowUpRight size={15} strokeWidth={1.5} />
+            </Link>
           </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-sm font-semibold text-white">{session.title}</p>
-              <span className="status-pill">{connectionStatusLabels[status]}</span>
-              <span className="status-pill">{callModeLabels[session.call.mode]}</span>
-              <span className="status-pill">
-                <Users2 size={14} strokeWidth={1.5} />
-                {participantCount}
-              </span>
-            </div>
-            <p className="mt-1 truncate text-xs text-[var(--text-dim)]">{session.subtitle}</p>
-            <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-1 text-[11px] text-[var(--text-soft)]">
+          <div className="mt-2 grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2">
+            <Button
+              size="sm"
+              variant={microphoneEnabled ? "secondary" : "ghost"}
+              onClick={() => void toggleMicrophone()}
+              disabled={!session.connection.canPublishMedia}
+              className="h-9 w-10 px-0"
+              aria-label={
+                microphoneEnabled
+                  ? "Выключить микрофон"
+                  : "Включить микрофон"
+              }
+            >
               {microphoneEnabled ? (
-                <Mic size={13} strokeWidth={1.5} />
+                <Mic size={15} strokeWidth={1.5} />
               ) : (
-                <MicOff size={13} strokeWidth={1.5} />
+                <MicOff size={15} strokeWidth={1.5} />
               )}
-              {microphoneEnabled ? "Микрофон включён" : "Микрофон выключен"}
-            </div>
+            </Button>
+
+            <Link
+              href={session.route}
+              className="inline-flex h-9 min-w-0 items-center justify-center gap-1 rounded-md border border-white/8 bg-white/5 px-3 text-xs font-medium text-white transition-colors hover:bg-white/10"
+            >
+              <ArrowUpRight size={14} strokeWidth={1.5} />
+              В звонок
+            </Link>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              className="call-danger-button h-9 w-10 px-0"
+              onClick={() => void leaveCall(session.call.id)}
+              aria-label="Выйти из звонка"
+            >
+              <PhoneOff size={15} strokeWidth={1.5} />
+            </Button>
           </div>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            variant={microphoneEnabled ? "secondary" : "ghost"}
-            onClick={() => void toggleMicrophone()}
-            disabled={!session.connection.canPublishMedia}
-          >
-            {microphoneEnabled ? (
-              <Mic size={15} strokeWidth={1.5} />
-            ) : (
-              <MicOff size={15} strokeWidth={1.5} />
-            )}
-            Микрофон
-          </Button>
-
-          <Link
-            href={session.route}
-            className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-white/8 bg-white/5 px-3 text-xs font-medium text-white transition-colors hover:bg-white/10"
-          >
-            <ArrowUpRight size={15} strokeWidth={1.5} />
-            Вернуться в звонок
-          </Link>
-
-          <Button
-            size="sm"
-            variant="secondary"
-            className="call-danger-button ml-auto"
-            onClick={() => void leaveCall(session.call.id)}
-          >
-            <PhoneOff size={15} strokeWidth={1.5} />
-            Выйти
-          </Button>
         </div>
       </div>
-    </div>
+
+      <div className="pointer-events-none fixed inset-0 z-40 hidden md:block">
+        <div
+          ref={desktopDockRef}
+          className="pointer-events-auto absolute w-[430px] max-w-[calc(100vw-2rem)] rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_34%),rgba(11,16,24,0.94)] p-3 shadow-[0_24px_60px_rgba(4,8,16,0.42)] backdrop-blur-xl"
+          style={desktopDockStyle}
+        >
+          <div
+            onPointerDown={handleDesktopDockPointerDown}
+            className={cn(
+              "mb-2.5 flex items-center justify-between gap-2 rounded-[14px] border border-white/6 bg-black/10 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)]",
+              desktopDockDragState ? "cursor-grabbing" : "cursor-grab",
+            )}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <GripVertical size={14} strokeWidth={1.5} />
+              Перетащить панель
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.04] px-2 py-0.5 text-[10px] text-[var(--text-soft)]">
+              Позиция сохранится
+            </span>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.24)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)]">
+              <PhoneCall size={18} strokeWidth={1.5} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-sm font-semibold text-white">
+                  {session.title}
+                </p>
+                <span className="status-pill">{connectionStatusLabels[status]}</span>
+                <span className="status-pill">{callModeLabels[session.call.mode]}</span>
+                <span className="status-pill">
+                  <Users2 size={14} strokeWidth={1.5} />
+                  {participantCount}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+                {session.subtitle}
+              </p>
+              <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-white/6 bg-white/[0.03] px-2 py-1 text-[11px] text-[var(--text-soft)]">
+                {microphoneEnabled ? (
+                  <Mic size={13} strokeWidth={1.5} />
+                ) : (
+                  <MicOff size={13} strokeWidth={1.5} />
+                )}
+                {microphoneEnabled
+                  ? "Микрофон включён"
+                  : "Микрофон выключен"}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant={microphoneEnabled ? "secondary" : "ghost"}
+              onClick={() => void toggleMicrophone()}
+              disabled={!session.connection.canPublishMedia}
+            >
+              {microphoneEnabled ? (
+                <Mic size={15} strokeWidth={1.5} />
+              ) : (
+                <MicOff size={15} strokeWidth={1.5} />
+              )}
+              Микрофон
+            </Button>
+
+            <Link
+              href={session.route}
+              className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-white/8 bg-white/5 px-3 text-xs font-medium text-white transition-colors hover:bg-white/10"
+            >
+              <ArrowUpRight size={15} strokeWidth={1.5} />
+              Вернуться в звонок
+            </Link>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              className="call-danger-button ml-auto"
+              onClick={() => void leaveCall(session.call.id)}
+            >
+              <PhoneOff size={15} strokeWidth={1.5} />
+              Выйти
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
