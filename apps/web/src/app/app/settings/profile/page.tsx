@@ -21,7 +21,7 @@ export default async function ProfileSettingsPage() {
   const viewer = await requireViewer();
 
   return (
-    <div className="mx-auto w-full max-w-[1180px]">
+    <div className="w-full">
       <ProfileSettingsForm
         viewer={viewer}
         maxAvatarMb={getPositiveNumberEnv("MAX_AVATAR_MB", 10)}

@@ -24,6 +24,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { apiClientFetch } from "@/lib/api-client";
+import {
+  getAudioContextCtor,
+  playToneSequence,
+  type ToneSequencePlayback,
+} from "@/lib/tone-sequence";
 import { cn } from "@/lib/utils";
 import { useCallSession } from "./call-session-provider";
 import { LiveKitCallRoom } from "./livekit-call-room";
@@ -46,6 +51,15 @@ const dmCallModeLabels = {
   AUDIO: "Звонок",
   VIDEO: "Видео",
 } as const;
+const outgoingCallRingbackLoopMs = 5_000;
+const outgoingCallRingbackSequence = [
+  {
+    duration: 1,
+    frequency: 425,
+    gain: 0.016,
+    type: "sine",
+  },
+] as const;
 
 export function DmCallPanel({
   conversationId,
@@ -82,6 +96,10 @@ export function DmCallPanel({
   const [mounted, setMounted] = useState(false);
   const loadRequestIdRef = useRef(0);
   const stageShellRef = useRef<HTMLDivElement | null>(null);
+  const ringbackAudioContextRef = useRef<AudioContext | null>(null);
+  const ringbackPlaybackRef = useRef<ToneSequencePlayback | null>(null);
+  const ringbackIntervalRef = useRef<number | null>(null);
+  const ringbackCallIdRef = useRef<string | null>(null);
 
   const callRoute = `/app/messages/${conversationId}`;
   const callTitle = `Звонок с ${counterpartName}`;
@@ -99,6 +117,79 @@ export function DmCallPanel({
       });
     },
     [callRoute, callSubtitle, callTitle, connectToCall],
+  );
+
+  const stopOutgoingRingback = useCallback(() => {
+    if (ringbackIntervalRef.current !== null) {
+      window.clearInterval(ringbackIntervalRef.current);
+      ringbackIntervalRef.current = null;
+    }
+
+    ringbackPlaybackRef.current?.stop();
+    ringbackPlaybackRef.current = null;
+    ringbackCallIdRef.current = null;
+  }, []);
+
+  const ensureRingbackAudioContext = useCallback(async () => {
+    const AudioContextCtor = getAudioContextCtor();
+
+    if (!AudioContextCtor) {
+      return null;
+    }
+
+    let audioContext = ringbackAudioContextRef.current;
+
+    if (!audioContext || audioContext.state === "closed") {
+      audioContext = new AudioContextCtor();
+      ringbackAudioContextRef.current = audioContext;
+    }
+
+    if (audioContext.state === "suspended") {
+      try {
+        await audioContext.resume();
+      } catch {
+        return null;
+      }
+    }
+
+    return audioContext.state === "running" ? audioContext : null;
+  }, []);
+
+  const primeOutgoingRingbackAudio = useCallback(async () => {
+    await ensureRingbackAudioContext();
+  }, [ensureRingbackAudioContext]);
+
+  const startOutgoingRingback = useCallback(
+    async (callId: string) => {
+      if (ringbackCallIdRef.current === callId) {
+        return;
+      }
+
+      stopOutgoingRingback();
+
+      const audioContext = await ensureRingbackAudioContext();
+
+      if (!audioContext) {
+        return;
+      }
+
+      const playBurst = () => {
+        ringbackPlaybackRef.current?.stop();
+        ringbackPlaybackRef.current = playToneSequence(
+          audioContext,
+          [...outgoingCallRingbackSequence],
+          { defaultGain: 0.016 },
+        );
+      };
+
+      playBurst();
+      ringbackCallIdRef.current = callId;
+      ringbackIntervalRef.current = window.setInterval(
+        playBurst,
+        outgoingCallRingbackLoopMs,
+      );
+    },
+    [ensureRingbackAudioContext, stopOutgoingRingback],
   );
 
   const loadState = useCallback(async (): Promise<CallStateResponse | null> => {
@@ -164,13 +255,28 @@ export function DmCallPanel({
       return;
     }
 
+    if (
+      latestSignal.call.initiatedBy.id === viewerId &&
+      latestSignal.call.status !== "RINGING"
+    ) {
+      stopOutgoingRingback();
+    }
+
     if (["DECLINED", "ENDED", "MISSED"].includes(latestSignal.call.status)) {
       dismissCall(latestSignal.call.id);
       clearIncomingCall(latestSignal.call.id);
     }
 
     void loadState();
-  }, [clearIncomingCall, conversationId, dismissCall, latestSignal, loadState]);
+  }, [
+    clearIncomingCall,
+    conversationId,
+    dismissCall,
+    latestSignal,
+    loadState,
+    stopOutgoingRingback,
+    viewerId,
+  ]);
 
   const sessionCall = useMemo(
     () => (session?.call.dmConversationId === conversationId ? session.call : null),
@@ -179,6 +285,8 @@ export function DmCallPanel({
   const activeCall = state?.activeCall ?? sessionCall ?? null;
   const isIncomingCall =
     activeCall?.status === "RINGING" && activeCall.initiatedBy.id !== viewerId;
+  const isOutgoingRingingCall =
+    activeCall?.status === "RINGING" && activeCall.initiatedBy.id === viewerId;
   const isCurrentSession = isActiveCall(activeCall?.id ?? null);
   const isJoiningCurrentSession =
     isCurrentSession && ["connecting", "reconnecting"].includes(status);
@@ -227,8 +335,23 @@ export function DmCallPanel({
     viewerParticipant,
   ]);
 
+  useEffect(() => {
+    if (!activeCall?.id || !isOutgoingRingingCall) {
+      stopOutgoingRingback();
+      return;
+    }
+
+    void startOutgoingRingback(activeCall.id);
+  }, [
+    activeCall?.id,
+    isOutgoingRingingCall,
+    startOutgoingRingback,
+    stopOutgoingRingback,
+  ]);
+
   async function startCall(mode: "AUDIO" | "VIDEO") {
     setPendingAction(`start:${mode}`);
+    void primeOutgoingRingbackAudio();
 
     try {
       const payload = await apiClientFetch(`/v1/calls/dm/${conversationId}/start`, {
@@ -245,6 +368,7 @@ export function DmCallPanel({
       await loadState();
       setErrorMessage(null);
     } catch (error) {
+      stopOutgoingRingback();
       const recoveredState = await loadState();
       const recoveredCall = recoveredState?.activeCall ?? null;
 
@@ -302,6 +426,7 @@ export function DmCallPanel({
     }
 
     setPendingAction("decline");
+    stopOutgoingRingback();
 
     try {
       const payload = await apiClientFetch(`/v1/calls/${activeCall.id}/decline`, {
@@ -356,6 +481,7 @@ export function DmCallPanel({
     }
 
     setPendingAction("end");
+    stopOutgoingRingback();
 
     try {
       await leaveCall(activeCall.id);
@@ -488,6 +614,15 @@ export function DmCallPanel({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      stopOutgoingRingback();
+      const audioContext = ringbackAudioContextRef.current;
+      ringbackAudioContextRef.current = null;
+      void audioContext?.close().catch(() => undefined);
+    };
+  }, [stopOutgoingRingback]);
 
   if (variant === "header") {
     return (

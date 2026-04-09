@@ -234,27 +234,27 @@ export function ProfileSettingsForm({
   return (
     <>
       <div className="grid gap-3">
-        <section className="premium-panel rounded-[24px] px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <section className="premium-panel rounded-[24px] px-4 py-4 sm:px-5 xl:px-6">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(228px,244px)] xl:items-center">
             <div className="flex min-w-0 items-start gap-4 sm:gap-5">
               <div className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAvatarPreviewOpen(true)}
-                  className="group relative inline-flex rounded-[30px] border border-white/8 bg-white/[0.03] p-2 transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.05]"
+                  className="group relative inline-flex rounded-full transition-transform duration-150 hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                   aria-label="Открыть фото профиля"
                 >
                   <UserAvatar
                     user={viewer}
                     size="lg"
                     showPresenceIndicator={false}
-                    className="h-[104px] w-[104px] text-[1.55rem]"
+                    className="h-[108px] w-[108px] text-[1.55rem] shadow-[0_18px_34px_rgba(4,8,16,0.2)]"
                   />
-                  <span className="pointer-events-none absolute inset-x-4 bottom-4 rounded-full border border-white/10 bg-[rgba(8,12,18,0.82)] px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full border border-white/10 bg-[rgba(8,12,18,0.82)] px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                     Просмотр
                   </span>
                 </button>
-                <span className="absolute bottom-3 right-3 flex h-5 w-5 items-center justify-center rounded-full border-[3px] border-[var(--bg-panel)] bg-[var(--bg-panel)]">
+                <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border-[3px] border-[var(--bg-panel)] bg-[var(--bg-panel)]">
                   <span
                     className={cn(
                       "h-2.5 w-2.5 rounded-full",
@@ -264,7 +264,7 @@ export function ProfileSettingsForm({
                 </span>
               </div>
 
-              <div className="min-w-0 py-1">
+              <div className="min-w-0 py-1 xl:pr-3">
                 <h2 className="truncate text-[1.35rem] font-semibold tracking-tight text-white">
                   {viewer.profile.displayName}
                 </h2>
@@ -296,7 +296,7 @@ export function ProfileSettingsForm({
               </div>
             </div>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[220px]">
+            <div className="flex w-full flex-col gap-2 xl:min-w-[228px]">
               <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.05] px-3 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
                 <input
                   type="file"
@@ -325,7 +325,7 @@ export function ProfileSettingsForm({
         </section>
 
         <form
-          className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.85fr)]"
+          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,408px)] 2xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,432px)]"
           onSubmit={form.handleSubmit((values) => void onSubmit(values))}
         >
           <section className="premium-panel overflow-hidden rounded-[24px]">
