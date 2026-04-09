@@ -10,15 +10,9 @@ import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
 import { buildUserProfileHref } from "@/lib/profile-routes";
+import { HubMemberRoleBadge } from "./hub-member-role-badge";
 import { HubOverviewLauncher } from "./hub-overview-launcher";
 import { HubShellBootstrap } from "./hub-shell-bootstrap";
-
-const roleLabels: Record<string, string> = {
-  OWNER: "Владелец",
-  ADMIN: "Администратор",
-  MODERATOR: "Модератор",
-  MEMBER: "Участник",
-};
 
 const lobbyTypeLabels: Record<string, string> = {
   TEXT: "Текст",
@@ -59,38 +53,40 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="grid min-w-0 gap-3">
-          <section className="premium-panel rounded-[22px] px-4 py-3.5">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <CompactListMeta>
-                  <Waves className="h-4 w-4" />
-                  Хаб
-                </CompactListMeta>
-                <CompactListMeta>
-                  {hub.membershipRole
-                    ? roleLabels[hub.membershipRole] ?? hub.membershipRole
-                    : "Гость"}
-                </CompactListMeta>
-                <CompactListMeta>
-                  <UsersRound className="h-4 w-4" />
-                  {hub.members.length} участников
-                </CompactListMeta>
-                {hub.isPrivate ? (
-                  <CompactListMeta>
-                    <LockKeyhole className="h-4 w-4" />
-                    Приватный
-                  </CompactListMeta>
-                ) : null}
+          <section className="premium-panel rounded-[22px] px-4 py-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.2)] bg-[rgba(106,168,248,0.1)] text-[var(--accent-strong)]">
+                <Waves className="h-4.5 w-4.5" />
               </div>
 
-              <h1 className="mt-2 truncate text-lg font-semibold tracking-tight text-white">
-                {hub.name}
-              </h1>
-              {hub.description?.trim() ? (
-                <p className="mt-1 line-clamp-1 text-sm text-[var(--text-dim)]">
-                  {hub.description.trim()}
-                </p>
-              ) : null}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-base font-semibold tracking-tight text-white">
+                    {hub.name}
+                  </h1>
+                  {hub.membershipRole ? (
+                    <HubMemberRoleBadge role={hub.membershipRole} />
+                  ) : (
+                    <CompactListMeta>Гость</CompactListMeta>
+                  )}
+                  <CompactListMeta>
+                    <UsersRound className="h-3.5 w-3.5" />
+                    {hub.members.length}
+                  </CompactListMeta>
+                  {hub.isPrivate ? (
+                    <CompactListMeta>
+                      <LockKeyhole className="h-3.5 w-3.5" />
+                      Приватный
+                    </CompactListMeta>
+                  ) : null}
+                </div>
+
+                {hub.description?.trim() ? (
+                  <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+                    {hub.description.trim()}
+                  </p>
+                ) : null}
+              </div>
             </div>
           </section>
 
@@ -188,15 +184,15 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
                   >
                     <UserAvatar user={member.user} size="sm" />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-sm text-white">
                           {member.user.profile.displayName}
                         </p>
+                        <HubMemberRoleBadge role={member.role} />
                         <PresenceIndicator user={member.user} compact />
                       </div>
                       <p className="truncate text-xs text-[var(--text-muted)]">
-                        @{member.user.username} ·{" "}
-                        {roleLabels[member.role] ?? member.role}
+                        @{member.user.username}
                       </p>
                     </div>
                   </CompactListLink>

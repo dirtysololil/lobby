@@ -591,10 +591,10 @@ export function MessageThread({
                                 }}
                                 disabled={isDeleting === message.id}
                                 className={cn(
-                                  "dm-action-button absolute -left-9 top-1/2 h-7 w-7 -translate-y-1/2 opacity-0 focus-visible:opacity-100 disabled:cursor-not-allowed disabled:opacity-50",
+                                  "dm-action-button absolute -left-9 top-1/2 h-7 w-7 -translate-y-1/2 opacity-100 focus-visible:opacity-100 md:opacity-0 disabled:cursor-not-allowed disabled:opacity-50",
                                   (isContextMenuOpen || isDeleting === message.id) &&
                                     "opacity-100",
-                                  "group-hover/message:opacity-100",
+                                  "md:group-hover/message:opacity-100",
                                 )}
                                 aria-label="Действия с сообщением"
                               >
