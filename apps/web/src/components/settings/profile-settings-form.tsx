@@ -106,6 +106,7 @@ export function ProfileSettingsForm({
       presence: viewer.profile.presence,
       avatarPreset: viewer.profile.avatarPreset,
       callRingtonePreset: viewer.profile.callRingtonePreset,
+      callRingtoneMode: viewer.profile.callRingtoneMode,
     },
   });
 
@@ -196,7 +197,9 @@ export function ProfileSettingsForm({
         method: "POST",
         body: payload,
       });
-      setMessage("Рингтон обновлен.");
+      setMessage(
+        "Рингтон загружен. При желании включите его как источник звонка и сохраните профиль.",
+      );
       router.refresh();
     } catch (uploadError) {
       setError(
@@ -218,7 +221,7 @@ export function ProfileSettingsForm({
       await apiClientFetch<UserResponse>("/v1/users/me/ringtone", {
         method: "DELETE",
       });
-      setMessage("Кастомный рингтон удален.");
+      setMessage("Кастомный рингтон удален. Системный рингтон снова активен.");
       router.refresh();
     } catch (removeError) {
       setError(
@@ -269,7 +272,9 @@ export function ProfileSettingsForm({
                   {viewer.profile.displayName}
                 </h2>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-[var(--text-muted)]">@{viewer.username}</span>
+                  <span className="text-[var(--text-muted)]">
+                    @{viewer.username}
+                  </span>
                   <span className="h-1 w-1 rounded-full bg-white/12" />
                   <span
                     className={cn(
@@ -401,8 +406,12 @@ export function ProfileSettingsForm({
                       index > 0 && "border-t border-[var(--border-soft)]",
                     )}
                   >
-                    <span className="text-sm text-[var(--text-dim)]">{item.label}</span>
-                    <span className="text-sm font-medium text-white">{item.value}</span>
+                    <span className="text-sm text-[var(--text-dim)]">
+                      {item.label}
+                    </span>
+                    <span className="text-sm font-medium text-white">
+                      {item.value}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -482,7 +491,9 @@ export function ProfileSettingsForm({
                   disabled={form.formState.isSubmitting}
                   className="h-11 rounded-[14px] px-5"
                 >
-                  {form.formState.isSubmitting ? "Сохраняем..." : "Сохранить профиль"}
+                  {form.formState.isSubmitting
+                    ? "Сохраняем..."
+                    : "Сохранить профиль"}
                 </Button>
                 <Button
                   type="button"

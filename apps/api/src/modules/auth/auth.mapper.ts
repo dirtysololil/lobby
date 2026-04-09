@@ -1,6 +1,7 @@
 import { publicUserSchema, type PublicUser } from '@lobby/shared';
 import {
   AvatarPreset,
+  CallRingtoneMode,
   CallRingtonePreset,
   PresenceStatus,
   Prisma,
@@ -25,6 +26,7 @@ export const publicProfileSelect = {
   customRingtoneMimeType: true,
   customRingtoneBytes: true,
   callRingtonePreset: true,
+  callRingtoneMode: true,
   updatedAt: true,
 } satisfies Prisma.ProfileSelect;
 
@@ -68,6 +70,7 @@ export function toPublicUser(
     customRingtoneMimeType: null,
     customRingtoneBytes: null,
     callRingtonePreset: CallRingtonePreset.CLASSIC,
+    callRingtoneMode: CallRingtoneMode.BUILTIN,
     updatedAt: user.createdAt,
   };
 
@@ -96,6 +99,7 @@ export function toPublicUser(
         isAnimated: profile.avatarIsAnimated,
       },
       callRingtonePreset: profile.callRingtonePreset,
+      callRingtoneMode: profile.callRingtoneMode,
       customRingtone: {
         fileKey: profile.customRingtoneFileKey,
         originalName: profile.customRingtoneOriginalName,

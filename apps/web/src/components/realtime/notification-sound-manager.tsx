@@ -23,7 +23,11 @@ import {
   notificationPreferencesEventName,
   type NotificationPreferencesEventDetail,
 } from "@/lib/notification-preferences";
-import { getBuiltInRingtone, getCustomRingtoneApiPath } from "@/lib/ringtones";
+import {
+  getBuiltInRingtone,
+  getCurrentRingtoneMode,
+  getCustomRingtoneApiPath,
+} from "@/lib/ringtones";
 import { parseAppPath } from "@/lib/app-shell";
 import { useRealtime } from "./realtime-provider";
 
@@ -83,14 +87,20 @@ function normalizeErrorMessage(error: unknown) {
 }
 
 function getBrowserNotificationState(): BrowserNotificationState {
-  if (typeof window === "undefined" || typeof window.Notification === "undefined") {
+  if (
+    typeof window === "undefined" ||
+    typeof window.Notification === "undefined"
+  ) {
     return "unsupported";
   }
 
   return window.Notification.permission;
 }
 
-function trimNotificationBody(value: string | null | undefined, fallback: string) {
+function trimNotificationBody(
+  value: string | null | undefined,
+  fallback: string,
+) {
   const normalized = value?.replace(/\s+/g, " ").trim();
 
   if (!normalized) {
@@ -124,8 +134,12 @@ export function NotificationSoundManager({
   const debugEnabledRef = useRef(false);
   const notificationPermissionRequestedRef = useRef(false);
   const warningKeysRef = useRef(new Set<string>());
-  const conversationSettingsRef = useRef(new Map<string, NotificationSetting>());
-  const desktopNotificationsRef = useRef(new Map<string, ActiveDesktopNotification>());
+  const conversationSettingsRef = useRef(
+    new Map<string, NotificationSetting>(),
+  );
+  const desktopNotificationsRef = useRef(
+    new Map<string, ActiveDesktopNotification>(),
+  );
   const handledMessageIdsRef = useRef(new Set<string>());
   const handledMessageOrderRef = useRef<string[]>([]);
   const fxCleanupRef = useRef(new Set<() => void>());
@@ -150,7 +164,8 @@ export function NotificationSoundManager({
         return false;
       }
 
-      const currentSetting = conversationSettingsRef.current.get(conversationId);
+      const currentSetting =
+        conversationSettingsRef.current.get(conversationId);
 
       if (currentSetting === notificationSetting) {
         return false;
@@ -163,13 +178,16 @@ export function NotificationSoundManager({
     [],
   );
 
-  const logDebug = useCallback((message: string, payload?: Record<string, unknown>) => {
-    if (!debugEnabledRef.current) {
-      return;
-    }
+  const logDebug = useCallback(
+    (message: string, payload?: Record<string, unknown>) => {
+      if (!debugEnabledRef.current) {
+        return;
+      }
 
-    console.info("[notify/sound]", message, payload ?? {});
-  }, []);
+      console.info("[notify/sound]", message, payload ?? {});
+    },
+    [],
+  );
 
   const warnOnce = useCallback(
     (key: string, message: string, payload?: Record<string, unknown>) => {
@@ -218,7 +236,10 @@ export function NotificationSoundManager({
       const currentPermission = getBrowserNotificationState();
       setNotificationPermission(currentPermission);
 
-      if (currentPermission === "unsupported" || currentPermission !== "default") {
+      if (
+        currentPermission === "unsupported" ||
+        currentPermission !== "default"
+      ) {
         return currentPermission;
       }
 
@@ -231,13 +252,20 @@ export function NotificationSoundManager({
       try {
         const nextPermission = await window.Notification.requestPermission();
         setNotificationPermission(nextPermission);
-        logDebug("notification-permission", { reason, permission: nextPermission });
+        logDebug("notification-permission", {
+          reason,
+          permission: nextPermission,
+        });
         return nextPermission;
       } catch (error) {
-        warnOnce("notification-permission-request", "Browser notification permission request failed.", {
-          reason,
-          error: normalizeErrorMessage(error),
-        });
+        warnOnce(
+          "notification-permission-request",
+          "Browser notification permission request failed.",
+          {
+            reason,
+            error: normalizeErrorMessage(error),
+          },
+        );
         return "default";
       }
     },
@@ -298,9 +326,14 @@ export function NotificationSoundManager({
         };
 
         notification.onclose = () => {
-          const activeNotification = desktopNotificationsRef.current.get(args.key);
+          const activeNotification = desktopNotificationsRef.current.get(
+            args.key,
+          );
 
-          if (!activeNotification || activeNotification.notification !== notification) {
+          if (
+            !activeNotification ||
+            activeNotification.notification !== notification
+          ) {
             return;
           }
 
@@ -319,10 +352,14 @@ export function NotificationSoundManager({
 
         return true;
       } catch (error) {
-        warnOnce(`desktop-notification:${args.key}`, "Browser notification failed to show.", {
-          error: normalizeErrorMessage(error),
-          key: args.key,
-        });
+        warnOnce(
+          `desktop-notification:${args.key}`,
+          "Browser notification failed to show.",
+          {
+            error: normalizeErrorMessage(error),
+            key: args.key,
+          },
+        );
         return false;
       }
     },
@@ -348,8 +385,7 @@ export function NotificationSoundManager({
     audioContextRef.current = nextContext;
 
     const syncAudioState = () => {
-      const nextState =
-        nextContext.state === "running" ? "ready" : "locked";
+      const nextState = nextContext.state === "running" ? "ready" : "locked";
       setAudioState(nextState);
       logDebug("audio-state", { state: nextContext.state });
     };
@@ -430,7 +466,9 @@ export function NotificationSoundManager({
         }
 
         const encodedAudio = await response.arrayBuffer();
-        const decoded = await audioContext.decodeAudioData(encodedAudio.slice(0));
+        const decoded = await audioContext.decodeAudioData(
+          encodedAudio.slice(0),
+        );
         messageSoundBufferRef.current = decoded;
         return decoded;
       } catch (error) {
@@ -453,7 +491,11 @@ export function NotificationSoundManager({
   }, [getOrCreateAudioContext, warnOnce]);
 
   const scheduleToneSequence = useCallback(
-    (sequence: ToneSpec[], soundType: "message" | "ringtone", bucket: SoundBucket) => {
+    (
+      sequence: ToneSpec[],
+      soundType: "message" | "ringtone",
+      bucket: SoundBucket,
+    ) => {
       const audioContext = getOrCreateAudioContext();
 
       if (!audioContext) {
@@ -462,15 +504,21 @@ export function NotificationSoundManager({
 
       if (audioContext.state !== "running") {
         void unlockAudio(`play:${soundType}`);
-        warnOnce(`audio-locked:${soundType}`, "Audio pipeline is still locked.", {
-          soundType,
-          state: audioContext.state,
-        });
+        warnOnce(
+          `audio-locked:${soundType}`,
+          "Audio pipeline is still locked.",
+          {
+            soundType,
+            state: audioContext.state,
+          },
+        );
         return false;
       }
 
       const cleanupBucket =
-        bucket === "ringtone" ? ringtoneCleanupRef.current : fxCleanupRef.current;
+        bucket === "ringtone"
+          ? ringtoneCleanupRef.current
+          : fxCleanupRef.current;
       const startAt = audioContext.currentTime + 0.02;
       let cursor = startAt;
       const nodes: Array<{ oscillator: OscillatorNode; gain: GainNode }> = [];
@@ -587,7 +635,10 @@ export function NotificationSoundManager({
 
       ringtoneCallIdRef.current = callId;
       ringtonePlaybackKeyRef.current = playbackKey;
-      ringtoneIntervalRef.current = window.setInterval(playBurst, ringtone.loopIntervalMs);
+      ringtoneIntervalRef.current = window.setInterval(
+        playBurst,
+        ringtone.loopIntervalMs,
+      );
       logDebug("ringtone-started", {
         callId,
         preset: ringtone.id,
@@ -601,11 +652,12 @@ export function NotificationSoundManager({
 
   const startRingtone = useCallback(
     async (callId: string, profile: PublicUser["profile"]) => {
-      const source = profile.customRingtone.fileKey ? "custom" : "builtin";
+      const source = getCurrentRingtoneMode(profile);
       const playbackKey = [
         callId,
         source,
         profile.callRingtonePreset,
+        profile.callRingtoneMode,
         profile.customRingtone.fileKey ?? "none",
         profile.updatedAt,
       ].join(":");
@@ -619,7 +671,7 @@ export function NotificationSoundManager({
 
       stopRingtone("replace");
 
-      if (!profile.customRingtone.fileKey) {
+      if (source !== "custom" || !profile.customRingtone.fileKey) {
         startBuiltInRingtone(callId, profile.callRingtonePreset, playbackKey);
         return;
       }
@@ -627,7 +679,9 @@ export function NotificationSoundManager({
       ringtonePendingKeyRef.current = playbackKey;
 
       try {
-        const blob = await apiClientFetchBlob(getCustomRingtoneApiPath(profile.updatedAt));
+        const blob = await apiClientFetchBlob(
+          getCustomRingtoneApiPath(profile.updatedAt),
+        );
 
         if (ringtonePendingKeyRef.current !== playbackKey) {
           return;
@@ -807,7 +861,8 @@ export function NotificationSoundManager({
     try {
       const debugFromSearch =
         new URLSearchParams(window.location.search).get("debugSound") === "1";
-      const debugFromStorage = window.localStorage.getItem(debugStorageKey) === "1";
+      const debugFromStorage =
+        window.localStorage.getItem(debugStorageKey) === "1";
       debugEnabledRef.current = debugFromSearch || debugFromStorage;
     } catch {
       debugEnabledRef.current = false;
@@ -834,24 +889,34 @@ export function NotificationSoundManager({
           );
           setDefaults(parsedSettings.settings.defaults);
           logDebug("notification-defaults-loaded", {
-            dmNotificationDefault: parsedSettings.settings.defaults.dmNotificationDefault,
+            dmNotificationDefault:
+              parsedSettings.settings.defaults.dmNotificationDefault,
           });
         } catch (error) {
-          warnOnce("settings-parse", "Failed to parse viewer notification settings.", {
-            error: normalizeErrorMessage(error),
-          });
+          warnOnce(
+            "settings-parse",
+            "Failed to parse viewer notification settings.",
+            {
+              error: normalizeErrorMessage(error),
+            },
+          );
         }
       } else {
-        warnOnce("settings-fetch", "Failed to load viewer notification settings.", {
-          error: normalizeErrorMessage(settingsResult.reason),
-        });
+        warnOnce(
+          "settings-fetch",
+          "Failed to load viewer notification settings.",
+          {
+            error: normalizeErrorMessage(settingsResult.reason),
+          },
+        );
       }
 
       if (conversationsResult.status === "fulfilled") {
         try {
-          const parsedConversations = directConversationListResponseSchema.parse(
-            conversationsResult.value,
-          );
+          const parsedConversations =
+            directConversationListResponseSchema.parse(
+              conversationsResult.value,
+            );
           conversationSettingsRef.current = new Map(
             parsedConversations.items.map((conversation) => [
               conversation.id,
@@ -863,14 +928,22 @@ export function NotificationSoundManager({
             count: parsedConversations.items.length,
           });
         } catch (error) {
-          warnOnce("dm-list-parse", "Failed to parse DM conversations for audio settings.", {
-            error: normalizeErrorMessage(error),
-          });
+          warnOnce(
+            "dm-list-parse",
+            "Failed to parse DM conversations for audio settings.",
+            {
+              error: normalizeErrorMessage(error),
+            },
+          );
         }
       } else {
-        warnOnce("dm-list-fetch", "Failed to load DM conversations for audio settings.", {
-          error: normalizeErrorMessage(conversationsResult.reason),
-        });
+        warnOnce(
+          "dm-list-fetch",
+          "Failed to load DM conversations for audio settings.",
+          {
+            error: normalizeErrorMessage(conversationsResult.reason),
+          },
+        );
       }
     })();
 
@@ -995,10 +1068,14 @@ export function NotificationSoundManager({
     const playbackTimer = window.setTimeout(() => {
       void playMessageSound().then((played) => {
         if (!played) {
-          warnOnce("message-playback", "Message notification sound did not start.", {
-            audioState,
-            conversationId: latestDmSignal.conversationId,
-          });
+          warnOnce(
+            "message-playback",
+            "Message notification sound did not start.",
+            {
+              audioState,
+              conversationId: latestDmSignal.conversationId,
+            },
+          );
           return;
         }
 
@@ -1034,12 +1111,9 @@ export function NotificationSoundManager({
       return;
     }
 
-    const handleMessageSoundRequest = (
-      event: Event,
-    ) => {
-      const detail = (
-        event as CustomEvent<MessageNotificationSoundEventDetail>
-      ).detail;
+    const handleMessageSoundRequest = (event: Event) => {
+      const detail = (event as CustomEvent<MessageNotificationSoundEventDetail>)
+        .detail;
 
       if (ringtoneCallIdRef.current) {
         logDebug("skip-message-ringtone-active", {
@@ -1102,7 +1176,10 @@ export function NotificationSoundManager({
         : null) ?? defaults.dmNotificationDefault;
 
     if (!notificationSettingAllowsSound(notificationSetting)) {
-      closeDesktopNotification(`call:${incomingCall.id}`, "call-muted-by-setting");
+      closeDesktopNotification(
+        `call:${incomingCall.id}`,
+        "call-muted-by-setting",
+      );
       stopRingtone("call-muted-by-setting");
       logDebug("skip-ringtone-by-setting", {
         callId: incomingCall.id,
@@ -1115,16 +1192,14 @@ export function NotificationSoundManager({
     const targetRoute = buildCallNotificationRoute(incomingCall);
     const sameCallContextVisible =
       isForeground &&
-      (
-        (incomingCall.dmConversationId &&
-          route.section === "messages" &&
-          route.conversationId === incomingCall.dmConversationId) ||
+      ((incomingCall.dmConversationId &&
+        route.section === "messages" &&
+        route.conversationId === incomingCall.dmConversationId) ||
         (incomingCall.hubId &&
           incomingCall.lobbyId &&
           route.section === "hubs" &&
           route.hubId === incomingCall.hubId &&
-          route.lobbyId === incomingCall.lobbyId)
-      );
+          route.lobbyId === incomingCall.lobbyId));
 
     if (!sameCallContextVisible) {
       const caller = incomingCall.initiatedBy;
@@ -1137,7 +1212,10 @@ export function NotificationSoundManager({
         title: "Входящий звонок",
       });
     } else {
-      closeDesktopNotification(`call:${incomingCall.id}`, "call-context-visible");
+      closeDesktopNotification(
+        `call:${incomingCall.id}`,
+        "call-context-visible",
+      );
     }
 
     void startRingtone(incomingCall.id, viewer.profile);
@@ -1160,6 +1238,7 @@ export function NotificationSoundManager({
     startRingtone,
     stopRingtone,
     viewer.profile,
+    viewer.profile.callRingtoneMode,
     viewer.profile.callRingtonePreset,
     viewer.profile.customRingtone.fileKey,
     viewer.profile.customRingtone.mimeType,
@@ -1172,9 +1251,13 @@ export function NotificationSoundManager({
     }
 
     const callNotificationKey = `call:${latestSignal.call.id}`;
-    const hasTrackedCallNotification = desktopNotificationsRef.current.has(callNotificationKey);
+    const hasTrackedCallNotification =
+      desktopNotificationsRef.current.has(callNotificationKey);
 
-    if (latestSignal.call.id !== ringtoneCallIdRef.current && !hasTrackedCallNotification) {
+    if (
+      latestSignal.call.id !== ringtoneCallIdRef.current &&
+      !hasTrackedCallNotification
+    ) {
       return;
     }
 
@@ -1196,12 +1279,9 @@ export function NotificationSoundManager({
       return;
     }
 
-    const handlePreferencesUpdate = (
-      event: Event,
-    ) => {
-      const detail = (
-        event as CustomEvent<NotificationPreferencesEventDetail>
-      ).detail;
+    const handlePreferencesUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<NotificationPreferencesEventDetail>)
+        .detail;
 
       if (!detail) {
         return;

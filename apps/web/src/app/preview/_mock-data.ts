@@ -37,6 +37,7 @@ function makeUser(args: {
         isAnimated: false,
       },
       callRingtonePreset: "CLASSIC",
+      callRingtoneMode: "BUILTIN",
       customRingtone: {
         fileKey: null,
         originalName: null,

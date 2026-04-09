@@ -71,6 +71,7 @@ export class UsersService {
             presence: input.presence,
             avatarPreset: input.avatarPreset,
             callRingtonePreset: input.callRingtonePreset,
+            callRingtoneMode: input.callRingtoneMode,
           },
         },
       },
@@ -88,6 +89,7 @@ export class UsersService {
         presence: input.presence,
         avatarPreset: input.avatarPreset,
         callRingtonePreset: input.callRingtonePreset,
+        callRingtoneMode: input.callRingtoneMode,
       },
     });
 
@@ -323,7 +325,9 @@ export class UsersService {
         select: publicUserSelect,
       });
 
-      await this.storageService.deleteObject(existingProfile.customRingtoneFileKey);
+      await this.storageService.deleteObject(
+        existingProfile.customRingtoneFileKey,
+      );
       await this.auditService.write({
         action: 'users.ringtone.upload',
         entityType: 'Profile',
@@ -344,7 +348,10 @@ export class UsersService {
     }
   }
 
-  public async removeRingtone(userId: string, requestMetadata: RequestMetadata) {
+  public async removeRingtone(
+    userId: string,
+    requestMetadata: RequestMetadata,
+  ) {
     const profile = await this.prisma.profile.findUnique({
       where: {
         userId,
@@ -369,6 +376,7 @@ export class UsersService {
             customRingtoneOriginalName: null,
             customRingtoneMimeType: null,
             customRingtoneBytes: null,
+            callRingtoneMode: 'BUILTIN',
           },
         },
       },
@@ -404,7 +412,9 @@ export class UsersService {
     }
 
     return {
-      buffer: await this.storageService.readObject(profile.customRingtoneFileKey),
+      buffer: await this.storageService.readObject(
+        profile.customRingtoneFileKey,
+      ),
       mimeType: profile.customRingtoneMimeType,
     };
   }

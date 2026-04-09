@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   avatarPresetSchema,
+  callRingtoneModeSchema,
   callRingtonePresetSchema,
   notificationSettingSchema,
   publicUserSchema,
@@ -13,6 +14,7 @@ export const updateProfileSchema = z.object({
   presence: presenceStatusSchema,
   avatarPreset: avatarPresetSchema,
   callRingtonePreset: callRingtonePresetSchema,
+  callRingtoneMode: callRingtoneModeSchema,
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
