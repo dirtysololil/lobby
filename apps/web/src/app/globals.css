@@ -1114,10 +1114,11 @@ textarea {
   padding: 1px;
   background: linear-gradient(
     100deg,
-    rgba(255, 136, 112, 0.92) 0%,
+    rgba(255, 136, 112, 0.55) 0%,
+    rgba(255, 136, 112, 0.68) 14%,
     rgba(94, 164, 255, 0.96) 38%,
     rgba(126, 109, 255, 0.92) 66%,
-    rgba(255, 45, 170, 0.96) 100%
+    rgba(255, 45, 170, 0.91) 100%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -1137,10 +1138,11 @@ textarea {
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    rgba(255, 136, 112, 0.96) 0%,
+    rgba(255, 136, 112, 0.58) 0%,
+    rgba(255, 136, 112, 0.72) 14%,
     rgba(94, 164, 255, 0.98) 38%,
     rgba(126, 109, 255, 0.94) 66%,
-    rgba(255, 45, 170, 0.98) 100%
+    rgba(255, 45, 170, 0.93) 100%
   );
   opacity: 0.98;
   -webkit-mask-image: linear-gradient(
