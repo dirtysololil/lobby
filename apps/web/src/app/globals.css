@@ -1133,7 +1133,7 @@ textarea {
   top: -1px;
   left: 18px;
   right: 18px;
-  height: 4px;
+  height: 6px;
   border-radius: 999px;
   background: linear-gradient(
     90deg,
@@ -1261,7 +1261,7 @@ textarea {
   .dm-composer-shell::after {
     left: 16px;
     right: 16px;
-    height: 3px;
+    height: 5px;
   }
 
   .dm-composer-main {
