@@ -1,6 +1,7 @@
 import cookieParser from 'cookie-parser';
 import { INestApplication } from '@nestjs/common';
 import {
+  forumTopicListResponseSchema,
   forumTopicDetailSchema,
   forumTopicResponseSchema,
   hubShellResponseSchema,
@@ -289,6 +290,122 @@ describe('Hubs and Forum (e2e)', () => {
     const topicDetail = forumTopicDetailSchema.parse(topicDetailResponse.body);
     expect(topicDetail.topic.locked).toBe(true);
     expect(topicDetail.topic.archived).toBe(true);
+  });
+
+  it('uses text lobbies as a simple chat feed', async () => {
+    await createTestUser(prisma, {
+      username: 'text_owner',
+      email: 'text_owner@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Text Owner',
+    });
+    await createTestUser(prisma, {
+      username: 'text_member',
+      email: 'text_member@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Text Member',
+    });
+
+    const ownerCookies = await loginAs(app, 'text_owner', 'VeryStrongPass123');
+    const memberCookies = await loginAs(
+      app,
+      'text_member',
+      'VeryStrongPass123',
+    );
+
+    const hubResponse = await request(httpServer)
+      .post('/v1/hubs')
+      .set('Cookie', ownerCookies)
+      .send({
+        name: 'Text Hub',
+        slug: 'text-hub',
+        description: 'Text channel testing',
+        isPrivate: false,
+      })
+      .expect(201);
+
+    const hub = hubSummarySchema.parse(hubResponse.body);
+
+    const textLobbyResponse = await request(httpServer)
+      .post(`/v1/hubs/${hub.id}/lobbies`)
+      .set('Cookie', ownerCookies)
+      .send({
+        name: 'general',
+        description: 'Main hub chat',
+        type: 'TEXT',
+        isPrivate: false,
+        allowedUsernames: [],
+      })
+      .expect(201);
+
+    const textLobby = lobbyResponseSchema.parse(textLobbyResponse.body).lobby;
+
+    await request(httpServer)
+      .post(`/v1/hubs/${hub.id}/invites`)
+      .set('Cookie', ownerCookies)
+      .send({
+        username: 'text_member',
+        expiresAt: null,
+      })
+      .expect(201);
+
+    const invitesResponse = await request(httpServer)
+      .get('/v1/hubs/invites/me')
+      .set('Cookie', memberCookies)
+      .expect(200);
+
+    const inviteId = viewerHubInvitesResponseSchema.parse(invitesResponse.body)
+      .items[0]?.id as string;
+
+    await request(httpServer)
+      .post(`/v1/hubs/invites/${inviteId}/accept`)
+      .set('Cookie', memberCookies)
+      .expect(201);
+
+    await request(httpServer)
+      .post(`/v1/forum/hubs/${hub.id}/lobbies/${textLobby.id}/topics`)
+      .set('Cookie', ownerCookies)
+      .send({
+        title: 'Первое сообщение',
+        content: 'Всем привет',
+        tags: [],
+      })
+      .expect(201);
+
+    const secondMessageResponse = await request(httpServer)
+      .post(`/v1/forum/hubs/${hub.id}/lobbies/${textLobby.id}/topics`)
+      .set('Cookie', memberCookies)
+      .send({
+        title: 'Второе сообщение',
+        content: 'Тестовый ответ',
+        tags: [],
+      })
+      .expect(201);
+
+    expect(
+      forumTopicResponseSchema.parse(secondMessageResponse.body).topic.content,
+    ).toBe('Тестовый ответ');
+
+    const listResponse = await request(httpServer)
+      .get(`/v1/forum/hubs/${hub.id}/lobbies/${textLobby.id}/topics`)
+      .set('Cookie', memberCookies)
+      .expect(200);
+
+    const items = forumTopicListResponseSchema.parse(listResponse.body).items;
+
+    expect(items).toHaveLength(2);
+    expect(items[0]?.content).toBe('Всем привет');
+    expect(items[1]?.content).toBe('Тестовый ответ');
+
+    await request(httpServer)
+      .post(
+        `/v1/forum/hubs/${hub.id}/lobbies/${textLobby.id}/topics/${items[0]?.id}/replies`,
+      )
+      .set('Cookie', memberCookies)
+      .send({
+        content: 'reply',
+      })
+      .expect(409);
   });
 
   it('allows forum topic creation only inside accessible hub lobbies', async () => {

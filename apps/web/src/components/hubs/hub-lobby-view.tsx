@@ -8,7 +8,7 @@ import {
   Mic,
   Waves,
 } from "lucide-react";
-import type { HubShell } from "@lobby/shared";
+import type { ForumTopic, HubShell } from "@lobby/shared";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
@@ -16,6 +16,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
 import { buildUserProfileHref } from "@/lib/profile-routes";
 import { HubShellBootstrap } from "./hub-shell-bootstrap";
+import { HubTextLobbyChat } from "./hub-text-lobby-chat";
 
 const DeferredLobbyCallPanel = dynamic(
   () =>
@@ -34,6 +35,7 @@ const DeferredLobbyCallPanel = dynamic(
 interface HubLobbyViewProps {
   hub: HubShell["hub"];
   lobbyId: string;
+  initialTextTopics?: ForumTopic[];
 }
 
 function getLobbySurfaceLabel(type: HubShell["hub"]["lobbies"][number]["type"]) {
@@ -56,7 +58,7 @@ function getLobbyFallbackDescription(
     case "FORUM":
       return "Темы, ответы и длинные обсуждения по хабу.";
     default:
-      return "Короткий контекст и быстрые переходы по хабу.";
+      return "Чат участников хаба.";
   }
 }
 
@@ -92,7 +94,11 @@ function QuickJumpCard({
   );
 }
 
-export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
+export function HubLobbyView({
+  hub,
+  lobbyId,
+  initialTextTopics = [],
+}: HubLobbyViewProps) {
   const lobby = hub.lobbies.find((item) => item.id === lobbyId);
 
   if (!lobby) {
@@ -282,55 +288,14 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
                 </section>
               </aside>
             </div>
-          ) : (
+          ) : lobby.type === "TEXT" ? (
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="grid min-w-0 gap-3">
-                <section className="social-shell rounded-[24px] p-4 sm:p-5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="eyebrow-pill">
-                      <Hash className="h-3.5 w-3.5" />
-                      Текстовый канал
-                    </span>
-                    <span className="status-pill">Контекст хаба</span>
-                  </div>
-
-                  <h2 className="mt-3 text-lg font-semibold tracking-[-0.04em] text-white">
-                    Короткая рабочая поверхность для навигации по хабу.
-                  </h2>
-                  <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-soft)]">
-                    Здесь удобно держать описание, быстрые переходы и соседние пространства, не раздувая хаб в лишний дашборд.
-                  </p>
-                </section>
-
-                <section className="premium-panel rounded-[24px] p-4">
-                  <div className="compact-toolbar gap-3">
-                    <div>
-                      <p className="section-kicker">Быстрые переходы</p>
-                      <p className="mt-2 text-sm text-[var(--text-dim)]">
-                        Откройте нужную поверхность хаба без возврата в общий список.
-                      </p>
-                    </div>
-                  </div>
-
-                  {relatedSpaces.length > 0 ? (
-                    <div className="mt-4 grid gap-2 xl:grid-cols-2">
-                      {relatedSpaces.map((item) => (
-                        <QuickJumpCard
-                          key={item.href}
-                          href={item.href}
-                          icon={item.icon}
-                          title={item.title}
-                          description={item.description}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      title="Соседних пространств пока нет"
-                      description="Этот канал сейчас служит основной точкой входа в хаб."
-                    />
-                  )}
-                </section>
+              <div className="min-w-0">
+                <HubTextLobbyChat
+                  hub={hub}
+                  lobby={lobby}
+                  initialTopics={initialTextTopics}
+                />
               </div>
 
               <aside className="grid content-start gap-3">
@@ -342,7 +307,7 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
                         Формат
                       </p>
                       <p className="mt-1 text-sm font-medium text-white">
-                        Текстовая поверхность
+                        Чат канала
                       </p>
                     </div>
                     <div className="surface-subtle rounded-[16px] px-3 py-2.5">
@@ -355,12 +320,34 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
                     </div>
                     <div className="surface-subtle rounded-[16px] px-3 py-2.5">
                       <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                        Связанные пространства
+                        Режим
                       </p>
                       <p className="mt-1 text-sm font-medium text-white">
-                        {relatedSpaces.length}
+                        Живая лента
                       </p>
                     </div>
+                  </div>
+                </section>
+
+                <section className="premium-panel rounded-[24px] p-4">
+                  <p className="section-kicker">Соседние пространства</p>
+                  <div className="mt-3 grid gap-2">
+                    {relatedSpaces.length > 0 ? (
+                      relatedSpaces.map((item) => (
+                        <QuickJumpCard
+                          key={item.href}
+                          href={item.href}
+                          icon={item.icon}
+                          title={item.title}
+                          description={item.description}
+                        />
+                      ))
+                    ) : (
+                      <EmptyState
+                        title="Соседних пространств пока нет"
+                        description="Этот канал сейчас служит основной точкой входа в хаб."
+                      />
+                    )}
                   </div>
                 </section>
 
@@ -397,6 +384,28 @@ export function HubLobbyView({ hub, lobbyId }: HubLobbyViewProps) {
                 </section>
               </aside>
             </div>
+          ) : (
+            <section className="premium-panel rounded-[24px] p-5">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div>
+                  <p className="section-kicker">Форум</p>
+                  <h2 className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">
+                    Это пространство открывается в режиме форума.
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-dim)]">
+                    Темы, ответы и модерация уже доступны на отдельной странице форума,
+                    чтобы длинные обсуждения не смешивались с чатом канала.
+                  </p>
+                </div>
+
+                <Link href={buildHubLobbyHref(hub.id, lobby.id, lobby.type)}>
+                  <Button size="sm">
+                    <MessageSquareQuote className="h-4 w-4" />
+                    Открыть форум
+                  </Button>
+                </Link>
+              </div>
+            </section>
           )}
         </div>
       </div>

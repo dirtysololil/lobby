@@ -57,8 +57,8 @@ export class ForumService {
       lobbyId,
     );
 
-    if (lobby.type !== LobbyType.FORUM) {
-      throw new ConflictException('Lobby is not a forum lobby');
+    if (![LobbyType.FORUM, LobbyType.TEXT].includes(lobby.type)) {
+      throw new ConflictException('Lobby does not support discussion feed');
     }
 
     const topics = await this.prisma.forumTopic.findMany({
@@ -67,14 +67,21 @@ export class ForumService {
         lobbyId,
       },
       include: forumTopicInclude,
-      orderBy: [
-        {
-          pinned: 'desc',
-        },
-        {
-          lastActivityAt: 'desc',
-        },
-      ],
+      orderBy:
+        lobby.type === LobbyType.TEXT
+          ? [
+              {
+                createdAt: 'asc',
+              },
+            ]
+          : [
+              {
+                pinned: 'desc',
+              },
+              {
+                lastActivityAt: 'desc',
+              },
+            ],
     });
 
     return topics.map((topic) => toForumTopic(topic));
@@ -98,8 +105,8 @@ export class ForumService {
       lobbyId,
     );
 
-    if (lobby.type !== LobbyType.FORUM) {
-      throw new ConflictException('Lobby is not a forum lobby');
+    if (![LobbyType.FORUM, LobbyType.TEXT].includes(lobby.type)) {
+      throw new ConflictException('Lobby does not support discussion feed');
     }
 
     const topic = await this.prisma.$transaction(async (transaction) => {
@@ -221,11 +228,22 @@ export class ForumService {
     input: CreateForumReplyInput,
     requestMetadata: RequestMetadata,
   ) {
+    const lobby = await this.hubsService.getAccessibleLobbyOrThrow(
+      actor.id,
+      hubId,
+      lobbyId,
+    );
     await this.hubsService.assertCanCreateForumContent(
       actor.id,
       hubId,
       lobbyId,
     );
+
+    if (lobby.type !== LobbyType.FORUM) {
+      throw new ConflictException(
+        'Lobby does not support threaded discussions',
+      );
+    }
 
     const topic = await this.prisma.forumTopic.findFirst({
       where: {
@@ -296,7 +314,17 @@ export class ForumService {
     requestMetadata: RequestMetadata,
   ) {
     await this.hubsService.assertCanModerateForum(actor.id, hubId);
-    await this.hubsService.getAccessibleLobbyOrThrow(actor.id, hubId, lobbyId);
+    const lobby = await this.hubsService.getAccessibleLobbyOrThrow(
+      actor.id,
+      hubId,
+      lobbyId,
+    );
+
+    if (lobby.type !== LobbyType.FORUM) {
+      throw new ConflictException(
+        'Lobby does not support threaded discussions',
+      );
+    }
 
     if (
       input.pinned === undefined &&
