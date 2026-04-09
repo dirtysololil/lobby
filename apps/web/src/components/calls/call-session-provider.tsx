@@ -2253,33 +2253,43 @@ export function CallRoomCanvas({
   const pendingScreenShareStage =
     !screenTrackToRender &&
     (screenShareEnabled || participants.some((participant) => participant.hasScreenShare));
+  const hasVisualStage = Boolean(primaryTrack) || pendingScreenShareStage;
   const screenShareVisible = Boolean(screenTrackToRender) || pendingScreenShareStage;
+  const resolvedScreenFitMode = screenShareVisible ? screenFitMode : "contain";
+  const resolvedScreenStageExpanded = screenShareVisible ? isScreenStageExpanded : false;
+  const resolvedScreenFocusMode =
+    screenShareVisible && !isConversation ? isScreenFocusMode : false;
+  const resolvedSecondaryPanelsVisible = screenShareVisible
+    ? isConversation
+      ? false
+      : secondaryPanelsVisible
+    : true;
   const stageExpanded =
-    screenShareVisible && (isConversation || isScreenStageExpanded || isScreenFocusMode);
-  const showFocusedStage = !isConversation && screenShareVisible && isScreenFocusMode;
+    screenShareVisible &&
+    (isConversation || resolvedScreenStageExpanded || resolvedScreenFocusMode);
+  const showFocusedStage = !isConversation && screenShareVisible && resolvedScreenFocusMode;
   const showConversationPanels =
-    !isConversation || !screenShareVisible || secondaryPanelsVisible;
+    !isConversation || !screenShareVisible || resolvedSecondaryPanelsVisible;
+  const rootPanelClassName = isConversation
+    ? "shrink-0 rounded-[20px] p-2.5"
+    : hasVisualStage
+      ? "flex-1 rounded-[24px] p-3"
+      : "rounded-[24px] p-3";
+  const stageLayoutClassName = showFocusedStage
+    ? "grid-cols-1"
+    : isConversation
+      ? showConversationPanels
+        ? "lg:grid-cols-[minmax(0,1fr)_248px]"
+        : "grid-cols-1"
+      : hasVisualStage
+        ? screenShareVisible
+          ? "flex-1 xl:grid-cols-[minmax(0,1.32fr)_288px]"
+          : "flex-1 xl:grid-cols-[minmax(0,1fr)_304px]"
+        : "xl:grid-cols-[minmax(0,1fr)_304px]";
 
   const stageSubtitle = screenShareVisible
     ? "Идёт показ экрана."
     : description;
-
-  useEffect(() => {
-    if (!activeSession || !screenShareVisible) {
-      setIsScreenStageExpanded(false);
-      setIsScreenFocusMode(false);
-      setSecondaryPanelsVisible(true);
-      setScreenFitMode("contain");
-      return;
-    }
-
-    setScreenFitMode("contain");
-
-    if (isConversation) {
-      setIsScreenFocusMode(false);
-      setSecondaryPanelsVisible(false);
-    }
-  }, [activeSession, isConversation, screenShareVisible]);
 
   useEffect(() => {
     logScreenShareDebug("call-room-canvas-state", {
@@ -2346,7 +2356,7 @@ export function CallRoomCanvas({
     <div
       className={cn(
         "premium-panel flex min-h-0 flex-col overflow-hidden",
-        isConversation ? "shrink-0 rounded-[20px] p-2.5" : "flex-1 rounded-[24px] p-3",
+        rootPanelClassName,
       )}
     >
       {isConversation ? (
@@ -2404,14 +2414,14 @@ export function CallRoomCanvas({
               <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
                 <Button
                   size="sm"
-                  variant={screenFitMode === "cover" ? "secondary" : "ghost"}
+                  variant={resolvedScreenFitMode === "cover" ? "secondary" : "ghost"}
                   onClick={() => setScreenFitMode("cover")}
                 >
                   Заполнить
                 </Button>
                 <Button
                   size="sm"
-                  variant={screenFitMode === "contain" ? "secondary" : "ghost"}
+                  variant={resolvedScreenFitMode === "contain" ? "secondary" : "ghost"}
                   onClick={() => setScreenFitMode("contain")}
                 >
                   Вписать
@@ -2421,15 +2431,15 @@ export function CallRoomCanvas({
             {screenShareVisible ? (
               <Button
                 size="sm"
-                variant={secondaryPanelsVisible ? "secondary" : "ghost"}
+                variant={resolvedSecondaryPanelsVisible ? "secondary" : "ghost"}
                 onClick={() => setSecondaryPanelsVisible((current) => !current)}
               >
-                {secondaryPanelsVisible ? (
+                {resolvedSecondaryPanelsVisible ? (
                   <PanelRightOpen size={15} strokeWidth={1.5} />
                 ) : (
                   <PanelRightClose size={15} strokeWidth={1.5} />
                 )}
-                {secondaryPanelsVisible ? "Скрыть панели" : "Панели"}
+                {resolvedSecondaryPanelsVisible ? "Скрыть панели" : "Панели"}
               </Button>
             ) : null}
             <Button
@@ -2530,15 +2540,7 @@ export function CallRoomCanvas({
       <div
         className={cn(
           isConversation ? "mt-2.5 grid min-h-0 gap-2.5" : "mt-3 grid min-h-0 gap-3",
-          showFocusedStage
-            ? "grid-cols-1"
-            : isConversation
-            ? showConversationPanels
-              ? "lg:grid-cols-[minmax(0,1fr)_248px]"
-              : "grid-cols-1"
-            : screenShareVisible
-              ? "flex-1 xl:grid-cols-[minmax(0,1.32fr)_288px]"
-              : "flex-1 xl:grid-cols-[minmax(0,1fr)_304px]",
+          stageLayoutClassName,
         )}
       >
         <div className={cn("min-h-0", isConversation ? "space-y-2.5" : "space-y-3")}>
@@ -2552,14 +2554,14 @@ export function CallRoomCanvas({
                 <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
                   <Button
                     size="sm"
-                    variant={screenFitMode === "cover" ? "secondary" : "ghost"}
+                    variant={resolvedScreenFitMode === "cover" ? "secondary" : "ghost"}
                     onClick={() => setScreenFitMode("cover")}
                   >
                     Заполнить
                   </Button>
                   <Button
                     size="sm"
-                    variant={screenFitMode === "contain" ? "secondary" : "ghost"}
+                    variant={resolvedScreenFitMode === "contain" ? "secondary" : "ghost"}
                     onClick={() => setScreenFitMode("contain")}
                   >
                     Вписать
@@ -2567,15 +2569,15 @@ export function CallRoomCanvas({
                 </div>
                 <Button
                   size="sm"
-                  variant={isScreenStageExpanded ? "secondary" : "ghost"}
+                  variant={resolvedScreenStageExpanded ? "secondary" : "ghost"}
                   onClick={() => setIsScreenStageExpanded((current) => !current)}
                 >
-                  {isScreenStageExpanded ? (
+                  {resolvedScreenStageExpanded ? (
                     <Minimize2 size={15} strokeWidth={1.5} />
                   ) : (
                     <Maximize2 size={15} strokeWidth={1.5} />
                   )}
-                  {isScreenStageExpanded ? "Сжать сцену" : "Развернуть сцену"}
+                  {resolvedScreenStageExpanded ? "Сжать сцену" : "Развернуть сцену"}
                 </Button>
                 <Button
                   size="sm"
@@ -2605,13 +2607,21 @@ export function CallRoomCanvas({
             </div>
           ) : null}
 
-          <div ref={stageHostRef} className={cn("min-h-0", isStageFullscreen && "bg-[#05080d] p-3")}>
+          <div
+            ref={stageHostRef}
+            className={cn(
+              "min-h-0",
+              isStageFullscreen && hasVisualStage && "bg-[#05080d] p-3",
+            )}
+          >
             {primaryTrack ? (
               <TrackSurface
                 item={primaryTrack}
                 emphasis={isConversation ? "conversation" : "stage"}
                 expanded={stageExpanded}
-                screenFitMode={isScreenShareTrack(primaryTrack) ? screenFitMode : "contain"}
+                screenFitMode={
+                  isScreenShareTrack(primaryTrack) ? resolvedScreenFitMode : "contain"
+                }
               />
             ) : pendingScreenShareStage ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[20px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_30%),rgba(8,12,18,0.94)] px-5 text-center">
@@ -2656,11 +2666,11 @@ export function CallRoomCanvas({
                   variant="secondary"
                   onClick={() => setSecondaryPanelsVisible((current) => !current)}
                 >
-                  {secondaryPanelsVisible ? "Скрыть панели" : "Показать панели"}
+                  {resolvedSecondaryPanelsVisible ? "Скрыть панели" : "Показать панели"}
                 </Button>
               </div>
 
-              {secondaryPanelsVisible ? (
+              {resolvedSecondaryPanelsVisible ? (
                 <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
                   <AudioAndDeviceCard />
                   <ParticipantsCard

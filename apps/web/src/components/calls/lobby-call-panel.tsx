@@ -14,12 +14,9 @@ import {
   CompactListRow,
 } from "@/components/ui/compact-list";
 import { Button } from "@/components/ui/button";
-import { PresenceIndicator } from "@/components/ui/presence-indicator";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import {
   callModeLabels,
-  callParticipantStateLabels,
   callStatusLabels,
 } from "@/lib/ui-labels";
 import { LiveKitCallRoom } from "./livekit-call-room";
@@ -217,13 +214,6 @@ export function LobbyCallPanel({
         .slice(0, 4),
     [activeCall?.id, state?.history],
   );
-  const currentParticipants = useMemo(
-    () =>
-      activeCall?.participants.filter((participant) =>
-        ["ACCEPTED", "JOINED"].includes(participant.state),
-      ) ?? [],
-    [activeCall?.participants],
-  );
 
   function formatHistoryDate(call: CallSummary) {
     return new Date(call.endedAt ?? call.acceptedAt ?? call.createdAt).toLocaleString(
@@ -364,43 +354,6 @@ export function LobbyCallPanel({
           </div>
         </section>
       )}
-
-      <section className="premium-panel overflow-hidden rounded-[22px]">
-        <div className="px-4 py-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium tracking-tight text-white">
-              Участники сейчас
-            </p>
-            <CompactListCount>{currentParticipants.length}</CompactListCount>
-          </div>
-        </div>
-
-        {currentParticipants.length === 0 ? (
-          <div className="px-4 pb-4 text-sm text-[var(--text-dim)]">
-            Комната свободна. Откройте её, чтобы пригласить людей в созвон.
-          </div>
-        ) : (
-          <CompactList>
-            {currentParticipants.map((participant) => (
-              <CompactListRow key={participant.user.id} compact className="gap-3">
-                <UserAvatar user={participant.user} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-white">
-                      {participant.user.profile.displayName}
-                    </p>
-                    <PresenceIndicator user={participant.user} compact />
-                  </div>
-                  <p className="truncate text-xs text-[var(--text-muted)]">
-                    @{participant.user.username} ·{" "}
-                    {callParticipantStateLabels[participant.state]}
-                  </p>
-                </div>
-              </CompactListRow>
-            ))}
-          </CompactList>
-        )}
-      </section>
 
       <section className="premium-panel overflow-hidden rounded-[22px]">
         <div className="px-4 py-3.5">

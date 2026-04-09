@@ -86,10 +86,11 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
               <h1 className="mt-2 truncate text-lg font-semibold tracking-tight text-white">
                 {hub.name}
               </h1>
-              <p className="mt-1 line-clamp-1 text-sm text-[var(--text-dim)]">
-                {hub.description?.trim() ||
-                  "Общее пространство для каналов, встреч и быстрых переходов по хабу."}
-              </p>
+              {hub.description?.trim() ? (
+                <p className="mt-1 line-clamp-1 text-sm text-[var(--text-dim)]">
+                  {hub.description.trim()}
+                </p>
+              ) : null}
             </div>
           </section>
 

@@ -1,6 +1,7 @@
 import { HubLobbyView } from "@/components/hubs/hub-lobby-view";
-import { hubShellResponseSchema } from "@lobby/shared";
+import { forumTopicListResponseSchema } from "@lobby/shared";
 import { fetchServerApi } from "@/lib/server-api";
+import { fetchServerHub } from "@/lib/server-hub";
 
 interface HubLobbyPageProps {
   params: Promise<{
@@ -11,8 +12,20 @@ interface HubLobbyPageProps {
 
 export default async function HubLobbyPage({ params }: HubLobbyPageProps) {
   const { hubId, lobbyId } = await params;
-  const payload = await fetchServerApi(`/v1/hubs/${hubId}`);
-  const hub = hubShellResponseSchema.parse(payload).hub;
+  const hub = await fetchServerHub(hubId);
+  const lobby = hub.lobbies.find((item) => item.id === lobbyId);
+  const initialTextTopics =
+    lobby?.type === "TEXT"
+      ? forumTopicListResponseSchema.parse(
+          await fetchServerApi(`/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics`),
+        ).items
+      : [];
 
-  return <HubLobbyView hub={hub} lobbyId={lobbyId} />;
+  return (
+    <HubLobbyView
+      hub={hub}
+      lobbyId={lobbyId}
+      initialTextTopics={initialTextTopics}
+    />
+  );
 }
