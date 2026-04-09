@@ -350,24 +350,44 @@ export function ProfileRingtoneSettings({
         </div>
 
         <div className="rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white">
-                {hasCustomRingtone
-                  ? viewer.profile.customRingtone.originalName || "Свой рингтон"
-                  : "Свой рингтон не загружен"}
-              </p>
-              <p className="mt-1 text-xs text-[var(--text-dim)]">
-                {hasCustomRingtone
-                  ? [viewer.profile.customRingtone.mimeType, customRingtoneSize]
-                      .filter(Boolean)
-                      .join(" • ")
-                  : "Если файл сохранён, он автоматически становится активным для входящих звонков."}
-              </p>
+          <div className="grid gap-3">
+            <div className="flex items-start gap-3 rounded-[18px] border border-white/8 bg-white/[0.04] px-3.5 py-3.5">
+              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-[var(--text-soft)]">
+                <Upload size={17} strokeWidth={1.6} />
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium text-white">Свой рингтон</p>
+                  <span
+                    className={cn(
+                      "inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                      hasCustomRingtone
+                        ? "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-white"
+                        : "border-white/8 bg-white/[0.04] text-[var(--text-soft)]",
+                    )}
+                  >
+                    {hasCustomRingtone ? "Активен" : "Пока нет файла"}
+                  </span>
+                </div>
+
+                <p className="mt-2 break-all text-[13px] font-medium leading-5 text-white">
+                  {hasCustomRingtone
+                    ? viewer.profile.customRingtone.originalName || "Свой рингтон"
+                    : "Загрузите MP3, WAV, OGG или M4A, и этот файл станет вашим рингтоном для входящих звонков."}
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-dim)]">
+                  {hasCustomRingtone
+                    ? [viewer.profile.customRingtone.mimeType, customRingtoneSize]
+                        .filter(Boolean)
+                        .join(" • ")
+                    : `До ${maxRingtoneMb} MB`}
+                </p>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.05] px-3 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
+            <div className="grid gap-2">
+              <label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.05] px-3.5 text-center text-sm font-medium leading-4 text-white transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
                 <input
                   type="file"
                   accept={ringtoneUploadAccept}
@@ -380,35 +400,37 @@ export function ProfileRingtoneSettings({
                   }}
                 />
                 <Upload size={16} strokeWidth={1.6} />
-                {isUploading ? "Загружаем..." : "Загрузить файл"}
+                {isUploading ? "Загружаем..." : hasCustomRingtone ? "Заменить файл" : "Загрузить файл"}
               </label>
 
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={!hasCustomRingtone}
-                onClick={() => void toggleCustomPreview()}
-                className="h-10 rounded-[14px] border-white/8 bg-white/[0.05] px-3 hover:bg-white/[0.09]"
-              >
-                {activePreviewKey === "custom" ? (
-                  <Square size={14} strokeWidth={1.8} />
-                ) : (
-                  <Play size={14} strokeWidth={1.8} />
-                )}
-                {activePreviewKey === "custom" ? "Стоп" : "Слушать"}
-              </Button>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={!hasCustomRingtone}
+                  onClick={() => void toggleCustomPreview()}
+                  className="h-10 w-full rounded-[14px] border-white/8 bg-white/[0.05] px-3 hover:bg-white/[0.09]"
+                >
+                  {activePreviewKey === "custom" ? (
+                    <Square size={14} strokeWidth={1.8} />
+                  ) : (
+                    <Play size={14} strokeWidth={1.8} />
+                  )}
+                  {activePreviewKey === "custom" ? "Стоп" : "Слушать"}
+                </Button>
 
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={!hasCustomRingtone || isRemoving}
-                onClick={() => void onRemove()}
-                className="h-10 rounded-[14px] border-white/8 bg-white/[0.05] px-3 hover:bg-white/[0.09]"
-              >
-                <Trash2 size={15} strokeWidth={1.6} />
-                {isRemoving ? "Удаляем..." : "Удалить"}
-              </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!hasCustomRingtone || isRemoving}
+                  onClick={() => void onRemove()}
+                  className="h-10 w-full rounded-[14px] border-white/8 bg-white/[0.05] px-3 hover:bg-white/[0.09]"
+                >
+                  <Trash2 size={15} strokeWidth={1.6} />
+                  {isRemoving ? "Удаляем..." : "Удалить"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

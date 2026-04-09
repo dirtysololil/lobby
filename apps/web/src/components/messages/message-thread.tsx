@@ -2,7 +2,14 @@
 
 import type { CustomEmojiAsset, DirectConversationDetail } from "@lobby/shared";
 import { AlertCircle, MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -42,12 +49,17 @@ interface MessageThreadProps {
 }
 
 type ThreadGroup = { label: string; items: ThreadMessageItem[] };
-type ContextMenuState = { messageId: string; x: number; y: number };
+type ContextMenuState =
+  | { mode: "floating"; messageId: string; x: number; y: number }
+  | { mode: "sheet"; messageId: string };
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 const contextMenuWidth = 196;
 const contextMenuMargin = 12;
 const pendingEmbedStaleAfterMs = 60_000;
+const mobileViewportQuery = "(max-width: 767px)";
+const mobileActionPressDelayMs = 420;
+const mobileActionMoveThresholdPx = 14;
 
 function isContinuation(
   previousMessage: ThreadMessageItem | undefined,
@@ -141,6 +153,32 @@ function clampContextMenuPosition(x: number, y: number) {
   };
 }
 
+function buildMessageActionPreview(message: ThreadMessageItem) {
+  const content = message.content?.trim();
+
+  if (content) {
+    return content;
+  }
+
+  if (message.type === "STICKER") {
+    return message.sticker?.title ? `Стикер: ${message.sticker.title}` : "Стикер";
+  }
+
+  if (message.type === "GIF") {
+    return message.gif?.title ? `GIF: ${message.gif.title}` : "GIF";
+  }
+
+  if (message.type === "MEDIA" && message.attachment) {
+    return message.attachment.kind === "VIDEO" ? "Видео" : "Фото";
+  }
+
+  if (message.type === "FILE" && message.attachment) {
+    return message.attachment.originalName || "Файл";
+  }
+
+  return "Сообщение";
+}
+
 export function MessageThread({
   viewerId,
   messages,
@@ -153,8 +191,17 @@ export function MessageThread({
 }: MessageThreadProps) {
   const [mounted, setMounted] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [pendingEmbedTick, setPendingEmbedTick] = useState(0);
   const messageElementRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressPointerRef = useRef<{
+    messageId: string;
+    pointerId: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
+  const suppressNextClickMessageIdRef = useRef<string | null>(null);
   const groupedMessages = useMemo(
     () =>
       messages.reduce<ThreadGroup[]>(
@@ -192,6 +239,9 @@ export function MessageThread({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const didInitScrollRef = useRef(false);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const contextMenuMessage = contextMenu
+    ? messages.find((message) => message.id === contextMenu.messageId) ?? null
+    : null;
   const matchingMessageIds = useMemo(() => {
     if (!normalizedSearchQuery) {
       return new Set<string>();
@@ -209,6 +259,33 @@ export function MessageThread({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(mobileViewportQuery);
+    const syncViewport = () => {
+      setIsMobileViewport(mediaQuery.matches);
+    };
+
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncViewport);
+    };
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -362,14 +439,118 @@ export function MessageThread({
     };
   }, [contextMenu]);
 
-  function openContextMenu(messageId: string, x: number, y: number) {
+  function clearPendingMobileAction() {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    longPressPointerRef.current = null;
+  }
+
+  function openDesktopContextMenu(messageId: string, x: number, y: number) {
     const position = clampContextMenuPosition(x, y);
 
     setContextMenu({
+      mode: "floating",
       messageId,
       x: position.x,
       y: position.y,
     });
+  }
+
+  function openMobileActionSheet(messageId: string) {
+    setContextMenu({
+      mode: "sheet",
+      messageId,
+    });
+  }
+
+  function handleMessageContextMenu(
+    event: ReactMouseEvent<HTMLDivElement>,
+    messageId: string,
+    canManageMessage: boolean,
+  ) {
+    if (!canManageMessage) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (isMobileViewport) {
+      return;
+    }
+
+    openDesktopContextMenu(messageId, event.clientX, event.clientY);
+  }
+
+  function handleMessagePointerDown(
+    event: ReactPointerEvent<HTMLDivElement>,
+    messageId: string,
+    canManageMessage: boolean,
+  ) {
+    if (
+      !isMobileViewport ||
+      !canManageMessage ||
+      event.pointerType === "mouse" ||
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    clearPendingMobileAction();
+
+    longPressPointerRef.current = {
+      messageId,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+    longPressTimerRef.current = window.setTimeout(() => {
+      suppressNextClickMessageIdRef.current = messageId;
+      openMobileActionSheet(messageId);
+      clearPendingMobileAction();
+    }, mobileActionPressDelayMs);
+  }
+
+  function handleMessagePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const activePointer = longPressPointerRef.current;
+
+    if (!activePointer || activePointer.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const distance = Math.hypot(
+      event.clientX - activePointer.startX,
+      event.clientY - activePointer.startY,
+    );
+
+    if (distance > mobileActionMoveThresholdPx) {
+      clearPendingMobileAction();
+    }
+  }
+
+  function handleMessagePointerEnd(event: ReactPointerEvent<HTMLDivElement>) {
+    const activePointer = longPressPointerRef.current;
+
+    if (!activePointer || activePointer.pointerId !== event.pointerId) {
+      return;
+    }
+
+    clearPendingMobileAction();
+  }
+
+  function handleMessageClickCapture(
+    event: ReactMouseEvent<HTMLDivElement>,
+    messageId: string,
+  ) {
+    if (suppressNextClickMessageIdRef.current !== messageId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    suppressNextClickMessageIdRef.current = null;
   }
 
   async function handleDeleteFromMenu(messageId: string) {
@@ -378,28 +559,83 @@ export function MessageThread({
   }
 
   const contextMenuMarkup =
-    mounted && contextMenu
+    mounted && contextMenu && contextMenuMessage
       ? createPortal(
-          <div
-            data-dm-context-menu="true"
-            className="fixed z-[90] w-[196px] rounded-[14px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-1.5 shadow-[0_18px_40px_rgba(2,6,12,0.42)]"
-            style={{
-              left: contextMenu.x,
-              top: contextMenu.y,
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => void handleDeleteFromMenu(contextMenu.messageId)}
-              disabled={isDeleting === contextMenu.messageId}
-              className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-rose-100 transition-colors hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+          contextMenu.mode === "sheet" ? (
+            <div className="fixed inset-0 z-[92] md:hidden">
+              <button
+                type="button"
+                aria-label="Закрыть действия с сообщением"
+                onClick={() => setContextMenu(null)}
+                className="absolute inset-0 bg-[rgba(3,6,12,0.72)] backdrop-blur-[3px]"
+              />
+              <div
+                data-dm-context-menu="true"
+                className="absolute inset-x-3 bottom-[calc(var(--app-mobile-dock-clearance)+0.5rem)] rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_22%),rgba(11,17,24,0.98)] px-3 pb-3 pt-2.5 shadow-[0_22px_48px_rgba(2,6,12,0.52)]"
+              >
+                <div className="mx-auto mb-3 h-1 w-11 rounded-full bg-white/10" />
+
+                <div className="rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium tracking-tight text-white">
+                      Действия с сообщением
+                    </p>
+                    <span className="text-[11px] text-[var(--text-muted)]">
+                      {formatThreadTime(contextMenuMessage.createdAt)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    {formatThreadDate(contextMenuMessage.createdAt)}
+                  </p>
+                  <p className="mt-2 max-h-[4.5rem] overflow-hidden text-sm leading-6 text-[var(--text-soft)]">
+                    {buildMessageActionPreview(contextMenuMessage)}
+                  </p>
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteFromMenu(contextMenu.messageId)}
+                    disabled={isDeleting === contextMenu.messageId}
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] border border-rose-400/18 bg-[linear-gradient(180deg,rgba(255,92,122,0.22),rgba(255,92,122,0.14))] px-4 text-sm font-medium text-rose-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-rose-300/24 hover:bg-[linear-gradient(180deg,rgba(255,92,122,0.28),rgba(255,92,122,0.18))] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Trash2 size={18} strokeWidth={1.7} />
+                    {isDeleting === contextMenu.messageId
+                      ? "Удаляем..."
+                      : "Удалить сообщение"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContextMenu(null)}
+                    className="flex min-h-11 w-full items-center justify-center rounded-[16px] border border-white/8 bg-white/[0.04] px-4 text-sm text-[var(--text-soft)] transition-colors hover:bg-white/[0.06]"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              data-dm-context-menu="true"
+              className="fixed z-[90] hidden w-[196px] rounded-[14px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-1.5 shadow-[0_18px_40px_rgba(2,6,12,0.42)] md:block"
+              style={{
+                left: contextMenu.x,
+                top: contextMenu.y,
+              }}
             >
-              <Trash2 size={16} strokeWidth={1.5} />
-              {isDeleting === contextMenu.messageId
-                ? "Удаляем..."
-                : "Удалить сообщение"}
-            </button>
-          </div>,
+              <button
+                type="button"
+                onClick={() => void handleDeleteFromMenu(contextMenu.messageId)}
+                disabled={isDeleting === contextMenu.messageId}
+                className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-rose-100 transition-colors hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 size={16} strokeWidth={1.5} />
+                {isDeleting === contextMenu.messageId
+                  ? "Удаляем..."
+                  : "Удалить сообщение"}
+              </button>
+            </div>
+          ),
           document.body,
         )
       : null;
@@ -507,13 +743,18 @@ export function MessageThread({
                           continuation && "mt-[-1px]",
                           isOwn && "flex-row-reverse",
                         )}
-                        onContextMenu={
-                          canManageMessage
-                            ? (event) => {
-                                event.preventDefault();
-                                openContextMenu(message.id, event.clientX, event.clientY);
-                              }
-                            : undefined
+                        onContextMenu={(event) =>
+                          handleMessageContextMenu(event, message.id, canManageMessage)
+                        }
+                        onPointerDown={(event) =>
+                          handleMessagePointerDown(event, message.id, canManageMessage)
+                        }
+                        onPointerMove={handleMessagePointerMove}
+                        onPointerUp={handleMessagePointerEnd}
+                        onPointerCancel={handleMessagePointerEnd}
+                        onPointerLeave={handleMessagePointerEnd}
+                        onClickCapture={(event) =>
+                          handleMessageClickCapture(event, message.id)
                         }
                       >
                         <div className="w-8 shrink-0">
@@ -583,7 +824,7 @@ export function MessageThread({
                                   event.preventDefault();
                                   event.stopPropagation();
                                   const rect = event.currentTarget.getBoundingClientRect();
-                                  openContextMenu(
+                                  openDesktopContextMenu(
                                     message.id,
                                     rect.right - contextMenuWidth,
                                     rect.bottom + 6,
@@ -591,7 +832,7 @@ export function MessageThread({
                                 }}
                                 disabled={isDeleting === message.id}
                                 className={cn(
-                                  "dm-action-button absolute -left-9 top-1/2 h-7 w-7 -translate-y-1/2 opacity-100 focus-visible:opacity-100 md:opacity-0 disabled:cursor-not-allowed disabled:opacity-50",
+                                  "dm-action-button absolute -left-9 top-1/2 hidden h-7 w-7 -translate-y-1/2 opacity-0 focus-visible:opacity-100 md:inline-flex disabled:cursor-not-allowed disabled:opacity-50",
                                   (isContextMenuOpen || isDeleting === message.id) &&
                                     "opacity-100",
                                   "md:group-hover/message:opacity-100",
