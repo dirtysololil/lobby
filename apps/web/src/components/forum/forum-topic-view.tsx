@@ -15,12 +15,16 @@ import {
   forumTopicResponseSchema,
   type HubShell,
 } from "@lobby/shared";
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { HubShellBootstrap } from "@/components/hubs/hub-shell-bootstrap";
 import { apiClientFetch } from "@/lib/api-client";
+import {
+  notificationSettingAllowsSound,
+  requestMessageNotificationSound,
+} from "@/lib/message-notification-sound";
 import { buildUserProfileHref } from "@/lib/profile-routes";
 
 interface ForumTopicViewProps {
@@ -47,6 +51,8 @@ export function ForumTopicView({
   topicId,
   initialTopic,
 }: ForumTopicViewProps) {
+  const lobby = hub.lobbies.find((item) => item.id === lobbyId) ?? null;
+  const knownReplyIdsRef = useRef(new Set(initialTopic.replies.map((reply) => reply.id)));
   const [topic, setTopic] = useState<
     ReturnType<typeof forumTopicDetailSchema.parse>["topic"] | null
   >(initialTopic);
@@ -54,19 +60,46 @@ export function ForumTopicView({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [actionKey, setActionKey] = useState<string | null>(null);
 
-  const loadTopic = useCallback(async () => {
+  const loadTopic = useCallback(async (options?: { silent?: boolean }) => {
     try {
       const topicPayload = await apiClientFetch(
         `/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics/${topicId}`,
       );
-      setTopic(forumTopicDetailSchema.parse(topicPayload).topic);
+      const nextTopic = forumTopicDetailSchema.parse(topicPayload).topic;
+      const previousReplyIds = knownReplyIdsRef.current;
+      const hasNewReplies =
+        options?.silent &&
+        notificationSettingAllowsSound(lobby?.notificationSetting ?? hub.notificationSetting) &&
+        nextTopic.replies.some((reply) => !previousReplyIds.has(reply.id));
+
+      setTopic(nextTopic);
+      knownReplyIdsRef.current = new Set(nextTopic.replies.map((reply) => reply.id));
       setErrorMessage(null);
+
+      if (hasNewReplies) {
+        requestMessageNotificationSound({ source: "forum-topic" });
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось загрузить тему.",
       );
     }
-  }, [hubId, lobbyId, topicId]);
+  }, [hub.notificationSetting, hubId, lobby?.notificationSetting, lobbyId, topicId]);
+
+  useEffect(() => {
+    setTopic(initialTopic);
+    knownReplyIdsRef.current = new Set(initialTopic.replies.map((reply) => reply.id));
+  }, [initialTopic, topicId]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void loadTopic({ silent: true });
+    }, 10_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadTopic]);
 
   async function handleReply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,7 +112,7 @@ export function ForumTopicView({
       );
       forumReplyResponseSchema.parse(payload);
       setReplyContent("");
-      await loadTopic();
+      await loadTopic({ silent: true });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось отправить ответ.",
@@ -101,7 +134,7 @@ export function ForumTopicView({
         { method: "PATCH", body: JSON.stringify({ [key]: value }) },
       );
       forumTopicResponseSchema.parse(payload);
-      await loadTopic();
+      await loadTopic({ silent: true });
     } catch (error) {
       setErrorMessage(
         error instanceof Error

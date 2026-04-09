@@ -13,6 +13,10 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
+import {
+  notificationSettingAllowsSound,
+  requestMessageNotificationSound,
+} from "@/lib/message-notification-sound";
 import { buildUserProfileHref } from "@/lib/profile-routes";
 import { HubMemberRoleBadge } from "./hub-member-role-badge";
 
@@ -48,6 +52,7 @@ export function HubTextLobbyChat({
 }: HubTextLobbyChatProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const shouldStickToBottomRef = useRef(true);
+  const knownTopicIdsRef = useRef(new Set(initialTopics.map((topic) => topic.id)));
   const [topics, setTopics] = useState<ForumTopic[]>(initialTopics);
   const [draft, setDraft] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -72,6 +77,7 @@ export function HubTextLobbyChat({
     setDraft("");
     setErrorMessage(null);
     shouldStickToBottomRef.current = true;
+    knownTopicIdsRef.current = new Set(initialTopics.map((topic) => topic.id));
   }, [initialTopics, lobby.id]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -97,8 +103,20 @@ export function HubTextLobbyChat({
         const payload = await apiClientFetch(
           `/v1/forum/hubs/${hub.id}/lobbies/${lobby.id}/topics`,
         );
-        setTopics(forumTopicListResponseSchema.parse(payload).items);
+        const nextTopics = forumTopicListResponseSchema.parse(payload).items;
+        const previousTopicIds = knownTopicIdsRef.current;
+        const hasNewTopics =
+          options?.silent &&
+          notificationSettingAllowsSound(lobby.notificationSetting) &&
+          nextTopics.some((topic) => !previousTopicIds.has(topic.id));
+
+        setTopics(nextTopics);
+        knownTopicIdsRef.current = new Set(nextTopics.map((topic) => topic.id));
         setErrorMessage(null);
+
+        if (hasNewTopics) {
+          requestMessageNotificationSound({ source: "hub-text" });
+        }
       } catch (error) {
         setErrorMessage(
           error instanceof Error ? error.message : "Не удалось загрузить чат канала.",
@@ -109,7 +127,7 @@ export function HubTextLobbyChat({
         }
       }
     },
-    [hub.id, lobby.id],
+    [hub.id, lobby.id, lobby.notificationSetting],
   );
 
   useEffect(() => {

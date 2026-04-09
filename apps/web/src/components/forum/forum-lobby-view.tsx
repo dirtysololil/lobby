@@ -14,12 +14,16 @@ import {
   type ForumTopic,
   type HubShell,
 } from "@lobby/shared";
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { HubShellBootstrap } from "@/components/hubs/hub-shell-bootstrap";
 import { apiClientFetch } from "@/lib/api-client";
+import {
+  notificationSettingAllowsSound,
+  requestMessageNotificationSound,
+} from "@/lib/message-notification-sound";
 
 interface ForumLobbyViewProps {
   hub: HubShell["hub"];
@@ -43,6 +47,8 @@ export function ForumLobbyView({
   lobbyId,
   initialTopics,
 }: ForumLobbyViewProps) {
+  const lobby = hub.lobbies.find((item) => item.id === lobbyId) ?? null;
+  const knownTopicIdsRef = useRef(new Set(initialTopics.map((topic) => topic.id)));
   const [topics, setTopics] = useState<ForumTopic[]>(initialTopics);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -50,19 +56,46 @@ export function ForumLobbyView({
   const [tags, setTags] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadTopics = useCallback(async () => {
+  const loadTopics = useCallback(async (options?: { silent?: boolean }) => {
     try {
       const topicsPayload = await apiClientFetch(
         `/v1/forum/hubs/${hubId}/lobbies/${lobbyId}/topics`,
       );
-      setTopics(forumTopicListResponseSchema.parse(topicsPayload).items);
+      const nextTopics = forumTopicListResponseSchema.parse(topicsPayload).items;
+      const previousTopicIds = knownTopicIdsRef.current;
+      const hasNewTopics =
+        options?.silent &&
+        notificationSettingAllowsSound(lobby?.notificationSetting ?? hub.notificationSetting) &&
+        nextTopics.some((topic) => !previousTopicIds.has(topic.id));
+
+      setTopics(nextTopics);
+      knownTopicIdsRef.current = new Set(nextTopics.map((topic) => topic.id));
       setErrorMessage(null);
+
+      if (hasNewTopics) {
+        requestMessageNotificationSound({ source: "forum-lobby" });
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось загрузить форум.",
       );
     }
-  }, [hubId, lobbyId]);
+  }, [hub.notificationSetting, hubId, lobby?.notificationSetting, lobbyId]);
+
+  useEffect(() => {
+    setTopics(initialTopics);
+    knownTopicIdsRef.current = new Set(initialTopics.map((topic) => topic.id));
+  }, [initialTopics, lobbyId]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void loadTopics({ silent: true });
+    }, 10_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadTopics]);
 
   async function handleCreateTopic(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,7 +120,7 @@ export function ForumLobbyView({
       setTitle("");
       setContent("");
       setTags("");
-      await loadTopics();
+      await loadTopics({ silent: true });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Не удалось создать тему.",
@@ -105,7 +138,6 @@ export function ForumLobbyView({
     );
   }
 
-  const lobby = hub.lobbies.find((item) => item.id === lobbyId);
   const canCreateTopic = Boolean(hub.membershipRole) && !hub.isViewerMuted;
   const pinnedCount = topics.filter((topic) => topic.pinned).length;
 

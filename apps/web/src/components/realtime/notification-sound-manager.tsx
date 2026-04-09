@@ -14,6 +14,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCallSession } from "@/components/calls/call-session-provider";
 import { apiClientFetch, apiClientFetchBlob } from "@/lib/api-client";
 import {
+  messageNotificationSoundAssetPath,
+  messageNotificationSoundEventName,
+  notificationSettingAllowsSound,
+  type MessageNotificationSoundEventDetail,
+} from "@/lib/message-notification-sound";
+import {
   notificationPreferencesEventName,
   type NotificationPreferencesEventDetail,
 } from "@/lib/notification-preferences";
@@ -84,10 +90,6 @@ function getBrowserNotificationState(): BrowserNotificationState {
   return window.Notification.permission;
 }
 
-function notificationAllowsSound(setting: NotificationSetting | null | undefined) {
-  return setting === "ALL" || setting === "MENTIONS_ONLY";
-}
-
 function trimNotificationBody(value: string | null | undefined, fallback: string) {
   const normalized = value?.replace(/\s+/g, " ").trim();
 
@@ -134,6 +136,10 @@ export function NotificationSoundManager({
   const ringtonePendingKeyRef = useRef<string | null>(null);
   const ringtoneAudioRef = useRef<HTMLAudioElement | null>(null);
   const ringtoneAudioUrlRef = useRef<string | null>(null);
+  const messageSoundBufferRef = useRef<AudioBuffer | null>(null);
+  const messageSoundLoadPromiseRef = useRef<Promise<AudioBuffer | null> | null>(
+    null,
+  );
 
   const storeConversationNotificationSetting = useCallback(
     (
@@ -398,6 +404,54 @@ export function NotificationSoundManager({
     [getOrCreateAudioContext, logDebug, warnOnce],
   );
 
+  const loadMessageSoundBuffer = useCallback(async () => {
+    if (messageSoundBufferRef.current) {
+      return messageSoundBufferRef.current;
+    }
+
+    if (messageSoundLoadPromiseRef.current) {
+      return messageSoundLoadPromiseRef.current;
+    }
+
+    const audioContext = getOrCreateAudioContext();
+
+    if (!audioContext) {
+      return null;
+    }
+
+    const loadPromise = (async () => {
+      try {
+        const response = await fetch(messageNotificationSoundAssetPath, {
+          cache: "force-cache",
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const encodedAudio = await response.arrayBuffer();
+        const decoded = await audioContext.decodeAudioData(encodedAudio.slice(0));
+        messageSoundBufferRef.current = decoded;
+        return decoded;
+      } catch (error) {
+        warnOnce(
+          "message-sound-asset",
+          "Message notification sound failed to load, falling back to synthesized tone.",
+          {
+            error: normalizeErrorMessage(error),
+            path: messageNotificationSoundAssetPath,
+          },
+        );
+        return null;
+      } finally {
+        messageSoundLoadPromiseRef.current = null;
+      }
+    })();
+
+    messageSoundLoadPromiseRef.current = loadPromise;
+    return loadPromise;
+  }, [getOrCreateAudioContext, warnOnce]);
+
   const scheduleToneSequence = useCallback(
     (sequence: ToneSpec[], soundType: "message" | "ringtone", bucket: SoundBucket) => {
       const audioContext = getOrCreateAudioContext();
@@ -623,14 +677,85 @@ export function NotificationSoundManager({
     [logDebug, startBuiltInRingtone, stopRingtone, warnOnce],
   );
 
-  const playMessageSound = useCallback(() => {
-    const messageSequence: ToneSpec[] = [
+  const playMessageSound = useCallback(async () => {
+    const audioContext = getOrCreateAudioContext();
+
+    if (!audioContext) {
+      return false;
+    }
+
+    if (audioContext.state !== "running") {
+      void unlockAudio("play:message");
+      warnOnce("audio-locked:message", "Audio pipeline is still locked.", {
+        soundType: "message",
+        state: audioContext.state,
+      });
+      return false;
+    }
+
+    const fallbackSequence: ToneSpec[] = [
       { frequency: 880, duration: 0.07, gap: 0.05, gain: 0.014, type: "sine" },
       { frequency: 1174, duration: 0.05, gap: 0.03, gain: 0.01, type: "sine" },
     ];
+    const messageSound = await loadMessageSoundBuffer();
 
-    return scheduleToneSequence(messageSequence, "message", "fx");
-  }, [scheduleToneSequence]);
+    if (!messageSound) {
+      return scheduleToneSequence(fallbackSequence, "message", "fx");
+    }
+
+    clearSoundBucket("fx");
+
+    const cleanupBucket = fxCleanupRef.current;
+    const startAt = audioContext.currentTime + 0.01;
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    let cleanedUp = false;
+
+    source.buffer = messageSound;
+    gain.gain.setValueAtTime(1, startAt);
+    source.connect(gain);
+    gain.connect(audioContext.destination);
+
+    const cleanup = () => {
+      if (cleanedUp) {
+        return;
+      }
+
+      cleanedUp = true;
+
+      try {
+        source.stop();
+      } catch {
+        // Ignore already stopped nodes.
+      }
+
+      source.onended = null;
+      source.disconnect();
+      gain.disconnect();
+      cleanupBucket.delete(cleanup);
+    };
+
+    cleanupBucket.add(cleanup);
+    source.onended = cleanup;
+    source.start(startAt);
+
+    logDebug("sound-played", {
+      soundType: "message",
+      bucket: "fx",
+      totalDurationMs: Math.round(messageSound.duration * 1000),
+      asset: messageNotificationSoundAssetPath,
+    });
+
+    return true;
+  }, [
+    clearSoundBucket,
+    getOrCreateAudioContext,
+    loadMessageSoundBuffer,
+    logDebug,
+    scheduleToneSequence,
+    unlockAudio,
+    warnOnce,
+  ]);
 
   const isAppInForeground = useCallback(() => {
     if (typeof document === "undefined") {
@@ -779,6 +904,14 @@ export function NotificationSoundManager({
   }, [audioState, requestNotificationPermission, unlockAudio]);
 
   useEffect(() => {
+    if (audioState !== "ready") {
+      return;
+    }
+
+    void loadMessageSoundBuffer();
+  }, [audioState, loadMessageSoundBuffer]);
+
+  useEffect(() => {
     if (!latestDmSignal) {
       return;
     }
@@ -816,7 +949,7 @@ export function NotificationSoundManager({
       latestDmSignal.conversation.settings.notificationSetting ??
       defaults.dmNotificationDefault;
 
-    if (!notificationAllowsSound(notificationSetting)) {
+    if (!notificationSettingAllowsSound(notificationSetting)) {
       logDebug("skip-message-by-setting", {
         conversationId: latestDmSignal.conversationId,
         notificationSetting,
@@ -860,19 +993,20 @@ export function NotificationSoundManager({
     }
 
     const playbackTimer = window.setTimeout(() => {
-      const played = playMessageSound();
+      void playMessageSound().then((played) => {
+        if (!played) {
+          warnOnce("message-playback", "Message notification sound did not start.", {
+            audioState,
+            conversationId: latestDmSignal.conversationId,
+          });
+          return;
+        }
 
-      if (!played) {
-        warnOnce("message-playback", "Message notification sound did not start.", {
-          audioState,
+        logDebug("message-sound-triggered", {
+          messageId: latestDmSignal.message?.id ?? null,
           conversationId: latestDmSignal.conversationId,
+          source: "dm",
         });
-        return;
-      }
-
-      logDebug("message-sound-triggered", {
-        messageId: latestDmSignal.message?.id ?? null,
-        conversationId: latestDmSignal.conversationId,
       });
     }, 0);
 
@@ -896,6 +1030,58 @@ export function NotificationSoundManager({
   ]);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleMessageSoundRequest = (
+      event: Event,
+    ) => {
+      const detail = (
+        event as CustomEvent<MessageNotificationSoundEventDetail>
+      ).detail;
+
+      if (ringtoneCallIdRef.current) {
+        logDebug("skip-message-ringtone-active", {
+          source: detail?.source ?? "external",
+          ringingCallId: ringtoneCallIdRef.current,
+        });
+        return;
+      }
+
+      void playMessageSound().then((played) => {
+        if (!played) {
+          warnOnce(
+            `message-playback:${detail?.source ?? "external"}`,
+            "Message notification sound did not start.",
+            {
+              audioState,
+              source: detail?.source ?? "external",
+            },
+          );
+          return;
+        }
+
+        logDebug("message-sound-triggered", {
+          source: detail?.source ?? "external",
+        });
+      });
+    };
+
+    window.addEventListener(
+      messageNotificationSoundEventName,
+      handleMessageSoundRequest as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        messageNotificationSoundEventName,
+        handleMessageSoundRequest as EventListener,
+      );
+    };
+  }, [audioState, logDebug, playMessageSound, warnOnce]);
+
+  useEffect(() => {
     if (session) {
       closeDesktopNotificationsByPrefix("call:", "active-session");
       stopRingtone("active-session");
@@ -915,7 +1101,7 @@ export function NotificationSoundManager({
         ? conversationSettingsRef.current.get(incomingCall.dmConversationId)
         : null) ?? defaults.dmNotificationDefault;
 
-    if (!notificationAllowsSound(notificationSetting)) {
+    if (!notificationSettingAllowsSound(notificationSetting)) {
       closeDesktopNotification(`call:${incomingCall.id}`, "call-muted-by-setting");
       stopRingtone("call-muted-by-setting");
       logDebug("skip-ringtone-by-setting", {
@@ -973,6 +1159,7 @@ export function NotificationSoundManager({
     showDesktopNotification,
     startRingtone,
     stopRingtone,
+    viewer.profile,
     viewer.profile.callRingtonePreset,
     viewer.profile.customRingtone.fileKey,
     viewer.profile.customRingtone.mimeType,
