@@ -69,7 +69,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
         <AppSidebar viewer={viewer} />
         <AppContextRail viewer={viewer} />
 
-        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_18%)]">
+        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_18%)] pb-[var(--app-mobile-dock-clearance)] md:pb-0">
           {activityAvailable ? (
             <button
               type="button"

@@ -74,22 +74,25 @@ export function StickerEditorModal({
     };
   }, [previewUrl]);
 
-  useEffect(() => {
-    if (!open) {
-      setFile(null);
-      setTitle("");
-      setKeywords("");
-      setPublished(true);
-      setCrop({
-        scale: 1,
-        translateX: 0,
-        translateY: 0,
-      });
-    }
-  }, [open]);
-
   if (!open) {
     return null;
+  }
+
+  function resetEditorState() {
+    setFile(null);
+    setTitle("");
+    setKeywords("");
+    setPublished(true);
+    setCrop({
+      scale: 1,
+      translateX: 0,
+      translateY: 0,
+    });
+  }
+
+  function handleClose() {
+    resetEditorState();
+    onClose();
   }
 
   async function handleSubmit() {
@@ -145,12 +148,12 @@ export function StickerEditorModal({
           <div>
             <p className="text-sm font-medium text-white">Добавить стикер</p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              224x224 canvas, safe area и живой preview для animated файлов.
+              Холст 224x224, безопасная зона и живое превью для анимированных файлов.
             </p>
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-[var(--text-soft)] transition-colors hover:bg-white/[0.08] hover:text-white"
             aria-label="Закрыть редактор"
           >
@@ -167,7 +170,7 @@ export function StickerEditorModal({
                   {file ? file.name : "PNG, JPG, WEBP, GIF, MP4, WEBM"}
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  Выберите исходник и сразу подгоните его в safe area.
+                  Выберите исходник и сразу подгоните его под безопасную зону.
                 </p>
               </div>
               <input
@@ -338,13 +341,13 @@ export function StickerEditorModal({
 
               <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
                 <span className="rounded-full border border-white/8 bg-white/[0.04] px-2 py-1">
-                  Canvas 224x224
+                  Холст 224x224
                 </span>
                 <span className="rounded-full border border-white/8 bg-white/[0.04] px-2 py-1">
-                  Safe area
+                  Безопасная зона
                 </span>
                 <span className="rounded-full border border-white/8 bg-white/[0.04] px-2 py-1">
-                  Animated preview
+                  Анимированное превью
                 </span>
               </div>
             </div>
@@ -356,7 +359,7 @@ export function StickerEditorModal({
             ) : null}
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" className="h-10 px-4" onClick={onClose}>
+              <Button type="button" variant="ghost" className="h-10 px-4" onClick={handleClose}>
                 Отмена
               </Button>
               <Button

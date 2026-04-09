@@ -1,4 +1,5 @@
 import { adminUserListResponseSchema } from "@lobby/shared";
+import { AdminSectionNav } from "@/components/admin/admin-section-nav";
 import { UsersAdminPanel } from "@/components/admin/users-admin-panel";
 import { fetchServerApi } from "@/lib/server-api";
 import { requireAdminViewer } from "@/lib/server-session";
@@ -38,15 +39,18 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
   const response = adminUserListResponseSchema.parse(payload);
 
   return (
-    <UsersAdminPanel
-      viewer={viewer}
-      response={response}
-      filters={{
-        query,
-        role,
-        blocked,
-        page: response.page,
-      }}
-    />
+    <div className="grid gap-4">
+      <AdminSectionNav />
+      <UsersAdminPanel
+        viewer={viewer}
+        response={response}
+        filters={{
+          query,
+          role,
+          blocked,
+          page: response.page,
+        }}
+      />
+    </div>
   );
 }

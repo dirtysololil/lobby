@@ -43,8 +43,8 @@ export function EditStickerPackDrawer({
   return (
     <DrawerShell
       open={open}
-      title={mode === "create" ? "Новый пак" : "Редактирование пака"}
-      subtitle="Slug не показывается в UI и управляется системой."
+      title={mode === "create" ? "Новый набор" : "Редактирование набора"}
+      subtitle="Слаг не показывается в интерфейсе и управляется системой."
       onClose={onClose}
       footer={
         <DrawerActions
@@ -92,7 +92,7 @@ export function EditStickerPackDrawer({
             label="Доступен для поиска"
             checked={draft.isDiscoverable}
             onChange={(isDiscoverable) => onChange({ isDiscoverable })}
-            description="Показывать пак обычным пользователям в поиске и разрешить установку."
+            description="Показывать набор обычным пользователям в поиске и разрешить установку."
           />
           <ToggleField
             label="Скрыть"
@@ -116,7 +116,7 @@ export function EditStickerPackDrawer({
               disabled={deleting}
               className="w-full justify-center"
             >
-              {deleting ? "Удаляем..." : "Удалить пак"}
+              {deleting ? "Удаляем..." : "Удалить набор"}
             </Button>
           </div>
         ) : null}
