@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { buildUserProfileHref } from "@/lib/profile-routes";
+import { HubMemberRoleBadge } from "./hub-member-role-badge";
 
 interface HubTextLobbyChatProps {
   hub: HubShell["hub"];
@@ -53,6 +54,10 @@ export function HubTextLobbyChat({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canSendMessages = Boolean(hub.membershipRole) && !hub.isViewerMuted;
+  const memberRolesByUserId = useMemo(
+    () => new Map(hub.members.map((member) => [member.user.id, member.role])),
+    [hub.members],
+  );
   const orderedTopics = useMemo(
     () =>
       [...topics].sort(
@@ -233,39 +238,51 @@ export function HubTextLobbyChat({
           </div>
         ) : (
           <div className="space-y-3">
-            {orderedTopics.map((topic) => (
-              <article
-                key={topic.id}
-                className="rounded-[20px] border border-[var(--border-soft)] bg-white/[0.03] px-4 py-3.5"
-              >
-                <div className="flex items-start gap-3">
-                  <Link href={buildUserProfileHref(topic.author.username)}>
-                    <UserAvatar user={topic.author} size="sm" />
-                  </Link>
+            {orderedTopics.map((topic) => {
+              const memberRole = memberRolesByUserId.get(topic.author.id);
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={buildUserProfileHref(topic.author.username)}
-                        className="truncate text-sm font-medium text-white transition-colors hover:text-[var(--accent-strong)]"
-                      >
-                        {topic.author.profile.displayName}
-                      </Link>
-                      <span className="truncate text-xs text-[var(--text-muted)]">
-                        @{topic.author.username}
-                      </span>
-                      <span className="text-xs text-[var(--text-muted)]">
-                        {formatMessageDate(topic.createdAt)}
-                      </span>
+              return (
+                <article
+                  key={topic.id}
+                  className="rounded-[20px] border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_42%),rgba(255,255,255,0.028)] px-4 py-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <Link href={buildUserProfileHref(topic.author.username)}>
+                      <UserAvatar user={topic.author} size="sm" />
+                    </Link>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              href={buildUserProfileHref(topic.author.username)}
+                              className="truncate text-sm font-semibold text-white transition-colors hover:text-[var(--accent-strong)]"
+                            >
+                              {topic.author.profile.displayName}
+                            </Link>
+                            {memberRole ? <HubMemberRoleBadge role={memberRole} /> : null}
+                          </div>
+                          <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                            @{topic.author.username}
+                          </p>
+                        </div>
+
+                        <span className="inline-flex w-fit items-center rounded-full border border-[var(--border-soft)] bg-white/[0.035] px-2.5 py-1 text-[11px] font-medium text-[var(--text-dim)]">
+                          {formatMessageDate(topic.createdAt)}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 rounded-[16px] border border-white/5 bg-[rgba(7,11,17,0.28)] px-3.5 py-3">
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-[var(--text-soft)]">
+                          {topic.content}
+                        </p>
+                      </div>
                     </div>
-
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--text-soft)]">
-                      {topic.content}
-                    </p>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
@@ -289,12 +306,16 @@ export function HubTextLobbyChat({
             className="field-textarea min-h-[112px] resize-none"
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-[var(--text-dim)]">
-              {canSendMessages
-                ? "Короткие сообщения остаются в ленте канала и видны всем участникам."
-                : "Читать можно, отправка сейчас недоступна."}
-            </p>
+          <div
+            className={`flex flex-wrap items-center gap-3 ${
+              canSendMessages ? "justify-end" : "justify-between"
+            }`}
+          >
+            {!canSendMessages ? (
+              <p className="text-xs text-[var(--text-dim)]">
+                Читать можно, отправка сейчас недоступна.
+              </p>
+            ) : null}
 
             <Button
               type="submit"

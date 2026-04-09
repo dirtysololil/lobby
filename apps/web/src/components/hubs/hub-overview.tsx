@@ -22,15 +22,9 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { getCachedHubShell, primeHubShellCache } from "@/lib/hub-shell-cache";
 import { buildUserProfileHref } from "@/lib/profile-routes";
+import { HubMemberRoleBadge, hubRoleLabels } from "./hub-member-role-badge";
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
-
-const roleLabels: Record<string, string> = {
-  OWNER: "Владелец",
-  ADMIN: "Администратор",
-  MODERATOR: "Модератор",
-  MEMBER: "Участник",
-};
 
 interface HubOverviewProps {
   hubId: string;
@@ -316,17 +310,17 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                   className="identity-link items-start rounded-[16px]"
                 >
                   <UserAvatar user={member.user} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-medium text-white">
-                        {member.user.profile.displayName}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-white">
+                          {member.user.profile.displayName}
+                        </p>
+                        <HubMemberRoleBadge role={member.role} />
+                      </div>
+                      <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+                        @{member.user.username}
                       </p>
-                      <CompactListCount>{roleLabels[member.role] ?? member.role}</CompactListCount>
                     </div>
-                    <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
-                      @{member.user.username}
-                    </p>
-                  </div>
                 </Link>
 
                 {(hub.permissions.canManageHub || hub.permissions.canManageMembers) &&
@@ -347,7 +341,7 @@ export function HubOverview({ hubId }: HubOverviewProps) {
                         >
                           {assignableRoles.map((role) => (
                             <option key={role} value={role}>
-                              {roleLabels[role] ?? role}
+                              {hubRoleLabels[role] ?? role}
                             </option>
                           ))}
                         </SelectField>

@@ -15,6 +15,7 @@ import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { buildHubLobbyHref } from "@/lib/hub-routes";
 import { buildUserProfileHref } from "@/lib/profile-routes";
+import { HubMemberRoleBadge } from "./hub-member-role-badge";
 import { HubShellBootstrap } from "./hub-shell-bootstrap";
 import { HubTextLobbyChat } from "./hub-text-lobby-chat";
 
@@ -271,10 +272,11 @@ export function HubLobbyView({
                         >
                           <UserAvatar user={member.user} size="sm" />
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <p className="truncate text-sm font-medium text-white">
                                 {member.user.profile.displayName}
                               </p>
+                              <HubMemberRoleBadge role={member.role} />
                               <PresenceIndicator user={member.user} compact />
                             </div>
                             <p className="truncate text-xs text-[var(--text-muted)]">
@@ -367,10 +369,11 @@ export function HubLobbyView({
                         >
                           <UserAvatar user={member.user} size="sm" />
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <p className="truncate text-sm font-medium text-white">
                                 {member.user.profile.displayName}
                               </p>
+                              <HubMemberRoleBadge role={member.role} />
                               <PresenceIndicator user={member.user} compact />
                             </div>
                             <p className="truncate text-xs text-[var(--text-muted)]">
