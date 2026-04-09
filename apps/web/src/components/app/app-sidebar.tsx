@@ -158,6 +158,14 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
               <ShieldCheck {...railIconProps} />
             </Link>
           ) : null}
+          <Link
+            href="/app/settings/profile"
+            title="Профиль"
+            aria-label="Профиль"
+            className="ml-1 flex items-center justify-center rounded-[16px] border border-transparent p-0.5 transition-colors hover:border-white/10 md:ml-0"
+          >
+            <UserAvatar user={viewer} size="sm" />
+          </Link>
           <LogoutButton
             aria-label="Выйти"
             title="Выйти"
@@ -168,14 +176,6 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
             size="sm"
             className="dock-icon h-9 w-9 gap-0 rounded-[14px] border-transparent px-0 text-zinc-400 hover:bg-white/5 hover:text-white"
           />
-          <Link
-            href="/app/settings/profile"
-            title="Профиль"
-            aria-label="Профиль"
-            className="ml-1 flex items-center justify-center rounded-[16px] border border-transparent p-0.5 transition-colors hover:border-white/10 md:ml-0"
-          >
-            <UserAvatar user={viewer} size="sm" />
-          </Link>
         </div>
       </div>
     </aside>
