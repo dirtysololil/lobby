@@ -191,7 +191,9 @@ export class UsersController {
     @CurrentUser() currentUser: PublicUser,
     @Res() response: Response,
   ) {
-    const asset = await this.usersService.getCustomRingtoneAsset(currentUser.id);
+    const asset = await this.usersService.getCustomRingtoneAsset(
+      currentUser.id,
+    );
     response.setHeader('Content-Type', asset.mimeType);
     response.setHeader('Cache-Control', 'private, max-age=300');
 

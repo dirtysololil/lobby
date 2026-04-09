@@ -3,7 +3,12 @@ import { z } from "zod";
 export const userRoleSchema = z.enum(["OWNER", "ADMIN", "MEMBER"]);
 export type UserRole = z.infer<typeof userRoleSchema>;
 
-export const presenceStatusSchema = z.enum(["ONLINE", "IDLE", "DND", "OFFLINE"]);
+export const presenceStatusSchema = z.enum([
+  "ONLINE",
+  "IDLE",
+  "DND",
+  "OFFLINE",
+]);
 export type PresenceStatus = z.infer<typeof presenceStatusSchema>;
 
 export const avatarPresetSchema = z.enum([
@@ -25,11 +30,24 @@ export const callRingtonePresetSchema = z.enum([
 ]);
 export type CallRingtonePreset = z.infer<typeof callRingtonePresetSchema>;
 export const defaultCallRingtonePreset: CallRingtonePreset = "CLASSIC";
+export const callRingtoneModeSchema = z.enum(["BUILTIN", "CUSTOM"]);
+export type CallRingtoneMode = z.infer<typeof callRingtoneModeSchema>;
+export const defaultCallRingtoneMode: CallRingtoneMode = "BUILTIN";
 
-export const hubMemberRoleSchema = z.enum(["OWNER", "ADMIN", "MODERATOR", "MEMBER"]);
+export const hubMemberRoleSchema = z.enum([
+  "OWNER",
+  "ADMIN",
+  "MODERATOR",
+  "MEMBER",
+]);
 export type HubMemberRole = z.infer<typeof hubMemberRoleSchema>;
 
-export const hubInviteStatusSchema = z.enum(["PENDING", "ACCEPTED", "DECLINED", "REVOKED"]);
+export const hubInviteStatusSchema = z.enum([
+  "PENDING",
+  "ACCEPTED",
+  "DECLINED",
+  "REVOKED",
+]);
 export type HubInviteStatus = z.infer<typeof hubInviteStatusSchema>;
 
 export const lobbyTypeSchema = z.enum(["TEXT", "VOICE", "FORUM"]);
@@ -121,6 +139,7 @@ export const profileSchema = z.object({
   avatarPreset: avatarPresetSchema,
   avatar: avatarMetadataSchema,
   callRingtonePreset: callRingtonePresetSchema,
+  callRingtoneMode: callRingtoneModeSchema,
   customRingtone: ringtoneMetadataSchema,
   updatedAt: isoDateSchema,
 });
@@ -149,7 +168,9 @@ export const userRelationshipSummarySchema = z.object({
   dmConversationId: z.string().cuid().nullable(),
 });
 
-export type UserRelationshipSummary = z.infer<typeof userRelationshipSummarySchema>;
+export type UserRelationshipSummary = z.infer<
+  typeof userRelationshipSummarySchema
+>;
 
 export const apiErrorSchema = z.object({
   error: z.object({

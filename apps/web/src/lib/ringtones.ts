@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  defaultCallRingtoneMode,
   defaultCallRingtonePreset,
+  type CallRingtoneMode,
   type CallRingtonePreset,
   type Profile,
 } from "@lobby/shared";
@@ -42,11 +44,41 @@ export const builtInCallRingtones: BuiltInRingtoneDefinition[] = [
     accent: "Двухтональный звонок",
     loopIntervalMs: 2_550,
     sequence: [
-      { frequency: 523, duration: 0.16, gap: 0.06, gain: 0.046, type: "triangle" },
-      { frequency: 659, duration: 0.2, gap: 0.08, gain: 0.054, type: "triangle" },
-      { frequency: 784, duration: 0.24, gap: 0.12, gain: 0.06, type: "triangle" },
-      { frequency: 659, duration: 0.18, gap: 0.08, gain: 0.05, type: "triangle" },
-      { frequency: 880, duration: 0.28, gap: 0.46, gain: 0.064, type: "triangle" },
+      {
+        frequency: 523,
+        duration: 0.16,
+        gap: 0.06,
+        gain: 0.046,
+        type: "triangle",
+      },
+      {
+        frequency: 659,
+        duration: 0.2,
+        gap: 0.08,
+        gain: 0.054,
+        type: "triangle",
+      },
+      {
+        frequency: 784,
+        duration: 0.24,
+        gap: 0.12,
+        gain: 0.06,
+        type: "triangle",
+      },
+      {
+        frequency: 659,
+        duration: 0.18,
+        gap: 0.08,
+        gain: 0.05,
+        type: "triangle",
+      },
+      {
+        frequency: 880,
+        duration: 0.28,
+        gap: 0.46,
+        gain: 0.064,
+        type: "triangle",
+      },
     ],
   },
   {
@@ -67,11 +99,41 @@ export const builtInCallRingtones: BuiltInRingtoneDefinition[] = [
     accent: "Чёткие электронные импульсы",
     loopIntervalMs: 2_250,
     sequence: [
-      { frequency: 1046, duration: 0.08, gap: 0.06, gain: 0.022, type: "square" },
-      { frequency: 1318, duration: 0.08, gap: 0.08, gain: 0.022, type: "square" },
-      { frequency: 1568, duration: 0.1, gap: 0.08, gain: 0.024, type: "square" },
-      { frequency: 1318, duration: 0.08, gap: 0.08, gain: 0.022, type: "square" },
-      { frequency: 1760, duration: 0.12, gap: 0.54, gain: 0.025, type: "square" },
+      {
+        frequency: 1046,
+        duration: 0.08,
+        gap: 0.06,
+        gain: 0.022,
+        type: "square",
+      },
+      {
+        frequency: 1318,
+        duration: 0.08,
+        gap: 0.08,
+        gain: 0.022,
+        type: "square",
+      },
+      {
+        frequency: 1568,
+        duration: 0.1,
+        gap: 0.08,
+        gain: 0.024,
+        type: "square",
+      },
+      {
+        frequency: 1318,
+        duration: 0.08,
+        gap: 0.08,
+        gain: 0.022,
+        type: "square",
+      },
+      {
+        frequency: 1760,
+        duration: 0.12,
+        gap: 0.54,
+        gain: 0.025,
+        type: "square",
+      },
     ],
   },
   {
@@ -80,11 +142,41 @@ export const builtInCallRingtones: BuiltInRingtoneDefinition[] = [
     accent: "Ритмичный и собранный",
     loopIntervalMs: 2_300,
     sequence: [
-      { frequency: 220, duration: 0.12, gap: 0.05, gain: 0.036, type: "sawtooth" },
-      { frequency: 220, duration: 0.12, gap: 0.05, gain: 0.042, type: "sawtooth" },
-      { frequency: 294, duration: 0.15, gap: 0.08, gain: 0.044, type: "sawtooth" },
-      { frequency: 349, duration: 0.16, gap: 0.08, gain: 0.046, type: "sawtooth" },
-      { frequency: 294, duration: 0.14, gap: 0.46, gain: 0.042, type: "sawtooth" },
+      {
+        frequency: 220,
+        duration: 0.12,
+        gap: 0.05,
+        gain: 0.036,
+        type: "sawtooth",
+      },
+      {
+        frequency: 220,
+        duration: 0.12,
+        gap: 0.05,
+        gain: 0.042,
+        type: "sawtooth",
+      },
+      {
+        frequency: 294,
+        duration: 0.15,
+        gap: 0.08,
+        gain: 0.044,
+        type: "sawtooth",
+      },
+      {
+        frequency: 349,
+        duration: 0.16,
+        gap: 0.08,
+        gain: 0.046,
+        type: "sawtooth",
+      },
+      {
+        frequency: 294,
+        duration: 0.14,
+        gap: 0.46,
+        gain: 0.042,
+        type: "sawtooth",
+      },
     ],
   },
   {
@@ -93,10 +185,34 @@ export const builtInCallRingtones: BuiltInRingtoneDefinition[] = [
     accent: "Низкий и мягкий тембр",
     loopIntervalMs: 3_000,
     sequence: [
-      { frequency: 293, duration: 0.32, gap: 0.08, gain: 0.022, type: "triangle" },
-      { frequency: 349, duration: 0.38, gap: 0.1, gain: 0.024, type: "triangle" },
-      { frequency: 440, duration: 0.42, gap: 0.14, gain: 0.026, type: "triangle" },
-      { frequency: 349, duration: 0.32, gap: 0.62, gain: 0.022, type: "triangle" },
+      {
+        frequency: 293,
+        duration: 0.32,
+        gap: 0.08,
+        gain: 0.022,
+        type: "triangle",
+      },
+      {
+        frequency: 349,
+        duration: 0.38,
+        gap: 0.1,
+        gain: 0.024,
+        type: "triangle",
+      },
+      {
+        frequency: 440,
+        duration: 0.42,
+        gap: 0.14,
+        gain: 0.026,
+        type: "triangle",
+      },
+      {
+        frequency: 349,
+        duration: 0.32,
+        gap: 0.62,
+        gain: 0.022,
+        type: "triangle",
+      },
     ],
   },
   {
@@ -134,7 +250,9 @@ export function getBuiltInRingtone(
 
   return (
     builtInCallRingtones.find((item) => item.id === preset) ??
-    builtInCallRingtones.find((item) => item.id === defaultCallRingtonePreset) ??
+    builtInCallRingtones.find(
+      (item) => item.id === defaultCallRingtonePreset,
+    ) ??
     fallbackRingtone
   );
 }
@@ -146,7 +264,7 @@ export function getBuiltInRingtoneLabel(
 }
 
 export function getActiveRingtoneLabel(profile: Profile) {
-  if (profile.customRingtone.fileKey) {
+  if (getCurrentRingtoneMode(profile) === "custom") {
     return profile.customRingtone.originalName?.trim() || "Свой рингтон";
   }
 
@@ -154,7 +272,24 @@ export function getActiveRingtoneLabel(profile: Profile) {
 }
 
 export function getCurrentRingtoneMode(profile: Profile) {
-  return profile.customRingtone.fileKey ? "custom" : "builtin";
+  const preferredMode =
+    (profile.callRingtoneMode ?? defaultCallRingtoneMode) === "CUSTOM"
+      ? "custom"
+      : "builtin";
+
+  if (preferredMode === "custom" && profile.customRingtone.fileKey) {
+    return "custom";
+  }
+
+  return "builtin";
+}
+
+export function getStoredRingtoneModeLabel(
+  mode: CallRingtoneMode | null | undefined,
+) {
+  return (mode ?? defaultCallRingtoneMode) === "CUSTOM"
+    ? "Свой файл"
+    : "Системный";
 }
 
 export function getCustomRingtoneApiPath(version: string) {
@@ -176,7 +311,10 @@ export function validateRingtoneFileForBrowser(
 
   const extension = getFileExtension(file.name);
 
-  if (!extension || !allowedExtensions.has(extension as SupportedRingtoneExtension)) {
+  if (
+    !extension ||
+    !allowedExtensions.has(extension as SupportedRingtoneExtension)
+  ) {
     return "Поддерживаются только MP3, WAV, OGG и M4A.";
   }
 
@@ -185,7 +323,8 @@ export function validateRingtoneFileForBrowser(
   }
 
   const audio = document.createElement("audio");
-  const candidates = browserMimeCandidates[extension as SupportedRingtoneExtension] ?? [];
+  const candidates =
+    browserMimeCandidates[extension as SupportedRingtoneExtension] ?? [];
   const supported = candidates.some((candidate) => {
     const result = audio.canPlayType(candidate);
     return result === "probably" || result === "maybe";

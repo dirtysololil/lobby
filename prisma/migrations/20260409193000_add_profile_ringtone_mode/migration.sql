@@ -1,0 +1,2 @@
+ALTER TABLE `Profile`
+    ADD COLUMN `callRingtoneMode` ENUM('BUILTIN', 'CUSTOM') NOT NULL DEFAULT 'BUILTIN';

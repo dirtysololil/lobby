@@ -48,6 +48,7 @@ function createMockUser(
         | 'PULSE'
         | 'NIGHT'
         | 'CLEAR_SIGNAL';
+      callRingtoneMode: 'BUILTIN' | 'CUSTOM';
       updatedAt: Date;
     } | null;
   }> = {},
@@ -83,6 +84,7 @@ function createMockUser(
             customRingtoneMimeType: null,
             customRingtoneBytes: null,
             callRingtonePreset: 'CLASSIC' as const,
+            callRingtoneMode: 'BUILTIN' as const,
             updatedAt: createdAt,
           }
         : overrides.profile,

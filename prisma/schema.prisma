@@ -37,6 +37,11 @@ enum CallRingtonePreset {
   CLEAR_SIGNAL
 }
 
+enum CallRingtoneMode {
+  BUILTIN
+  CUSTOM
+}
+
 enum FriendshipStatus {
   PENDING
   ACCEPTED
@@ -211,6 +216,7 @@ model Profile {
   customRingtoneMimeType   String?
   customRingtoneBytes      Int?
   callRingtonePreset       CallRingtonePreset   @default(CLASSIC)
+  callRingtoneMode         CallRingtoneMode     @default(BUILTIN)
   dmNotificationDefault    DmNotificationSetting @default(ALL)
   hubNotificationDefault   DmNotificationSetting @default(ALL)
   lobbyNotificationDefault DmNotificationSetting @default(ALL)

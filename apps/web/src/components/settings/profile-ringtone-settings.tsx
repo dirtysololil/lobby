@@ -3,7 +3,7 @@
 import { Check, Play, Square, Trash2, Upload, Volume2 } from "lucide-react";
 import type { PublicUser, UpdateProfileInput } from "@lobby/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import { useWatch, type UseFormReturn } from "react-hook-form";
 import { apiClientFetchBlob } from "@/lib/api-client";
 import {
   builtInCallRingtones,
@@ -12,6 +12,7 @@ import {
   getBuiltInRingtoneLabel,
   getCurrentRingtoneMode,
   getCustomRingtoneApiPath,
+  getStoredRingtoneModeLabel,
   ringtonePreviewMaxDurationMs,
   ringtoneUploadAccept,
   validateRingtoneFileForBrowser,
@@ -145,7 +146,13 @@ function useRingtonePreview(
         onError("Не удалось воспроизвести стандартный рингтон.");
       }
     },
-    [activePreviewKey, getOrCreateAudioContext, onError, startStopTimer, stopPreview],
+    [
+      activePreviewKey,
+      getOrCreateAudioContext,
+      onError,
+      startStopTimer,
+      stopPreview,
+    ],
   );
 
   const toggleCustomPreview = useCallback(async () => {
@@ -159,7 +166,9 @@ function useRingtonePreview(
     stopPreview();
 
     try {
-      const blob = await apiClientFetchBlob(getCustomRingtoneApiPath(profileUpdatedAt));
+      const blob = await apiClientFetchBlob(
+        getCustomRingtoneApiPath(profileUpdatedAt),
+      );
       const objectUrl = URL.createObjectURL(blob);
       const audio = new Audio(objectUrl);
 
@@ -177,7 +186,13 @@ function useRingtonePreview(
       stopPreview();
       onError("Не удалось воспроизвести загруженный рингтон.");
     }
-  }, [activePreviewKey, onError, profileUpdatedAt, startStopTimer, stopPreview]);
+  }, [
+    activePreviewKey,
+    onError,
+    profileUpdatedAt,
+    startStopTimer,
+    stopPreview,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -207,25 +222,35 @@ export function ProfileRingtoneSettings({
   viewer,
 }: ProfileRingtoneSettingsProps) {
   const selectedPreset =
-    form.watch("callRingtonePreset") ?? viewer.profile.callRingtonePreset;
+    useWatch({ control: form.control, name: "callRingtonePreset" }) ??
+    viewer.profile.callRingtonePreset;
+  const selectedMode =
+    useWatch({ control: form.control, name: "callRingtoneMode" }) ??
+    viewer.profile.callRingtoneMode;
   const maxRingtoneBytes = maxRingtoneMb * 1024 * 1024;
   const hasCustomRingtone = Boolean(viewer.profile.customRingtone.fileKey);
   const activeRingtoneMode = getCurrentRingtoneMode(viewer.profile);
   const activeRingtoneLabel = getActiveRingtoneLabel(viewer.profile);
   const selectedPresetLabel = getBuiltInRingtoneLabel(selectedPreset);
+  const selectedRingtoneMode =
+    selectedMode === "CUSTOM" && hasCustomRingtone ? "custom" : "builtin";
+  const selectedRingtoneLabel =
+    selectedRingtoneMode === "custom"
+      ? viewer.profile.customRingtone.originalName?.trim() || "Свой рингтон"
+      : selectedPresetLabel;
   const customRingtoneSize = formatBytes(viewer.profile.customRingtone.bytes);
-  const {
-    activePreviewKey,
-    toggleBuiltInPreview,
-    toggleCustomPreview,
-  } = useRingtonePreview(viewer.profile.updatedAt, onError);
+  const { activePreviewKey, toggleBuiltInPreview, toggleCustomPreview } =
+    useRingtonePreview(viewer.profile.updatedAt, onError);
 
   async function handleFileSelection(file: File | null) {
     if (!file) {
       return;
     }
 
-    const validationError = validateRingtoneFileForBrowser(file, maxRingtoneBytes);
+    const validationError = validateRingtoneFileForBrowser(
+      file,
+      maxRingtoneBytes,
+    );
 
     if (validationError) {
       onError(validationError);
@@ -272,7 +297,15 @@ export function ProfileRingtoneSettings({
           <div className="grid gap-2 text-sm text-[var(--text-dim)]">
             <div className="flex items-center justify-between gap-3">
               <span>Стандартный выбор</span>
-              <span className="font-medium text-white">{selectedPresetLabel}</span>
+              <span className="font-medium text-white">
+                {selectedPresetLabel}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Источник после сохранения</span>
+              <span className="font-medium text-white">
+                {selectedRingtoneLabel}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span>Форматы</span>
@@ -285,10 +318,74 @@ export function ProfileRingtoneSettings({
           </div>
         </div>
 
+        <div className="grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+          <div>
+            <p className="text-sm font-medium text-white">Источник рингтона</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--text-dim)]">
+              Загруженный файл больше не отключает системный рингтон сам по
+              себе. Вы сами выбираете, что использовать для входящего звонка.
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() =>
+                form.setValue("callRingtoneMode", "BUILTIN", {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                })
+              }
+              className={cn(
+                "grid gap-1 rounded-[18px] border px-3.5 py-3 text-left transition-colors",
+                selectedMode === "BUILTIN"
+                  ? "border-[rgba(106,168,248,0.26)] bg-[rgba(106,168,248,0.12)]"
+                  : "border-white/8 bg-white/[0.03] hover:border-[var(--border-strong)] hover:bg-white/[0.05]",
+              )}
+            >
+              <span className="text-sm font-medium text-white">Системный</span>
+              <span className="text-xs leading-5 text-[var(--text-dim)]">
+                Использовать выбранный пресет из списка ниже.
+              </span>
+              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                {getStoredRingtoneModeLabel("BUILTIN")}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!hasCustomRingtone}
+              onClick={() =>
+                form.setValue("callRingtoneMode", "CUSTOM", {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                })
+              }
+              className={cn(
+                "grid gap-1 rounded-[18px] border px-3.5 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                selectedMode === "CUSTOM"
+                  ? "border-[rgba(106,168,248,0.26)] bg-[rgba(106,168,248,0.12)]"
+                  : "border-white/8 bg-white/[0.03] hover:border-[var(--border-strong)] hover:bg-white/[0.05]",
+              )}
+            >
+              <span className="text-sm font-medium text-white">Свой файл</span>
+              <span className="text-xs leading-5 text-[var(--text-dim)]">
+                {hasCustomRingtone
+                  ? "Использовать загруженный аудиофайл вместо системного пресета."
+                  : "Сначала загрузите файл, затем сможете включить его для звонков."}
+              </span>
+              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                {getStoredRingtoneModeLabel("CUSTOM")}
+              </span>
+            </button>
+          </div>
+        </div>
+
         <div className="grid gap-2">
           {builtInCallRingtones.map((ringtone) => {
             const isSelected = selectedPreset === ringtone.id;
-            const isPreviewActive = activePreviewKey === `builtin:${ringtone.id}`;
+            const isPreviewActive =
+              activePreviewKey === `builtin:${ringtone.id}`;
 
             return (
               <div
@@ -318,7 +415,11 @@ export function ProfileRingtoneSettings({
                         : "border-white/10 bg-white/[0.04] text-[var(--text-muted)]",
                     )}
                   >
-                    {isSelected ? <Check size={15} strokeWidth={2} /> : <Volume2 size={14} strokeWidth={1.6} />}
+                    {isSelected ? (
+                      <Check size={15} strokeWidth={2} />
+                    ) : (
+                      <Volume2 size={14} strokeWidth={1.6} />
+                    )}
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium text-white">
@@ -367,18 +468,26 @@ export function ProfileRingtoneSettings({
                         : "border-white/8 bg-white/[0.04] text-[var(--text-soft)]",
                     )}
                   >
-                    {hasCustomRingtone ? "Активен" : "Пока нет файла"}
+                    {hasCustomRingtone
+                      ? selectedMode === "CUSTOM"
+                        ? "Выбран для звонков"
+                        : "Файл загружен"
+                      : "Пока нет файла"}
                   </span>
                 </div>
 
                 <p className="mt-2 break-all text-[13px] font-medium leading-5 text-white">
                   {hasCustomRingtone
-                    ? viewer.profile.customRingtone.originalName || "Свой рингтон"
-                    : "Загрузите MP3, WAV, OGG или M4A, и этот файл станет вашим рингтоном для входящих звонков."}
+                    ? viewer.profile.customRingtone.originalName ||
+                      "Свой рингтон"
+                    : "Загрузите MP3, WAV, OGG или M4A. После загрузки файл можно отдельно включить для входящих звонков."}
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-dim)]">
                   {hasCustomRingtone
-                    ? [viewer.profile.customRingtone.mimeType, customRingtoneSize]
+                    ? [
+                        viewer.profile.customRingtone.mimeType,
+                        customRingtoneSize,
+                      ]
                         .filter(Boolean)
                         .join(" • ")
                     : `До ${maxRingtoneMb} MB`}
@@ -400,7 +509,11 @@ export function ProfileRingtoneSettings({
                   }}
                 />
                 <Upload size={16} strokeWidth={1.6} />
-                {isUploading ? "Загружаем..." : hasCustomRingtone ? "Заменить файл" : "Загрузить файл"}
+                {isUploading
+                  ? "Загружаем..."
+                  : hasCustomRingtone
+                    ? "Заменить файл"
+                    : "Загрузить файл"}
               </label>
 
               <div className="grid gap-2 sm:grid-cols-2">

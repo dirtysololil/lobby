@@ -1,5 +1,6 @@
 import {
   AvatarPreset,
+  CallRingtoneMode,
   CallRingtonePreset,
   PresenceStatus,
 } from '@prisma/client';
@@ -41,6 +42,7 @@ describe('toPublicUser', () => {
           isAnimated: false,
         },
         callRingtonePreset: CallRingtonePreset.CLASSIC,
+        callRingtoneMode: CallRingtoneMode.BUILTIN,
         customRingtone: {
           fileKey: null,
           originalName: null,
