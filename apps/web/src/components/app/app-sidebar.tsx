@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { hubListResponseSchema, type HubSummary, type PublicUser } from "@lobby/shared";
 import { useEffect, useState } from "react";
+import { LogoutButton } from "@/components/app/logout-button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { matchesPath } from "@/lib/app-shell";
@@ -157,6 +158,16 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
               <ShieldCheck {...railIconProps} />
             </Link>
           ) : null}
+          <LogoutButton
+            aria-label="Выйти"
+            title="Выйти"
+            label=""
+            pendingLabel=""
+            showIcon
+            variant="ghost"
+            size="sm"
+            className="dock-icon h-9 w-9 gap-0 rounded-[14px] border-transparent px-0 text-zinc-400 hover:bg-white/5 hover:text-white"
+          />
           <Link
             href="/app/settings/profile"
             title="Профиль"

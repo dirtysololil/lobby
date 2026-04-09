@@ -57,7 +57,7 @@ export class ForumService {
       lobbyId,
     );
 
-    if (![LobbyType.FORUM, LobbyType.TEXT].includes(lobby.type)) {
+    if (lobby.type !== LobbyType.FORUM && lobby.type !== LobbyType.TEXT) {
       throw new ConflictException('Lobby does not support discussion feed');
     }
 
@@ -105,7 +105,7 @@ export class ForumService {
       lobbyId,
     );
 
-    if (![LobbyType.FORUM, LobbyType.TEXT].includes(lobby.type)) {
+    if (lobby.type !== LobbyType.FORUM && lobby.type !== LobbyType.TEXT) {
       throw new ConflictException('Lobby does not support discussion feed');
     }
 

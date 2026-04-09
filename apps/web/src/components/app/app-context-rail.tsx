@@ -26,7 +26,6 @@ import {
   type PublicUser,
 } from "@lobby/shared";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { LogoutButton } from "@/components/app/logout-button";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -34,7 +33,6 @@ import {
   CompactListCount,
   CompactListHeader,
   CompactListLink,
-  CompactListMeta,
 } from "@/components/ui/compact-list";
 import { apiClientFetch } from "@/lib/api-client";
 import { matchesPath, parseAppPath } from "@/lib/app-shell";
@@ -45,7 +43,6 @@ import {
   primeHubShellCache,
   subscribeToHubShellCache,
 } from "@/lib/hub-shell-cache";
-import { getResolvedPresenceLabel } from "@/lib/presence";
 import { adminNavigationItems } from "@/lib/admin-navigation";
 import { cn } from "@/lib/utils";
 import { useRealtime } from "@/components/realtime/realtime-provider";
@@ -624,21 +621,6 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
         ) : null}
       </div>
 
-      <div className="border-t border-white/5 px-3 py-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-muted)]">
-            Сеанс
-          </p>
-          <CompactListMeta>{getResolvedPresenceLabel(viewer)}</CompactListMeta>
-        </div>
-        <div className="mt-2 rounded-[16px] border border-white/6 bg-white/[0.03] p-2">
-          <LogoutButton
-            label="Выйти"
-            pendingLabel="Выходим..."
-            className="call-danger-button h-9 w-full justify-between rounded-[12px] px-3 text-sm"
-          />
-        </div>
-      </div>
     </aside>
   );
 }
