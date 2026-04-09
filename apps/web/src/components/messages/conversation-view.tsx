@@ -1144,15 +1144,17 @@ export function ConversationView({
         </div>
       </section>
 
-      <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-3 py-2.5 md:hidden 2xl:hidden">
-        <ConversationSettings
-          notificationSetting={viewerParticipant.notificationSetting}
-          retentionMode={conversation.retentionMode}
-          retentionSeconds={conversation.retentionSeconds}
-          disabled={false}
-          onSave={saveSettings}
-        />
-      </div>
+      {isInfoPanelOpen ? (
+        <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-3 py-2.5 md:hidden 2xl:hidden">
+          <ConversationSettings
+            notificationSetting={viewerParticipant.notificationSetting}
+            retentionMode={conversation.retentionMode}
+            retentionSeconds={conversation.retentionSeconds}
+            disabled={false}
+            onSave={saveSettings}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
