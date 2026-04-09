@@ -52,11 +52,12 @@ const dmCallModeLabels = {
   VIDEO: "Видео",
 } as const;
 const outgoingCallRingbackLoopMs = 5_000;
+const outgoingCallRingbackGain = 0.038;
 const outgoingCallRingbackSequence = [
   {
-    duration: 1,
+    duration: 3,
     frequency: 425,
-    gain: 0.016,
+    gain: outgoingCallRingbackGain,
     type: "sine",
   },
 ] as const;
@@ -178,7 +179,7 @@ export function DmCallPanel({
         ringbackPlaybackRef.current = playToneSequence(
           audioContext,
           [...outgoingCallRingbackSequence],
-          { defaultGain: 0.016 },
+          { defaultGain: outgoingCallRingbackGain },
         );
       };
 

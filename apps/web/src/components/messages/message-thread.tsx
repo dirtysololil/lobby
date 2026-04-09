@@ -602,7 +602,7 @@ export function MessageThread({
                     <Trash2 size={18} strokeWidth={1.7} />
                     {isDeleting === contextMenu.messageId
                       ? "Удаляем..."
-                      : "Удалить сообщение"}
+                      : "Удалить"}
                   </button>
                   <button
                     type="button"
@@ -632,7 +632,7 @@ export function MessageThread({
                 <Trash2 size={16} strokeWidth={1.5} />
                 {isDeleting === contextMenu.messageId
                   ? "Удаляем..."
-                  : "Удалить сообщение"}
+                  : "Удалить"}
               </button>
             </div>
           ),
