@@ -47,6 +47,11 @@ interface MediaLibraryAdminPanelProps {
 }
 
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+const viewerRoleLabels: Record<PublicUser["role"], string> = {
+  OWNER: "Владелец",
+  ADMIN: "Администратор",
+  MEMBER: "Участник",
+};
 
 export function MediaLibraryAdminPanel({
   viewer,
@@ -550,7 +555,7 @@ export function MediaLibraryAdminPanel({
           <div>
             <h2 className="text-base font-semibold text-white">Кастомные смайлики</h2>
             <p className="mt-1 text-sm text-[var(--text-dim)]">
-              Загружайте свои смайлики, задавайте alias и управляйте видимостью в picker.
+              Загружайте свои смайлики, задавайте алиас и управляйте видимостью в панели выбора.
             </p>
           </div>
           <span className="status-pill">
@@ -564,7 +569,7 @@ export function MediaLibraryAdminPanel({
             <Input
               value={newEmojiAlias}
               onChange={(event) => setNewEmojiAlias(event.target.value)}
-              placeholder="Alias, например party_blob"
+              placeholder="Алиас, например party_blob"
               className="h-11 border-white/8 bg-white/[0.03] text-white"
             />
             <Input
@@ -581,7 +586,7 @@ export function MediaLibraryAdminPanel({
               {newEmojiFile ? newEmojiFile.name : "Выберите PNG / WEBP / GIF"}
             </span>
             <span className="mt-1 text-xs text-[var(--text-dim)]">
-              Файл будет доступен в picker после загрузки.
+              Файл будет доступен в панели выбора после загрузки.
             </span>
             <input
               type="file"
@@ -642,7 +647,7 @@ export function MediaLibraryAdminPanel({
                           },
                         }))
                       }
-                      placeholder="Alias"
+                      placeholder="Алиас"
                       className="h-10 border-white/8 bg-white/[0.03] text-white"
                     />
                     <Input
@@ -718,13 +723,13 @@ export function MediaLibraryAdminPanel({
         <h3 className="text-sm font-semibold text-white">Как это работает</h3>
         <div className="mt-4 grid gap-3 text-sm text-[var(--text-dim)]">
           <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
-            1. Загрузите файл смайлика и задайте alias.
+            1. Загрузите файл смайлика и задайте алиас.
           </div>
           <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
             2. При необходимости отредактируйте название и порядок.
           </div>
           <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
-            3. Скрытые смайлики остаются в истории, но исчезают из picker.
+            3. Скрытые смайлики остаются в истории, но исчезают из панели выбора.
           </div>
         </div>
       </aside>
@@ -738,7 +743,7 @@ export function MediaLibraryAdminPanel({
           <div>
             <h2 className="text-base font-semibold text-white">GIF-библиотека</h2>
             <p className="mt-1 text-sm text-[var(--text-dim)]">
-              Загружайте свои GIF и управляйте тем, что доступно в picker.
+              Загружайте свои GIF и управляйте тем, что доступно в панели выбора.
             </p>
           </div>
           <span className="status-pill">
@@ -888,7 +893,7 @@ export function MediaLibraryAdminPanel({
       <aside className="premium-panel rounded-[24px] p-5">
         <h3 className="text-sm font-semibold text-white">Подсказка</h3>
         <p className="mt-3 text-sm text-[var(--text-dim)]">
-          Для GIF лучше использовать короткие названия и 2–5 тегов, чтобы picker оставался
+          Для GIF лучше использовать короткие названия и 2–5 тегов, чтобы панель выбора оставалась
           быстрым и понятным.
         </p>
       </aside>
@@ -1138,7 +1143,7 @@ export function MediaLibraryAdminPanel({
               </span>
               <span className="status-pill">
                 <Laugh {...iconProps} />
-                {viewer.role === "OWNER" ? "OWNER" : "ADMIN"}
+                {viewerRoleLabels[viewer.role] ?? viewer.role}
               </span>
             </div>
             <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
@@ -1146,7 +1151,7 @@ export function MediaLibraryAdminPanel({
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
               Загружайте медиа-реакции, скрывайте или включайте их и сразу
-              проверяйте, как библиотека попадает в picker диалогов.
+              проверяйте, как библиотека попадает в панель выбора диалогов.
             </p>
           </div>
         </div>
@@ -1170,7 +1175,7 @@ export function MediaLibraryAdminPanel({
               className="inline-flex h-10 items-center gap-2 rounded-[14px] border border-transparent px-3 text-sm font-medium text-[var(--text-muted)] transition-colors hover:bg-white/[0.05] hover:text-white"
             >
               <Sticker {...iconProps} />
-              Sticker packs
+              Наборы стикеров
             </Link>
           </div>
 

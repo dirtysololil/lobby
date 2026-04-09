@@ -93,13 +93,13 @@ export function StickerGridCard({
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {sticker.isPublished && !sticker.isHidden && !sticker.isArchived ? (
-          <StatusBadge label="Live" tone="live" />
+          <StatusBadge label="Активен" tone="live" />
         ) : null}
-        {!sticker.isPublished ? <StatusBadge label="Draft" tone="neutral" /> : null}
-        {sticker.isHidden ? <StatusBadge label="Hidden" tone="warning" /> : null}
-        {sticker.isArchived ? <StatusBadge label="Archive" tone="danger" /> : null}
-        {isCover ? <StatusBadge label="Cover" tone="accent" /> : null}
-        {sticker.isAnimated ? <StatusBadge label="Gif" tone="neutral" /> : null}
+        {!sticker.isPublished ? <StatusBadge label="Черновик" tone="neutral" /> : null}
+        {sticker.isHidden ? <StatusBadge label="Скрыт" tone="warning" /> : null}
+        {sticker.isArchived ? <StatusBadge label="Архив" tone="danger" /> : null}
+        {isCover ? <StatusBadge label="Обложка" tone="accent" /> : null}
+        {sticker.isAnimated ? <StatusBadge label="GIF" tone="neutral" /> : null}
       </div>
     </button>
   );

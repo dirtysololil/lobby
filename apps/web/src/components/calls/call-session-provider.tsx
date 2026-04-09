@@ -2129,7 +2129,7 @@ export function PersistentCallDock() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-40 flex justify-end px-3 md:bottom-4 md:px-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--app-mobile-dock-clearance)+0.75rem)] z-40 flex justify-end px-3 md:bottom-4 md:px-4">
       <div className="pointer-events-auto w-full max-w-[430px] rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_34%),rgba(11,16,24,0.94)] p-3 shadow-[0_24px_60px_rgba(4,8,16,0.42)] backdrop-blur-xl">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.24)] bg-[rgba(106,168,248,0.14)] text-[var(--accent-strong)]">

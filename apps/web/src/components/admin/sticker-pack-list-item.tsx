@@ -46,21 +46,21 @@ export function StickerPackListItem({
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {pack.isPublished && !pack.isHidden && !pack.isArchived ? (
-            <StatusBadge label="Live" tone="live" />
+            <StatusBadge label="Активен" tone="live" />
           ) : null}
-          {!pack.isPublished ? <StatusBadge label="Draft" tone="neutral" /> : null}
+          {!pack.isPublished ? <StatusBadge label="Черновик" tone="neutral" /> : null}
           {pack.isDiscoverable && pack.isPublished ? (
-            <StatusBadge label="Search" tone="accent" />
+            <StatusBadge label="Поиск" tone="accent" />
           ) : null}
-          {pack.isHidden ? <StatusBadge label="Hidden" tone="warning" /> : null}
-          {pack.isArchived ? <StatusBadge label="Archive" tone="danger" /> : null}
+          {pack.isHidden ? <StatusBadge label="Скрыт" tone="warning" /> : null}
+          {pack.isArchived ? <StatusBadge label="Архив" tone="danger" /> : null}
         </div>
       </button>
 
       <KebabMenu
         items={[
           {
-            label: "Редактировать пак",
+            label: "Редактировать набор",
             onSelect: onEdit,
           },
           {
@@ -74,7 +74,7 @@ export function StickerPackListItem({
             disabled: !canMoveDown,
           },
           {
-            label: "Удалить пак",
+            label: "Удалить набор",
             onSelect: onDelete,
             destructive: true,
           },

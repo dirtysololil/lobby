@@ -53,6 +53,9 @@
   --rail-width: 64px;
   --context-width: 232px;
   --activity-width: 304px;
+  --app-mobile-dock-height: 64px;
+  --app-mobile-dock-clearance:
+    calc(var(--app-mobile-dock-height) + env(safe-area-inset-bottom, 0px));
   --bg: var(--bg-app);
   --bg-elevated: var(--bg-panel);
   --bg-raised: var(--bg-panel-muted);
@@ -170,6 +173,12 @@ textarea {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 24%),
     linear-gradient(180deg, rgba(14, 21, 30, 0.98), rgba(14, 21, 30, 0.94));
+}
+
+@media (max-width: 767px) {
+  .workspace-dock {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 .context-rail,

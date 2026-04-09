@@ -74,7 +74,7 @@ export function AuditLogPanel({ response }: AuditLogPanelProps) {
                     <span className="font-medium text-white">Система</span>
                   )}
                   <span className="text-xs text-[var(--text-muted)]">
-                    entityId {item.entityId ?? "н/д"} / ip {item.ipAddress ?? "н/д"}
+                    ID сущности: {item.entityId ?? "н/д"} / IP: {item.ipAddress ?? "н/д"}
                   </span>
                 </div>
 

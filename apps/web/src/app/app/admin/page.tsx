@@ -1,5 +1,6 @@
 import { adminOverviewResponseSchema } from "@lobby/shared";
 import { ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { AdminSectionNav } from "@/components/admin/admin-section-nav";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fetchServerApi } from "@/lib/server-api";
 import { requireAdminViewer } from "@/lib/server-session";
@@ -19,6 +20,8 @@ export default async function AdminPage() {
 
   return (
     <div className="grid gap-4">
+      <AdminSectionNav />
+
       <section className="premium-panel rounded-[26px] p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>

@@ -46,6 +46,7 @@ import {
   subscribeToHubShellCache,
 } from "@/lib/hub-shell-cache";
 import { getResolvedPresenceLabel } from "@/lib/presence";
+import { adminNavigationItems } from "@/lib/admin-navigation";
 import { cn } from "@/lib/utils";
 import { useRealtime } from "@/components/realtime/realtime-provider";
 
@@ -56,15 +57,6 @@ interface AppContextRailProps {
 const settingsLinks = [
   { href: "/app/settings/profile", label: "Профиль" },
   { href: "/app/settings/notifications", label: "Уведомления" },
-] as const;
-
-const adminLinks = [
-  { href: "/app/admin", label: "Overview" },
-  { href: "/app/admin/users", label: "Users" },
-  { href: "/app/admin/invites", label: "Invites" },
-  { href: "/app/admin/audit", label: "Audit" },
-  { href: "/app/admin/media", label: "Media" },
-  { href: "/app/admin/sticker-packs", label: "Sticker packs" },
 ] as const;
 
 const peopleViews = [
@@ -614,7 +606,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               <span>Админка</span>
             </CompactListHeader>
             <CompactList>
-              {adminLinks.map((item) => (
+              {adminNavigationItems.map((item) => (
                 <RailRow
                   key={item.href}
                   href={item.href}

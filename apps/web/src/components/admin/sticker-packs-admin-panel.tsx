@@ -220,7 +220,7 @@ export function StickerPacksAdminPanel({
 
   async function handleSavePack() {
     if (!packDraft.title.trim()) {
-      setError("Введите название пака.");
+      setError("Введите название набора.");
       return;
     }
 
@@ -239,7 +239,7 @@ export function StickerPacksAdminPanel({
           });
           const pack = stickerPackResponseSchema.parse(payload).pack;
           await refreshPacks({ selectedPackId: pack.id });
-          setStatus("Пак создан.");
+          setStatus("Набор создан.");
         } else if (selectedPack) {
           const payload = await apiClientFetch(`/v1/stickers/packs/${selectedPack.id}`, {
             method: "PATCH",
@@ -254,7 +254,7 @@ export function StickerPacksAdminPanel({
           });
           const pack = stickerPackResponseSchema.parse(payload).pack;
           await refreshPacks({ selectedPackId: pack.id });
-          setStatus("Пак обновлён.");
+          setStatus("Набор обновлён.");
         }
 
         setPackDrawerMode(null);
@@ -267,7 +267,7 @@ export function StickerPacksAdminPanel({
       return;
     }
 
-    if (!window.confirm(`Удалить пак «${pack.title}»?`)) {
+    if (!window.confirm(`Удалить набор «${pack.title}»?`)) {
       return;
     }
 
@@ -280,7 +280,7 @@ export function StickerPacksAdminPanel({
           packs.find((item) => item.id !== pack.id)?.id ?? null,
       });
       setPackDrawerMode(null);
-      setStatus("Пак удалён.");
+      setStatus("Набор удалён.");
     });
   }
 
@@ -446,11 +446,11 @@ export function StickerPacksAdminPanel({
               <div className="flex items-center gap-2">
                 <span className="eyebrow-pill">
                   <StickerIcon className="h-4 w-4" />
-                  Sticker packs
+                  Наборы стикеров
                 </span>
               </div>
               <h2 className="mt-2 text-lg font-semibold tracking-tight text-white">
-                Compact workspace
+                Рабочее пространство наборов
               </h2>
             </div>
 
@@ -466,7 +466,7 @@ export function StickerPacksAdminPanel({
               </label>
               <Button type="button" size="sm" onClick={openCreatePackDrawer}>
                 <FolderPlus className="h-4 w-4" />
-                Создать пак
+                Создать набор
               </Button>
               <Button
                 type="button"
@@ -508,7 +508,7 @@ export function StickerPacksAdminPanel({
         <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="premium-panel rounded-[24px] p-3">
             <div className="flex items-center justify-between gap-2 px-1 pb-3">
-              <div className="text-sm font-semibold text-white">Паки</div>
+              <div className="text-sm font-semibold text-white">Наборы</div>
               <Button type="button" size="sm" variant="ghost" onClick={openCreatePackDrawer}>
                 <FolderPlus className="h-4 w-4" />
                 Новый
@@ -520,7 +520,7 @@ export function StickerPacksAdminPanel({
               <Input
                 value={packSearch}
                 onChange={(event) => setPackSearch(event.target.value)}
-                placeholder="Поиск по пакам"
+                placeholder="Поиск по наборам"
                 className="h-9 border-0 bg-transparent px-0 text-sm text-white"
               />
             </label>
@@ -528,8 +528,8 @@ export function StickerPacksAdminPanel({
             <div className="grid gap-2">
               {filteredPacks.length === 0 ? (
                 <EmptyState
-                  title="Паки не найдены"
-                  description="Создайте новый пак или измените запрос."
+                  title="Наборы не найдены"
+                  description="Создайте новый набор или измените запрос."
                 />
               ) : (
                 filteredPacks.map((pack) => (
@@ -555,8 +555,8 @@ export function StickerPacksAdminPanel({
           <section className="premium-panel rounded-[24px] p-3">
             {!selectedPack ? (
               <EmptyState
-                title="Выберите пак"
-                description="Слева показаны все доступные sticker packs."
+                title="Выберите набор"
+                description="Слева показаны все доступные наборы стикеров."
               />
             ) : (
               <div className="grid gap-4">
@@ -567,21 +567,21 @@ export function StickerPacksAdminPanel({
                         {selectedPack.title}
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <StatusBadge label={`${selectedPack.stickerCount} pcs`} tone="neutral" />
+                        <StatusBadge label={`${selectedPack.stickerCount} шт.`} tone="neutral" />
                         {selectedPack.isPublished && !selectedPack.isHidden && !selectedPack.isArchived ? (
-                          <StatusBadge label="Live" tone="live" />
+                          <StatusBadge label="Активен" tone="live" />
                         ) : null}
                         {!selectedPack.isPublished ? (
-                          <StatusBadge label="Draft" tone="neutral" />
+                          <StatusBadge label="Черновик" tone="neutral" />
                         ) : null}
                         {selectedPack.isDiscoverable && selectedPack.isPublished ? (
-                          <StatusBadge label="Search" tone="accent" />
+                          <StatusBadge label="Поиск" tone="accent" />
                         ) : null}
                         {selectedPack.isHidden ? (
-                          <StatusBadge label="Hidden" tone="warning" />
+                          <StatusBadge label="Скрыт" tone="warning" />
                         ) : null}
                         {selectedPack.isArchived ? (
-                          <StatusBadge label="Archive" tone="danger" />
+                          <StatusBadge label="Архив" tone="danger" />
                         ) : null}
                       </div>
                     </div>
@@ -593,7 +593,7 @@ export function StickerPacksAdminPanel({
                         variant="secondary"
                         onClick={() => openEditPackDrawer(selectedPack)}
                       >
-                        Edit pack
+                        Редактировать набор
                       </Button>
                       <Button
                         type="button"
@@ -601,12 +601,12 @@ export function StickerPacksAdminPanel({
                         variant="secondary"
                         onClick={() => uploadInputRef.current?.click()}
                       >
-                        Add sticker
+                        Добавить стикер
                       </Button>
                       <KebabMenu
                         items={[
                           {
-                            label: "Редактировать пак",
+                            label: "Редактировать набор",
                             onSelect: () => openEditPackDrawer(selectedPack),
                           },
                           {
@@ -622,7 +622,7 @@ export function StickerPacksAdminPanel({
                               packs.length - 1,
                           },
                           {
-                            label: "Удалить пак",
+                            label: "Удалить набор",
                             onSelect: () => void handleDeletePack(selectedPack),
                             destructive: true,
                           },
@@ -635,10 +635,10 @@ export function StickerPacksAdminPanel({
                 {visibleStickers.length === 0 ? (
                   <EmptyState
                     title="Стикеры не найдены"
-                    description={
+                  description={
                       stickerSearch
                         ? "Измените запрос или очистите поиск."
-                        : "Добавьте первый стикер в выбранный пак."
+                        : "Добавьте первый стикер в выбранный набор."
                     }
                   />
                 ) : (

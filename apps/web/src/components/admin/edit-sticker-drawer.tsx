@@ -50,7 +50,7 @@ export function EditStickerDrawer({
     <DrawerShell
       open={open}
       title={sticker ? "Редактирование стикера" : "Стикер"}
-      subtitle={sticker?.originalName ?? "Живое превью и compact actions"}
+      subtitle={sticker?.originalName ?? "Живое превью и быстрые действия"}
       onClose={onClose}
       footer={
         <DrawerActions
@@ -71,8 +71,8 @@ export function EditStickerDrawer({
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            {sticker.isAnimated ? <StatusBadge label="Gif" tone="neutral" /> : null}
-            {isCover ? <StatusBadge label="Cover" tone="accent" /> : null}
+            {sticker.isAnimated ? <StatusBadge label="GIF" tone="neutral" /> : null}
+            {isCover ? <StatusBadge label="Обложка" tone="accent" /> : null}
           </div>
 
           <label className="grid gap-2">
@@ -88,12 +88,12 @@ export function EditStickerDrawer({
 
           <label className="grid gap-2">
             <span className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
-              Keywords
+              Ключевые слова
             </span>
             <Input
               value={draft.keywords}
               onChange={(event) => onChange({ keywords: event.target.value })}
-              placeholder="meme, wow, reaction"
+              placeholder="мем, вау, реакция"
               className="h-10 border-white/8 bg-white/[0.03] text-white"
             />
           </label>
@@ -124,7 +124,7 @@ export function EditStickerDrawer({
             disabled={isCover}
             className="justify-center"
           >
-            {isCover ? "Это обложка пака" : "Сделать обложкой"}
+            {isCover ? "Это обложка набора" : "Сделать обложкой"}
           </Button>
 
           <Button
