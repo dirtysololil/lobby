@@ -1096,17 +1096,13 @@ textarea {
   flex-direction: column;
   gap: 0;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.04);
-  background: linear-gradient(
-    180deg,
-    rgba(20, 26, 35, 0.98),
-    rgba(9, 13, 20, 0.985)
-  );
-  padding: 0.4rem 0.45rem 0.45rem;
+  background: rgba(10, 14, 20, 0.96);
+  padding: 0.32rem 0.38rem 0.34rem;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.025),
-    0 20px 44px rgba(4, 8, 16, 0.26);
+    0 16px 32px rgba(4, 8, 16, 0.22);
 }
 
 .dm-composer-shell::before {
@@ -1130,37 +1126,17 @@ textarea {
   mask-composite: exclude;
 }
 
-.dm-composer-shell::after {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  left: 12%;
-  top: -2.2rem;
-  width: 76%;
-  height: 4.6rem;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 136, 112, 0.45) 0%,
-    rgba(94, 164, 255, 0.38) 34%,
-    rgba(126, 109, 255, 0.34) 68%,
-    rgba(255, 45, 170, 0.44) 100%
-  );
-  filter: blur(22px);
-  opacity: 0.92;
-}
-
 .dm-composer-shell:focus-within {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     0 0 0 3px var(--dm-focus-ring),
-    0 22px 48px rgba(4, 8, 16, 0.3);
+    0 18px 34px rgba(4, 8, 16, 0.26);
 }
 
 .dm-composer-main {
   position: relative;
-  min-height: 4.4rem;
-  padding: 0.8rem 0.95rem 0.45rem;
+  min-height: 3.35rem;
+  padding: 0.58rem 0.88rem 0.22rem;
 }
 
 .dm-composer-overlay,
@@ -1175,9 +1151,9 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-top: 0.15rem;
+  margin-top: 0.08rem;
   border-top: 1px solid rgba(255, 255, 255, 0.055);
-  padding: 0.7rem 0.55rem 0.2rem;
+  padding: 0.46rem 0.5rem 0.06rem;
 }
 
 .dm-composer-tools {
@@ -1188,11 +1164,11 @@ textarea {
 
 .dm-composer-button {
   display: inline-flex;
-  height: 39px;
-  width: 39px;
+  height: 35px;
+  width: 35px;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.024);
   color: var(--text-soft);
@@ -1236,28 +1212,28 @@ textarea {
 .dm-composer-textarea {
   position: relative;
   z-index: 1;
-  min-height: 2.5rem;
+  min-height: 2rem;
 }
 
 @media (max-width: 767px) {
   .dm-composer-shell {
-    border-radius: 24px;
-    padding: 0.35rem 0.4rem 0.4rem;
+    border-radius: 22px;
+    padding: 0.28rem 0.34rem 0.32rem;
   }
 
   .dm-composer-main {
-    min-height: 4rem;
-    padding: 0.72rem 0.82rem 0.32rem;
+    min-height: 3.05rem;
+    padding: 0.52rem 0.74rem 0.16rem;
   }
 
   .dm-composer-footer {
-    padding: 0.62rem 0.45rem 0.08rem;
+    padding: 0.42rem 0.42rem 0.04rem;
   }
 
   .dm-composer-button {
-    height: 37px;
-    width: 37px;
-    border-radius: 13px;
+    height: 34px;
+    width: 34px;
+    border-radius: 12px;
   }
 }
 
