@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useOptionalRealtimePresence } from "@/components/realtime/realtime-provider";
 import { ProfileRingtoneSettings } from "@/components/settings/profile-ringtone-settings";
+import { SettingsSectionBoundary } from "@/components/settings/settings-section-boundary";
 import { SelectField } from "@/components/ui/select-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { AvatarPreviewModal } from "@/components/ui/avatar-preview-modal";
@@ -81,6 +82,35 @@ export function ProfileSettingsForm({
 }: ProfileSettingsFormProps) {
   const router = useRouter();
   const realtimePresence = useOptionalRealtimePresence();
+  const safeViewer: PublicUser = {
+    ...viewer,
+    profile: {
+      displayName: viewer.profile?.displayName ?? viewer.username,
+      bio: viewer.profile?.bio ?? null,
+      presence: viewer.profile?.presence ?? "OFFLINE",
+      avatarPreset: viewer.profile?.avatarPreset ?? "NONE",
+      avatar: {
+        fileKey: viewer.profile?.avatar?.fileKey ?? null,
+        originalName: viewer.profile?.avatar?.originalName ?? null,
+        mimeType: viewer.profile?.avatar?.mimeType ?? null,
+        bytes: viewer.profile?.avatar?.bytes ?? null,
+        width: viewer.profile?.avatar?.width ?? null,
+        height: viewer.profile?.avatar?.height ?? null,
+        frameCount: viewer.profile?.avatar?.frameCount ?? null,
+        animationDurationMs: viewer.profile?.avatar?.animationDurationMs ?? null,
+        isAnimated: viewer.profile?.avatar?.isAnimated ?? false,
+      },
+      callRingtonePreset: viewer.profile?.callRingtonePreset ?? "CLASSIC",
+      callRingtoneMode: viewer.profile?.callRingtoneMode ?? "BUILTIN",
+      customRingtone: {
+        fileKey: viewer.profile?.customRingtone?.fileKey ?? null,
+        originalName: viewer.profile?.customRingtone?.originalName ?? null,
+        mimeType: viewer.profile?.customRingtone?.mimeType ?? null,
+        bytes: viewer.profile?.customRingtone?.bytes ?? null,
+      },
+      updatedAt: viewer.profile?.updatedAt ?? viewer.createdAt,
+    },
+  };
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -91,22 +121,22 @@ export function ProfileSettingsForm({
   const liveViewer =
     realtimePresence !== null
       ? {
-          ...viewer,
-          isOnline: Boolean(realtimePresence[viewer.id]),
+          ...safeViewer,
+          isOnline: Boolean(realtimePresence[safeViewer.id]),
         }
-      : viewer;
-  const trimmedBio = viewer.profile.bio?.trim() ?? "";
+      : safeViewer;
+  const trimmedBio = safeViewer.profile.bio?.trim() ?? "";
   const availabilityLabel = getAvailabilityLabel(liveViewer) ?? "Не в сети";
-  const hasCustomAvatar = Boolean(viewer.profile.avatar.fileKey);
+  const hasCustomAvatar = Boolean(safeViewer.profile.avatar.fileKey);
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
-      displayName: viewer.profile.displayName,
-      bio: viewer.profile.bio ?? "",
-      presence: viewer.profile.presence,
-      avatarPreset: viewer.profile.avatarPreset,
-      callRingtonePreset: viewer.profile.callRingtonePreset,
-      callRingtoneMode: viewer.profile.callRingtoneMode,
+      displayName: safeViewer.profile.displayName,
+      bio: safeViewer.profile.bio ?? "",
+      presence: safeViewer.profile.presence,
+      avatarPreset: safeViewer.profile.avatarPreset,
+      callRingtonePreset: safeViewer.profile.callRingtonePreset,
+      callRingtoneMode: safeViewer.profile.callRingtoneMode,
     },
   });
 
@@ -248,7 +278,7 @@ export function ProfileSettingsForm({
                   aria-label="Открыть фото профиля"
                 >
                   <UserAvatar
-                    user={viewer}
+                    user={safeViewer}
                     size="lg"
                     showPresenceIndicator={false}
                     className="h-[108px] w-[108px] text-[1.55rem] shadow-[0_18px_34px_rgba(4,8,16,0.2)]"
@@ -269,11 +299,11 @@ export function ProfileSettingsForm({
 
               <div className="min-w-0 py-1 xl:pr-3">
                 <h2 className="truncate text-[1.35rem] font-semibold tracking-tight text-white">
-                  {viewer.profile.displayName}
+                  {safeViewer.profile.displayName}
                 </h2>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                   <span className="text-[var(--text-muted)]">
-                    @{viewer.username}
+                    @{safeViewer.username}
                   </span>
                   <span className="h-1 w-1 rounded-full bg-white/12" />
                   <span
@@ -417,19 +447,25 @@ export function ProfileSettingsForm({
               </div>
             </section>
 
-            <ProfileRingtoneSettings
-              viewer={viewer}
-              form={form}
-              maxRingtoneMb={maxRingtoneMb}
-              isUploading={isUploadingRingtone}
-              isRemoving={isRemovingRingtone}
-              onUpload={handleRingtoneUpload}
-              onRemove={handleRingtoneRemove}
-              onError={(message) => {
-                setError(message);
-                setMessage(null);
-              }}
-            />
+            <SettingsSectionBoundary
+              title="Рингтон временно недоступен"
+              description="Не удалось отрисовать настройки рингтона. Остальные параметры профиля доступны."
+              resetKeys={[safeViewer.id, safeViewer.profile.updatedAt]}
+            >
+              <ProfileRingtoneSettings
+                viewer={safeViewer}
+                form={form}
+                maxRingtoneMb={maxRingtoneMb}
+                isUploading={isUploadingRingtone}
+                isRemoving={isRemovingRingtone}
+                onUpload={handleRingtoneUpload}
+                onRemove={handleRingtoneRemove}
+                onError={(message) => {
+                  setError(message);
+                  setMessage(null);
+                }}
+              />
+            </SettingsSectionBoundary>
 
             <section className="premium-panel overflow-hidden rounded-[24px]">
               <div className="border-b border-[var(--border-soft)] px-4 py-4">
@@ -515,7 +551,7 @@ export function ProfileSettingsForm({
       </div>
 
       <AvatarPreviewModal
-        user={viewer}
+          user={safeViewer}
         open={isAvatarPreviewOpen}
         onClose={() => setIsAvatarPreviewOpen(false)}
       />

@@ -1,4 +1,5 @@
 import { requireViewer } from "@/lib/server-session";
+import { SettingsSectionBoundary } from "@/components/settings/settings-section-boundary";
 import { ProfileSettingsForm } from "@/components/settings/profile-settings-form";
 
 function getPositiveNumberEnv(name: string, fallback: number): number {
@@ -22,12 +23,18 @@ export default async function ProfileSettingsPage() {
 
   return (
     <div className="w-full">
-      <ProfileSettingsForm
-        viewer={viewer}
-        maxAvatarMb={getPositiveNumberEnv("MAX_AVATAR_MB", 10)}
-        maxAvatarAnimationMs={getPositiveNumberEnv("MAX_AVATAR_ANIMATION_MS", 15_000)}
-        maxRingtoneMb={getPositiveNumberEnv("MAX_RINGTONE_MB", 25)}
-      />
+      <SettingsSectionBoundary
+        title="Профиль временно недоступен"
+        description="Не удалось отрисовать форму профиля. Попробуйте открыть раздел ещё раз."
+        resetKeys={[viewer.id, viewer.profile.updatedAt]}
+      >
+        <ProfileSettingsForm
+          viewer={viewer}
+          maxAvatarMb={getPositiveNumberEnv("MAX_AVATAR_MB", 10)}
+          maxAvatarAnimationMs={getPositiveNumberEnv("MAX_AVATAR_ANIMATION_MS", 15_000)}
+          maxRingtoneMb={getPositiveNumberEnv("MAX_RINGTONE_MB", 25)}
+        />
+      </SettingsSectionBoundary>
     </div>
   );
 }
