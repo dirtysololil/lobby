@@ -35,6 +35,7 @@ function getBinPath(name, cwd = rootDir) {
 await run(getBinPath("prisma", rootDir), ["generate", "--schema", "prisma/schema.prisma"]);
 await run(getBinPath("tsc", rootDir), ["-p", "packages/shared/tsconfig.build.json"]);
 await run(getBinPath("tsc", rootDir), ["-p", "packages/config/tsconfig.build.json"]);
+await rm(path.join(apiDir, "dist"), { recursive: true, force: true });
 await run(getBinPath("nest", apiDir), ["build"], apiDir);
 await rm(path.join(webDir, ".next"), { recursive: true, force: true });
 await run(getBinPath("next", webDir), ["build"], webDir);

@@ -114,16 +114,18 @@ export function HubTextLobbyChat({
       return;
     }
 
+    const activeList = list;
+
     function handleScroll() {
       shouldStickToBottomRef.current =
-        list.scrollHeight - list.scrollTop - list.clientHeight < 64;
+        activeList.scrollHeight - activeList.scrollTop - activeList.clientHeight < 64;
     }
 
     handleScroll();
-    list.addEventListener("scroll", handleScroll);
+    activeList.addEventListener("scroll", handleScroll);
 
     return () => {
-      list.removeEventListener("scroll", handleScroll);
+      activeList.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
