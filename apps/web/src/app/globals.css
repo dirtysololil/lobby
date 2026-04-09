@@ -1099,7 +1099,7 @@ textarea {
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.04);
   background: rgba(10, 14, 20, 0.96);
-  padding: 0.32rem 0.38rem 0.34rem;
+  padding: 0;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.025),
     0 16px 32px rgba(4, 8, 16, 0.22);
@@ -1173,8 +1173,9 @@ textarea {
 .dm-composer-main {
   position: relative;
   min-height: 3.35rem;
-  padding: 0.58rem 0.88rem 0.22rem;
-  border-radius: 18px 18px 12px 12px;
+  margin: 1px 1px 0;
+  padding: 0.6rem 0.98rem 0.24rem;
+  border-radius: 23px 23px 12px 12px;
   background:
     linear-gradient(
       90deg,
@@ -1200,7 +1201,7 @@ textarea {
   gap: 0.75rem;
   margin-top: 0.08rem;
   border-top: 1px solid rgba(255, 255, 255, 0.055);
-  padding: 0.46rem 0.5rem 0.06rem;
+  padding: 0.44rem 0.56rem 0.18rem;
 }
 
 .dm-composer-tools {
@@ -1265,7 +1266,7 @@ textarea {
 @media (max-width: 767px) {
   .dm-composer-shell {
     border-radius: 22px;
-    padding: 0.28rem 0.34rem 0.32rem;
+    padding: 0;
   }
 
   .dm-composer-shell::after {
@@ -1276,12 +1277,13 @@ textarea {
 
   .dm-composer-main {
     min-height: 3.05rem;
-    padding: 0.52rem 0.74rem 0.16rem;
-    border-radius: 16px 16px 11px 11px;
+    margin: 1px 1px 0;
+    padding: 0.52rem 0.8rem 0.2rem;
+    border-radius: 21px 21px 11px 11px;
   }
 
   .dm-composer-footer {
-    padding: 0.42rem 0.42rem 0.04rem;
+    padding: 0.4rem 0.46rem 0.16rem;
   }
 
   .dm-composer-button {
