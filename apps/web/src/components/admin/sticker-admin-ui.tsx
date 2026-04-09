@@ -22,18 +22,43 @@ export function StatusBadge({
   tone?: "live" | "neutral" | "warning" | "danger" | "accent";
   className?: string;
 }) {
+  const toneClasses = {
+    live: {
+      shell:
+        "border-[color:rgba(34,197,139,0.22)] bg-[linear-gradient(180deg,rgba(34,197,139,0.18),rgba(34,197,139,0.08))] text-emerald-50",
+      dot: "bg-emerald-300 shadow-[0_0_0_6px_rgba(34,197,139,0.14)]",
+    },
+    accent: {
+      shell:
+        "border-[color:rgba(77,141,255,0.24)] bg-[linear-gradient(180deg,rgba(77,141,255,0.18),rgba(77,141,255,0.08))] text-sky-50",
+      dot: "bg-sky-300 shadow-[0_0_0_6px_rgba(77,141,255,0.16)]",
+    },
+    warning: {
+      shell:
+        "border-[color:rgba(245,158,11,0.2)] bg-[linear-gradient(180deg,rgba(245,158,11,0.16),rgba(245,158,11,0.08))] text-amber-50",
+      dot: "bg-amber-300 shadow-[0_0_0_6px_rgba(245,158,11,0.14)]",
+    },
+    danger: {
+      shell:
+        "border-[color:rgba(251,113,133,0.2)] bg-[linear-gradient(180deg,rgba(251,113,133,0.16),rgba(251,113,133,0.08))] text-rose-50",
+      dot: "bg-rose-300 shadow-[0_0_0_6px_rgba(251,113,133,0.14)]",
+    },
+    neutral: {
+      shell:
+        "border-[color:var(--sw-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] text-[color:var(--sw-text-muted)]",
+      dot: "bg-slate-300/80 shadow-[0_0_0_6px_rgba(145,170,210,0.1)]",
+    },
+  } as const;
+
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.16em]",
-        tone === "live" && "border-emerald-400/18 bg-emerald-400/10 text-emerald-100",
-        tone === "accent" && "border-sky-400/18 bg-sky-400/10 text-sky-100",
-        tone === "warning" && "border-amber-400/18 bg-amber-400/10 text-amber-100",
-        tone === "danger" && "border-rose-400/18 bg-rose-400/10 text-rose-100",
-        tone === "neutral" && "border-white/8 bg-white/[0.04] text-[var(--text-muted)]",
+        "inline-flex min-h-6 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+        toneClasses[tone].shell,
         className,
       )}
     >
+      <span className={cn("h-1.5 w-1.5 rounded-full", toneClasses[tone].dot)} />
       {label}
     </span>
   );
@@ -57,25 +82,25 @@ export function ToggleField({
       type="button"
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex w-full items-center justify-between gap-3 rounded-[20px] border border-[color:var(--sw-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] px-3.5 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-[border-color,background,transform] duration-200 hover:border-[color:var(--sw-border-strong)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <div className="min-w-0">
-        <div className="text-sm font-medium text-white">{label}</div>
+        <div className="text-sm font-medium text-[color:var(--sw-text)]">{label}</div>
         {description ? (
-          <div className="mt-0.5 text-xs text-[var(--text-muted)]">{description}</div>
+          <div className="mt-0.5 text-xs text-[color:var(--sw-text-muted)]">{description}</div>
         ) : null}
       </div>
       <span
         className={cn(
-          "relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors",
+          "relative inline-flex h-6 w-10 shrink-0 rounded-full border shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors",
           checked
-            ? "border-[rgba(255,117,84,0.3)] bg-[rgba(255,117,84,0.28)]"
-            : "border-white/10 bg-white/[0.06]",
+            ? "border-[color:rgba(34,197,139,0.28)] bg-[linear-gradient(180deg,rgba(34,197,139,0.28),rgba(34,197,139,0.16))]"
+            : "border-[color:var(--sw-border)] bg-white/[0.06]",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-[0_4px_12px_rgba(0,0,0,0.35)] transition-transform",
+            "absolute top-0.5 h-4.5 w-4.5 rounded-full bg-white shadow-[0_8px_18px_rgba(0,0,0,0.32)] transition-transform",
             checked ? "translate-x-[18px]" : "translate-x-0.5",
           )}
         />
@@ -126,7 +151,7 @@ export function KebabMenu({
         type="button"
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-[var(--text-muted)] transition-colors hover:bg-white/[0.07] hover:text-white",
+          "inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--sw-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] text-[color:var(--sw-text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-[border-color,background,color,transform,box-shadow] duration-200 hover:-translate-y-[1px] hover:border-[color:var(--sw-border-strong)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] hover:text-[color:var(--sw-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--sw-focus)]",
           buttonClassName,
         )}
         aria-label="Открыть действия"
@@ -135,7 +160,7 @@ export function KebabMenu({
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+0.4rem)] z-20 min-w-[180px] overflow-hidden rounded-[16px] border border-white/10 bg-[#0a1018] p-1 shadow-[0_22px_56px_rgba(2,6,12,0.55)]">
+        <div className="absolute right-0 top-[calc(100%+0.55rem)] z-20 min-w-[196px] overflow-hidden rounded-[20px] border border-[color:var(--sw-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_24%),rgba(7,12,18,0.96)] p-1.5 shadow-[var(--sw-shadow-panel)] backdrop-blur-xl">
           {items.map((item) => (
             <button
               key={item.label}
@@ -146,10 +171,10 @@ export function KebabMenu({
                 item.onSelect();
               }}
               className={cn(
-                "flex w-full items-center rounded-[12px] px-3 py-2 text-left text-sm transition-colors",
+                "flex w-full items-center rounded-[14px] px-3 py-2.5 text-left text-sm transition-[background,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--sw-focus)]",
                 item.destructive
                   ? "text-rose-100 hover:bg-rose-500/10"
-                  : "text-[var(--text-soft)] hover:bg-white/[0.05] hover:text-white",
+                  : "text-[color:var(--sw-text-secondary)] hover:bg-white/[0.06] hover:text-[color:var(--sw-text)]",
                 item.disabled && "cursor-not-allowed opacity-50",
               )}
             >
@@ -177,34 +202,8 @@ export function DrawerShell({
   children: ReactNode;
   footer?: ReactNode;
 }) {
-  const [mounted, setMounted] = useState(open);
-  const [visible, setVisible] = useState(false);
-
   useEffect(() => {
-    if (open) {
-      setMounted(true);
-      const frame = window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => setVisible(true));
-      });
-
-      return () => window.cancelAnimationFrame(frame);
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => setVisible(false));
-    const timer = window.setTimeout(() => setMounted(false), 180);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
-    };
-  }, [mounted, open]);
-
-  useEffect(() => {
-    if (!mounted) {
+    if (!open) {
       return;
     }
 
@@ -223,18 +222,15 @@ export function DrawerShell({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mounted, onClose]);
+  }, [onClose, open]);
 
-  if (!mounted) {
+  if (!open) {
     return null;
   }
 
   return createPortal(
     <div
-      className={cn(
-        "fixed inset-0 z-[95] flex justify-end bg-[rgba(3,6,12,0.72)] backdrop-blur-sm transition-opacity duration-150",
-        visible ? "opacity-100" : "opacity-0",
-      )}
+      className="fixed inset-0 z-[95] flex justify-end bg-[rgba(2,4,10,0.72)] backdrop-blur-md transition-opacity duration-150 opacity-100"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -243,22 +239,23 @@ export function DrawerShell({
       role="presentation"
     >
       <aside
-        className={cn(
-          "flex h-full w-full max-w-[min(92vw,460px)] flex-col border-l border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_22%),rgba(7,12,18,0.98)] shadow-[-28px_0_72px_rgba(2,6,12,0.45)] transition-transform duration-200",
-          visible ? "translate-x-0" : "translate-x-8",
-        )}
+        className="relative flex h-full w-full max-w-[min(92vw,480px)] flex-col border-l border-[color:var(--sw-border)] bg-[radial-gradient(circle_at_top_right,rgba(77,141,255,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_22%),rgba(7,12,18,0.98)] shadow-[-28px_0_72px_rgba(2,6,12,0.45)] transition-transform duration-200 translate-x-0"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/8 px-4 py-4">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(145,170,210,0.5),transparent)]" />
+
+        <div className="flex items-start justify-between gap-4 border-b border-[color:var(--sw-border-soft)] px-4 py-4">
           <div className="min-w-0">
-            <div className="text-base font-semibold tracking-tight text-white">{title}</div>
+            <div className="text-base font-semibold tracking-tight text-[color:var(--sw-text)]">
+              {title}
+            </div>
             {subtitle ? (
-              <div className="mt-1 text-xs text-[var(--text-muted)]">{subtitle}</div>
+              <div className="mt-1 text-xs text-[color:var(--sw-text-muted)]">{subtitle}</div>
             ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 text-[var(--text-soft)] transition-colors hover:bg-black/35 hover:text-white"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[color:var(--sw-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] text-[color:var(--sw-text-secondary)] transition-[border-color,background,color] duration-150 hover:border-[color:var(--sw-border-strong)] hover:bg-white/[0.08] hover:text-[color:var(--sw-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--sw-focus)]"
             aria-label="Закрыть"
           >
             <X className="h-4 w-4" />
@@ -268,7 +265,7 @@ export function DrawerShell({
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
 
         {footer ? (
-          <div className="border-t border-white/8 px-4 py-3">{footer}</div>
+          <div className="border-t border-[color:var(--sw-border-soft)] px-4 py-3">{footer}</div>
         ) : null}
       </aside>
     </div>,
