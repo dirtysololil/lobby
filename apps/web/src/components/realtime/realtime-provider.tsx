@@ -40,6 +40,8 @@ declare global {
   }
 }
 
+const nativeResumeEventName = "lobby:native-resume";
+
 function isRealtimeTransportMode(value: string | null | undefined): value is RealtimeTransportMode {
   return value === "auto" || value === "polling" || value === "websocket";
 }
@@ -129,7 +131,9 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       window.__lobbySocket = nextSocket;
     }
 
-    setSocket(nextSocket);
+    queueMicrotask(() => {
+      setSocket(nextSocket);
+    });
 
     return () => {
       if (typeof window !== "undefined" && window.__lobbySocket === nextSocket) {
@@ -144,6 +148,23 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
   useEffect(() => {
     if (!socket) {
       return;
+    }
+
+    const activeSocket = socket;
+
+    function reconnectAfterResume() {
+      if (!activeSocket.connected) {
+        activeSocket.connect();
+        return;
+      }
+
+      activeSocket.emit("presence.sync");
+    }
+
+    function handleVisibilityChange() {
+      if (typeof document !== "undefined" && !document.hidden) {
+        reconnectAfterResume();
+      }
     }
 
     const handleConnect = () => {
@@ -250,6 +271,9 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
     socket.on("presence.updated", handlePresenceUpdate);
     socket.io.engine.on("upgrade", handleEngineUpgrade);
     socket.io.engine.on("upgradeError", handleEngineUpgradeError);
+    window.addEventListener(nativeResumeEventName, reconnectAfterResume);
+    window.addEventListener("online", reconnectAfterResume);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     if (typeof window !== "undefined") {
       window.__lobbySocket = socket;
@@ -269,6 +293,9 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       socket.off("presence.updated", handlePresenceUpdate);
       socket.io.engine.off("upgrade", handleEngineUpgrade);
       socket.io.engine.off("upgradeError", handleEngineUpgradeError);
+      window.removeEventListener(nativeResumeEventName, reconnectAfterResume);
+      window.removeEventListener("online", reconnectAfterResume);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
 
       if (typeof window !== "undefined" && window.__lobbySocket === socket) {
         delete window.__lobbySocket;

@@ -18,6 +18,9 @@ function normalizeBaseUrl(value: string | undefined): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+const productionWebPublicUrl = "https://lobby.holty.ru";
+const productionApiPublicUrl = "https://api.lobby.holty.ru";
+
 export const runtimeConfig = {
   appName: readEnvValue("NEXT_PUBLIC_APP_NAME", "APP_NAME") ?? "Lobby",
   apiPublicUrl: normalizeBaseUrl(
@@ -41,6 +44,14 @@ export const runtimeConfig = {
     ) ?? "auto",
 };
 
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production";
+}
+
+function getProductionApiBaseUrl() {
+  return productionApiPublicUrl;
+}
+
 export function resolveApiBaseUrlForServer(): string {
   if (runtimeConfig.apiPublicUrl) {
     return runtimeConfig.apiPublicUrl;
@@ -50,7 +61,7 @@ export function resolveApiBaseUrlForServer(): string {
     return deriveApiUrlFromHostname(new URL(runtimeConfig.webPublicUrl));
   }
 
-  return "";
+  return isProductionRuntime() ? getProductionApiBaseUrl() : "";
 }
 
 export async function resolveApiBaseUrlForServerRequest(): Promise<string> {
@@ -68,7 +79,7 @@ export async function resolveApiBaseUrlForServerRequest(): Promise<string> {
     console.warn(
       "[auth/runtime] server API base URL missing and request host is unavailable",
     );
-    return "";
+    return isProductionRuntime() ? getProductionApiBaseUrl() : "";
   }
 
   const normalizedHost = host.split(",")[0]?.trim();
@@ -77,7 +88,7 @@ export async function resolveApiBaseUrlForServerRequest(): Promise<string> {
     console.warn(
       "[auth/runtime] server API base URL missing and request host is empty",
     );
-    return "";
+    return isProductionRuntime() ? getProductionApiBaseUrl() : "";
   }
 
   const forwardedProto = headerStore
@@ -85,7 +96,11 @@ export async function resolveApiBaseUrlForServerRequest(): Promise<string> {
     ?.split(",")[0]
     ?.trim();
   const protocol =
-    forwardedProto || (normalizedHost.includes("localhost") ? "http" : "https");
+    forwardedProto ||
+    (shouldAllowLocalhostFallback() &&
+    (normalizedHost.includes("localhost") || normalizedHost.includes("127.0.0.1"))
+      ? "http"
+      : "https");
 
   const derivedApiUrl = deriveApiUrlFromHostname(
     new URL(`${protocol}://${normalizedHost}`),
@@ -97,7 +112,7 @@ export async function resolveApiBaseUrlForServerRequest(): Promise<string> {
     );
   }
 
-  return derivedApiUrl;
+  return derivedApiUrl || (isProductionRuntime() ? getProductionApiBaseUrl() : "");
 }
 
 export function resolveApiBaseUrlForBrowser(): string {
@@ -106,10 +121,13 @@ export function resolveApiBaseUrlForBrowser(): string {
   }
 
   if (typeof window === "undefined") {
-    return "";
+    return isProductionRuntime() ? getProductionApiBaseUrl() : "";
   }
 
-  return deriveApiUrlFromHostname(new URL(window.location.origin));
+  return (
+    deriveApiUrlFromHostname(new URL(window.location.origin)) ||
+    (isProductionRuntime() ? getProductionApiBaseUrl() : "")
+  );
 }
 
 export function resolveRealtimeBaseUrlForBrowser(): string {
@@ -122,22 +140,35 @@ export function resolveRealtimeBaseUrlForBrowser(): string {
   }
 
   if (typeof window === "undefined") {
-    return "";
+    return isProductionRuntime() ? getProductionApiBaseUrl() : "";
   }
 
-  return deriveApiUrlFromHostname(new URL(window.location.origin));
+  return (
+    deriveApiUrlFromHostname(new URL(window.location.origin)) ||
+    (isProductionRuntime() ? getProductionApiBaseUrl() : "")
+  );
 }
 
 function deriveApiUrlFromHostname(origin: URL): string {
   const { protocol, hostname } = origin;
 
-  if (hostname.startsWith("lobby.")) {
+  if (
+    hostname === new URL(productionWebPublicUrl).hostname ||
+    hostname.startsWith("lobby.")
+  ) {
     return `${protocol}//api.${hostname}`;
   }
 
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
+  if (
+    shouldAllowLocalhostFallback() &&
+    (hostname === "localhost" || hostname === "127.0.0.1")
+  ) {
     return `${protocol}//${hostname}:3001`;
   }
 
   return "";
+}
+
+function shouldAllowLocalhostFallback() {
+  return !isProductionRuntime();
 }

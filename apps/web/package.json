@@ -3,12 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "cap": "cap",
     "dev": "node ./scripts/run-next.mjs dev",
     "build": "node ./node_modules/next/dist/bin/next build && node ./scripts/prepare-standalone-assets.mjs",
     "start": "node ./scripts/run-next.mjs start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "ios:add": "cap add ios",
+    "ios:sync": "cap sync ios",
+    "ios:open": "cap open ios",
+    "android:add": "cap add android",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android",
+    "android:bundle": "node ./scripts/run-android-gradle.mjs bundleRelease",
+    "android:apk:release": "node ./scripts/run-android-gradle.mjs assembleRelease"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/keyboard": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.2",
     "@hookform/resolvers": "^5.2.2",
     "@lobby/config": "workspace:*",
     "@lobby/shared": "workspace:*",
@@ -25,6 +40,7 @@
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.3.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
