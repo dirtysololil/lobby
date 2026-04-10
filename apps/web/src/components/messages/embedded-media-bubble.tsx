@@ -119,13 +119,13 @@ export function EmbeddedMediaBubble({
       return;
     }
 
-    if (isInView && !isViewerOpen) {
+    if (previewShouldPlay) {
       void node.play().catch(() => undefined);
       return;
     }
 
     node.pause();
-  }, [isInView, isViewerOpen, previewCanRenderVideo]);
+  }, [previewCanRenderVideo, previewShouldPlay]);
 
   const resetViewerState = useCallback(() => {
     setIsViewerPlaying(false);
