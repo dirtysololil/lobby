@@ -147,17 +147,50 @@ export class DirectMessagesController {
   public async streamAttachmentAsset(
     @CurrentUser() currentUser: PublicUser,
     @Param('attachmentId') attachmentId: string,
+    @Req() request: AuthenticatedRequest,
     @Res() response: Response,
   ) {
-    const asset = await this.directMessagesService.getAttachmentAssetForViewer(
-      currentUser.id,
-      attachmentId,
-      'asset',
-    );
+    const asset =
+      await this.directMessagesService.getAttachmentAssetDescriptorForViewer(
+        currentUser.id,
+        attachmentId,
+        'asset',
+      );
+    const byteRange = parseSingleByteRange(request.headers.range, asset.size);
+
+    if (request.headers.range && !byteRange) {
+      response.status(416);
+      response.setHeader('Content-Range', `bytes */${asset.size}`);
+      return response.end();
+    }
+
+    response.setHeader('Accept-Ranges', 'bytes');
     response.setHeader('Content-Type', asset.mimeType);
     response.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
 
-    return response.send(asset.buffer);
+    if (byteRange) {
+      const chunk = await this.directMessagesService.readAttachmentAssetRange(
+        asset.fileKey,
+        byteRange.start,
+        byteRange.end,
+      );
+
+      response.status(206);
+      response.setHeader(
+        'Content-Range',
+        `bytes ${byteRange.start}-${byteRange.end}/${asset.size}`,
+      );
+      response.setHeader('Content-Length', String(chunk.byteLength));
+
+      return response.send(chunk);
+    }
+
+    const fullAsset = await this.directMessagesService.readAttachmentAsset(
+      asset.fileKey,
+    );
+    response.setHeader('Content-Length', String(asset.size));
+
+    return response.send(fullAsset);
   }
 
   @RequireAuth()
@@ -235,4 +268,64 @@ export class DirectMessagesController {
       conversation,
     });
   }
+}
+
+function parseSingleByteRange(
+  rangeHeader: string | string[] | undefined,
+  size: number,
+): { start: number; end: number } | null {
+  if (typeof rangeHeader !== 'string' || !rangeHeader.startsWith('bytes=')) {
+    return null;
+  }
+
+  const [rawStart, rawEnd] = rangeHeader.slice('bytes='.length).split('-', 2);
+
+  if (rawStart === undefined || rawEnd === undefined) {
+    return null;
+  }
+
+  if (rawStart === '' && rawEnd === '') {
+    return null;
+  }
+
+  const parsedStart = rawStart === '' ? null : Number.parseInt(rawStart, 10);
+  const parsedEnd = rawEnd === '' ? null : Number.parseInt(rawEnd, 10);
+
+  if (
+    (parsedStart !== null && !Number.isFinite(parsedStart)) ||
+    (parsedEnd !== null && !Number.isFinite(parsedEnd))
+  ) {
+    return null;
+  }
+
+  if (parsedStart === null) {
+    const suffixLength = parsedEnd;
+
+    if (suffixLength === null || suffixLength <= 0) {
+      return null;
+    }
+
+    const start = Math.max(0, size - suffixLength);
+
+    return {
+      start,
+      end: size - 1,
+    };
+  }
+
+  if (parsedStart < 0 || parsedStart >= size) {
+    return null;
+  }
+
+  const resolvedEnd =
+    parsedEnd === null ? size - 1 : Math.min(parsedEnd, size - 1);
+
+  if (resolvedEnd < parsedStart) {
+    return null;
+  }
+
+  return {
+    start: parsedStart,
+    end: resolvedEnd,
+  };
 }
