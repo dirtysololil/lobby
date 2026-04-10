@@ -17,6 +17,7 @@ export interface DirectMessageAttachmentPipelineLimits {
 
 export interface ProcessedDirectMessageAttachment {
   kind: 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+  assetBuffer: Buffer;
   extension: string;
   mimeType: string;
   originalName: string;
@@ -30,6 +31,13 @@ export interface ProcessedDirectMessageAttachment {
 }
 
 const supportedImageFormats = new Set(['png', 'jpeg', 'jpg', 'webp', 'gif']);
+const videoNoteFilePrefix = 'lobby-video-note-';
+const optimizedVideoNoteMaxDimension = 480;
+const optimizedVideoNoteTargetFps = 24;
+const optimizedVideoNoteCrf = 24;
+const optimizedVideoNoteMaxRateKbps = 900;
+const optimizedVideoNoteBufferKbps = 1_800;
+const optimizedVideoNoteAudioBitrateKbps = 64;
 const documentMimeTypes = new Set([
   'application/pdf',
   'text/plain',
@@ -138,6 +146,7 @@ async function tryProcessImageAttachment(args: {
 
     return {
       kind: 'IMAGE',
+      assetBuffer: args.buffer,
       extension: resolveImageExtension(format),
       mimeType: resolveImageMimeType(format),
       originalName: args.originalName,
@@ -203,6 +212,9 @@ async function tryProcessVideoAttachment(args: {
     const videoStream = payload.streams?.find(
       (stream) => stream.codec_type === 'video',
     );
+    const hasAudio = Boolean(
+      payload.streams?.some((stream) => stream.codec_type === 'audio'),
+    );
     const width = videoStream?.width ?? 0;
     const height = videoStream?.height ?? 0;
     const durationMs = payload.format?.duration
@@ -222,19 +234,49 @@ async function tryProcessVideoAttachment(args: {
       );
     }
 
-    if (
-      durationMs !== null &&
-      durationMs > args.limits.maxVideoDurationMs
-    ) {
+    if (durationMs !== null && durationMs > args.limits.maxVideoDurationMs) {
       throw new Error(
         `Видео длиннее ${Math.round(args.limits.maxVideoDurationMs / 1000)} секунд.`,
       );
     }
 
+    let assetBuffer = args.buffer;
+    let assetExtension: 'mp4' | 'webm' = extension;
+    let assetMimeType = resolveVideoMimeType(extension, args.mimeType);
+    let assetOriginalName = args.originalName;
+    let assetWidth = width;
+    let assetHeight = height;
+    let previewSourcePath = inputPath;
+
+    if (isDirectMessageVideoNoteName(args.originalName)) {
+      const optimizedAssetPath = join(tempRoot, 'asset.mp4');
+      const optimizedDimensions = resolveVideoNoteOutputDimensions(
+        width,
+        height,
+      );
+
+      await transcodeVideoNoteAttachment({
+        ffmpegBinaryPath,
+        inputPath,
+        outputPath: optimizedAssetPath,
+        width: optimizedDimensions.width,
+        height: optimizedDimensions.height,
+        hasAudio,
+      });
+
+      assetBuffer = await readFile(optimizedAssetPath);
+      assetExtension = 'mp4';
+      assetMimeType = 'video/mp4';
+      assetOriginalName = replaceFileExtension(args.originalName, 'mp4');
+      assetWidth = optimizedDimensions.width;
+      assetHeight = optimizedDimensions.height;
+      previewSourcePath = optimizedAssetPath;
+    }
+
     await runBinary(ffmpegBinaryPath, [
       '-y',
       '-i',
-      inputPath,
+      previewSourcePath,
       '-frames:v',
       '1',
       '-vf',
@@ -245,17 +287,13 @@ async function tryProcessVideoAttachment(args: {
 
     return {
       kind: 'VIDEO',
-      extension,
-      mimeType:
-        args.mimeType && args.mimeType.trim().length > 0
-          ? args.mimeType
-          : extension === 'mp4'
-            ? 'video/mp4'
-            : 'video/webm',
-      originalName: args.originalName,
-      fileSize: args.buffer.byteLength,
-      width,
-      height,
+      assetBuffer,
+      extension: assetExtension,
+      mimeType: assetMimeType,
+      originalName: assetOriginalName,
+      fileSize: assetBuffer.byteLength,
+      width: assetWidth,
+      height: assetHeight,
       durationMs,
       previewBuffer,
       previewExtension: 'webp',
@@ -281,11 +319,14 @@ function processDocumentAttachment(args: {
     !documentMimeTypes.has(normalizedMimeType) &&
     !documentExtensions.has(extension)
   ) {
-    throw new Error('Поддерживаются фото, видео и документы популярных форматов.');
+    throw new Error(
+      'Поддерживаются фото, видео и документы популярных форматов.',
+    );
   }
 
   return {
     kind: 'DOCUMENT',
+    assetBuffer: args.buffer,
     extension: extension || 'bin',
     mimeType: normalizedMimeType || 'application/octet-stream',
     originalName: args.originalName,
@@ -391,6 +432,109 @@ function resolveVideoExtension(
   return null;
 }
 
+function resolveVideoMimeType(
+  extension: 'mp4' | 'webm',
+  mimeType: string | null | undefined,
+): string {
+  if (mimeType && mimeType.trim().length > 0) {
+    return mimeType;
+  }
+
+  return extension === 'mp4' ? 'video/mp4' : 'video/webm';
+}
+
+function isDirectMessageVideoNoteName(originalName: string): boolean {
+  return originalName.trim().toLowerCase().startsWith(videoNoteFilePrefix);
+}
+
+function replaceFileExtension(
+  originalName: string,
+  nextExtension: string,
+): string {
+  const trimmed = originalName.trim();
+  const baseName = trimmed.replace(/\.[^.]+$/, '');
+
+  return `${baseName || 'attachment'}.${nextExtension}`;
+}
+
+function resolveVideoNoteOutputDimensions(width: number, height: number) {
+  const scale = Math.min(
+    1,
+    optimizedVideoNoteMaxDimension / Math.max(width, height),
+  );
+
+  return {
+    width: toEvenDimension(width * scale),
+    height: toEvenDimension(height * scale),
+  };
+}
+
+function toEvenDimension(value: number): number {
+  const rounded = Math.max(2, Math.round(value));
+  return rounded % 2 === 0 ? rounded : rounded - 1;
+}
+
+async function transcodeVideoNoteAttachment(args: {
+  ffmpegBinaryPath: string;
+  inputPath: string;
+  outputPath: string;
+  width: number;
+  height: number;
+  hasAudio: boolean;
+}): Promise<void> {
+  await runBinary(args.ffmpegBinaryPath, [
+    '-y',
+    '-i',
+    args.inputPath,
+    '-map_metadata',
+    '-1',
+    '-map_chapters',
+    '-1',
+    '-map',
+    '0:v:0',
+    ...(args.hasAudio ? ['-map', '0:a:0'] : []),
+    '-vf',
+    `scale=${args.width}:${args.height}:flags=lanczos,fps=${optimizedVideoNoteTargetFps}`,
+    '-c:v',
+    'libx264',
+    '-preset',
+    'fast',
+    '-profile:v',
+    'main',
+    '-level',
+    '3.1',
+    '-pix_fmt',
+    'yuv420p',
+    '-crf',
+    String(optimizedVideoNoteCrf),
+    '-maxrate',
+    `${optimizedVideoNoteMaxRateKbps}k`,
+    '-bufsize',
+    `${optimizedVideoNoteBufferKbps}k`,
+    '-g',
+    String(optimizedVideoNoteTargetFps * 2),
+    '-keyint_min',
+    String(optimizedVideoNoteTargetFps * 2),
+    '-sc_threshold',
+    '0',
+    ...(args.hasAudio
+      ? [
+          '-c:a',
+          'aac',
+          '-b:a',
+          `${optimizedVideoNoteAudioBitrateKbps}k`,
+          '-ac',
+          '1',
+          '-ar',
+          '48000',
+        ]
+      : ['-an']),
+    '-movflags',
+    '+faststart',
+    args.outputPath,
+  ]);
+}
+
 function runBinary(binaryPath: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(binaryPath, args, {
@@ -424,7 +568,9 @@ function runBinary(binaryPath: string, args: string[]): Promise<string> {
         return;
       }
 
-      reject(new Error(stderr.trim() || `${binaryPath} exited with code ${code}`));
+      reject(
+        new Error(stderr.trim() || `${binaryPath} exited with code ${code}`),
+      );
     });
   });
 }
