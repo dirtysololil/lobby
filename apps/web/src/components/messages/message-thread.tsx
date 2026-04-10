@@ -984,6 +984,12 @@ export function MessageThread({
                                         ? "dm-video-note-bubble"
                                         : "w-[min(248px,72vw)]"
                                     }
+                                    previewPlayback={
+                                      isRoundVideoNote ? "always" : "visible"
+                                    }
+                                    previewPreload={
+                                      isRoundVideoNote ? "auto" : "metadata"
+                                    }
                                   />
                                   {isRoundVideoNote &&
                                   message.attachment.durationMs ? (

@@ -23,6 +23,8 @@ interface EmbeddedMediaBubbleProps {
   href?: string | null;
   label?: string | null;
   className?: string;
+  previewPlayback?: "visible" | "always";
+  previewPreload?: "metadata" | "auto";
 }
 
 type ViewerAudioState = {
@@ -43,6 +45,8 @@ export function EmbeddedMediaBubble({
   posterUrl = null,
   label = null,
   className,
+  previewPlayback = "visible",
+  previewPreload = "metadata",
 }: EmbeddedMediaBubbleProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [previewVideoFailed, setPreviewVideoFailed] = useState(false);
@@ -78,6 +82,8 @@ export function EmbeddedMediaBubble({
     kind === "VIDEO" && viewerCanRenderVideo && Boolean(effectivePlayableUrl);
   const fallbackLabel =
     kind === "VIDEO" ? "Видео недоступно" : "Медиа недоступно";
+  const previewShouldPlay =
+    previewPlayback === "always" ? !isViewerOpen : isInView && !isViewerOpen;
 
   useEffect(() => {
     if (viewerAudio.volume > 0) {
@@ -612,7 +618,8 @@ export function EmbeddedMediaBubble({
           posterUrl={posterUrl}
           videoRef={previewVideoRef}
           allowVideo={previewCanRenderVideo}
-          forcePlay={isInView && !isViewerOpen}
+          forcePlay={previewShouldPlay}
+          preloadMode={previewPreload}
           onVideoError={() => setPreviewVideoFailed(true)}
           className="h-full w-full"
           mediaClassName="h-full w-full object-cover"
@@ -694,6 +701,7 @@ function PreviewSurface({
   videoRef,
   allowVideo,
   forcePlay,
+  preloadMode,
   onVideoError,
   className,
   mediaClassName,
@@ -706,6 +714,7 @@ function PreviewSurface({
   videoRef?: RefObject<HTMLVideoElement | null>;
   allowVideo: boolean;
   forcePlay: boolean;
+  preloadMode: "metadata" | "auto";
   onVideoError: () => void;
   className?: string;
   mediaClassName?: string;
@@ -744,10 +753,11 @@ function PreviewSurface({
         <video
           ref={videoRef}
           src={playableUrl}
+          autoPlay={forcePlay}
           muted
           loop
           playsInline
-          preload="metadata"
+          preload={preloadMode}
           poster={posterUrl ?? previewUrl ?? undefined}
           onError={onVideoError}
           className={cn("block", mediaClassName)}
