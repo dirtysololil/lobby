@@ -3,6 +3,7 @@ import {
   directConversationSummarySchema,
   directMessageSchema,
   stickerAssetSchema,
+  type FriendshipState,
   type DirectConversationDetail,
   type DirectConversationSummary,
   type DirectMessage,
@@ -116,6 +117,7 @@ export function toDirectConversationSummary(args: {
   counterpartLastSeenAt: Date | null;
   participant: DirectConversationParticipant;
   lastMessage: MessageWithAuthor | null;
+  friendshipState: FriendshipState;
   isBlockedByViewer: boolean;
   hasBlockedViewer: boolean;
 }): DirectConversationSummary {
@@ -142,6 +144,7 @@ export function toDirectConversationSummary(args: {
           viewerId: args.participant.userId,
         })
       : null,
+    friendshipState: args.friendshipState,
     isBlockedByViewer: args.isBlockedByViewer,
     hasBlockedViewer: args.hasBlockedViewer,
   });
@@ -152,6 +155,7 @@ export function toDirectConversationDetail(args: {
   viewerId: string;
   retentionMode: string;
   retentionSeconds: number | null;
+  friendshipState: FriendshipState;
   isBlockedByViewer: boolean;
   hasBlockedViewer: boolean;
   participants: ParticipantWithUser[];
@@ -163,6 +167,7 @@ export function toDirectConversationDetail(args: {
       id: args.conversationId,
       retentionMode: args.retentionMode,
       retentionSeconds: args.retentionSeconds,
+      friendshipState: args.friendshipState,
       isBlockedByViewer: args.isBlockedByViewer,
       hasBlockedViewer: args.hasBlockedViewer,
       participants: args.participants.map((participant) => ({

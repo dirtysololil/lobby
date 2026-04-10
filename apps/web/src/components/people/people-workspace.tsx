@@ -728,7 +728,10 @@ export function PeopleWorkspace() {
                               variant="secondary"
                               onClick={() => void openDm(item.user.username)}
                               disabled={
-                                actionKey === busyKey || item.relationship.hasBlockedViewer
+                                actionKey === busyKey ||
+                                item.relationship.hasBlockedViewer ||
+                                (!item.relationship.dmConversationId &&
+                                  item.relationship.friendshipState !== "ACCEPTED")
                               }
                               className="h-8 px-2.5"
                             >

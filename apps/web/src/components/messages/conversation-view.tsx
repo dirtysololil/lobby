@@ -17,6 +17,7 @@ import {
   mediaPickerCatalogResponseSchema,
   type DirectConversationDetail,
   type DirectMessage,
+  type FriendshipState,
   type MediaPickerCatalog,
   type UserRole,
 } from "@lobby/shared";
@@ -346,6 +347,29 @@ function applyParticipantRead(
   };
 }
 
+function getDirectMessageWriteRestriction(
+  friendshipState: FriendshipState,
+  isBlocked: boolean,
+) {
+  if (isBlocked) {
+    return "В этом диалоге нельзя отправлять сообщения из-за ограничения контакта.";
+  }
+
+  switch (friendshipState) {
+    case "INCOMING_REQUEST":
+      return "Чтобы писать в ЛС, сначала примите заявку в друзья.";
+    case "OUTGOING_REQUEST":
+      return "Чтобы писать в ЛС, дождитесь принятия вашей заявки в друзья.";
+    case "NONE":
+    case "REMOVED":
+      return "Чтобы писать в ЛС, сначала отправьте заявку в друзья и дождитесь принятия.";
+    case "ACCEPTED":
+      return null;
+    default:
+      return "В этом диалоге нельзя отправлять сообщения.";
+  }
+}
+
 export function ConversationView({
   conversationId,
   viewerId,
@@ -669,8 +693,19 @@ export function ConversationView({
     conversation?.isBlockedByViewer || conversation?.hasBlockedViewer || false;
   const compactStatusLabel = counterpartAvailabilityLabel ?? "Не в сети";
 
+  const writeRestrictionMessage = getDirectMessageWriteRestriction(
+    conversation?.friendshipState ?? "NONE",
+    isBlocked,
+  );
+  const isComposerDisabled = Boolean(writeRestrictionMessage) || isUploadingFiles;
+
   async function sendMessage(payload: ComposerSendPayload) {
     if (!conversation || !counterpart) {
+      return;
+    }
+
+    if (writeRestrictionMessage) {
+      setErrorMessage(writeRestrictionMessage);
       return;
     }
 
@@ -739,6 +774,11 @@ export function ConversationView({
 
   async function uploadSingleFile(file: File, mode?: ComposerFileUploadMode) {
     if (!conversation || !counterpart) {
+      return;
+    }
+
+    if (writeRestrictionMessage) {
+      setErrorMessage(writeRestrictionMessage);
       return;
     }
 
@@ -811,6 +851,11 @@ export function ConversationView({
   }
 
   async function uploadFiles(files: File[], mode?: ComposerFileUploadMode) {
+    if (writeRestrictionMessage) {
+      setErrorMessage(writeRestrictionMessage);
+      return;
+    }
+
     const filteredFiles = files.filter((file) => file.size > 0);
 
     if (filteredFiles.length === 0) {
@@ -872,6 +917,10 @@ export function ConversationView({
   }
 
   function handleDragEnter() {
+    if (writeRestrictionMessage || isUploadingFiles) {
+      return;
+    }
+
     dragDepthRef.current += 1;
     setIsDraggingFiles(true);
   }
@@ -887,6 +936,11 @@ export function ConversationView({
   function handleDropFiles(files: FileList | null) {
     dragDepthRef.current = 0;
     setIsDraggingFiles(false);
+
+    if (writeRestrictionMessage) {
+      setErrorMessage(writeRestrictionMessage);
+      return;
+    }
 
     if (!files || files.length === 0) {
       return;
@@ -1115,6 +1169,12 @@ export function ConversationView({
           </div>
         ) : null}
 
+        {!errorMessage && writeRestrictionMessage ? (
+          <div className="shrink-0 border-b border-white/5 bg-[rgba(20,29,40,0.74)] px-3 py-2 text-sm text-[var(--text-soft)]">
+            {writeRestrictionMessage}
+          </div>
+        ) : null}
+
         <div
           ref={messageViewportRef}
           className="relative min-h-0 flex-1"
@@ -1170,7 +1230,7 @@ export function ConversationView({
 
         <div className="shrink-0 border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:py-2">
           <MessageComposer
-            disabled={isBlocked || isUploadingFiles}
+            disabled={isComposerDisabled}
             canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
             pickerCatalog={pickerCatalog}
             isPickerCatalogLoading={isPickerCatalogLoading}

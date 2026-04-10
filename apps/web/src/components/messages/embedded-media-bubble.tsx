@@ -26,6 +26,7 @@ interface EmbeddedMediaBubbleProps {
   kind: "IMAGE" | "VIDEO" | "GIF";
   previewUrl?: string | null;
   playableUrl?: string | null;
+  viewerPlayableUrl?: string | null;
   posterUrl?: string | null;
   href?: string | null;
   label?: string | null;
@@ -49,6 +50,7 @@ export function EmbeddedMediaBubble({
   kind,
   previewUrl = null,
   playableUrl = null,
+  viewerPlayableUrl = null,
   posterUrl = null,
   label = null,
   className,
@@ -80,13 +82,16 @@ export function EmbeddedMediaBubble({
     defaultViewerAudioState.volume > 0 ? defaultViewerAudioState.volume : 0.8,
   );
   const effectivePlayableUrl = playableUrl ?? null;
+  const effectiveViewerPlayableUrl = viewerPlayableUrl ?? effectivePlayableUrl;
   const effectivePreviewUrl = previewUrl ?? posterUrl ?? null;
   const previewCanRenderVideo =
     !previewVideoFailed && Boolean(effectivePlayableUrl);
   const viewerCanRenderVideo =
-    !viewerVideoFailed && Boolean(effectivePlayableUrl);
+    !viewerVideoFailed && Boolean(effectiveViewerPlayableUrl);
   const isVideoViewer =
-    kind === "VIDEO" && viewerCanRenderVideo && Boolean(effectivePlayableUrl);
+    kind === "VIDEO" &&
+    viewerCanRenderVideo &&
+    Boolean(effectiveViewerPlayableUrl);
   const fallbackLabel =
     kind === "VIDEO" ? "Видео недоступно" : "Медиа недоступно";
   const previewShouldPlay =
@@ -219,7 +224,7 @@ export function EmbeddedMediaBubble({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [isVideoViewer, isViewerOpen]);
+  }, [effectiveViewerPlayableUrl, isVideoViewer, isViewerOpen]);
 
   useEffect(() => {
     if (!isViewerOpen || !isVideoViewer) {
@@ -419,7 +424,7 @@ export function EmbeddedMediaBubble({
                 </div>
 
                 <div className="dm-viewer-stage">
-                  {isVideoViewer && effectivePlayableUrl ? (
+                  {isVideoViewer && effectiveViewerPlayableUrl ? (
                     <div ref={viewerShellRef} className="dm-viewer-video-shell">
                       <button
                         type="button"
@@ -433,7 +438,7 @@ export function EmbeddedMediaBubble({
                       >
                         <video
                           ref={viewerVideoRef}
-                          src={effectivePlayableUrl}
+                          src={effectiveViewerPlayableUrl}
                           autoPlay
                           crossOrigin="use-credentials"
                           playsInline

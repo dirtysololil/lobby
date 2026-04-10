@@ -28,16 +28,48 @@ export interface ProcessedDirectMessageAttachment {
   previewBuffer: Buffer | null;
   previewExtension: 'webp' | null;
   previewMimeType: 'image/webp' | null;
+  inlinePlaybackBuffer: Buffer | null;
+  inlinePlaybackExtension: 'mp4' | null;
+  inlinePlaybackMimeType: 'video/mp4' | null;
 }
 
 const supportedImageFormats = new Set(['png', 'jpeg', 'jpg', 'webp', 'gif']);
 const videoNoteFilePrefix = 'lobby-video-note-';
-const optimizedVideoNoteMaxDimension = 384;
-const optimizedVideoNoteTargetFps = 20;
-const optimizedVideoNoteCrf = 28;
-const optimizedVideoNoteMaxRateKbps = 650;
-const optimizedVideoNoteBufferKbps = 1_300;
-const optimizedVideoNoteAudioBitrateKbps = 48;
+type VideoNoteTranscodeProfile = {
+  maxDimension: number;
+  targetFps: number;
+  crf: number;
+  maxRateKbps: number;
+  bufferKbps: number;
+  audioBitrateKbps: number;
+  preset: 'fast' | 'medium';
+  h264Profile: 'main' | 'high';
+  level: string;
+};
+
+const primaryVideoNoteTranscodeProfile: VideoNoteTranscodeProfile = {
+  maxDimension: 720,
+  targetFps: 30,
+  crf: 20,
+  maxRateKbps: 3_000,
+  bufferKbps: 6_000,
+  audioBitrateKbps: 96,
+  preset: 'medium',
+  h264Profile: 'high',
+  level: '4.0',
+};
+
+const inlineVideoNoteTranscodeProfile: VideoNoteTranscodeProfile = {
+  maxDimension: 480,
+  targetFps: 24,
+  crf: 24,
+  maxRateKbps: 1_400,
+  bufferKbps: 2_800,
+  audioBitrateKbps: 64,
+  preset: 'fast',
+  h264Profile: 'main',
+  level: '3.1',
+};
 const documentMimeTypes = new Set([
   'application/pdf',
   'text/plain',
@@ -157,6 +189,9 @@ async function tryProcessImageAttachment(args: {
       previewBuffer: null,
       previewExtension: null,
       previewMimeType: null,
+      inlinePlaybackBuffer: null,
+      inlinePlaybackExtension: null,
+      inlinePlaybackMimeType: null,
     };
   } catch (error) {
     if (error instanceof Error && error.message.trim().length > 0) {
@@ -247,30 +282,53 @@ async function tryProcessVideoAttachment(args: {
     let assetWidth = width;
     let assetHeight = height;
     let previewSourcePath = inputPath;
+    let inlinePlaybackBuffer: Buffer | null = null;
+    let inlinePlaybackExtension: 'mp4' | null = null;
+    let inlinePlaybackMimeType: 'video/mp4' | null = null;
 
     if (isDirectMessageVideoNoteName(args.originalName)) {
-      const optimizedAssetPath = join(tempRoot, 'asset.mp4');
-      const optimizedDimensions = resolveVideoNoteOutputDimensions(
+      const primaryAssetPath = join(tempRoot, 'asset.mp4');
+      const inlinePlaybackPath = join(tempRoot, 'inline-playback.mp4');
+      const primaryDimensions = resolveVideoNoteOutputDimensions(
         width,
         height,
+        primaryVideoNoteTranscodeProfile.maxDimension,
+      );
+      const inlinePlaybackDimensions = resolveVideoNoteOutputDimensions(
+        width,
+        height,
+        inlineVideoNoteTranscodeProfile.maxDimension,
       );
 
       await transcodeVideoNoteAttachment({
         ffmpegBinaryPath,
         inputPath,
-        outputPath: optimizedAssetPath,
-        width: optimizedDimensions.width,
-        height: optimizedDimensions.height,
+        outputPath: primaryAssetPath,
+        width: primaryDimensions.width,
+        height: primaryDimensions.height,
         hasAudio,
+        profile: primaryVideoNoteTranscodeProfile,
+      });
+      await transcodeVideoNoteAttachment({
+        ffmpegBinaryPath,
+        inputPath,
+        outputPath: inlinePlaybackPath,
+        width: inlinePlaybackDimensions.width,
+        height: inlinePlaybackDimensions.height,
+        hasAudio,
+        profile: inlineVideoNoteTranscodeProfile,
       });
 
-      assetBuffer = await readFile(optimizedAssetPath);
+      assetBuffer = await readFile(primaryAssetPath);
       assetExtension = 'mp4';
       assetMimeType = 'video/mp4';
       assetOriginalName = replaceFileExtension(args.originalName, 'mp4');
-      assetWidth = optimizedDimensions.width;
-      assetHeight = optimizedDimensions.height;
-      previewSourcePath = optimizedAssetPath;
+      assetWidth = primaryDimensions.width;
+      assetHeight = primaryDimensions.height;
+      previewSourcePath = primaryAssetPath;
+      inlinePlaybackBuffer = await readFile(inlinePlaybackPath);
+      inlinePlaybackExtension = 'mp4';
+      inlinePlaybackMimeType = 'video/mp4';
     }
 
     await runBinary(ffmpegBinaryPath, [
@@ -298,6 +356,9 @@ async function tryProcessVideoAttachment(args: {
       previewBuffer,
       previewExtension: 'webp',
       previewMimeType: 'image/webp',
+      inlinePlaybackBuffer,
+      inlinePlaybackExtension,
+      inlinePlaybackMimeType,
     };
   } finally {
     await rm(tempRoot, {
@@ -337,6 +398,9 @@ function processDocumentAttachment(args: {
     previewBuffer: null,
     previewExtension: null,
     previewMimeType: null,
+    inlinePlaybackBuffer: null,
+    inlinePlaybackExtension: null,
+    inlinePlaybackMimeType: null,
   };
 }
 
@@ -457,10 +521,14 @@ function replaceFileExtension(
   return `${baseName || 'attachment'}.${nextExtension}`;
 }
 
-function resolveVideoNoteOutputDimensions(width: number, height: number) {
+function resolveVideoNoteOutputDimensions(
+  width: number,
+  height: number,
+  maxDimension: number,
+) {
   const scale = Math.min(
     1,
-    optimizedVideoNoteMaxDimension / Math.max(width, height),
+    maxDimension / Math.max(width, height),
   );
 
   return {
@@ -481,6 +549,7 @@ async function transcodeVideoNoteAttachment(args: {
   width: number;
   height: number;
   hasAudio: boolean;
+  profile: VideoNoteTranscodeProfile;
 }): Promise<void> {
   await runBinary(args.ffmpegBinaryPath, [
     '-y',
@@ -494,27 +563,27 @@ async function transcodeVideoNoteAttachment(args: {
     '0:v:0',
     ...(args.hasAudio ? ['-map', '0:a:0'] : []),
     '-vf',
-    `scale=${args.width}:${args.height}:flags=lanczos,fps=${optimizedVideoNoteTargetFps}`,
+    `scale=${args.width}:${args.height}:flags=lanczos,fps=${args.profile.targetFps}`,
     '-c:v',
     'libx264',
     '-preset',
-    'fast',
+    args.profile.preset,
     '-profile:v',
-    'main',
+    args.profile.h264Profile,
     '-level',
-    '3.1',
+    args.profile.level,
     '-pix_fmt',
     'yuv420p',
     '-crf',
-    String(optimizedVideoNoteCrf),
+    String(args.profile.crf),
     '-maxrate',
-    `${optimizedVideoNoteMaxRateKbps}k`,
+    `${args.profile.maxRateKbps}k`,
     '-bufsize',
-    `${optimizedVideoNoteBufferKbps}k`,
+    `${args.profile.bufferKbps}k`,
     '-g',
-    String(optimizedVideoNoteTargetFps * 2),
+    String(args.profile.targetFps * 2),
     '-keyint_min',
-    String(optimizedVideoNoteTargetFps * 2),
+    String(args.profile.targetFps * 2),
     '-sc_threshold',
     '0',
     ...(args.hasAudio
@@ -522,7 +591,7 @@ async function transcodeVideoNoteAttachment(args: {
           '-c:a',
           'aac',
           '-b:a',
-          `${optimizedVideoNoteAudioBitrateKbps}k`,
+          `${args.profile.audioBitrateKbps}k`,
           '-ac',
           '1',
           '-ar',
