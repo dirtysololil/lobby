@@ -1,6 +1,6 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { EnvService } from '../env/env.service';
 
@@ -23,11 +23,17 @@ export class StorageService {
     return this.writeScopedObject('gifs', buffer, extension);
   }
 
-  public async writeRingtone(buffer: Buffer, extension: string): Promise<string> {
+  public async writeRingtone(
+    buffer: Buffer,
+    extension: string,
+  ): Promise<string> {
     return this.writeScopedObject('ringtones', buffer, extension);
   }
 
-  public async writeSticker(buffer: Buffer, extension: string): Promise<string> {
+  public async writeSticker(
+    buffer: Buffer,
+    extension: string,
+  ): Promise<string> {
     return this.writeScopedObject('stickers', buffer, extension);
   }
 
@@ -47,6 +53,30 @@ export class StorageService {
 
   public async readObject(fileKey: string): Promise<Buffer> {
     return readFile(this.resolveLocalPath(fileKey));
+  }
+
+  public async readObjectRange(
+    fileKey: string,
+    start: number,
+    end: number,
+  ): Promise<Buffer> {
+    const fileHandle = await open(this.resolveLocalPath(fileKey), 'r');
+
+    try {
+      const length = end - start + 1;
+      const buffer = Buffer.allocUnsafe(length);
+      await fileHandle.read(buffer, 0, length, start);
+
+      return buffer;
+    } finally {
+      await fileHandle.close();
+    }
+  }
+
+  public async getObjectSize(fileKey: string): Promise<number> {
+    const metadata = await stat(this.resolveLocalPath(fileKey));
+
+    return metadata.size;
   }
 
   public async deleteObject(fileKey: string | null | undefined): Promise<void> {

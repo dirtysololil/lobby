@@ -32,12 +32,12 @@ export interface ProcessedDirectMessageAttachment {
 
 const supportedImageFormats = new Set(['png', 'jpeg', 'jpg', 'webp', 'gif']);
 const videoNoteFilePrefix = 'lobby-video-note-';
-const optimizedVideoNoteMaxDimension = 480;
-const optimizedVideoNoteTargetFps = 24;
-const optimizedVideoNoteCrf = 24;
-const optimizedVideoNoteMaxRateKbps = 900;
-const optimizedVideoNoteBufferKbps = 1_800;
-const optimizedVideoNoteAudioBitrateKbps = 64;
+const optimizedVideoNoteMaxDimension = 384;
+const optimizedVideoNoteTargetFps = 20;
+const optimizedVideoNoteCrf = 28;
+const optimizedVideoNoteMaxRateKbps = 650;
+const optimizedVideoNoteBufferKbps = 1_300;
+const optimizedVideoNoteAudioBitrateKbps = 48;
 const documentMimeTypes = new Set([
   'application/pdf',
   'text/plain',

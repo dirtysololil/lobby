@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import type {
   CreateDirectMessageInput,
@@ -81,7 +82,7 @@ const conversationSummaryInclude = {
 } satisfies Prisma.DirectConversationInclude;
 
 const videoNoteFilePrefix = 'lobby-video-note-';
-const optimizedVideoNoteMaxDimension = 480;
+const optimizedVideoNoteMaxDimension = 384;
 
 type ConversationSummaryRecord = Prisma.DirectConversationGetPayload<{
   include: typeof conversationSummaryInclude;
@@ -106,8 +107,10 @@ type UploadedBinaryFile = {
 };
 
 @Injectable()
-export class DirectMessagesService {
+export class DirectMessagesService implements OnModuleInit {
   private readonly logger = new Logger(DirectMessagesService.name);
+  private isRecentVideoNoteWarmupRunning = false;
+  private readonly pendingVideoNoteOptimizationIds = new Set<string>();
 
   public constructor(
     private readonly prisma: PrismaService,
@@ -120,6 +123,14 @@ export class DirectMessagesService {
     private readonly envService: EnvService,
     private readonly storageService: StorageService,
   ) {}
+
+  public onModuleInit(): void {
+    if (this.envService.getValues().NODE_ENV === 'test') {
+      return;
+    }
+
+    void this.warmRecentVideoNotesForFastPlayback();
+  }
 
   public async ensureRetentionSweepJob(): Promise<void> {
     await this.queueService.ensureDmRetentionSweepJob();
@@ -585,7 +596,7 @@ export class DirectMessagesService {
     attachmentId: string,
     variant: 'asset' | 'preview',
   ): Promise<{ buffer: Buffer; mimeType: string }> {
-    let attachment = await this.prisma.directMessageAttachment.findFirst({
+    const attachment = await this.prisma.directMessageAttachment.findFirst({
       where: {
         id: attachmentId,
         message: {
@@ -618,10 +629,7 @@ export class DirectMessagesService {
     }
 
     if (variant === 'asset') {
-      attachment =
-        await this.maybeOptimizeLegacyVideoNoteAttachmentForFastPlayback(
-          attachment,
-        );
+      this.scheduleLegacyVideoNoteOptimization(attachment);
     }
 
     const fileKey =
@@ -638,6 +646,206 @@ export class DirectMessagesService {
       };
     } catch {
       throw new NotFoundException('Файл вложения недоступен.');
+    }
+  }
+
+  public async getAttachmentAssetDescriptorForViewer(
+    viewerId: string,
+    attachmentId: string,
+    variant: 'asset' | 'preview',
+  ): Promise<{ fileKey: string; mimeType: string; size: number }> {
+    const attachment = await this.prisma.directMessageAttachment.findFirst({
+      where: {
+        id: attachmentId,
+        message: {
+          deletedAt: null,
+          conversation: {
+            participants: {
+              some: {
+                userId: viewerId,
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        kind: true,
+        fileKey: true,
+        previewKey: true,
+        originalName: true,
+        mimeType: true,
+        fileSize: true,
+        width: true,
+        height: true,
+        durationMs: true,
+      },
+    });
+
+    if (!attachment) {
+      throw new NotFoundException('Р’Р»РѕР¶РµРЅРёРµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ.');
+    }
+
+    if (variant === 'asset') {
+      this.scheduleLegacyVideoNoteOptimization(attachment);
+    }
+
+    const fileKey =
+      variant === 'preview' ? attachment.previewKey : attachment.fileKey;
+
+    if (!fileKey) {
+      throw new NotFoundException(
+        'РџСЂРµРІСЊСЋ РІР»РѕР¶РµРЅРёСЏ РЅРµРґРѕСЃС‚СѓРїРЅРѕ.',
+      );
+    }
+
+    return {
+      fileKey,
+      mimeType: variant === 'preview' ? 'image/webp' : attachment.mimeType,
+      size: await this.storageService.getObjectSize(fileKey),
+    };
+  }
+
+  public async readAttachmentAssetRange(
+    fileKey: string,
+    start: number,
+    end: number,
+  ): Promise<Buffer> {
+    return await this.storageService.readObjectRange(fileKey, start, end);
+  }
+
+  public async readAttachmentAsset(fileKey: string): Promise<Buffer> {
+    return await this.storageService.readObject(fileKey);
+  }
+
+  private scheduleLegacyVideoNoteOptimization(attachment: {
+    id: string;
+    kind: DirectMessageAttachmentKind;
+    fileKey: string;
+    previewKey: string | null;
+    originalName: string;
+    mimeType: string;
+    fileSize: number;
+    width: number | null;
+    height: number | null;
+    durationMs: number | null;
+  }): void {
+    if (
+      !this.shouldOptimizeLegacyVideoNoteAttachment(attachment) ||
+      this.pendingVideoNoteOptimizationIds.has(attachment.id)
+    ) {
+      return;
+    }
+
+    this.pendingVideoNoteOptimizationIds.add(attachment.id);
+
+    queueMicrotask(() => {
+      void this.maybeOptimizeLegacyVideoNoteAttachmentForFastPlayback(
+        attachment,
+      ).finally(() => {
+        this.pendingVideoNoteOptimizationIds.delete(attachment.id);
+      });
+    });
+  }
+
+  private async warmRecentVideoNotesForFastPlayback(): Promise<void> {
+    if (this.isRecentVideoNoteWarmupRunning) {
+      return;
+    }
+
+    this.isRecentVideoNoteWarmupRunning = true;
+
+    try {
+      const warmedAttachmentIds: string[] = [];
+      let warmedCount = 0;
+
+      while (warmedCount < 120) {
+        const attachments = await this.prisma.directMessageAttachment.findMany({
+          where: {
+            kind: DirectMessageAttachmentKind.VIDEO,
+            originalName: {
+              startsWith: videoNoteFilePrefix,
+            },
+            ...(warmedAttachmentIds.length > 0
+              ? {
+                  id: {
+                    notIn: warmedAttachmentIds,
+                  },
+                }
+              : {}),
+            OR: [
+              {
+                mimeType: {
+                  not: 'video/mp4',
+                },
+              },
+              {
+                width: {
+                  gt: optimizedVideoNoteMaxDimension,
+                },
+              },
+              {
+                height: {
+                  gt: optimizedVideoNoteMaxDimension,
+                },
+              },
+            ],
+          },
+          orderBy: {
+            updatedAt: 'desc',
+          },
+          take: 12,
+          select: {
+            id: true,
+            kind: true,
+            fileKey: true,
+            previewKey: true,
+            originalName: true,
+            mimeType: true,
+            fileSize: true,
+            width: true,
+            height: true,
+            durationMs: true,
+          },
+        });
+
+        if (attachments.length === 0) {
+          break;
+        }
+
+        for (const attachment of attachments) {
+          warmedAttachmentIds.push(attachment.id);
+          if (this.pendingVideoNoteOptimizationIds.has(attachment.id)) {
+            continue;
+          }
+
+          this.pendingVideoNoteOptimizationIds.add(attachment.id);
+
+          try {
+            await this.maybeOptimizeLegacyVideoNoteAttachmentForFastPlayback(
+              attachment,
+            );
+          } finally {
+            this.pendingVideoNoteOptimizationIds.delete(attachment.id);
+          }
+
+          warmedCount += 1;
+        }
+      }
+
+      if (warmedCount > 0) {
+        this.logger.log(
+          `Pre-optimized ${warmedCount} DM video notes for fast playback`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to warm recent DM video notes: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    } finally {
+      this.isRecentVideoNoteWarmupRunning = false;
     }
   }
 
