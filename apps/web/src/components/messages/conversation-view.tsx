@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   ArrowLeft,
-  Clock3,
   Info,
   Search,
   ShieldAlert,
@@ -23,7 +22,6 @@ import {
 } from "@lobby/shared";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { uploadDirectMessageAttachment } from "@/lib/direct-message-attachments";
@@ -37,7 +35,6 @@ import { sortDirectMessages } from "@/lib/direct-message-state";
 import { getAvailabilityLabel } from "@/lib/last-seen";
 import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
 import { buildPendingLinkEmbed } from "@/lib/link-embeds";
-import { dmRetentionLabels } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 import { ConversationSettings } from "./conversation-settings";
 import { MovableConversationInfoPanel } from "./movable-conversation-info-panel";
@@ -325,9 +322,9 @@ function inferAttachmentKind(file: File): "IMAGE" | "VIDEO" | "DOCUMENT" {
   return "DOCUMENT";
 }
 
-function applyLocalRead(
+function applyParticipantRead(
   conversation: ConversationState | null,
-  viewerId: string,
+  participantUserId: string,
   lastReadMessageId: string | null,
   lastReadAt: string | null,
 ): ConversationState | null {
@@ -338,7 +335,7 @@ function applyLocalRead(
   return {
     ...conversation,
     participants: conversation.participants.map((participant) =>
-      participant.user.id === viewerId
+      participant.user.id === participantUserId
         ? {
             ...participant,
             lastReadMessageId,
@@ -410,7 +407,7 @@ export function ConversationView({
 
       const latestMessage = parsed.conversation.messages.at(-1) ?? null;
       setConversation((current) =>
-        applyLocalRead(
+        applyParticipantRead(
           current ?? stripConversationMessages(parsed.conversation),
           viewerId,
           latestMessage?.id ?? null,
@@ -469,7 +466,7 @@ export function ConversationView({
       readInFlightRef.current = true;
       hasPendingReadRef.current = false;
       setConversation((current) =>
-        applyLocalRead(current, viewerId, lastReadMessageId, lastReadAt),
+        applyParticipantRead(current, viewerId, lastReadMessageId, lastReadAt),
       );
 
       try {
@@ -534,12 +531,14 @@ export function ConversationView({
   }, [refreshPickerCatalog]);
 
   useEffect(() => {
+    const localBlobUrls = localBlobUrlsRef.current;
+
     return () => {
-      for (const url of localBlobUrlsRef.current) {
+      for (const url of localBlobUrls) {
         URL.revokeObjectURL(url);
       }
 
-      localBlobUrlsRef.current.clear();
+      localBlobUrls.clear();
     };
   }, []);
 
@@ -565,6 +564,7 @@ export function ConversationView({
     }
 
     const signalEvent = latestDmSignal.event as string;
+    const readState = latestDmSignal.readState ?? null;
 
     if (
       (signalEvent === "MESSAGE_CREATED" || signalEvent === "MESSAGE_UPDATED") &&
@@ -595,8 +595,20 @@ export function ConversationView({
     }
 
     if (signalEvent === "CONVERSATION_READ") {
+      if (readState) {
+        setConversation((current) =>
+          applyParticipantRead(
+            current,
+            readState.userId,
+            readState.lastReadMessageId,
+            readState.lastReadAt,
+          ),
+        );
+        return;
+      }
+
       setConversation((current) =>
-        applyLocalRead(
+        applyParticipantRead(
           current,
           viewerId,
           latestDmSignal.conversation.settings.lastReadMessageId,
@@ -628,6 +640,12 @@ export function ConversationView({
   const viewerParticipant = useMemo(
     () =>
       conversation?.participants.find((participant) => participant.user.id === viewerId) ??
+      null,
+    [conversation, viewerId],
+  );
+  const counterpartParticipant = useMemo(
+    () =>
+      conversation?.participants.find((participant) => participant.user.id !== viewerId) ??
       null,
     [conversation, viewerId],
   );
@@ -673,7 +691,12 @@ export function ConversationView({
     setMessages((current) => sortDirectMessages([...current, optimisticMessage]));
     requestThreadScrollToBottom();
     setConversation((current) =>
-      applyLocalRead(current, viewerId, optimisticMessage.id, optimisticMessage.createdAt),
+      applyParticipantRead(
+        current,
+        viewerId,
+        optimisticMessage.id,
+        optimisticMessage.createdAt,
+      ),
     );
 
     try {
@@ -690,7 +713,12 @@ export function ConversationView({
       const parsed = directMessageResponseSchema.parse(response);
       setMessages((current) => mergeThreadMessage(current, parsed.message));
       setConversation((current) =>
-        applyLocalRead(current, viewerId, parsed.message.id, parsed.message.createdAt),
+        applyParticipantRead(
+          current,
+          viewerId,
+          parsed.message.id,
+          parsed.message.createdAt,
+        ),
       );
       setErrorMessage(null);
     } catch (error) {
@@ -709,10 +737,12 @@ export function ConversationView({
     localBlobUrlsRef.current.add(url);
   }
 
-  async function uploadSingleFile(file: File, _mode?: ComposerFileUploadMode) {
+  async function uploadSingleFile(file: File, mode?: ComposerFileUploadMode) {
     if (!conversation || !counterpart) {
       return;
     }
+
+    void mode;
 
     const author =
       conversation.participants.find((participant) => participant.user.id === viewerId)
@@ -742,7 +772,12 @@ export function ConversationView({
     setMessages((current) => sortDirectMessages([...current, optimisticMessage]));
     requestThreadScrollToBottom();
     setConversation((current) =>
-      applyLocalRead(current, viewerId, optimisticMessage.id, optimisticMessage.createdAt),
+      applyParticipantRead(
+        current,
+        viewerId,
+        optimisticMessage.id,
+        optimisticMessage.createdAt,
+      ),
     );
 
     try {
@@ -759,7 +794,12 @@ export function ConversationView({
       const parsed = directMessageAttachmentUploadResponseSchema.parse(response);
       setMessages((current) => mergeThreadMessage(current, parsed.message));
       setConversation((current) =>
-        applyLocalRead(current, viewerId, parsed.message.id, parsed.message.createdAt),
+        applyParticipantRead(
+          current,
+          viewerId,
+          parsed.message.id,
+          parsed.message.createdAt,
+        ),
       );
       setErrorMessage(null);
     } catch (error) {
@@ -1104,6 +1144,7 @@ export function ConversationView({
             messages={messages}
             isDeleting={isDeleting}
             lastReadAt={viewerParticipant.lastReadAt}
+            counterpartLastReadAt={counterpartParticipant?.lastReadAt ?? null}
             customEmojis={pickerCatalog?.customEmojis ?? []}
             forceScrollToBottomToken={forceThreadScrollToken}
             searchQuery={messageSearchQuery}

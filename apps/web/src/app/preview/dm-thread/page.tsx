@@ -128,6 +128,7 @@ const messages: ThreadMessageItem[] = [
 ];
 
 const lastReadAt = messages[3]!.createdAt;
+const counterpartLastReadAt = messages[4]!.createdAt;
 
 export default function PreviewDmThreadPage() {
   return (
@@ -225,6 +226,7 @@ export default function PreviewDmThreadPage() {
             customEmojis={[]}
             isDeleting={null}
             lastReadAt={lastReadAt}
+            counterpartLastReadAt={counterpartLastReadAt}
             onDelete={async () => undefined}
             onRetry={async () => undefined}
           />

@@ -13,6 +13,7 @@ import {
   Paperclip,
   SendHorizontal,
   SmilePlus,
+  Video,
 } from "lucide-react";
 import {
   useCallback,
@@ -28,6 +29,7 @@ import { buildCustomEmojiToken } from "@/lib/stickers";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker, type PickerTab } from "./emoji-sticker-picker";
+import { VideoNoteRecorder } from "./video-note-recorder";
 
 export type ComposerSendPayload =
   | { type: "TEXT"; content: string }
@@ -125,6 +127,7 @@ export function MessageComposer({
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PickerTab>("emoji");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [videoNoteOpen, setVideoNoteOpen] = useState(false);
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [recentGifIds, setRecentGifIds] = useState<string[]>([]);
   const [pendingStickerIds, setPendingStickerIds] = useState<string[]>([]);
@@ -499,6 +502,16 @@ export function MessageComposer({
 
   return (
     <div className="dm-composer-stack">
+      {videoNoteOpen ? (
+        <VideoNoteRecorder
+          disabled={disabled || isUploadingFiles}
+          onClose={() => setVideoNoteOpen(false)}
+          onSend={async (file) => {
+            await onUploadFiles([file], "media");
+          }}
+        />
+      ) : null}
+
       <form className="dm-composer-shell" onSubmit={handleSubmit}>
         <input
           ref={mediaInputRef}
@@ -588,10 +601,11 @@ export function MessageComposer({
                 type="button"
                 size="sm"
                 variant="ghost"
-                disabled={disabled || isUploadingFiles}
+                disabled={disabled || isUploadingFiles || videoNoteOpen}
                 onClick={() => {
                   setAttachMenuOpen((current) => !current);
                   setPickerOpen(false);
+                  setVideoNoteOpen(false);
                 }}
                 className="dm-composer-button px-0"
                 aria-label="Прикрепить файл"
@@ -599,6 +613,33 @@ export function MessageComposer({
                 <Paperclip {...iconProps} />
               </Button>
             </div>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={disabled || isUploadingFiles || videoNoteOpen}
+              onClick={() => {
+                if (videoNoteOpen) {
+                  return;
+                }
+
+                setAttachMenuOpen(false);
+                setPickerOpen(false);
+                setVideoNoteOpen(true);
+
+                if (isMobileViewport) {
+                  textareaRef.current?.blur();
+                }
+              }}
+              className={cn(
+                "dm-composer-button px-0",
+                videoNoteOpen && "dm-action-button-active",
+              )}
+              aria-label="Записать видео-кружок"
+            >
+              <Video {...iconProps} />
+            </Button>
 
             <div className="relative" data-composer-picker-root="true">
               {!isMobileViewport && pickerOpen ? (
@@ -611,9 +652,10 @@ export function MessageComposer({
                 type="button"
                 size="sm"
                 variant="ghost"
-                disabled={disabled || isUploadingFiles}
+                disabled={disabled || isUploadingFiles || videoNoteOpen}
                 onClick={() => {
                   setAttachMenuOpen(false);
+                  setVideoNoteOpen(false);
                   setPickerOpen((current) => !current);
                   syncSelection();
 
