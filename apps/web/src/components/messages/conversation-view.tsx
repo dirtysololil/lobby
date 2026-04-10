@@ -368,6 +368,7 @@ export function ConversationView({
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const [forceThreadScrollToken, setForceThreadScrollToken] = useState(0);
   const normalizedMessageSearchQuery = messageSearchQuery.trim().toLowerCase();
   const messageSearchMatches = useMemo(() => {
     if (!normalizedMessageSearchQuery) {
@@ -389,6 +390,10 @@ export function ConversationView({
     lastReadAt: null,
   });
   const hasPendingReadRef = useRef(false);
+
+  const requestThreadScrollToBottom = useCallback(() => {
+    setForceThreadScrollToken((current) => current + 1);
+  }, []);
 
   const loadConversation = useCallback(async (options?: LoadConversationOptions) => {
     try {
@@ -666,6 +671,7 @@ export function ConversationView({
     });
 
     setMessages((current) => sortDirectMessages([...current, optimisticMessage]));
+    requestThreadScrollToBottom();
     setConversation((current) =>
       applyLocalRead(current, viewerId, optimisticMessage.id, optimisticMessage.createdAt),
     );
@@ -734,6 +740,7 @@ export function ConversationView({
     });
 
     setMessages((current) => sortDirectMessages([...current, optimisticMessage]));
+    requestThreadScrollToBottom();
     setConversation((current) =>
       applyLocalRead(current, viewerId, optimisticMessage.id, optimisticMessage.createdAt),
     );
@@ -1098,6 +1105,7 @@ export function ConversationView({
             isDeleting={isDeleting}
             lastReadAt={viewerParticipant.lastReadAt}
             customEmojis={pickerCatalog?.customEmojis ?? []}
+            forceScrollToBottomToken={forceThreadScrollToken}
             searchQuery={messageSearchQuery}
             onDelete={deleteMessage}
             onRetry={retryMessage}
