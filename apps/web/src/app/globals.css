@@ -2,6 +2,7 @@
 
 :root {
   color-scheme: dark;
+  --native-keyboard-height: 0px;
   --font-body:
     Inter, "Segoe UI", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
@@ -117,6 +118,16 @@ body {
   font-family: var(--font-body), system-ui, sans-serif;
   line-height: 1.35;
   text-rendering: optimizeLegibility;
+}
+
+html.cap-native,
+body.cap-native {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.cap-native.native-keyboard-open {
+  overscroll-behavior-y: contain;
 }
 
 body::before {

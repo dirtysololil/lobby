@@ -1168,7 +1168,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="shrink-0 border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 py-2 backdrop-blur-xl">
+        <div className="shrink-0 border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:py-2">
           <MessageComposer
             disabled={isBlocked || isUploadingFiles}
             canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
