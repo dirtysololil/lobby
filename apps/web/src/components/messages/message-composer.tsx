@@ -57,6 +57,7 @@ const MAX_RECENT_EMOJIS = 28;
 const MAX_RECENT_STICKERS = 24;
 const MAX_RECENT_GIFS = 20;
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+const MOBILE_VIEWPORT_QUERY = "(max-width: 767px)";
 
 function readRecentStrings(storageKey: string) {
   if (typeof window === "undefined") {
@@ -123,6 +124,7 @@ export function MessageComposer({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PickerTab>("emoji");
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [recentGifIds, setRecentGifIds] = useState<string[]>([]);
   const [pendingStickerIds, setPendingStickerIds] = useState<string[]>([]);
@@ -151,6 +153,31 @@ export function MessageComposer({
     setRecentGifIds(readRecentStrings(RECENT_GIFS_KEY));
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY);
+    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+
+    updateViewport();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", updateViewport);
+    } else {
+      mediaQuery.addListener(updateViewport);
+    }
+
+    return () => {
+      if (typeof mediaQuery.removeEventListener === "function") {
+        mediaQuery.removeEventListener("change", updateViewport);
+      } else {
+        mediaQuery.removeListener(updateViewport);
+      }
+    };
+  }, []);
+
   useLayoutEffect(() => {
     syncTextareaHeight();
   }, [content, syncTextareaHeight]);
@@ -173,7 +200,10 @@ export function MessageComposer({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setPickerOpen(false);
-        textareaRef.current?.focus();
+
+        if (!isMobileViewport) {
+          textareaRef.current?.focus();
+        }
       }
     }
 
@@ -184,7 +214,7 @@ export function MessageComposer({
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [pickerOpen]);
+  }, [isMobileViewport, pickerOpen]);
 
   useEffect(() => {
     if (!attachMenuOpen) {
@@ -296,12 +326,17 @@ export function MessageComposer({
         return;
       }
 
-      element.focus();
-      element.setSelectionRange(nextPosition, nextPosition);
       selectionRef.current = {
         start: nextPosition,
         end: nextPosition,
       };
+
+      if (isMobileViewport && pickerOpen) {
+        return;
+      }
+
+      element.focus();
+      element.setSelectionRange(nextPosition, nextPosition);
     });
   }
 
@@ -356,7 +391,9 @@ export function MessageComposer({
         );
       }
 
-      textareaRef.current?.focus();
+      if (!isMobileViewport || !pickerOpen) {
+        textareaRef.current?.focus();
+      }
     } finally {
       setPendingStickerIds((current) =>
         current.filter((item) => item !== sticker.id),
@@ -378,7 +415,10 @@ export function MessageComposer({
         gif,
       });
       pushRecentGif(gif.id);
-      textareaRef.current?.focus();
+
+      if (!isMobileViewport || !pickerOpen) {
+        textareaRef.current?.focus();
+      }
     } finally {
       setPendingGifIds((current) => current.filter((item) => item !== gif.id));
     }
@@ -424,8 +464,41 @@ export function MessageComposer({
     );
   }
 
+  const pickerMarkup = (
+    <EmojiStickerPicker
+      activeTab={activeTab}
+      recentEmojis={recentEmojis}
+      recentGifIds={recentGifIds}
+      catalog={pickerCatalog}
+      isCatalogLoading={isPickerCatalogLoading}
+      catalogError={pickerCatalogError}
+      pendingStickerIds={pendingStickerIds}
+      pendingGifIds={pendingGifIds}
+      canManageLibrary={canManageLibrary}
+      onTabChange={(tab) => {
+        setActiveTab(tab);
+        void refreshCatalogIfNeeded();
+      }}
+      onEmojiSelect={insertEmoji}
+      onCustomEmojiSelect={insertCustomEmoji}
+      onStickerSelect={(sticker) => void handleStickerSelect(sticker)}
+      onGifSelect={(gif) => void handleGifSelect(gif)}
+      onRetryCatalog={() => void onRefreshPickerCatalog()}
+      onOpenManager={() => {
+        if (!canManageLibrary) {
+          return;
+        }
+
+        if (typeof window !== "undefined") {
+          window.location.assign("/app/admin/sticker-packs");
+        }
+      }}
+      className={isMobileViewport ? "dm-picker-shell-mobile" : undefined}
+    />
+  );
+
   return (
-    <>
+    <div className="dm-composer-stack">
       <form className="dm-composer-shell" onSubmit={handleSubmit}>
         <input
           ref={mediaInputRef}
@@ -528,37 +601,9 @@ export function MessageComposer({
             </div>
 
             <div className="relative" data-composer-picker-root="true">
-              {pickerOpen ? (
+              {!isMobileViewport && pickerOpen ? (
                 <div className="absolute bottom-full left-0 z-50 mb-3">
-                  <EmojiStickerPicker
-                    activeTab={activeTab}
-                    recentEmojis={recentEmojis}
-                    recentGifIds={recentGifIds}
-                    catalog={pickerCatalog}
-                    isCatalogLoading={isPickerCatalogLoading}
-                    catalogError={pickerCatalogError}
-                    pendingStickerIds={pendingStickerIds}
-                    pendingGifIds={pendingGifIds}
-                    canManageLibrary={canManageLibrary}
-                    onTabChange={(tab) => {
-                      setActiveTab(tab);
-                      void refreshCatalogIfNeeded();
-                    }}
-                    onEmojiSelect={insertEmoji}
-                    onCustomEmojiSelect={insertCustomEmoji}
-                    onStickerSelect={(sticker) => void handleStickerSelect(sticker)}
-                    onGifSelect={(gif) => void handleGifSelect(gif)}
-                    onRetryCatalog={() => void onRefreshPickerCatalog()}
-                    onOpenManager={() => {
-                      if (!canManageLibrary) {
-                        return;
-                      }
-
-                      if (typeof window !== "undefined") {
-                        window.location.assign("/app/admin/sticker-packs");
-                      }
-                    }}
-                  />
+                  {pickerMarkup}
                 </div>
               ) : null}
 
@@ -571,6 +616,11 @@ export function MessageComposer({
                   setAttachMenuOpen(false);
                   setPickerOpen((current) => !current);
                   syncSelection();
+
+                  if (isMobileViewport) {
+                    textareaRef.current?.blur();
+                  }
+
                   void refreshCatalogIfNeeded();
                 }}
                 className={cn(
@@ -602,6 +652,16 @@ export function MessageComposer({
           </Button>
         </div>
       </form>
-    </>
+
+      {isMobileViewport && pickerOpen ? (
+        <div
+          className="dm-picker-mobile-sheet"
+          data-composer-picker-root="true"
+        >
+          <div className="dm-picker-mobile-grabber" aria-hidden="true" />
+          {pickerMarkup}
+        </div>
+      ) : null}
+    </div>
   );
 }

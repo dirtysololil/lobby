@@ -706,6 +706,8 @@ export function MessageThread({
                     message.type === "MEDIA" && message.attachment !== null;
                   const isFileAttachment =
                     message.type === "FILE" && message.attachment !== null;
+                  const isMediaLikeMessage =
+                    isSticker || isGif || isMediaAttachment || isFileAttachment;
                   const isVisualMessage = isSticker || isGif || isMediaAttachment;
                   const hasInlineEmbed =
                     !isVisualMessage &&
@@ -727,7 +729,7 @@ export function MessageThread({
                       : message.content;
                   const showText = !isStandaloneEmbed && Boolean(visibleText);
                   const isExpressiveEmoji =
-                    !isVisualMessage &&
+                    !isMediaLikeMessage &&
                     !message.linkEmbed &&
                     isExpressiveEmojiMessage(visibleText);
                   const previousMessage = group.items[index - 1];
@@ -738,14 +740,15 @@ export function MessageThread({
                   const isContextMenuOpen = contextMenu?.messageId === message.id;
                   const bubbleClassName = cn(
                     "dm-bubble",
-                    isVisualMessage && "border-transparent bg-transparent p-0 shadow-none",
-                    !isVisualMessage && (isOwn ? "dm-bubble-out ml-auto" : "dm-bubble-in"),
-                    continuation && !isVisualMessage && "rounded-[18px] py-1.5",
-                    isContextMenuOpen && !isVisualMessage && "dm-bubble-highlight",
+                    isMediaLikeMessage && "border-transparent bg-transparent p-0 shadow-none",
+                    !isMediaLikeMessage &&
+                      (isOwn ? "dm-bubble-out ml-auto" : "dm-bubble-in"),
+                    continuation && !isMediaLikeMessage && "rounded-[18px] py-1.5",
+                    isContextMenuOpen && !isMediaLikeMessage && "dm-bubble-highlight",
                     message.localState === "failed" && "border-amber-400/22 bg-amber-400/10",
                     normalizedSearchQuery &&
                       matchingMessageIds.has(message.id) &&
-                      !isVisualMessage &&
+                      !isMediaLikeMessage &&
                       "dm-bubble-highlight",
                   );
 
@@ -804,7 +807,7 @@ export function MessageThread({
 
                         <div
                           className={cn(
-                            isVisualMessage
+                            isMediaLikeMessage
                               ? "min-w-0 max-w-[min(360px,100%)] flex-1"
                               : "min-w-0 max-w-[min(72ch,100%)] flex-1",
                             isOwn && "text-right",
@@ -851,7 +854,7 @@ export function MessageThread({
                           ) : null}
 
                           <div className="relative">
-                            {canManageMessage ? (
+                            {canManageMessage && !isMediaLikeMessage ? (
                               <button
                                 type="button"
                                 data-dm-menu-trigger="true"
@@ -942,7 +945,7 @@ export function MessageThread({
                                   target="_blank"
                                   rel="noreferrer"
                                   className={cn(
-                                    "dm-file-card block rounded-[18px] px-3 py-3 text-left transition-colors hover:bg-white/[0.05]",
+                                    "block max-w-[min(320px,72vw)] text-left transition-opacity hover:opacity-[0.98]",
                                     isOwn && "ml-auto",
                                   )}
                                 >
