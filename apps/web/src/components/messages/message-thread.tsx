@@ -174,6 +174,38 @@ function clampContextMenuPosition(x: number, y: number) {
   };
 }
 
+function primeRoundVideoNotePreview(video: HTMLVideoElement) {
+  video.muted = true;
+  video.defaultMuted = true;
+  video.volume = 0;
+  video.playsInline = true;
+  video.setAttribute("muted", "");
+  video.setAttribute("playsinline", "true");
+}
+
+function isVideoMostlyVisibleWithinViewport(
+  video: HTMLVideoElement,
+  viewport: HTMLDivElement,
+) {
+  const videoRect = video.getBoundingClientRect();
+  const viewportRect = viewport.getBoundingClientRect();
+  const intersectionWidth =
+    Math.min(videoRect.right, viewportRect.right) -
+    Math.max(videoRect.left, viewportRect.left);
+  const intersectionHeight =
+    Math.min(videoRect.bottom, viewportRect.bottom) -
+    Math.max(videoRect.top, viewportRect.top);
+
+  if (intersectionWidth <= 0 || intersectionHeight <= 0) {
+    return false;
+  }
+
+  const visibleArea = intersectionWidth * intersectionHeight;
+  const totalArea = Math.max(1, videoRect.width * videoRect.height);
+
+  return visibleArea / totalArea >= 0.35;
+}
+
 function buildMessageActionPreview(message: ThreadMessageItem) {
   const content = message.content?.trim();
 
@@ -371,6 +403,64 @@ export function MessageThread({
     if (distanceFromBottom < 160) {
       viewport.scrollTop = viewport.scrollHeight;
     }
+  }, [messages]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+
+    if (!viewport || typeof window === "undefined") {
+      return;
+    }
+
+    let syncFrame: number | null = null;
+
+    const syncRoundVideoNotePlayback = () => {
+      syncFrame = null;
+
+      const roundVideoPreviews = viewport.querySelectorAll<HTMLVideoElement>(
+        ".dm-video-note-bubble video[data-dm-preview-video='true']",
+      );
+
+      roundVideoPreviews.forEach((video) => {
+        if (!isVideoMostlyVisibleWithinViewport(video, viewport)) {
+          return;
+        }
+
+        primeRoundVideoNotePreview(video);
+        void video.play().catch(() => undefined);
+      });
+    };
+
+    const requestSync = () => {
+      if (syncFrame !== null) {
+        window.cancelAnimationFrame(syncFrame);
+      }
+
+      syncFrame = window.requestAnimationFrame(syncRoundVideoNotePlayback);
+    };
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+
+      requestSync();
+    };
+
+    requestSync();
+    viewport.addEventListener("scroll", requestSync, { passive: true });
+    window.addEventListener("resize", requestSync);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      viewport.removeEventListener("scroll", requestSync);
+      window.removeEventListener("resize", requestSync);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+
+      if (syncFrame !== null) {
+        window.cancelAnimationFrame(syncFrame);
+      }
+    };
   }, [messages]);
 
   useEffect(() => {

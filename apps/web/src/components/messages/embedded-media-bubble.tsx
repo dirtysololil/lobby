@@ -112,21 +112,6 @@ export function EmbeddedMediaBubble({
     };
   }, []);
 
-  useEffect(() => {
-    const node = previewVideoRef.current;
-
-    if (!node || !previewCanRenderVideo) {
-      return;
-    }
-
-    if (previewShouldPlay) {
-      void node.play().catch(() => undefined);
-      return;
-    }
-
-    node.pause();
-  }, [previewCanRenderVideo, previewShouldPlay]);
-
   const resetViewerState = useCallback(() => {
     setIsViewerPlaying(false);
     setIsViewerFullscreen(false);
@@ -443,6 +428,7 @@ export function EmbeddedMediaBubble({
                           ref={viewerVideoRef}
                           src={effectivePlayableUrl}
                           autoPlay
+                          crossOrigin="use-credentials"
                           playsInline
                           preload="auto"
                           poster={posterUrl ?? effectivePreviewUrl ?? undefined}
@@ -693,6 +679,20 @@ function formatMediaTime(value: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function primePreviewVideoElement(
+  element: HTMLVideoElement,
+  options: { shouldAutoplay: boolean },
+) {
+  element.autoplay = options.shouldAutoplay;
+  element.loop = true;
+  element.muted = true;
+  element.defaultMuted = true;
+  element.volume = 0;
+  element.playsInline = true;
+  element.setAttribute("muted", "");
+  element.setAttribute("playsinline", "true");
+}
+
 function PreviewSurface({
   kind,
   playableUrl,
@@ -739,13 +739,76 @@ function PreviewSurface({
       return;
     }
 
-    if (forcePlay) {
+    let playbackFrame: number | null = null;
+
+    const syncPreviewPlayback = () => {
+      primePreviewVideoElement(node, {
+        shouldAutoplay: forcePlay,
+      });
+
+      if (!forcePlay) {
+        node.pause();
+        return;
+      }
+
       void node.play().catch(() => undefined);
-      return;
+    };
+
+    const schedulePreviewPlayback = () => {
+      if (typeof window === "undefined") {
+        syncPreviewPlayback();
+        return;
+      }
+
+      if (playbackFrame !== null) {
+        window.cancelAnimationFrame(playbackFrame);
+      }
+
+      playbackFrame = window.requestAnimationFrame(() => {
+        playbackFrame = null;
+        syncPreviewPlayback();
+      });
+    };
+
+    const handlePause = () => {
+      if (!forcePlay) {
+        return;
+      }
+
+      schedulePreviewPlayback();
+    };
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+
+      schedulePreviewPlayback();
+    };
+
+    syncPreviewPlayback();
+    node.addEventListener("loadedmetadata", schedulePreviewPlayback);
+    node.addEventListener("canplay", schedulePreviewPlayback);
+    node.addEventListener("pause", handlePause);
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
     }
 
-    node.pause();
-  }, [forcePlay, shouldRenderVideo, videoRef]);
+    return () => {
+      if (playbackFrame !== null && typeof window !== "undefined") {
+        window.cancelAnimationFrame(playbackFrame);
+      }
+
+      node.removeEventListener("loadedmetadata", schedulePreviewPlayback);
+      node.removeEventListener("canplay", schedulePreviewPlayback);
+      node.removeEventListener("pause", handlePause);
+
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
+    };
+  }, [forcePlay, playableUrl, shouldRenderVideo, videoRef]);
 
   if (shouldRenderVideo && playableUrl) {
     return (
@@ -754,12 +817,17 @@ function PreviewSurface({
           ref={videoRef}
           src={playableUrl}
           autoPlay={forcePlay}
+          crossOrigin="use-credentials"
           muted
+          defaultMuted
           loop
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           preload={preloadMode}
           poster={posterUrl ?? previewUrl ?? undefined}
           onError={onVideoError}
+          data-dm-preview-video="true"
           className={cn("block", mediaClassName)}
         />
       </div>
