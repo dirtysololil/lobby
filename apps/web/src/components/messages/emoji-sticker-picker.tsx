@@ -49,12 +49,30 @@ interface EmojiStickerPickerProps {
   onGifSelect: (gif: GifAsset) => void;
   onRetryCatalog: () => void | Promise<void>;
   onOpenManager: () => void;
+  className?: string;
 }
 
 type ExtendedEmojiCategoryId = EmojiCategoryId | "custom";
 
 const allEmojiEntries = emojiCategories.flatMap((category) => category.emojis);
 const EMOJI_TONE_STORAGE_KEY = "lobby:dm:emoji-tone";
+
+function readStoredEmojiTone(): EmojiTone {
+  if (typeof window === "undefined") {
+    return "default";
+  }
+
+  const stored = window.localStorage.getItem(EMOJI_TONE_STORAGE_KEY);
+
+  return stored === "default" ||
+    stored === "light" ||
+    stored === "medium-light" ||
+    stored === "medium" ||
+    stored === "medium-dark" ||
+    stored === "dark"
+    ? stored
+    : "default";
+}
 
 export function EmojiStickerPicker({
   activeTab,
@@ -73,11 +91,13 @@ export function EmojiStickerPicker({
   onGifSelect,
   onRetryCatalog,
   onOpenManager,
+  className,
 }: EmojiStickerPickerProps) {
   const [emojiSearch, setEmojiSearch] = useState("");
   const [selectedEmojiCategory, setSelectedEmojiCategory] =
     useState<ExtendedEmojiCategoryId>("recent");
-  const [selectedTone, setSelectedTone] = useState<EmojiTone>("default");
+  const [selectedTone, setSelectedTone] =
+    useState<EmojiTone>(readStoredEmojiTone);
   const [stickerSearch, setStickerSearch] = useState("");
   const [selectedStickerSource, setSelectedStickerSource] = useState("recent");
   const [gifSearch, setGifSearch] = useState("");
@@ -86,46 +106,27 @@ export function EmojiStickerPicker({
   const deferredGifSearch = useDeferredValue(gifSearch.trim().toLowerCase());
 
   useEffect(() => {
-    if (activeTab !== "sticker" || !catalog) {
-      return;
-    }
-
-    const hasRecent = catalog.stickers.recent.length > 0;
-    const hasPack = catalog.stickers.packs.some((pack) => pack.id === selectedStickerSource);
-
-    if ((selectedStickerSource === "recent" && hasRecent) || hasPack) {
-      return;
-    }
-
-    setSelectedStickerSource(
-      hasRecent ? "recent" : (catalog.stickers.packs[0]?.id ?? "recent"),
-    );
-  }, [activeTab, catalog, selectedStickerSource]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const stored = window.localStorage.getItem(EMOJI_TONE_STORAGE_KEY);
-
-    if (
-      stored === "default" ||
-      stored === "light" ||
-      stored === "medium-light" ||
-      stored === "medium" ||
-      stored === "medium-dark" ||
-      stored === "dark"
-    ) {
-      setSelectedTone(stored);
-    }
-  }, []);
-
-  useEffect(() => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(EMOJI_TONE_STORAGE_KEY, selectedTone);
     }
   }, [selectedTone]);
+
+  const resolvedStickerSource = useMemo(() => {
+    if (!catalog) {
+      return selectedStickerSource;
+    }
+
+    const hasRecent = catalog.stickers.recent.length > 0;
+    const hasPack = catalog.stickers.packs.some(
+      (pack) => pack.id === selectedStickerSource,
+    );
+
+    if ((selectedStickerSource === "recent" && hasRecent) || hasPack) {
+      return selectedStickerSource;
+    }
+
+    return hasRecent ? "recent" : (catalog.stickers.packs[0]?.id ?? "recent");
+  }, [catalog, selectedStickerSource]);
 
   const recentEmojiEntries = useMemo(() => {
     const emojiMap = new Map(allEmojiEntries.map((item) => [item.emoji, item]));
@@ -246,20 +247,20 @@ export function EmojiStickerPicker({
       return stickerResults;
     }
 
-    if (selectedStickerSource === "recent") {
+    if (resolvedStickerSource === "recent") {
       return catalog.stickers.recent.map((item) => ({
         sticker: item.sticker,
         packTitle: item.packTitle,
       }));
     }
 
-    const pack = pickerPacks.find((item) => item.id === selectedStickerSource);
+    const pack = pickerPacks.find((item) => item.id === resolvedStickerSource);
 
     return (pack?.stickers ?? []).map((sticker) => ({
       sticker,
       packTitle: pack?.title ?? "Стикеры",
     }));
-  }, [catalog, deferredStickerSearch, pickerPacks, selectedStickerSource, stickerResults]);
+  }, [catalog, deferredStickerSearch, pickerPacks, resolvedStickerSource, stickerResults]);
 
   const gifSections = useMemo(() => {
     if (!catalog) {
@@ -316,7 +317,11 @@ export function EmojiStickerPicker({
   }
 
   return (
-    <div className="dm-picker-shell" role="dialog" aria-label="Выбор смайликов, стикеров и GIF">
+    <div
+      className={cn("dm-picker-shell", className)}
+      role="dialog"
+      aria-label="Выбор смайликов, стикеров и GIF"
+    >
       <div className="dm-picker-topbar">
         <div className="dm-picker-tabs" role="tablist" aria-label="Тип контента">
           <PickerTabButton
@@ -471,7 +476,7 @@ export function EmojiStickerPicker({
           <div className="dm-picker-control-row">
             {catalog?.stickers.recent.length ? (
               <SourceButton
-                active={selectedStickerSource === "recent"}
+                active={resolvedStickerSource === "recent"}
                 label="Недавние"
                 onClick={() => setSelectedStickerSource("recent")}
               />
@@ -479,7 +484,7 @@ export function EmojiStickerPicker({
             {pickerPacks.map((pack) => (
               <SourceButton
                 key={pack.id}
-                active={selectedStickerSource === pack.id}
+                active={resolvedStickerSource === pack.id}
                 label={pack.title}
                 onClick={() => setSelectedStickerSource(pack.id)}
               />
@@ -514,7 +519,7 @@ export function EmojiStickerPicker({
               <PickerState>
                 {deferredStickerSearch
                   ? "По запросу ничего не нашлось."
-                  : selectedStickerSource === "recent"
+                  : resolvedStickerSource === "recent"
                     ? "Недавних стикеров пока нет."
                     : "В этом наборе пока нет стикеров."}
               </PickerState>
