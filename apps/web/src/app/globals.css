@@ -1452,8 +1452,19 @@ textarea {
   justify-content: center;
 }
 
+.dm-viewer-overlay {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dm-viewer-frame {
+  min-height: 100%;
+}
+
 .dm-viewer-shell {
   width: min(92vw, 920px);
+  max-height: calc(100vh - 3rem);
+  max-height: calc(100dvh - 3rem);
 }
 
 .dm-viewer-media {
@@ -1464,7 +1475,12 @@ textarea {
 }
 
 .dm-viewer-video-shell {
+  display: flex;
+  max-height: calc(100vh - 7.8rem);
+  max-height: calc(100dvh - 7.8rem);
   width: min(92vw, 860px);
+  min-height: 0;
+  flex-direction: column;
   overflow: hidden;
   border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1478,8 +1494,12 @@ textarea {
 
 .dm-viewer-video-stage {
   position: relative;
-  display: block;
+  display: flex;
   width: 100%;
+  min-height: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   overflow: hidden;
   border: 0;
@@ -1500,8 +1520,18 @@ textarea {
 
 .dm-viewer-video {
   margin: 0 auto;
+  width: auto;
+  max-height: min(72vh, calc(100dvh - 13rem));
+  height: auto;
+  object-fit: contain;
   border-radius: 0;
   box-shadow: none;
+}
+
+.dm-viewer-image {
+  width: auto;
+  max-height: min(82vh, calc(100dvh - 7.5rem));
+  object-fit: contain;
 }
 
 .dm-viewer-video-overlay-play {
@@ -1532,6 +1562,7 @@ textarea {
 }
 
 .dm-viewer-video-controls {
+  flex-shrink: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 52%),
@@ -1645,17 +1676,74 @@ textarea {
 }
 
 @media (max-width: 767px) {
+  .dm-viewer-frame {
+    align-items: stretch;
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 0.4rem)
+      0.45rem
+      calc(env(safe-area-inset-bottom, 0px) + 0.45rem);
+  }
+
   .dm-viewer-shell,
   .dm-viewer-video-shell {
-    width: min(96vw, 96vw);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .dm-viewer-shell {
+    min-height: 100%;
+    max-height: none;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.55rem;
+  }
+
+  .dm-viewer-toolbar {
+    align-self: flex-end;
+    padding: 0.18rem;
+  }
+
+  .dm-viewer-action {
+    height: 32px;
+    min-width: 32px;
+    padding: 0 0.62rem;
+  }
+
+  .dm-viewer-action-label {
+    display: none;
+  }
+
+  .dm-viewer-stage {
+    width: 100%;
+  }
+
+  .dm-viewer-video-shell {
+    max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 4.9rem);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 4.9rem);
+    border-radius: 20px;
+  }
+
+  .dm-viewer-video-stage {
+    padding: 0.18rem;
+  }
+
+  .dm-viewer-video {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(62vh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12.8rem));
+  }
+
+  .dm-viewer-image {
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 5.4rem);
   }
 
   .dm-viewer-video-controls {
-    padding: 0.72rem 0.78rem 0.84rem;
+    padding: 0.64rem 0.68rem 0.76rem;
   }
 
   .dm-viewer-video-controls-row {
     flex-wrap: wrap;
+    gap: 0.62rem;
   }
 
   .dm-viewer-video-controls-group,
@@ -1664,13 +1752,35 @@ textarea {
     justify-content: space-between;
   }
 
+  .dm-viewer-video-controls-group {
+    gap: 0.5rem;
+  }
+
   .dm-viewer-time {
     min-width: auto;
+    font-size: 11px;
   }
 
   .dm-viewer-volume {
     min-width: 0;
     flex: 1;
+    gap: 0.35rem;
+  }
+
+  .dm-viewer-action-compact {
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .dm-viewer-range::-webkit-slider-thumb {
+    margin-top: -4px;
+    height: 14px;
+    width: 14px;
+  }
+
+  .dm-viewer-range::-moz-range-thumb {
+    height: 14px;
+    width: 14px;
   }
 }
 
