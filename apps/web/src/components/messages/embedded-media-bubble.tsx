@@ -399,10 +399,10 @@ export function EmbeddedMediaBubble({
     typeof document !== "undefined" && isViewerOpen
       ? createPortal(
           <div
-            className="fixed inset-0 z-[120] bg-[rgba(4,7,11,0.88)] backdrop-blur-[10px]"
+            className="dm-viewer-overlay fixed inset-0 z-[120] bg-[rgba(4,7,11,0.88)] backdrop-blur-[10px]"
             onClick={closeViewer}
           >
-            <div className="absolute inset-0 flex items-center justify-center p-6">
+            <div className="dm-viewer-frame absolute inset-0 flex items-center justify-center p-6">
               <div
                 className="pointer-events-auto dm-viewer-shell inline-flex max-w-full flex-col items-end gap-3"
                 onClick={(event) => event.stopPropagation()}
@@ -447,7 +447,7 @@ export function EmbeddedMediaBubble({
                           onPlay={() => setIsViewerPlaying(true)}
                           onPause={() => setIsViewerPlaying(false)}
                           onVolumeChange={handleViewerVolumeChange}
-                          className="dm-viewer-media dm-viewer-video max-h-[calc(100vh-13rem)] w-auto"
+                          className="dm-viewer-media dm-viewer-video"
                         />
                         {!isViewerPlaying ? (
                           <span className="dm-viewer-video-overlay-play" aria-hidden="true">
@@ -575,7 +575,7 @@ export function EmbeddedMediaBubble({
                       src={effectivePreviewUrl}
                       alt={label ?? ""}
                       loading="eager"
-                      className="dm-viewer-media max-h-[calc(100vh-7.5rem)] w-auto object-contain"
+                      className="dm-viewer-media dm-viewer-image"
                       draggable={false}
                     />
                   ) : (
