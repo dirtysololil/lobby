@@ -43,6 +43,7 @@ interface MessageThreadProps {
   isDeleting: string | null;
   lastReadAt: string | null;
   customEmojis: CustomEmojiAsset[];
+  forceScrollToBottomToken?: number;
   searchQuery?: string;
   onDelete: (messageId: string) => Promise<void>;
   onRetry: (messageId: string) => Promise<void>;
@@ -185,6 +186,7 @@ export function MessageThread({
   isDeleting,
   lastReadAt,
   customEmojis,
+  forceScrollToBottomToken = 0,
   searchQuery = "",
   onDelete,
   onRetry,
@@ -238,6 +240,7 @@ export function MessageThread({
   );
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const didInitScrollRef = useRef(false);
+  const forcedScrollFrameRef = useRef<number | null>(null);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const contextMenuMessage = contextMenu
     ? messages.find((message) => message.id === contextMenu.messageId) ?? null
@@ -283,9 +286,41 @@ export function MessageThread({
       if (longPressTimerRef.current !== null) {
         window.clearTimeout(longPressTimerRef.current);
       }
+
+      if (forcedScrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(forcedScrollFrameRef.current);
+      }
     },
     [],
   );
+
+  useEffect(() => {
+    if (forceScrollToBottomToken <= 0) {
+      return;
+    }
+
+    if (forcedScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(forcedScrollFrameRef.current);
+    }
+
+    forcedScrollFrameRef.current = window.requestAnimationFrame(() => {
+      const viewport = viewportRef.current;
+
+      if (!viewport) {
+        return;
+      }
+
+      viewport.scrollTop = viewport.scrollHeight;
+      forcedScrollFrameRef.current = null;
+    });
+
+    return () => {
+      if (forcedScrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(forcedScrollFrameRef.current);
+        forcedScrollFrameRef.current = null;
+      }
+    };
+  }, [forceScrollToBottomToken]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
