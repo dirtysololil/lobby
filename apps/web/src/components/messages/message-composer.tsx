@@ -462,73 +462,7 @@ export function MessageComposer({
 
   return (
     <>
-      <form
-        data-composer-picker-root="true"
-        data-composer-attach-root="true"
-        className="dm-composer-shell"
-        onSubmit={handleSubmit}
-      >
-        {pickerOpen ? (
-          <div className="absolute bottom-full left-0 z-50 mb-4 md:left-auto md:right-0">
-            <EmojiStickerPicker
-              activeTab={activeTab}
-              recentEmojis={recentEmojis}
-              recentGifIds={recentGifIds}
-              catalog={pickerCatalog}
-              isCatalogLoading={isPickerCatalogLoading}
-              catalogError={pickerCatalogError}
-              pendingStickerIds={pendingStickerIds}
-              pendingGifIds={pendingGifIds}
-              canManageLibrary={canManageLibrary}
-              onTabChange={(tab) => {
-                setActiveTab(tab);
-                void refreshCatalogIfNeeded();
-              }}
-              onEmojiSelect={insertEmoji}
-              onCustomEmojiSelect={insertCustomEmoji}
-              onStickerSelect={(sticker) => void handleStickerSelect(sticker)}
-              onGifSelect={(gif) => void handleGifSelect(gif)}
-              onRetryCatalog={() => void onRefreshPickerCatalog()}
-              onOpenManager={() => {
-                if (!canManageLibrary) {
-                  return;
-                }
-
-                if (typeof window !== "undefined") {
-                  window.location.assign("/app/admin/sticker-packs");
-                }
-              }}
-            />
-          </div>
-        ) : null}
-
-        {attachMenuOpen ? (
-          <div className="absolute bottom-[calc(100%-3.5rem)] left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
-            <button
-              type="button"
-              onClick={() => {
-                setAttachMenuOpen(false);
-                mediaInputRef.current?.click();
-              }}
-              className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
-            >
-              <ImagePlus {...iconProps} />
-              Фото или видео
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAttachMenuOpen(false);
-                documentInputRef.current?.click();
-              }}
-              className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
-            >
-              <FileText {...iconProps} />
-              Документ
-            </button>
-          </div>
-        ) : null}
-
+      <form className="dm-composer-shell" onSubmit={handleSubmit}>
         <input
           ref={mediaInputRef}
           type="file"
@@ -602,40 +536,105 @@ export function MessageComposer({
 
         <div className="dm-composer-footer">
           <div className="dm-composer-tools">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={disabled || isUploadingFiles}
-              onClick={() => {
-                setAttachMenuOpen((current) => !current);
-                setPickerOpen(false);
-              }}
-              className="dm-composer-button px-0"
-              aria-label="Прикрепить файл"
-            >
-              <Paperclip {...iconProps} />
-            </Button>
+            <div className="relative" data-composer-attach-root="true">
+              {attachMenuOpen ? (
+                <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttachMenuOpen(false);
+                      mediaInputRef.current?.click();
+                    }}
+                    className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
+                  >
+                    <ImagePlus {...iconProps} />
+                    Фото или видео
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttachMenuOpen(false);
+                      documentInputRef.current?.click();
+                    }}
+                    className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
+                  >
+                    <FileText {...iconProps} />
+                    Документ
+                  </button>
+                </div>
+              ) : null}
 
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={disabled || isUploadingFiles}
-              onClick={() => {
-                setAttachMenuOpen(false);
-                setPickerOpen((current) => !current);
-                syncSelection();
-                void refreshCatalogIfNeeded();
-              }}
-              className={cn(
-                "dm-composer-button px-0",
-                pickerOpen && "dm-action-button-active",
-              )}
-              aria-label="Открыть смайлики, стикеры и GIF"
-            >
-              <SmilePlus {...iconProps} />
-            </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={disabled || isUploadingFiles}
+                onClick={() => {
+                  setAttachMenuOpen((current) => !current);
+                  setPickerOpen(false);
+                }}
+                className="dm-composer-button px-0"
+                aria-label="Прикрепить файл"
+              >
+                <Paperclip {...iconProps} />
+              </Button>
+            </div>
+
+            <div className="relative" data-composer-picker-root="true">
+              {pickerOpen ? (
+                <div className="absolute bottom-full left-0 z-50 mb-3">
+                  <EmojiStickerPicker
+                    activeTab={activeTab}
+                    recentEmojis={recentEmojis}
+                    recentGifIds={recentGifIds}
+                    catalog={pickerCatalog}
+                    isCatalogLoading={isPickerCatalogLoading}
+                    catalogError={pickerCatalogError}
+                    pendingStickerIds={pendingStickerIds}
+                    pendingGifIds={pendingGifIds}
+                    canManageLibrary={canManageLibrary}
+                    onTabChange={(tab) => {
+                      setActiveTab(tab);
+                      void refreshCatalogIfNeeded();
+                    }}
+                    onEmojiSelect={insertEmoji}
+                    onCustomEmojiSelect={insertCustomEmoji}
+                    onStickerSelect={(sticker) => void handleStickerSelect(sticker)}
+                    onGifSelect={(gif) => void handleGifSelect(gif)}
+                    onRetryCatalog={() => void onRefreshPickerCatalog()}
+                    onOpenManager={() => {
+                      if (!canManageLibrary) {
+                        return;
+                      }
+
+                      if (typeof window !== "undefined") {
+                        window.location.assign("/app/admin/sticker-packs");
+                      }
+                    }}
+                  />
+                </div>
+              ) : null}
+
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={disabled || isUploadingFiles}
+                onClick={() => {
+                  setAttachMenuOpen(false);
+                  setPickerOpen((current) => !current);
+                  syncSelection();
+                  void refreshCatalogIfNeeded();
+                }}
+                className={cn(
+                  "dm-composer-button px-0",
+                  pickerOpen && "dm-action-button-active",
+                )}
+                aria-label="Открыть смайлики, стикеры и GIF"
+              >
+                <SmilePlus {...iconProps} />
+              </Button>
+            </div>
           </div>
 
           <Button
