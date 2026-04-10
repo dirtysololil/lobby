@@ -1,7 +1,7 @@
 "use client";
 
-import { Capacitor } from "@capacitor/core";
 import { useEffect } from "react";
+import { isNativeCapacitorPlatform } from "@/lib/capacitor-runtime";
 
 export function PwaRegistration() {
   useEffect(() => {
@@ -11,7 +11,7 @@ export function PwaRegistration() {
 
     if (
       process.env.NODE_ENV !== "production" ||
-      Capacitor.isNativePlatform()
+      isNativeCapacitorPlatform()
     ) {
       void navigator.serviceWorker.getRegistrations().then((registrations) => {
         registrations.forEach((registration) => {

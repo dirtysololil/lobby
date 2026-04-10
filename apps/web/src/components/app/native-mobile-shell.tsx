@@ -1,53 +1,59 @@
 "use client";
 
-import { App } from "@capacitor/app";
-import { Capacitor } from "@capacitor/core";
-import {
-  Keyboard,
-  KeyboardResize,
-  KeyboardStyle,
-} from "@capacitor/keyboard";
-import { StatusBar, Style } from "@capacitor/status-bar";
 import {
   usePathname,
   useRouter,
-  useSearchParams,
 } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
+import {
+  getCapacitorPlugins,
+  isNativeCapacitorPlatform,
+  removeCapacitorListener,
+} from "@/lib/capacitor-runtime";
 
 const nativeLastRouteStorageKey = "lobby:native:last-route";
 const nativeResumeEventName = "lobby:native-resume";
 
 export function NativeMobileShell() {
   const pathname = usePathname() ?? "/";
-  const searchParams = useSearchParams();
   const router = useRouter();
   const didAttemptRestoreRef = useRef(false);
-  const currentRoute = useMemo(() => {
-    const serializedSearch = searchParams?.toString();
-
-    return serializedSearch ? `${pathname}?${serializedSearch}` : pathname;
-  }, [pathname, searchParams]);
+  const currentRoute = pathname;
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
+    if (!isNativeCapacitorPlatform()) {
       return;
     }
+
+    const plugins = getCapacitorPlugins();
+    const appPlugin = plugins?.App;
+    const keyboardPlugin = plugins?.Keyboard;
+    const statusBarPlugin = plugins?.StatusBar;
 
     document.documentElement.classList.add("cap-native");
     document.body.classList.add("cap-native");
     document.documentElement.style.setProperty("--native-keyboard-height", "0px");
 
-    void StatusBar.show().catch(() => undefined);
-    void StatusBar.setStyle({ style: Style.Dark }).catch(() => undefined);
-    void StatusBar.setOverlaysWebView({ overlay: false }).catch(() => undefined);
-    void StatusBar.setBackgroundColor({ color: "#091018" }).catch(() => undefined);
+    void Promise.resolve(statusBarPlugin?.show?.()).catch(() => undefined);
+    void Promise.resolve(
+      statusBarPlugin?.setStyle?.({ style: "DARK" }),
+    ).catch(() => undefined);
+    void Promise.resolve(
+      statusBarPlugin?.setOverlaysWebView?.({ overlay: false }),
+    ).catch(() => undefined);
+    void Promise.resolve(
+      statusBarPlugin?.setBackgroundColor?.({ color: "#091018" }),
+    ).catch(() => undefined);
 
-    void Keyboard.setStyle({ style: KeyboardStyle.Dark }).catch(() => undefined);
-    void Keyboard.setResizeMode({ mode: KeyboardResize.Native }).catch(() => undefined);
-    void Keyboard.setAccessoryBarVisible({ isVisible: false }).catch(
-      () => undefined,
-    );
+    void Promise.resolve(
+      keyboardPlugin?.setStyle?.({ style: "DARK" }),
+    ).catch(() => undefined);
+    void Promise.resolve(
+      keyboardPlugin?.setResizeMode?.({ mode: "native" }),
+    ).catch(() => undefined);
+    void Promise.resolve(
+      keyboardPlugin?.setAccessoryBarVisible?.({ isVisible: false }),
+    ).catch(() => undefined);
 
     const onKeyboardShow = (height: number) => {
       document.documentElement.style.setProperty(
@@ -66,49 +72,49 @@ export function NativeMobileShell() {
       window.dispatchEvent(new Event(nativeResumeEventName));
     };
 
-    const keyboardWillShowHandle = Keyboard.addListener(
+    const keyboardWillShowHandle = keyboardPlugin?.addListener?.(
       "keyboardWillShow",
       (info) => {
         onKeyboardShow(info.keyboardHeight);
       },
     );
-    const keyboardDidShowHandle = Keyboard.addListener(
+    const keyboardDidShowHandle = keyboardPlugin?.addListener?.(
       "keyboardDidShow",
       (info) => {
         onKeyboardShow(info.keyboardHeight);
       },
     );
-    const keyboardWillHideHandle = Keyboard.addListener(
+    const keyboardWillHideHandle = keyboardPlugin?.addListener?.(
       "keyboardWillHide",
       onKeyboardHide,
     );
-    const keyboardDidHideHandle = Keyboard.addListener(
+    const keyboardDidHideHandle = keyboardPlugin?.addListener?.(
       "keyboardDidHide",
       onKeyboardHide,
     );
-    const appStateHandle = App.addListener("appStateChange", (state) => {
+    const appStateHandle = appPlugin?.addListener?.("appStateChange", (state) => {
       if (state.isActive) {
         emitResume();
       }
     });
-    const resumeHandle = App.addListener("resume", emitResume);
+    const resumeHandle = appPlugin?.addListener?.("resume", emitResume);
 
     return () => {
       document.documentElement.classList.remove("cap-native");
       document.body.classList.remove("cap-native", "native-keyboard-open");
       document.documentElement.style.setProperty("--native-keyboard-height", "0px");
 
-      void keyboardWillShowHandle.then((listener) => listener.remove());
-      void keyboardDidShowHandle.then((listener) => listener.remove());
-      void keyboardWillHideHandle.then((listener) => listener.remove());
-      void keyboardDidHideHandle.then((listener) => listener.remove());
-      void appStateHandle.then((listener) => listener.remove());
-      void resumeHandle.then((listener) => listener.remove());
+      removeCapacitorListener(keyboardWillShowHandle);
+      removeCapacitorListener(keyboardDidShowHandle);
+      removeCapacitorListener(keyboardWillHideHandle);
+      removeCapacitorListener(keyboardDidHideHandle);
+      removeCapacitorListener(appStateHandle);
+      removeCapacitorListener(resumeHandle);
     };
   }, []);
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform() || didAttemptRestoreRef.current) {
+    if (!isNativeCapacitorPlatform() || didAttemptRestoreRef.current) {
       return;
     }
 
@@ -136,7 +142,7 @@ export function NativeMobileShell() {
   }, [currentRoute, pathname, router]);
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform() || !pathname.startsWith("/app")) {
+    if (!isNativeCapacitorPlatform() || !pathname.startsWith("/app")) {
       return;
     }
 
