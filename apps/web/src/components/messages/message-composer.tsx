@@ -17,7 +17,6 @@ import {
 import {
   useCallback,
   useEffect,
-  useMemo,
   useLayoutEffect,
   useRef,
   useState,
@@ -25,13 +24,10 @@ import {
   type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { isEmojiCluster, splitGraphemes } from "@/lib/emoji/unicode";
 import { buildCustomEmojiToken } from "@/lib/stickers";
-import { customEmojiTokenPattern } from "@/lib/stickers";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker, type PickerTab } from "./emoji-sticker-picker";
-import { InlineCustomEmojiText } from "./inline-custom-emoji-text";
 
 export type ComposerSendPayload =
   | { type: "TEXT"; content: string }
@@ -61,21 +57,6 @@ const MAX_RECENT_EMOJIS = 28;
 const MAX_RECENT_STICKERS = 24;
 const MAX_RECENT_GIFS = 20;
 const iconProps = { size: 18, strokeWidth: 1.5 } as const;
-
-function needsRichComposerOverlay(text: string) {
-  if (!text) {
-    return false;
-  }
-
-  if (customEmojiTokenPattern.test(text)) {
-    customEmojiTokenPattern.lastIndex = 0;
-    return true;
-  }
-
-  customEmojiTokenPattern.lastIndex = 0;
-
-  return splitGraphemes(text).some((grapheme) => isEmojiCluster(grapheme));
-}
 
 function readRecentStrings(storageKey: string) {
   if (typeof window === "undefined") {
@@ -147,14 +128,9 @@ export function MessageComposer({
   const [pendingStickerIds, setPendingStickerIds] = useState<string[]>([]);
   const [pendingGifIds, setPendingGifIds] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const mirrorRef = useRef<HTMLDivElement | null>(null);
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const selectionRef = useRef({ start: 0, end: 0 });
-  const shouldRenderRichOverlay = useMemo(
-    () => needsRichComposerOverlay(content),
-    [content],
-  );
 
   const syncTextareaHeight = useCallback(() => {
     const element = textareaRef.current;
@@ -259,18 +235,6 @@ export function MessageComposer({
       start: element.selectionStart ?? content.length,
       end: element.selectionEnd ?? content.length,
     };
-  }
-
-  function syncMirrorScroll() {
-    const textarea = textareaRef.current;
-    const mirror = mirrorRef.current;
-
-    if (!textarea || !mirror) {
-      return;
-    }
-
-    mirror.scrollTop = textarea.scrollTop;
-    mirror.scrollLeft = textarea.scrollLeft;
   }
 
   function focusTextarea(position?: number) {
@@ -486,19 +450,6 @@ export function MessageComposer({
         />
 
         <div className="dm-composer-main">
-          {shouldRenderRichOverlay ? (
-            <div
-              ref={mirrorRef}
-              aria-hidden
-              className="dm-composer-overlay pointer-events-none absolute inset-0 overflow-hidden text-sm leading-[1.44] text-white whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
-            >
-              <InlineCustomEmojiText
-                text={content.endsWith("\n") ? `${content}\u200b` : content}
-                customEmojis={pickerCatalog?.customEmojis ?? []}
-              />
-            </div>
-          ) : null}
-
           <textarea
             ref={textareaRef}
             value={content}
@@ -508,7 +459,6 @@ export function MessageComposer({
             onClick={syncSelection}
             onKeyUp={syncSelection}
             onSelect={syncSelection}
-            onScroll={syncMirrorScroll}
             onKeyDown={handleKeyDown}
             placeholder={
               isUploadingFiles
@@ -520,10 +470,7 @@ export function MessageComposer({
             disabled={disabled || isSendingText || isUploadingFiles}
             rows={1}
             className={cn(
-              "dm-composer-textarea relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words border-none bg-transparent text-sm leading-[1.44] outline-none transition-colors [overflow-wrap:anywhere] disabled:cursor-not-allowed disabled:opacity-60",
-              shouldRenderRichOverlay
-                ? "text-transparent caret-white"
-                : "text-white caret-white placeholder:text-[var(--text-muted)]",
+              "dm-composer-textarea relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words border-none bg-transparent text-sm leading-[1.44] text-white caret-white outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60 [overflow-wrap:anywhere]",
             )}
             style={{
               resize: "none",
