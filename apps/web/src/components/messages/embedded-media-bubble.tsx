@@ -819,7 +819,6 @@ function PreviewSurface({
           autoPlay={forcePlay}
           crossOrigin="use-credentials"
           muted
-          defaultMuted
           loop
           playsInline
           disablePictureInPicture
