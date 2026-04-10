@@ -24,6 +24,7 @@ import { isDirectMessageVideoNote } from "@/lib/direct-message-video-notes";
 import {
   getDirectMessageAttachmentAssetUrl,
   getDirectMessageAttachmentPreviewUrl,
+  getDirectMessageAttachmentStreamUrl,
 } from "@/lib/direct-message-attachments";
 import { isEmojiCluster, splitGraphemes } from "@/lib/emoji/unicode";
 import {
@@ -1099,6 +1100,18 @@ export function MessageThread({
                                           ))
                                     }
                                     playableUrl={
+                                      message.attachment.kind === "VIDEO"
+                                        ? (message.localAttachmentAssetUrl ??
+                                          (isRoundVideoNote
+                                            ? getDirectMessageAttachmentStreamUrl(
+                                                message.attachment,
+                                              )
+                                            : getDirectMessageAttachmentAssetUrl(
+                                                message.attachment,
+                                              )))
+                                        : null
+                                    }
+                                    viewerPlayableUrl={
                                       message.attachment.kind === "VIDEO"
                                         ? (message.localAttachmentAssetUrl ??
                                           getDirectMessageAttachmentAssetUrl(

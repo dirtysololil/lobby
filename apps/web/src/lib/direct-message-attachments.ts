@@ -19,6 +19,18 @@ export function getDirectMessageAttachmentAssetUrl(
   return baseUrl ? `${baseUrl}${path}` : path;
 }
 
+export function getDirectMessageAttachmentStreamUrl(
+  attachment: Pick<DmAttachment, "id" | "updatedAt">,
+): string {
+  const baseUrl =
+    typeof window === "undefined"
+      ? resolveApiBaseUrlForServer()
+      : resolveApiBaseUrlForBrowser();
+  const path = `/v1/direct-messages/attachments/${attachment.id}/stream?v=${encodeURIComponent(attachment.updatedAt)}`;
+
+  return baseUrl ? `${baseUrl}${path}` : path;
+}
+
 export function getDirectMessageAttachmentPreviewUrl(
   attachment: Pick<DmAttachment, "id" | "updatedAt">,
 ): string {

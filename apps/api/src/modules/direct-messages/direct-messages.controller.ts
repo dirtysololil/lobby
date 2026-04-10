@@ -143,6 +143,61 @@ export class DirectMessagesController {
   }
 
   @RequireAuth()
+  @Get('attachments/:attachmentId/stream')
+  public async streamAttachmentInlinePlayback(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('attachmentId') attachmentId: string,
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ) {
+    const asset =
+      await this.directMessagesService.getAttachmentInlinePlaybackDescriptorForViewer(
+        currentUser.id,
+        attachmentId,
+      );
+    const byteRange = parseSingleByteRange(request.headers.range, asset.size);
+
+    if (request.headers.range && !byteRange) {
+      response.status(416);
+      response.setHeader('Content-Range', `bytes */${asset.size}`);
+      return response.end();
+    }
+
+    response.setHeader('Accept-Ranges', 'bytes');
+    response.setHeader('Content-Type', asset.mimeType);
+    response.setHeader(
+      'Cache-Control',
+      asset.isInlinePlayback
+        ? 'private, max-age=31536000, immutable'
+        : 'private, max-age=30, must-revalidate',
+    );
+
+    if (byteRange) {
+      const chunk = await this.directMessagesService.readAttachmentAssetRange(
+        asset.fileKey,
+        byteRange.start,
+        byteRange.end,
+      );
+
+      response.status(206);
+      response.setHeader(
+        'Content-Range',
+        `bytes ${byteRange.start}-${byteRange.end}/${asset.size}`,
+      );
+      response.setHeader('Content-Length', String(chunk.byteLength));
+
+      return response.send(chunk);
+    }
+
+    const fullAsset = await this.directMessagesService.readAttachmentAsset(
+      asset.fileKey,
+    );
+    response.setHeader('Content-Length', String(asset.size));
+
+    return response.send(fullAsset);
+  }
+
+  @RequireAuth()
   @Get('attachments/:attachmentId/asset')
   public async streamAttachmentAsset(
     @CurrentUser() currentUser: PublicUser,

@@ -389,7 +389,12 @@ export function UserProfileView({
                   <>
                     <Button
                       onClick={() => void openDm()}
-                      disabled={actionKey !== null || relationship.hasBlockedViewer}
+                      disabled={
+                        actionKey !== null ||
+                        relationship.hasBlockedViewer ||
+                        (!relationship.dmConversationId &&
+                          relationship.friendshipState !== "ACCEPTED")
+                      }
                       className="h-10 w-full"
                     >
                       <MessageSquareMore className="h-4 w-4" />

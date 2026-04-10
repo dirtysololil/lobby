@@ -82,7 +82,22 @@ const conversationSummaryInclude = {
 } satisfies Prisma.DirectConversationInclude;
 
 const videoNoteFilePrefix = 'lobby-video-note-';
-const optimizedVideoNoteMaxDimension = 384;
+const recentVideoNoteWarmupLimit = 180;
+const recentVideoNoteWarmupBatchSize = 18;
+const videoNoteInlinePlaybackMimeType = 'video/mp4';
+
+const directMessageAttachmentAccessSelect = {
+  id: true,
+  kind: true,
+  fileKey: true,
+  previewKey: true,
+  originalName: true,
+  mimeType: true,
+  fileSize: true,
+  width: true,
+  height: true,
+  durationMs: true,
+} satisfies Prisma.DirectMessageAttachmentSelect;
 
 type ConversationSummaryRecord = Prisma.DirectConversationGetPayload<{
   include: typeof conversationSummaryInclude;
@@ -97,6 +112,10 @@ type ConversationDetailRecord = Prisma.DirectConversationGetPayload<{
       include: typeof directMessageWithAuthorInclude;
     };
   };
+}>;
+
+type AttachmentAccessRecord = Prisma.DirectMessageAttachmentGetPayload<{
+  select: typeof directMessageAttachmentAccessSelect;
 }>;
 
 type UploadedBinaryFile = {
@@ -284,6 +303,7 @@ export class DirectMessagesService implements OnModuleInit {
       viewerId,
       retentionMode: conversation.retentionMode,
       retentionSeconds: conversation.retentionSeconds,
+      friendshipState: relationship.friendshipState,
       isBlockedByViewer: relationship.isBlockedByViewer,
       hasBlockedViewer: relationship.hasBlockedViewer,
       participants: conversation.participants,
@@ -317,7 +337,7 @@ export class DirectMessagesService implements OnModuleInit {
       actor.id,
     );
 
-    await this.relationshipsService.assertInteractionAllowed(
+    await this.relationshipsService.assertDirectMessagingAllowed(
       actor.id,
       counterpart.userId,
     );
@@ -475,7 +495,7 @@ export class DirectMessagesService implements OnModuleInit {
       actor.id,
     );
 
-    await this.relationshipsService.assertInteractionAllowed(
+    await this.relationshipsService.assertDirectMessagingAllowed(
       actor.id,
       counterpart.userId,
     );
@@ -486,15 +506,29 @@ export class DirectMessagesService implements OnModuleInit {
       processed.assetBuffer,
       processed.extension,
     );
-    const previewKey =
-      processed.previewBuffer && processed.previewExtension
-        ? await this.storageService.writeDirectMessageAttachmentPreview(
-            processed.previewBuffer,
-            processed.previewExtension,
-          )
+    const inlinePlaybackKey =
+      processed.inlinePlaybackBuffer && processed.inlinePlaybackExtension
+        ? this.resolveVideoNoteInlinePlaybackFileKey(fileKey)
         : null;
+    let previewKey: string | null = null;
+    let storedInlinePlaybackKey: string | null = null;
 
     try {
+      [previewKey, storedInlinePlaybackKey] = await Promise.all([
+        processed.previewBuffer && processed.previewExtension
+          ? this.storageService.writeDirectMessageAttachmentPreview(
+              processed.previewBuffer,
+              processed.previewExtension,
+            )
+          : Promise.resolve<string | null>(null),
+        inlinePlaybackKey && processed.inlinePlaybackBuffer
+          ? this.storageService.writeObjectAtKey(
+              inlinePlaybackKey,
+              processed.inlinePlaybackBuffer,
+            )
+          : Promise.resolve<string | null>(null),
+      ]);
+
       const messageId = await this.prisma.$transaction(async (transaction) => {
         const createdMessage = await transaction.directMessage.create({
           data: {
@@ -586,6 +620,7 @@ export class DirectMessagesService implements OnModuleInit {
       await Promise.all([
         this.storageService.deleteObject(fileKey),
         this.storageService.deleteObject(previewKey),
+        this.storageService.deleteObject(storedInlinePlaybackKey),
       ]);
       throw error;
     }
@@ -706,6 +741,68 @@ export class DirectMessagesService implements OnModuleInit {
     };
   }
 
+  public async getAttachmentInlinePlaybackDescriptorForViewer(
+    viewerId: string,
+    attachmentId: string,
+  ): Promise<{
+    fileKey: string;
+    mimeType: string;
+    size: number;
+    isInlinePlayback: boolean;
+  }> {
+    const attachment = await this.prisma.directMessageAttachment.findFirst({
+      where: {
+        id: attachmentId,
+        message: {
+          deletedAt: null,
+          conversation: {
+            participants: {
+              some: {
+                userId: viewerId,
+              },
+            },
+          },
+        },
+      },
+      select: directMessageAttachmentAccessSelect,
+    });
+
+    if (!attachment) {
+      throw new NotFoundException('Вложение недоступно.');
+    }
+
+    if (!this.isVideoNoteAttachment(attachment)) {
+      return {
+        fileKey: attachment.fileKey,
+        mimeType: attachment.mimeType,
+        size: await this.storageService.getObjectSize(attachment.fileKey),
+        isInlinePlayback: false,
+      };
+    }
+
+    this.scheduleLegacyVideoNoteOptimization(attachment);
+
+    const inlinePlaybackFileKey = this.resolveVideoNoteInlinePlaybackFileKey(
+      attachment.fileKey,
+    );
+
+    try {
+      return {
+        fileKey: inlinePlaybackFileKey,
+        mimeType: videoNoteInlinePlaybackMimeType,
+        size: await this.storageService.getObjectSize(inlinePlaybackFileKey),
+        isInlinePlayback: true,
+      };
+    } catch {
+      return {
+        fileKey: attachment.fileKey,
+        mimeType: attachment.mimeType,
+        size: await this.storageService.getObjectSize(attachment.fileKey),
+        isInlinePlayback: false,
+      };
+    }
+  }
+
   public async readAttachmentAssetRange(
     fileKey: string,
     start: number,
@@ -716,6 +813,22 @@ export class DirectMessagesService implements OnModuleInit {
 
   public async readAttachmentAsset(fileKey: string): Promise<Buffer> {
     return await this.storageService.readObject(fileKey);
+  }
+
+  private resolveVideoNoteInlinePlaybackFileKey(fileKey: string): string {
+    return fileKey.replace(/\.[^.\\/]+$/, '.inline.mp4');
+  }
+
+  private isVideoNoteAttachment(
+    attachment: Pick<AttachmentAccessRecord, 'kind' | 'originalName'>,
+  ): boolean {
+    return (
+      attachment.kind === DirectMessageAttachmentKind.VIDEO &&
+      attachment.originalName
+        .trim()
+        .toLowerCase()
+        .startsWith(videoNoteFilePrefix)
+    );
   }
 
   private scheduleLegacyVideoNoteOptimization(attachment: {
@@ -759,7 +872,7 @@ export class DirectMessagesService implements OnModuleInit {
       const warmedAttachmentIds: string[] = [];
       let warmedCount = 0;
 
-      while (warmedCount < 120) {
+      while (warmedCount < recentVideoNoteWarmupLimit) {
         const attachments = await this.prisma.directMessageAttachment.findMany({
           where: {
             kind: DirectMessageAttachmentKind.VIDEO,
@@ -773,40 +886,12 @@ export class DirectMessagesService implements OnModuleInit {
                   },
                 }
               : {}),
-            OR: [
-              {
-                mimeType: {
-                  not: 'video/mp4',
-                },
-              },
-              {
-                width: {
-                  gt: optimizedVideoNoteMaxDimension,
-                },
-              },
-              {
-                height: {
-                  gt: optimizedVideoNoteMaxDimension,
-                },
-              },
-            ],
           },
           orderBy: {
             updatedAt: 'desc',
           },
-          take: 12,
-          select: {
-            id: true,
-            kind: true,
-            fileKey: true,
-            previewKey: true,
-            originalName: true,
-            mimeType: true,
-            fileSize: true,
-            width: true,
-            height: true,
-            durationMs: true,
-          },
+          take: recentVideoNoteWarmupBatchSize,
+          select: directMessageAttachmentAccessSelect,
         });
 
         if (attachments.length === 0) {
@@ -835,7 +920,7 @@ export class DirectMessagesService implements OnModuleInit {
 
       if (warmedCount > 0) {
         this.logger.log(
-          `Pre-optimized ${warmedCount} DM video notes for fast playback`,
+          `Prepared fast inline playback for ${warmedCount} DM video notes`,
         );
       }
     } catch (error) {
@@ -865,7 +950,18 @@ export class DirectMessagesService implements OnModuleInit {
       return attachment;
     }
 
+    const inlinePlaybackFileKey = this.resolveVideoNoteInlinePlaybackFileKey(
+      attachment.fileKey,
+    );
+
     try {
+      try {
+        await this.storageService.getObjectSize(inlinePlaybackFileKey);
+        return attachment;
+      } catch {
+        // Inline playback stream is missing and needs to be prepared.
+      }
+
       const env = this.envService.getValues();
       const sourceBuffer = await this.storageService.readObject(
         attachment.fileKey,
@@ -882,78 +978,19 @@ export class DirectMessagesService implements OnModuleInit {
         },
       });
 
-      if (processed.kind !== 'VIDEO') {
+      if (processed.kind !== 'VIDEO' || !processed.inlinePlaybackBuffer) {
         return attachment;
       }
 
-      if (
-        processed.mimeType === attachment.mimeType &&
-        processed.fileSize === attachment.fileSize &&
-        processed.width === attachment.width &&
-        processed.height === attachment.height
-      ) {
-        return attachment;
-      }
+      await this.storageService.writeObjectAtKey(
+        inlinePlaybackFileKey,
+        processed.inlinePlaybackBuffer,
+      );
 
-      const nextFileKey =
-        await this.storageService.writeDirectMessageAttachment(
-          processed.assetBuffer,
-          processed.extension,
-        );
-      const nextPreviewKey =
-        processed.previewBuffer && processed.previewExtension
-          ? await this.storageService.writeDirectMessageAttachmentPreview(
-              processed.previewBuffer,
-              processed.previewExtension,
-            )
-          : null;
-
-      try {
-        const updatedAttachment =
-          await this.prisma.directMessageAttachment.update({
-            where: {
-              id: attachment.id,
-            },
-            data: {
-              fileKey: nextFileKey,
-              previewKey: nextPreviewKey,
-              originalName: processed.originalName,
-              mimeType: processed.mimeType,
-              fileSize: processed.fileSize,
-              width: processed.width,
-              height: processed.height,
-              durationMs: processed.durationMs,
-            },
-            select: {
-              id: true,
-              kind: true,
-              fileKey: true,
-              previewKey: true,
-              originalName: true,
-              mimeType: true,
-              fileSize: true,
-              width: true,
-              height: true,
-              durationMs: true,
-            },
-          });
-
-        await Promise.all([
-          this.storageService.deleteObject(attachment.fileKey),
-          this.storageService.deleteObject(attachment.previewKey),
-        ]);
-
-        return updatedAttachment;
-      } catch (error) {
-        await Promise.all([
-          this.storageService.deleteObject(nextFileKey),
-          this.storageService.deleteObject(nextPreviewKey),
-        ]);
-        throw error;
-      }
+      return attachment;
     } catch (error) {
       this.logger.warn(
-        `Failed to optimize legacy DM video note ${attachment.id}: ${
+        `Failed to prepare fast inline playback for DM video note ${attachment.id}: ${
           error instanceof Error ? error.message : 'unknown error'
         }`,
       );
@@ -969,26 +1006,7 @@ export class DirectMessagesService implements OnModuleInit {
     width: number | null;
     height: number | null;
   }) {
-    if (
-      attachment.kind !== DirectMessageAttachmentKind.VIDEO ||
-      !attachment.originalName
-        .trim()
-        .toLowerCase()
-        .startsWith(videoNoteFilePrefix)
-    ) {
-      return false;
-    }
-
-    if (attachment.mimeType !== 'video/mp4') {
-      return true;
-    }
-
-    const maxDimension = Math.max(
-      attachment.width ?? 0,
-      attachment.height ?? 0,
-    );
-
-    return maxDimension > optimizedVideoNoteMaxDimension;
+    return this.isVideoNoteAttachment(attachment);
   }
 
   public async deleteMessage(
@@ -1293,6 +1311,7 @@ export class DirectMessagesService implements OnModuleInit {
       counterpartLastSeenAt,
       participant,
       lastMessage: conversation.messages[0] ?? null,
+      friendshipState: relationship.friendshipState,
       isBlockedByViewer: relationship.isBlockedByViewer,
       hasBlockedViewer: relationship.hasBlockedViewer,
     });

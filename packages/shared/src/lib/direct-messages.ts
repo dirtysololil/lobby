@@ -4,6 +4,7 @@ import {
   actionMessageSchema,
   dmNotificationSettingSchema,
   dmRetentionModeSchema,
+  friendshipStateSchema,
   isoDateSchema,
   publicUserSchema,
 } from "./common";
@@ -266,6 +267,7 @@ export const directConversationSummarySchema = z.object({
   }),
   lastMessagePreview: z.string().nullable(),
   lastMessage: directMessageSchema.nullable(),
+  friendshipState: friendshipStateSchema,
   isBlockedByViewer: z.boolean(),
   hasBlockedViewer: z.boolean(),
 });
@@ -279,6 +281,7 @@ export const directConversationDetailSchema = z.object({
     id: z.string().cuid(),
     retentionMode: dmRetentionModeSchema,
     retentionSeconds: z.number().int().positive().nullable(),
+    friendshipState: friendshipStateSchema,
     isBlockedByViewer: z.boolean(),
     hasBlockedViewer: z.boolean(),
     participants: z.array(directConversationParticipantSchema),

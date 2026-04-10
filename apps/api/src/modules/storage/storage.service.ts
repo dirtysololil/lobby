@@ -51,6 +51,25 @@ export class StorageService {
     return this.writeScopedObject('dm-attachment-previews', buffer, extension);
   }
 
+  public async writeObjectAtKey(
+    fileKey: string,
+    buffer: Buffer,
+  ): Promise<string> {
+    const env = this.envService.getValues();
+
+    if (env.UPLOAD_DRIVER !== 'local') {
+      throw new ServiceUnavailableException(
+        'Configured upload driver is not available in this deployment',
+      );
+    }
+
+    const absolutePath = this.resolveLocalPath(fileKey);
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, buffer);
+
+    return fileKey;
+  }
+
   public async readObject(fileKey: string): Promise<Buffer> {
     return readFile(this.resolveLocalPath(fileKey));
   }

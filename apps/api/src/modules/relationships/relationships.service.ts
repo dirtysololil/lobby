@@ -396,6 +396,30 @@ export class RelationshipsService {
     }
   }
 
+  public async assertDirectMessagingAllowed(
+    actorUserId: string,
+    targetUserId: string,
+  ): Promise<UserRelationshipSummary> {
+    const relationship = await this.getRelationshipSummary(
+      actorUserId,
+      targetUserId,
+    );
+
+    if (relationship.isBlockedByViewer || relationship.hasBlockedViewer) {
+      throw new ForbiddenException(
+        'Личные сообщения недоступны, потому что один из пользователей ограничил контакт.',
+      );
+    }
+
+    if (relationship.friendshipState !== 'ACCEPTED') {
+      throw new ForbiddenException(
+        'Личные сообщения доступны только после принятия заявки в друзья.',
+      );
+    }
+
+    return relationship;
+  }
+
   public async getRelationshipSummary(
     viewerId: string,
     targetUserId: string,
