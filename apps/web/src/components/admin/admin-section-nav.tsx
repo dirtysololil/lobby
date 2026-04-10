@@ -16,8 +16,8 @@ export function AdminSectionNav() {
 
   return (
     <section className="premium-panel rounded-[22px] p-3">
-      <p className="section-kicker px-1">Разделы админки</p>
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <p className="section-kicker px-1 md:hidden">Разделы админки</p>
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:mt-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {adminNavigationItems.map((item) => {
           const active = route.adminSection === item.section;
 

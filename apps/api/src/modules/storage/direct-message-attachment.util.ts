@@ -375,14 +375,14 @@ function resolveVideoExtension(
   const normalizedMime = mimeType?.trim().toLowerCase() ?? '';
 
   if (
-    normalizedMime === 'video/mp4' ||
+    normalizedMime.startsWith('video/mp4') ||
     normalizedName.endsWith('.mp4')
   ) {
     return 'mp4';
   }
 
   if (
-    normalizedMime === 'video/webm' ||
+    normalizedMime.startsWith('video/webm') ||
     normalizedName.endsWith('.webm')
   ) {
     return 'webm';

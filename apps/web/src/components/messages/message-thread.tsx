@@ -1,7 +1,14 @@
 "use client";
 
 import type { CustomEmojiAsset, DirectConversationDetail } from "@lobby/shared";
-import { AlertCircle, MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  CheckCheck,
+  MoreHorizontal,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -13,6 +20,7 @@ import {
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { isDirectMessageVideoNote } from "@/lib/direct-message-video-notes";
 import { getDirectMessageAttachmentAssetUrl, getDirectMessageAttachmentPreviewUrl } from "@/lib/direct-message-attachments";
 import { isEmojiCluster, splitGraphemes } from "@/lib/emoji/unicode";
 import {
@@ -42,6 +50,7 @@ interface MessageThreadProps {
   messages: ThreadMessageItem[];
   isDeleting: string | null;
   lastReadAt: string | null;
+  counterpartLastReadAt: string | null;
   customEmojis: CustomEmojiAsset[];
   forceScrollToBottomToken?: number;
   searchQuery?: string;
@@ -54,7 +63,6 @@ type ContextMenuState =
   | { mode: "floating"; messageId: string; x: number; y: number }
   | { mode: "sheet"; messageId: string };
 
-const iconProps = { size: 18, strokeWidth: 1.5 } as const;
 const contextMenuWidth = 196;
 const contextMenuMargin = 12;
 const pendingEmbedStaleAfterMs = 60_000;
@@ -100,6 +108,18 @@ function formatFileSize(bytes: number) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatAttachmentDuration(durationMs: number | null | undefined) {
+  if (!durationMs || durationMs < 0) {
+    return null;
+  }
+
+  const totalSeconds = Math.max(0, Math.floor(durationMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function buildSearchableMessageText(message: ThreadMessageItem) {
@@ -185,16 +205,16 @@ export function MessageThread({
   messages,
   isDeleting,
   lastReadAt,
+  counterpartLastReadAt,
   customEmojis,
   forceScrollToBottomToken = 0,
   searchQuery = "",
   onDelete,
   onRetry,
 }: MessageThreadProps) {
-  const [mounted, setMounted] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [pendingEmbedTick, setPendingEmbedTick] = useState(0);
+  const [, setPendingEmbedTick] = useState(0);
   const messageElementRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const longPressTimerRef = useRef<number | null>(null);
   const longPressPointerRef = useRef<{
@@ -238,13 +258,27 @@ export function MessageThread({
           ),
     [lastReadAt, messages, viewerId],
   );
+  const counterpartLastReadTimestamp = useMemo(() => {
+    if (!counterpartLastReadAt) {
+      return null;
+    }
+
+    const timestamp = new Date(counterpartLastReadAt).getTime();
+
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }, [counterpartLastReadAt]);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const didInitScrollRef = useRef(false);
   const forcedScrollFrameRef = useRef<number | null>(null);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-  const contextMenuMessage = contextMenu
-    ? messages.find((message) => message.id === contextMenu.messageId) ?? null
+  const activeContextMenu =
+    contextMenu && messages.some((message) => message.id === contextMenu.messageId)
+      ? contextMenu
+      : null;
+  const contextMenuMessage = activeContextMenu
+    ? messages.find((message) => message.id === activeContextMenu.messageId) ?? null
     : null;
+  const canUsePortal = typeof document !== "undefined";
   const matchingMessageIds = useMemo(() => {
     if (!normalizedSearchQuery) {
       return new Set<string>();
@@ -258,10 +292,6 @@ export function MessageThread({
         .map((message) => message.id),
     );
   }, [messages, normalizedSearchQuery]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -344,16 +374,6 @@ export function MessageThread({
   }, [messages]);
 
   useEffect(() => {
-    if (!contextMenu) {
-      return;
-    }
-
-    if (!messages.some((message) => message.id === contextMenu.messageId)) {
-      setContextMenu(null);
-    }
-  }, [contextMenu, messages]);
-
-  useEffect(() => {
     const pendingMessage = messages
       .filter((message) => message.linkEmbed?.status === "PENDING")
       .sort(
@@ -372,14 +392,9 @@ export function MessageThread({
         Date.now(),
     );
 
-    if (timeoutMs === 0) {
-      setPendingEmbedTick((current) => current + 1);
-      return;
-    }
-
     const timer = window.setTimeout(() => {
       setPendingEmbedTick((current) => current + 1);
-    }, timeoutMs);
+    }, timeoutMs || 0);
 
     return () => {
       window.clearTimeout(timer);
@@ -417,7 +432,7 @@ export function MessageThread({
   }, [matchingMessageIds, messages, normalizedSearchQuery]);
 
   useEffect(() => {
-    if (!contextMenu) {
+    if (!activeContextMenu) {
       return;
     }
 
@@ -472,7 +487,7 @@ export function MessageThread({
       window.removeEventListener("resize", closeMenu);
       viewport?.removeEventListener("scroll", closeMenu);
     };
-  }, [contextMenu]);
+  }, [activeContextMenu]);
 
   function clearPendingMobileAction() {
     if (longPressTimerRef.current !== null) {
@@ -594,9 +609,9 @@ export function MessageThread({
   }
 
   const contextMenuMarkup =
-    mounted && contextMenu && contextMenuMessage
+    canUsePortal && activeContextMenu && contextMenuMessage
       ? createPortal(
-          contextMenu.mode === "sheet" ? (
+          activeContextMenu.mode === "sheet" ? (
             <div className="fixed inset-0 z-[92] md:hidden">
               <button
                 type="button"
@@ -630,12 +645,14 @@ export function MessageThread({
                 <div className="mt-3 grid gap-2">
                   <button
                     type="button"
-                    onClick={() => void handleDeleteFromMenu(contextMenu.messageId)}
-                    disabled={isDeleting === contextMenu.messageId}
+                    onClick={() =>
+                      void handleDeleteFromMenu(activeContextMenu.messageId)
+                    }
+                    disabled={isDeleting === activeContextMenu.messageId}
                     className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] border border-rose-400/18 bg-[linear-gradient(180deg,rgba(255,92,122,0.22),rgba(255,92,122,0.14))] px-4 text-sm font-medium text-rose-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-rose-300/24 hover:bg-[linear-gradient(180deg,rgba(255,92,122,0.28),rgba(255,92,122,0.18))] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 size={18} strokeWidth={1.7} />
-                    {isDeleting === contextMenu.messageId
+                    {isDeleting === activeContextMenu.messageId
                       ? "Удаляем..."
                       : "Удалить"}
                   </button>
@@ -654,18 +671,20 @@ export function MessageThread({
               data-dm-context-menu="true"
               className="fixed z-[90] hidden w-[196px] rounded-[14px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-1.5 shadow-[0_18px_40px_rgba(2,6,12,0.42)] md:block"
               style={{
-                left: contextMenu.x,
-                top: contextMenu.y,
+                left: activeContextMenu.x,
+                top: activeContextMenu.y,
               }}
             >
               <button
                 type="button"
-                onClick={() => void handleDeleteFromMenu(contextMenu.messageId)}
-                disabled={isDeleting === contextMenu.messageId}
+                onClick={() =>
+                  void handleDeleteFromMenu(activeContextMenu.messageId)
+                }
+                disabled={isDeleting === activeContextMenu.messageId}
                 className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-rose-100 transition-colors hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Trash2 size={16} strokeWidth={1.5} />
-                {isDeleting === contextMenu.messageId
+                {isDeleting === activeContextMenu.messageId
                   ? "Удаляем..."
                   : "Удалить"}
               </button>
@@ -706,6 +725,9 @@ export function MessageThread({
                     message.type === "MEDIA" && message.attachment !== null;
                   const isFileAttachment =
                     message.type === "FILE" && message.attachment !== null;
+                  const isRoundVideoNote =
+                    isMediaAttachment &&
+                    isDirectMessageVideoNote(message.attachment);
                   const isMediaLikeMessage =
                     isSticker || isGif || isMediaAttachment || isFileAttachment;
                   const isVisualMessage = isSticker || isGif || isMediaAttachment;
@@ -737,7 +759,15 @@ export function MessageThread({
                   const isUnreadMarker = unreadIndex >= 0 && globalIndex === unreadIndex;
                   const canManageMessage =
                     isOwn && !message.localState && message.canDelete;
-                  const isContextMenuOpen = contextMenu?.messageId === message.id;
+                  const isContextMenuOpen =
+                    activeContextMenu?.messageId === message.id;
+                  const isDelivered =
+                    isOwn && !message.localState && !message.isDeleted;
+                  const isReadByCounterpart =
+                    isDelivered &&
+                    counterpartLastReadTimestamp !== null &&
+                    new Date(message.createdAt).getTime() <=
+                      counterpartLastReadTimestamp;
                   const bubbleClassName = cn(
                     "dm-bubble",
                     isMediaLikeMessage && "border-transparent bg-transparent p-0 shadow-none",
@@ -807,10 +837,13 @@ export function MessageThread({
 
                         <div
                           className={cn(
-                            isMediaLikeMessage
+                            isRoundVideoNote
+                              ? "min-w-0 w-[min(244px,74vw)] max-w-full"
+                              : isMediaLikeMessage
                               ? "min-w-0 max-w-[min(360px,100%)] flex-1"
                               : "min-w-0 max-w-[min(72ch,100%)] flex-1",
-                            isOwn && "text-right",
+                            isOwn && !isRoundVideoNote && "text-right",
+                            isOwn && isRoundVideoNote && "ml-auto",
                           )}
                         >
                           {!continuation ? (
@@ -828,9 +861,20 @@ export function MessageThread({
                               >
                                 {message.author.profile.displayName}
                               </p>
-                              <span className="text-[11px] text-[var(--text-muted)]">
-                                {formatThreadTime(message.createdAt)}
-                              </span>
+                              {isOwn ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                                  <span>{formatThreadTime(message.createdAt)}</span>
+                                  {isDelivered ? (
+                                    <OutgoingMessageDeliveryStatus
+                                      isRead={isReadByCounterpart}
+                                    />
+                                  ) : null}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-[var(--text-muted)]">
+                                  {formatThreadTime(message.createdAt)}
+                                </span>
+                              )}
                               {message.localState === "sending" ? (
                                 <span className="dm-message-meta-chip">
                                   Отправляем
@@ -904,38 +948,52 @@ export function MessageThread({
                                   GIF недоступен
                                 </div>
                               ) : isMediaAttachment && message.attachment ? (
-                                <EmbeddedMediaBubble
-                                  kind={
-                                    message.attachment.kind === "VIDEO"
-                                      ? "VIDEO"
-                                      : "IMAGE"
-                                  }
-                                  previewUrl={
-                                    message.localAttachmentPreviewUrl ??
-                                    (message.attachment.hasPreview
-                                      ? getDirectMessageAttachmentPreviewUrl(message.attachment)
-                                      : getDirectMessageAttachmentAssetUrl(message.attachment))
-                                  }
-                                  playableUrl={
-                                    message.attachment.kind === "VIDEO"
-                                      ? message.localAttachmentAssetUrl ??
-                                        getDirectMessageAttachmentAssetUrl(message.attachment)
-                                      : null
-                                  }
-                                  posterUrl={
-                                    message.attachment.hasPreview
-                                      ? getDirectMessageAttachmentPreviewUrl(message.attachment)
-                                      : message.localAttachmentPreviewUrl ?? null
-                                  }
-                                  href={
-                                    message.localAttachmentAssetUrl ??
-                                    getDirectMessageAttachmentAssetUrl(message.attachment)
-                                  }
-                                  label={
-                                    message.attachment.kind === "VIDEO" ? "Видео" : "Фото"
-                                  }
-                                  className="w-[min(248px,72vw)]"
-                                />
+                                <div className={cn("relative", isOwn && "ml-auto")}>
+                                  <EmbeddedMediaBubble
+                                    kind={
+                                      message.attachment.kind === "VIDEO"
+                                        ? "VIDEO"
+                                        : "IMAGE"
+                                    }
+                                    previewUrl={
+                                      message.localAttachmentPreviewUrl ??
+                                      (message.attachment.hasPreview
+                                        ? getDirectMessageAttachmentPreviewUrl(message.attachment)
+                                        : getDirectMessageAttachmentAssetUrl(message.attachment))
+                                    }
+                                    playableUrl={
+                                      message.attachment.kind === "VIDEO"
+                                        ? message.localAttachmentAssetUrl ??
+                                          getDirectMessageAttachmentAssetUrl(message.attachment)
+                                        : null
+                                    }
+                                    posterUrl={
+                                      message.attachment.hasPreview
+                                        ? getDirectMessageAttachmentPreviewUrl(message.attachment)
+                                        : message.localAttachmentPreviewUrl ?? null
+                                    }
+                                    href={
+                                      message.localAttachmentAssetUrl ??
+                                      getDirectMessageAttachmentAssetUrl(message.attachment)
+                                    }
+                                    label={
+                                      message.attachment.kind === "VIDEO" ? "Видео" : "Фото"
+                                    }
+                                    className={
+                                      isRoundVideoNote
+                                        ? "dm-video-note-bubble"
+                                        : "w-[min(248px,72vw)]"
+                                    }
+                                  />
+                                  {isRoundVideoNote &&
+                                  message.attachment.durationMs ? (
+                                    <span className="dm-video-note-duration">
+                                      {formatAttachmentDuration(
+                                        message.attachment.durationMs,
+                                      )}
+                                    </span>
+                                  ) : null}
+                                </div>
                               ) : isFileAttachment && message.attachment ? (
                                 <a
                                   href={
@@ -986,6 +1044,15 @@ export function MessageThread({
                             </div>
                           </div>
 
+                          {continuation && isOwn && isDelivered ? (
+                            <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-[var(--text-muted)]">
+                              <span>{formatThreadTime(message.createdAt)}</span>
+                              <OutgoingMessageDeliveryStatus
+                                isRead={isReadByCounterpart}
+                              />
+                            </div>
+                          ) : null}
+
                           {message.localState === "failed" ? (
                             <div
                               className={cn(
@@ -1020,5 +1087,29 @@ export function MessageThread({
 
       {contextMenuMarkup}
     </>
+  );
+}
+
+function OutgoingMessageDeliveryStatus({
+  isRead,
+}: {
+  isRead: boolean;
+}) {
+  return isRead ? (
+    <span
+      className="dm-message-status dm-message-status-read"
+      aria-label="Прочитано"
+      title="Прочитано"
+    >
+      <CheckCheck size={13} strokeWidth={1.9} />
+    </span>
+  ) : (
+    <span
+      className="dm-message-status"
+      aria-label="Доставлено"
+      title="Доставлено"
+    >
+      <Check size={13} strokeWidth={1.9} />
+    </span>
   );
 }

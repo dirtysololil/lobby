@@ -333,6 +333,16 @@ export type DirectMessageActionResponse = z.infer<
   typeof directMessageActionResponseSchema
 >;
 
+export const dmConversationReadStateSchema = z.object({
+  userId: z.string().cuid(),
+  lastReadMessageId: z.string().cuid().nullable(),
+  lastReadAt: isoDateSchema.nullable(),
+});
+
+export type DmConversationReadState = z.infer<
+  typeof dmConversationReadStateSchema
+>;
+
 export const dmSignalSchema = z.object({
   event: z.enum([
     "MESSAGE_CREATED",
@@ -346,6 +356,7 @@ export const dmSignalSchema = z.object({
   message: directMessageSchema.nullable(),
   messageId: z.string().cuid().nullable(),
   actorUserId: z.string().cuid().nullable(),
+  readState: dmConversationReadStateSchema.nullable().optional(),
 });
 
 export type DmSignal = z.infer<typeof dmSignalSchema>;

@@ -706,6 +706,9 @@ export class DirectMessagesService {
       )
       .find((message) => !message.deletedAt);
 
+    const nextLastReadAt = latestMessage?.createdAt ?? new Date();
+    const nextLastReadMessageId = latestMessage?.id ?? null;
+
     await this.prisma.directConversationParticipant.update({
       where: {
         conversationId_userId: {
@@ -714,8 +717,8 @@ export class DirectMessagesService {
         },
       },
       data: {
-        lastReadMessageId: latestMessage?.id ?? null,
-        lastReadAt: latestMessage?.createdAt ?? new Date(),
+        lastReadMessageId: nextLastReadMessageId,
+        lastReadAt: nextLastReadAt,
       },
     });
 
@@ -723,7 +726,11 @@ export class DirectMessagesService {
       event: 'CONVERSATION_READ',
       conversationId,
       actorUserId: viewerId,
-      targetUserIds: [viewerId],
+      readState: {
+        userId: viewerId,
+        lastReadMessageId: nextLastReadMessageId,
+        lastReadAt: nextLastReadAt,
+      },
     });
   }
 
@@ -1109,6 +1116,11 @@ export class DirectMessagesService {
     messageId?: string | null;
     clientNonce?: string | null;
     targetUserIds?: string[];
+    readState?: {
+      userId: string;
+      lastReadMessageId: string | null;
+      lastReadAt: Date | null;
+    } | null;
   }): Promise<void> {
     const targetParticipants =
       await this.prisma.directConversationParticipant.findMany({
@@ -1148,6 +1160,13 @@ export class DirectMessagesService {
           : null,
         messageId: args.messageId ?? null,
         actorUserId: args.actorUserId,
+        readState: args.readState
+          ? {
+              userId: args.readState.userId,
+              lastReadMessageId: args.readState.lastReadMessageId,
+              lastReadAt: args.readState.lastReadAt?.toISOString() ?? null,
+            }
+          : null,
       } as DmSignal);
     }
   }
