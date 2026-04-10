@@ -80,6 +80,9 @@ const conversationSummaryInclude = {
   },
 } satisfies Prisma.DirectConversationInclude;
 
+const videoNoteFilePrefix = 'lobby-video-note-';
+const optimizedVideoNoteMaxDimension = 480;
+
 type ConversationSummaryRecord = Prisma.DirectConversationGetPayload<{
   include: typeof conversationSummaryInclude;
 }>;
@@ -214,8 +217,9 @@ export class DirectMessagesService {
         ),
       );
 
-    const counterpartIds = conversations.map((conversation) =>
-      this.getCounterpart(conversation.participants, viewerId).userId,
+    const counterpartIds = conversations.map(
+      (conversation) =>
+        this.getCounterpart(conversation.participants, viewerId).userId,
     );
     const lastSeenAtByUserId =
       await this.getLastSeenAtByUserIds(counterpartIds);
@@ -285,13 +289,14 @@ export class DirectMessagesService {
     input: CreateDirectMessageInput,
     requestMetadata: RequestMetadata,
   ) {
-    const messageType = (
-      input as CreateDirectMessageInput & {
-        type?: 'TEXT' | 'STICKER' | 'GIF';
-        stickerId?: string | null;
-        gifId?: string | null;
-      }
-    ).type ?? 'TEXT';
+    const messageType =
+      (
+        input as CreateDirectMessageInput & {
+          type?: 'TEXT' | 'STICKER' | 'GIF';
+          stickerId?: string | null;
+          gifId?: string | null;
+        }
+      ).type ?? 'TEXT';
     const conversation = await this.getConversationOrThrow(
       conversationId,
       actor.id,
@@ -308,7 +313,9 @@ export class DirectMessagesService {
 
     const trimmedContent = input.content?.trim() ?? null;
     const linkCandidate =
-      messageType === 'TEXT' ? extractFirstEmbeddableLink(trimmedContent) : null;
+      messageType === 'TEXT'
+        ? extractFirstEmbeddableLink(trimmedContent)
+        : null;
     const sticker =
       messageType === 'STICKER' && input.stickerId
         ? await this.stickersService.getActiveStickerOrThrow(input.stickerId)
@@ -452,7 +459,10 @@ export class DirectMessagesService {
       conversationId,
       actor.id,
     );
-    const counterpart = this.getCounterpart(conversation.participants, actor.id);
+    const counterpart = this.getCounterpart(
+      conversation.participants,
+      actor.id,
+    );
 
     await this.relationshipsService.assertInteractionAllowed(
       actor.id,
@@ -462,7 +472,7 @@ export class DirectMessagesService {
     const env = this.envService.getValues();
     const processed = await this.processAttachmentUpload(file, env.MAX_FILE_MB);
     const fileKey = await this.storageService.writeDirectMessageAttachment(
-      file.buffer,
+      processed.assetBuffer,
       processed.extension,
     );
     const previewKey =
@@ -575,7 +585,7 @@ export class DirectMessagesService {
     attachmentId: string,
     variant: 'asset' | 'preview',
   ): Promise<{ buffer: Buffer; mimeType: string }> {
-    const attachment = await this.prisma.directMessageAttachment.findFirst({
+    let attachment = await this.prisma.directMessageAttachment.findFirst({
       where: {
         id: attachmentId,
         message: {
@@ -590,14 +600,28 @@ export class DirectMessagesService {
         },
       },
       select: {
+        id: true,
+        kind: true,
         fileKey: true,
         previewKey: true,
+        originalName: true,
         mimeType: true,
+        fileSize: true,
+        width: true,
+        height: true,
+        durationMs: true,
       },
     });
 
     if (!attachment) {
       throw new NotFoundException('Вложение недоступно.');
+    }
+
+    if (variant === 'asset') {
+      attachment =
+        await this.maybeOptimizeLegacyVideoNoteAttachmentForFastPlayback(
+          attachment,
+        );
     }
 
     const fileKey =
@@ -610,12 +634,153 @@ export class DirectMessagesService {
     try {
       return {
         buffer: await this.storageService.readObject(fileKey),
-        mimeType:
-          variant === 'preview' ? 'image/webp' : attachment.mimeType,
+        mimeType: variant === 'preview' ? 'image/webp' : attachment.mimeType,
       };
     } catch {
       throw new NotFoundException('Файл вложения недоступен.');
     }
+  }
+
+  private async maybeOptimizeLegacyVideoNoteAttachmentForFastPlayback(attachment: {
+    id: string;
+    kind: DirectMessageAttachmentKind;
+    fileKey: string;
+    previewKey: string | null;
+    originalName: string;
+    mimeType: string;
+    fileSize: number;
+    width: number | null;
+    height: number | null;
+    durationMs: number | null;
+  }) {
+    if (!this.shouldOptimizeLegacyVideoNoteAttachment(attachment)) {
+      return attachment;
+    }
+
+    try {
+      const env = this.envService.getValues();
+      const sourceBuffer = await this.storageService.readObject(
+        attachment.fileKey,
+      );
+      const processed = await processDirectMessageAttachmentUpload({
+        buffer: sourceBuffer,
+        originalName: attachment.originalName,
+        mimeType: attachment.mimeType,
+        limits: {
+          maxBytes: Math.floor(env.MAX_FILE_MB * 1024 * 1024),
+          maxImageDimension: 6_000,
+          maxVideoDimension: 3_840,
+          maxVideoDurationMs: 5 * 60 * 1_000,
+        },
+      });
+
+      if (processed.kind !== 'VIDEO') {
+        return attachment;
+      }
+
+      if (
+        processed.mimeType === attachment.mimeType &&
+        processed.fileSize === attachment.fileSize &&
+        processed.width === attachment.width &&
+        processed.height === attachment.height
+      ) {
+        return attachment;
+      }
+
+      const nextFileKey =
+        await this.storageService.writeDirectMessageAttachment(
+          processed.assetBuffer,
+          processed.extension,
+        );
+      const nextPreviewKey =
+        processed.previewBuffer && processed.previewExtension
+          ? await this.storageService.writeDirectMessageAttachmentPreview(
+              processed.previewBuffer,
+              processed.previewExtension,
+            )
+          : null;
+
+      try {
+        const updatedAttachment =
+          await this.prisma.directMessageAttachment.update({
+            where: {
+              id: attachment.id,
+            },
+            data: {
+              fileKey: nextFileKey,
+              previewKey: nextPreviewKey,
+              originalName: processed.originalName,
+              mimeType: processed.mimeType,
+              fileSize: processed.fileSize,
+              width: processed.width,
+              height: processed.height,
+              durationMs: processed.durationMs,
+            },
+            select: {
+              id: true,
+              kind: true,
+              fileKey: true,
+              previewKey: true,
+              originalName: true,
+              mimeType: true,
+              fileSize: true,
+              width: true,
+              height: true,
+              durationMs: true,
+            },
+          });
+
+        await Promise.all([
+          this.storageService.deleteObject(attachment.fileKey),
+          this.storageService.deleteObject(attachment.previewKey),
+        ]);
+
+        return updatedAttachment;
+      } catch (error) {
+        await Promise.all([
+          this.storageService.deleteObject(nextFileKey),
+          this.storageService.deleteObject(nextPreviewKey),
+        ]);
+        throw error;
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to optimize legacy DM video note ${attachment.id}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+
+      return attachment;
+    }
+  }
+
+  private shouldOptimizeLegacyVideoNoteAttachment(attachment: {
+    kind: DirectMessageAttachmentKind;
+    originalName: string;
+    mimeType: string;
+    width: number | null;
+    height: number | null;
+  }) {
+    if (
+      attachment.kind !== DirectMessageAttachmentKind.VIDEO ||
+      !attachment.originalName
+        .trim()
+        .toLowerCase()
+        .startsWith(videoNoteFilePrefix)
+    ) {
+      return false;
+    }
+
+    if (attachment.mimeType !== 'video/mp4') {
+      return true;
+    }
+
+    const maxDimension = Math.max(
+      attachment.width ?? 0,
+      attachment.height ?? 0,
+    );
+
+    return maxDimension > optimizedVideoNoteMaxDimension;
   }
 
   public async deleteMessage(
@@ -1099,7 +1264,9 @@ export class DirectMessagesService {
     return this.toConversationSummary(conversation, viewerId);
   }
 
-  private async loadMessageOrThrow(messageId: string): Promise<MessageWithAuthor> {
+  private async loadMessageOrThrow(
+    messageId: string,
+  ): Promise<MessageWithAuthor> {
     return await this.prisma.directMessage.findUniqueOrThrow({
       where: {
         id: messageId,
@@ -1264,7 +1431,9 @@ export class DirectMessagesService {
       isAnimated: sticker.isAnimated,
       durationMs: sticker.durationMs ?? null,
       keywords: Array.isArray(sticker.keywords)
-        ? sticker.keywords.filter((item): item is string => typeof item === 'string')
+        ? sticker.keywords.filter(
+            (item): item is string => typeof item === 'string',
+          )
         : [],
       isActive: sticker.isActive,
       publishedAt: sticker.publishedAt?.toISOString() ?? null,

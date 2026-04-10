@@ -11,7 +11,14 @@ import {
   VolumeX,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -70,14 +77,14 @@ export function EmbeddedMediaBubble({
   const containerRef = useRef<HTMLButtonElement | null>(null);
   const viewerShellRef = useRef<HTMLDivElement | null>(null);
   const lastAudibleVolumeRef = useRef(
-    defaultViewerAudioState.volume > 0
-      ? defaultViewerAudioState.volume
-      : 0.8,
+    defaultViewerAudioState.volume > 0 ? defaultViewerAudioState.volume : 0.8,
   );
   const effectivePlayableUrl = playableUrl ?? null;
   const effectivePreviewUrl = previewUrl ?? posterUrl ?? null;
-  const previewCanRenderVideo = !previewVideoFailed && Boolean(effectivePlayableUrl);
-  const viewerCanRenderVideo = !viewerVideoFailed && Boolean(effectivePlayableUrl);
+  const previewCanRenderVideo =
+    !previewVideoFailed && Boolean(effectivePlayableUrl);
+  const viewerCanRenderVideo =
+    !viewerVideoFailed && Boolean(effectivePlayableUrl);
   const isVideoViewer =
     kind === "VIDEO" && viewerCanRenderVideo && Boolean(effectivePlayableUrl);
   const fallbackLabel =
@@ -442,7 +449,10 @@ export function EmbeddedMediaBubble({
                           className="dm-viewer-media dm-viewer-video"
                         />
                         {!isViewerPlaying ? (
-                          <span className="dm-viewer-video-overlay-play" aria-hidden="true">
+                          <span
+                            className="dm-viewer-video-overlay-play"
+                            aria-hidden="true"
+                          >
                             <span className="dm-viewer-video-overlay-icon">
                               <Play size={24} strokeWidth={1.7} />
                             </span>
@@ -456,7 +466,10 @@ export function EmbeddedMediaBubble({
                           min={0}
                           max={viewerDuration || 0}
                           step={0.1}
-                          value={Math.min(viewerCurrentTime, viewerDuration || 0)}
+                          value={Math.min(
+                            viewerCurrentTime,
+                            viewerDuration || 0,
+                          )}
                           onChange={(event) =>
                             handleViewerSeek(Number(event.currentTarget.value))
                           }
@@ -511,7 +524,8 @@ export function EmbeddedMediaBubble({
                                     : "Выключить звук"
                                 }
                               >
-                                {viewerAudio.muted || viewerAudio.volume === 0 ? (
+                                {viewerAudio.muted ||
+                                viewerAudio.volume === 0 ? (
                                   <VolumeX size={16} strokeWidth={1.6} />
                                 ) : viewerAudio.volume < 0.5 ? (
                                   <Volume1 size={16} strokeWidth={1.6} />
@@ -525,7 +539,9 @@ export function EmbeddedMediaBubble({
                                 min={0}
                                 max={1}
                                 step={0.05}
-                                value={viewerAudio.muted ? 0 : viewerAudio.volume}
+                                value={
+                                  viewerAudio.muted ? 0 : viewerAudio.volume
+                                }
                                 onChange={(event) =>
                                   handleViewerVolumeInput(
                                     Number(event.currentTarget.value),
@@ -573,7 +589,11 @@ export function EmbeddedMediaBubble({
                   ) : (
                     <div className="flex min-h-[320px] w-full max-w-[640px] items-center justify-center rounded-[24px] bg-[rgba(8,12,18,0.5)] text-center text-sm text-[var(--text-muted)]">
                       <div className="grid gap-2 px-6">
-                        <ImageOff size={18} strokeWidth={1.5} className="mx-auto" />
+                        <ImageOff
+                          size={18}
+                          strokeWidth={1.5}
+                          className="mx-auto"
+                        />
                         <span>{fallbackLabel}</span>
                       </div>
                     </div>
@@ -637,7 +657,9 @@ function readStoredViewerAudioState(): ViewerAudioState {
 
     return {
       muted: Boolean(parsed?.muted),
-      volume: clampViewerVolume(parsed?.volume ?? defaultViewerAudioState.volume),
+      volume: clampViewerVolume(
+        parsed?.volume ?? defaultViewerAudioState.volume,
+      ),
     };
   } catch {
     return defaultViewerAudioState;
@@ -779,7 +801,10 @@ function PreviewSurface({
     };
 
     const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState !== "visible"
+      ) {
         return;
       }
 
@@ -805,7 +830,10 @@ function PreviewSurface({
       node.removeEventListener("pause", handlePause);
 
       if (typeof document !== "undefined") {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange,
+        );
       }
     };
   }, [forcePlay, playableUrl, shouldRenderVideo, videoRef]);

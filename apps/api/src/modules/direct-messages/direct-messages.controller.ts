@@ -155,7 +155,7 @@ export class DirectMessagesController {
       'asset',
     );
     response.setHeader('Content-Type', asset.mimeType);
-    response.setHeader('Cache-Control', 'private, max-age=300');
+    response.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
 
     return response.send(asset.buffer);
   }
@@ -173,7 +173,7 @@ export class DirectMessagesController {
       'preview',
     );
     response.setHeader('Content-Type', asset.mimeType);
-    response.setHeader('Cache-Control', 'private, max-age=300');
+    response.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
 
     return response.send(asset.buffer);
   }
