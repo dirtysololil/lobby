@@ -267,7 +267,7 @@ export const directConversationSummarySchema = z.object({
   }),
   lastMessagePreview: z.string().nullable(),
   lastMessage: directMessageSchema.nullable(),
-  friendshipState: friendshipStateSchema,
+  friendshipState: friendshipStateSchema.optional().default("ACCEPTED"),
   isBlockedByViewer: z.boolean(),
   hasBlockedViewer: z.boolean(),
 });
@@ -281,7 +281,7 @@ export const directConversationDetailSchema = z.object({
     id: z.string().cuid(),
     retentionMode: dmRetentionModeSchema,
     retentionSeconds: z.number().int().positive().nullable(),
-    friendshipState: friendshipStateSchema,
+    friendshipState: friendshipStateSchema.optional().default("ACCEPTED"),
     isBlockedByViewer: z.boolean(),
     hasBlockedViewer: z.boolean(),
     participants: z.array(directConversationParticipantSchema),
