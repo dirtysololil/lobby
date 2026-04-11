@@ -236,7 +236,14 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
     }
 
     function handleDmSignal(rawPayload: unknown) {
-      setLatestDmSignal(dmSignalSchema.parse(rawPayload));
+      try {
+        setLatestDmSignal(dmSignalSchema.parse(rawPayload));
+      } catch (error) {
+        console.warn("[realtime/client] dm.signal parse failed", {
+          error,
+          rawPayload,
+        });
+      }
     }
 
     function handlePresenceSnapshot(rawPayload: unknown) {
