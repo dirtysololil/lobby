@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Download,
   ImageOff,
   Maximize2,
   Minimize2,
@@ -29,6 +30,8 @@ interface EmbeddedMediaBubbleProps {
   viewerPlayableUrl?: string | null;
   posterUrl?: string | null;
   href?: string | null;
+  downloadUrl?: string | null;
+  downloadName?: string | null;
   label?: string | null;
   className?: string;
   previewPlayback?: "visible" | "always";
@@ -52,6 +55,8 @@ export function EmbeddedMediaBubble({
   playableUrl = null,
   viewerPlayableUrl = null,
   posterUrl = null,
+  downloadUrl = null,
+  downloadName = null,
   label = null,
   className,
   previewPlayback = "visible",
@@ -411,6 +416,22 @@ export function EmbeddedMediaBubble({
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="dm-viewer-toolbar">
+                  {downloadUrl ? (
+                    <a
+                      className="dm-viewer-action"
+                      href={downloadUrl}
+                      download={downloadName ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Скачать оригинал"
+                      title="Скачать оригинал"
+                    >
+                      <Download size={15} strokeWidth={1.5} />
+                      <span className="dm-viewer-action-label">
+                        Скачать
+                      </span>
+                    </a>
+                  ) : null}
                   <button
                     type="button"
                     className="dm-viewer-action"

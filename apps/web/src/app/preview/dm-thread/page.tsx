@@ -29,6 +29,7 @@ const messages: ThreadMessageItem[] = [
     gif: null,
     attachment: null,
     linkEmbed: null,
+    replyTo: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -46,6 +47,7 @@ const messages: ThreadMessageItem[] = [
     gif: null,
     attachment: null,
     linkEmbed: null,
+    replyTo: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -64,6 +66,7 @@ const messages: ThreadMessageItem[] = [
     gif: null,
     attachment: null,
     linkEmbed: null,
+    replyTo: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 24).toISOString(),
@@ -81,6 +84,7 @@ const messages: ThreadMessageItem[] = [
     gif: null,
     attachment: null,
     linkEmbed: null,
+    replyTo: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 18).toISOString(),
@@ -99,6 +103,7 @@ const messages: ThreadMessageItem[] = [
     gif: null,
     attachment: null,
     linkEmbed: null,
+    replyTo: null,
     isDeleted: false,
     canDelete: false,
     deleteExpiresAt: null,
@@ -117,6 +122,7 @@ const messages: ThreadMessageItem[] = [
     gif: null,
     attachment: null,
     linkEmbed: null,
+    replyTo: null,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 45).toISOString(),
@@ -227,6 +233,7 @@ export default function PreviewDmThreadPage() {
             isDeleting={null}
             lastReadAt={lastReadAt}
             counterpartLastReadAt={counterpartLastReadAt}
+            onReply={() => undefined}
             onDelete={async () => undefined}
             onRetry={async () => undefined}
           />

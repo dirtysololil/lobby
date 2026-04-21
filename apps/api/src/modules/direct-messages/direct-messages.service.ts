@@ -49,6 +49,15 @@ import {
   type ParticipantWithUser,
 } from './direct-messages.mapper';
 
+const directMessageReplyPreviewInclude = {
+  author: {
+    select: publicUserSelect,
+  },
+  sticker: true,
+  gif: true,
+  attachment: true,
+} satisfies Prisma.DirectMessageInclude;
+
 const directMessageWithAuthorInclude = {
   author: {
     select: publicUserSelect,
@@ -56,6 +65,9 @@ const directMessageWithAuthorInclude = {
   sticker: true,
   gif: true,
   attachment: true,
+  replyTo: {
+    include: directMessageReplyPreviewInclude,
+  },
   linkEmbed: true,
 } satisfies Prisma.DirectMessageInclude;
 
@@ -342,6 +354,10 @@ export class DirectMessagesService implements OnModuleInit {
       counterpart.userId,
     );
 
+    const replyToMessageId = this.resolveReplyToMessageId(
+      conversation.messages,
+      input.replyToMessageId,
+    );
     const trimmedContent = input.content?.trim() ?? null;
     const linkCandidate =
       messageType === 'TEXT'
@@ -373,6 +389,7 @@ export class DirectMessagesService implements OnModuleInit {
             ? this.buildStickerSnapshot(sticker)
             : Prisma.JsonNull,
           gifId: gif?.id ?? null,
+          replyToMessageId,
         },
         include: directMessageWithAuthorInclude,
       });
@@ -435,6 +452,7 @@ export class DirectMessagesService implements OnModuleInit {
         type: message.type,
         stickerId: message.stickerId ?? null,
         gifId: message.gifId ?? null,
+        replyToMessageId,
         linkProvider: linkCandidate?.provider ?? null,
         linkUrl: linkCandidate?.sourceUrl ?? null,
       },
@@ -500,6 +518,10 @@ export class DirectMessagesService implements OnModuleInit {
       counterpart.userId,
     );
 
+    const replyToMessageId = this.resolveReplyToMessageId(
+      conversation.messages,
+      input.replyToMessageId,
+    );
     const env = this.envService.getValues();
     const processed = await this.processAttachmentUpload(file, env.MAX_FILE_MB);
     const fileKey = await this.storageService.writeDirectMessageAttachment(
@@ -534,6 +556,7 @@ export class DirectMessagesService implements OnModuleInit {
           data: {
             conversationId,
             authorId: actor.id,
+            replyToMessageId,
             type:
               processed.kind === 'DOCUMENT'
                 ? DirectMessageType.FILE
@@ -601,6 +624,7 @@ export class DirectMessagesService implements OnModuleInit {
           mimeType: processed.mimeType,
           fileSize: processed.fileSize,
           originalName: processed.originalName,
+          replyToMessageId,
         },
       });
 
@@ -688,7 +712,12 @@ export class DirectMessagesService implements OnModuleInit {
     viewerId: string,
     attachmentId: string,
     variant: 'asset' | 'preview',
-  ): Promise<{ fileKey: string; mimeType: string; size: number }> {
+  ): Promise<{
+    fileKey: string;
+    mimeType: string;
+    size: number;
+    originalName: string;
+  }> {
     const attachment = await this.prisma.directMessageAttachment.findFirst({
       where: {
         id: attachmentId,
@@ -738,6 +767,7 @@ export class DirectMessagesService implements OnModuleInit {
       fileKey,
       mimeType: variant === 'preview' ? 'image/webp' : attachment.mimeType,
       size: await this.storageService.getObjectSize(fileKey),
+      originalName: attachment.originalName,
     };
   }
 
@@ -1441,6 +1471,25 @@ export class DirectMessagesService implements OnModuleInit {
         lastMessageAt: latestMessage?.createdAt ?? null,
       },
     });
+  }
+
+  private resolveReplyToMessageId(
+    messages: MessageWithAuthor[],
+    replyToMessageId: string | null | undefined,
+  ): string | null {
+    if (!replyToMessageId) {
+      return null;
+    }
+
+    const targetMessage = messages.find(
+      (message) => message.id === replyToMessageId && !message.deletedAt,
+    );
+
+    if (!targetMessage) {
+      throw new BadRequestException('Reply target message not found');
+    }
+
+    return targetMessage.id;
   }
 
   private async processAttachmentUpload(
