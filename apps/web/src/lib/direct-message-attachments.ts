@@ -43,10 +43,23 @@ export function getDirectMessageAttachmentPreviewUrl(
   return baseUrl ? `${baseUrl}${path}` : path;
 }
 
+export function getDirectMessageAttachmentDownloadUrl(
+  attachment: Pick<DmAttachment, "id" | "updatedAt">,
+): string {
+  const baseUrl =
+    typeof window === "undefined"
+      ? resolveApiBaseUrlForServer()
+      : resolveApiBaseUrlForBrowser();
+  const path = `/v1/direct-messages/attachments/${attachment.id}/download?v=${encodeURIComponent(attachment.updatedAt)}`;
+
+  return baseUrl ? `${baseUrl}${path}` : path;
+}
+
 export function uploadDirectMessageAttachment(args: {
   conversationId: string;
   file: File;
   clientNonce: string;
+  replyToMessageId?: string | null;
   onProgress?: (progress: number) => void;
 }): Promise<DirectMessageAttachmentUploadResponse> {
   const apiBaseUrl = resolveApiBaseUrlForBrowser();
@@ -65,6 +78,11 @@ export function uploadDirectMessageAttachment(args: {
     const formData = new FormData();
     formData.append("file", args.file);
     formData.append("clientNonce", args.clientNonce);
+
+    if (args.replyToMessageId) {
+      formData.append("replyToMessageId", args.replyToMessageId);
+    }
+
     xhr.open(
       "POST",
       `${apiBaseUrl}/v1/direct-messages/${args.conversationId}/attachments`,

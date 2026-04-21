@@ -333,6 +333,7 @@ model DirectMessage {
   content                String?
   stickerId              String?
   gifId                  String?
+  replyToMessageId       String?
   attachment             DirectMessageAttachment?
   stickerSnapshot        Json?
   linkEmbed              DirectMessageLinkEmbed?
@@ -345,12 +346,15 @@ model DirectMessage {
   deletedByUser          User?                          @relation("MessageDeleter", fields: [deletedByUserId], references: [id], onDelete: SetNull)
   sticker                Sticker?                       @relation(fields: [stickerId], references: [id], onDelete: SetNull)
   gif                    GifAsset?                      @relation(fields: [gifId], references: [id], onDelete: SetNull)
+  replyTo                DirectMessage?                 @relation("DirectMessageReply", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies                DirectMessage[]                @relation("DirectMessageReply")
   lastReadByParticipants DirectConversationParticipant[] @relation("ParticipantLastReadMessage")
 
   @@index([conversationId, createdAt])
   @@index([deletedAt])
   @@index([stickerId])
   @@index([gifId])
+  @@index([replyToMessageId])
   @@index([type])
 }
 

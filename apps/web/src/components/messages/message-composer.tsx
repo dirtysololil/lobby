@@ -2,6 +2,7 @@
 
 import type {
   CustomEmojiAsset,
+  DirectMessageReplyPreview,
   GifAsset,
   MediaPickerCatalog,
   StickerAsset,
@@ -11,9 +12,11 @@ import {
   FileText,
   ImagePlus,
   Paperclip,
+  Reply,
   SendHorizontal,
   SmilePlus,
   Video,
+  X,
 } from "lucide-react";
 import {
   useCallback,
@@ -49,6 +52,8 @@ interface MessageComposerProps {
   onStickerCatalogChange: (catalog: StickerCatalog) => void;
   onUploadFiles: (files: File[], mode: ComposerFileUploadMode) => Promise<void>;
   onSend: (payload: ComposerSendPayload) => Promise<void>;
+  replyToMessage: DirectMessageReplyPreview | null;
+  onCancelReply: () => void;
 }
 
 const BASE_HEIGHT = 38;
@@ -109,6 +114,36 @@ function moveStickerToRecent(
   };
 }
 
+function buildComposerReplyPreview(message: DirectMessageReplyPreview) {
+  if (message.isDeleted) {
+    return "Сообщение удалено";
+  }
+
+  const content = message.content?.trim();
+
+  if (content) {
+    return content;
+  }
+
+  if (message.type === "STICKER") {
+    return message.sticker?.title ? `Стикер: ${message.sticker.title}` : "Стикер";
+  }
+
+  if (message.type === "GIF") {
+    return message.gif?.title ? `GIF: ${message.gif.title}` : "GIF";
+  }
+
+  if (message.type === "MEDIA" && message.attachment) {
+    return message.attachment.kind === "VIDEO" ? "Видео" : "Фото";
+  }
+
+  if (message.type === "FILE" && message.attachment) {
+    return message.attachment.originalName || "Файл";
+  }
+
+  return "Сообщение";
+}
+
 export function MessageComposer({
   disabled,
   canManageLibrary,
@@ -120,6 +155,8 @@ export function MessageComposer({
   onStickerCatalogChange,
   onUploadFiles,
   onSend,
+  replyToMessage,
+  onCancelReply,
 }: MessageComposerProps) {
   const [content, setContent] = useState("");
   const [isSendingText, setIsSendingText] = useState(false);
@@ -534,6 +571,33 @@ export function MessageComposer({
             event.currentTarget.value = "";
           }}
         />
+
+        {replyToMessage ? (
+          <div className="mx-1 mt-1 flex min-h-11 items-center gap-2 rounded-[18px] border border-white/8 bg-white/[0.035] px-3 py-2">
+            <Reply
+              size={16}
+              strokeWidth={1.6}
+              className="shrink-0 text-[var(--accent-strong)]"
+            />
+            <div className="min-w-0 flex-1 text-left">
+              <p className="truncate text-[11px] font-medium text-[var(--text-soft)]">
+                Ответ {replyToMessage.author.profile.displayName}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                {buildComposerReplyPreview(replyToMessage)}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="dm-action-button h-7 w-7 shrink-0"
+              onClick={onCancelReply}
+              aria-label="Отменить ответ"
+              title="Отменить ответ"
+            >
+              <X size={14} strokeWidth={1.6} />
+            </button>
+          </div>
+        ) : null}
 
         <div className="dm-composer-main">
           <textarea

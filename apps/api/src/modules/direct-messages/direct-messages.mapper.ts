@@ -1,6 +1,7 @@
 import {
   directConversationDetailSchema,
   directConversationSummarySchema,
+  directMessageReplyPreviewSchema,
   directMessageSchema,
   stickerAssetSchema,
   type FriendshipState,
@@ -26,6 +27,14 @@ export type MessageWithAuthor = PrismaDirectMessage & {
   gif: PrismaGifAsset | null;
   attachment: PrismaDirectMessageAttachment | null;
   linkEmbed: PrismaDirectMessageLinkEmbed | null;
+  replyTo: ReplyPreviewWithAuthor | null;
+};
+
+export type ReplyPreviewWithAuthor = PrismaDirectMessage & {
+  author: PublicUserRecord;
+  sticker: PrismaSticker | null;
+  gif: PrismaGifAsset | null;
+  attachment: PrismaDirectMessageAttachment | null;
 };
 
 export type ParticipantWithUser = DirectConversationParticipant & {
@@ -82,6 +91,7 @@ export function toDirectMessage(
             failureCode: message.linkEmbed.failureCode,
           }
         : null,
+    replyTo: !message.deletedAt ? toDirectMessageReplyPreview(message.replyTo) : null,
     isDeleted: Boolean(message.deletedAt),
     canDelete,
     deleteExpiresAt: null,
@@ -91,7 +101,11 @@ export function toDirectMessage(
   });
 }
 
-function resolveStickerPayload(message: MessageWithAuthor) {
+function resolveStickerPayload(message: {
+  deletedAt: Date | null;
+  sticker: PrismaSticker | null;
+  stickerSnapshot: unknown;
+}) {
   if (message.deletedAt) {
     return null;
   }
@@ -147,6 +161,40 @@ export function toDirectConversationSummary(args: {
     friendshipState: args.friendshipState,
     isBlockedByViewer: args.isBlockedByViewer,
     hasBlockedViewer: args.hasBlockedViewer,
+  });
+}
+
+function toDirectMessageReplyPreview(message: ReplyPreviewWithAuthor | null) {
+  if (!message) {
+    return null;
+  }
+
+  return directMessageReplyPreviewSchema.parse({
+    id: message.id,
+    conversationId: message.conversationId,
+    type: message.type,
+    author: toPublicUser(message.author),
+    content: message.deletedAt ? null : message.content,
+    sticker: resolveStickerPayload(message),
+    gif: !message.deletedAt && message.gif ? toGifAsset(message.gif) : null,
+    attachment:
+      !message.deletedAt && message.attachment
+        ? {
+            id: message.attachment.id,
+            kind: message.attachment.kind,
+            originalName: message.attachment.originalName,
+            mimeType: message.attachment.mimeType,
+            fileSize: message.attachment.fileSize,
+            width: message.attachment.width,
+            height: message.attachment.height,
+            durationMs: message.attachment.durationMs,
+            hasPreview: Boolean(message.attachment.previewKey),
+            createdAt: message.attachment.createdAt.toISOString(),
+            updatedAt: message.attachment.updatedAt.toISOString(),
+          }
+        : null,
+    isDeleted: Boolean(message.deletedAt),
+    createdAt: message.createdAt.toISOString(),
   });
 }
 

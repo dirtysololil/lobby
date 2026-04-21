@@ -86,6 +86,7 @@ export const createDirectMessageSchema = z
     content: z.string().trim().max(4000).nullable().optional(),
     stickerId: z.string().cuid().nullable().optional(),
     gifId: z.string().cuid().nullable().optional(),
+    replyToMessageId: z.string().cuid().nullable().optional(),
     clientNonce: z.string().trim().min(1).max(120).optional(),
   })
   .superRefine((value, context) => {
@@ -167,6 +168,7 @@ export type CreateDirectMessageInput = z.infer<
 >;
 
 export const uploadDirectMessageAttachmentSchema = z.object({
+  replyToMessageId: z.string().cuid().nullable().optional(),
   clientNonce: z.string().trim().min(1).max(120).optional(),
 });
 
@@ -222,6 +224,23 @@ export const updateDmSettingsSchema = z
 
 export type UpdateDmSettingsInput = z.infer<typeof updateDmSettingsSchema>;
 
+export const directMessageReplyPreviewSchema = z.object({
+  id: z.string().cuid(),
+  conversationId: z.string().cuid(),
+  type: dmMessageTypeSchema,
+  author: publicUserSchema,
+  content: z.string().nullable(),
+  sticker: stickerAssetSchema.nullable(),
+  gif: gifAssetSchema.nullable(),
+  attachment: dmAttachmentSchema.nullable(),
+  isDeleted: z.boolean(),
+  createdAt: isoDateSchema,
+});
+
+export type DirectMessageReplyPreview = z.infer<
+  typeof directMessageReplyPreviewSchema
+>;
+
 export const directMessageSchema = z.object({
   id: z.string().cuid(),
   conversationId: z.string().cuid(),
@@ -232,6 +251,7 @@ export const directMessageSchema = z.object({
   gif: gifAssetSchema.nullable(),
   attachment: dmAttachmentSchema.nullable(),
   linkEmbed: dmLinkEmbedSchema.nullable(),
+  replyTo: directMessageReplyPreviewSchema.nullable(),
   isDeleted: z.boolean(),
   canDelete: z.boolean(),
   deleteExpiresAt: isoDateSchema.nullable(),

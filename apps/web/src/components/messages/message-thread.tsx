@@ -1,11 +1,16 @@
 "use client";
 
-import type { CustomEmojiAsset, DirectConversationDetail } from "@lobby/shared";
+import type {
+  CustomEmojiAsset,
+  DirectConversationDetail,
+  DirectMessageReplyPreview,
+} from "@lobby/shared";
 import {
   AlertCircle,
   Check,
   CheckCheck,
   MoreHorizontal,
+  Reply,
   RotateCcw,
   Trash2,
 } from "lucide-react";
@@ -23,6 +28,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { isDirectMessageVideoNote } from "@/lib/direct-message-video-notes";
 import {
   getDirectMessageAttachmentAssetUrl,
+  getDirectMessageAttachmentDownloadUrl,
   getDirectMessageAttachmentPreviewUrl,
   getDirectMessageAttachmentStreamUrl,
 } from "@/lib/direct-message-attachments";
@@ -58,6 +64,7 @@ interface MessageThreadProps {
   customEmojis: CustomEmojiAsset[];
   forceScrollToBottomToken?: number;
   searchQuery?: string;
+  onReply: (messageId: string) => void;
   onDelete: (messageId: string) => Promise<void>;
   onRetry: (messageId: string) => Promise<void>;
 }
@@ -134,6 +141,8 @@ function buildSearchableMessageText(message: ThreadMessageItem) {
     message.sticker?.title,
     message.gif?.title,
     message.attachment?.originalName,
+    message.replyTo?.content,
+    message.replyTo?.attachment?.originalName,
   ];
 
   return parts
@@ -241,6 +250,36 @@ function buildMessageActionPreview(message: ThreadMessageItem) {
   return "Сообщение";
 }
 
+function buildReplyPreviewText(message: DirectMessageReplyPreview) {
+  if (message.isDeleted) {
+    return "Сообщение удалено";
+  }
+
+  const content = message.content?.trim();
+
+  if (content) {
+    return content;
+  }
+
+  if (message.type === "STICKER") {
+    return message.sticker?.title ? `Стикер: ${message.sticker.title}` : "Стикер";
+  }
+
+  if (message.type === "GIF") {
+    return message.gif?.title ? `GIF: ${message.gif.title}` : "GIF";
+  }
+
+  if (message.type === "MEDIA" && message.attachment) {
+    return message.attachment.kind === "VIDEO" ? "Видео" : "Фото";
+  }
+
+  if (message.type === "FILE" && message.attachment) {
+    return message.attachment.originalName || "Файл";
+  }
+
+  return "Сообщение";
+}
+
 export function MessageThread({
   viewerId,
   messages,
@@ -250,14 +289,19 @@ export function MessageThread({
   customEmojis,
   forceScrollToBottomToken = 0,
   searchQuery = "",
+  onReply,
   onDelete,
   onRetry,
 }: MessageThreadProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    string | null
+  >(null);
   const [, setPendingEmbedTick] = useState(0);
   const messageElementRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const longPressTimerRef = useRef<number | null>(null);
+  const highlightTimerRef = useRef<number | null>(null);
   const longPressPointerRef = useRef<{
     messageId: string;
     pointerId: number;
@@ -363,6 +407,10 @@ export function MessageThread({
 
       if (forcedScrollFrameRef.current !== null) {
         window.cancelAnimationFrame(forcedScrollFrameRef.current);
+      }
+
+      if (highlightTimerRef.current !== null) {
+        window.clearTimeout(highlightTimerRef.current);
       }
     },
     [],
@@ -625,9 +673,9 @@ export function MessageThread({
   function handleMessageContextMenu(
     event: ReactMouseEvent<HTMLDivElement>,
     messageId: string,
-    canManageMessage: boolean,
+    canOpenMessageActions: boolean,
   ) {
-    if (!canManageMessage) {
+    if (!canOpenMessageActions) {
       return;
     }
 
@@ -643,11 +691,11 @@ export function MessageThread({
   function handleMessagePointerDown(
     event: ReactPointerEvent<HTMLDivElement>,
     messageId: string,
-    canManageMessage: boolean,
+    canOpenMessageActions: boolean,
   ) {
     if (
       !isMobileViewport ||
-      !canManageMessage ||
+      !canOpenMessageActions ||
       event.pointerType === "mouse" ||
       event.button !== 0
     ) {
@@ -714,6 +762,34 @@ export function MessageThread({
     await onDelete(messageId);
   }
 
+  function handleReplyFromMenu(messageId: string) {
+    setContextMenu(null);
+    onReply(messageId);
+  }
+
+  function focusOriginalMessage(messageId: string) {
+    const element = messageElementRefs.current.get(messageId);
+
+    if (!element) {
+      return;
+    }
+
+    element.scrollIntoView({
+      block: "center",
+      behavior: "smooth",
+    });
+    setHighlightedMessageId(messageId);
+
+    if (highlightTimerRef.current !== null) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+
+    highlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedMessageId(null);
+      highlightTimerRef.current = null;
+    }, 1600);
+  }
+
   const contextMenuMarkup =
     canUsePortal && activeContextMenu && contextMenuMessage
       ? createPortal(
@@ -752,6 +828,17 @@ export function MessageThread({
                   <button
                     type="button"
                     onClick={() =>
+                      handleReplyFromMenu(activeContextMenu.messageId)
+                    }
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 text-sm font-medium text-white transition-colors hover:bg-white/[0.08]"
+                  >
+                    <Reply size={18} strokeWidth={1.7} />
+                    Ответить
+                  </button>
+                  {contextMenuMessage.canDelete ? (
+                    <button
+                    type="button"
+                    onClick={() =>
                       void handleDeleteFromMenu(activeContextMenu.messageId)
                     }
                     disabled={isDeleting === activeContextMenu.messageId}
@@ -762,6 +849,7 @@ export function MessageThread({
                       ? "Удаляем..."
                       : "Удалить"}
                   </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setContextMenu(null)}
@@ -784,6 +872,17 @@ export function MessageThread({
               <button
                 type="button"
                 onClick={() =>
+                  handleReplyFromMenu(activeContextMenu.messageId)
+                }
+                className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-[var(--text-soft)] transition-colors hover:bg-white/[0.05]"
+              >
+                <Reply size={16} strokeWidth={1.5} />
+                Ответить
+              </button>
+              {contextMenuMessage.canDelete ? (
+                <button
+                type="button"
+                onClick={() =>
                   void handleDeleteFromMenu(activeContextMenu.messageId)
                 }
                 disabled={isDeleting === activeContextMenu.messageId}
@@ -794,6 +893,7 @@ export function MessageThread({
                   ? "Удаляем..."
                   : "Удалить"}
               </button>
+              ) : null}
             </div>
           ),
           document.body,
@@ -836,6 +936,9 @@ export function MessageThread({
                     isDirectMessageVideoNote(message.attachment);
                   const isMediaLikeMessage =
                     isSticker || isGif || isMediaAttachment || isFileAttachment;
+                  const hasReplyPreview = message.replyTo !== null;
+                  const isBareMediaMessage =
+                    isMediaLikeMessage && !hasReplyPreview;
                   const isVisualMessage =
                     isSticker || isGif || isMediaAttachment;
                   const hasInlineEmbed =
@@ -871,8 +974,8 @@ export function MessageThread({
                   const continuation = isContinuation(previousMessage, message);
                   const isUnreadMarker =
                     unreadIndex >= 0 && globalIndex === unreadIndex;
-                  const canManageMessage =
-                    isOwn && !message.localState && message.canDelete;
+                  const canOpenMessageActions =
+                    !message.localState && !message.isDeleted;
                   const isContextMenuOpen =
                     activeContextMenu?.messageId === message.id;
                   const isDelivered =
@@ -884,21 +987,23 @@ export function MessageThread({
                       counterpartLastReadTimestamp;
                   const bubbleClassName = cn(
                     "dm-bubble",
-                    isMediaLikeMessage &&
+                    isBareMediaMessage &&
                       "border-transparent bg-transparent p-0 shadow-none",
-                    !isMediaLikeMessage &&
+                    !isBareMediaMessage &&
                       (isOwn ? "dm-bubble-out ml-auto" : "dm-bubble-in"),
                     continuation &&
-                      !isMediaLikeMessage &&
+                      !isBareMediaMessage &&
                       "rounded-[18px] py-1.5",
                     isContextMenuOpen &&
-                      !isMediaLikeMessage &&
+                      !isBareMediaMessage &&
+                      "dm-bubble-highlight",
+                    highlightedMessageId === message.id &&
                       "dm-bubble-highlight",
                     message.localState === "failed" &&
                       "border-amber-400/22 bg-amber-400/10",
                     normalizedSearchQuery &&
                       matchingMessageIds.has(message.id) &&
-                      !isMediaLikeMessage &&
+                      !isBareMediaMessage &&
                       "dm-bubble-highlight",
                   );
 
@@ -935,14 +1040,14 @@ export function MessageThread({
                           handleMessageContextMenu(
                             event,
                             message.id,
-                            canManageMessage,
+                            canOpenMessageActions,
                           )
                         }
                         onPointerDown={(event) =>
                           handleMessagePointerDown(
                             event,
                             message.id,
-                            canManageMessage,
+                            canOpenMessageActions,
                           )
                         }
                         onPointerMove={handleMessagePointerMove}
@@ -1028,7 +1133,7 @@ export function MessageThread({
                           ) : null}
 
                           <div className="relative">
-                            {canManageMessage && !isMediaLikeMessage ? (
+                            {canOpenMessageActions ? (
                               <button
                                 type="button"
                                 data-dm-menu-trigger="true"
@@ -1058,6 +1163,22 @@ export function MessageThread({
                             ) : null}
 
                             <div className={bubbleClassName}>
+                              {message.replyTo ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    focusOriginalMessage(message.replyTo!.id)
+                                  }
+                                  className="mb-2 grid w-full min-w-0 gap-0.5 rounded-[12px] border-l-2 border-[var(--accent)] bg-white/[0.04] px-2.5 py-2 text-left transition-colors hover:bg-white/[0.06]"
+                                >
+                                  <span className="truncate text-[11px] font-medium text-[var(--text-soft)]">
+                                    {message.replyTo.author.profile.displayName}
+                                  </span>
+                                  <span className="truncate text-xs text-[var(--text-muted)]">
+                                    {buildReplyPreviewText(message.replyTo)}
+                                  </span>
+                                </button>
+                              ) : null}
                               {isSticker && message.sticker ? (
                                 <StickerAssetPreview
                                   sticker={message.sticker}
@@ -1132,6 +1253,19 @@ export function MessageThread({
                                       getDirectMessageAttachmentAssetUrl(
                                         message.attachment,
                                       )
+                                    }
+                                    downloadUrl={
+                                      message.attachment.kind === "IMAGE"
+                                        ? (message.localAttachmentAssetUrl ??
+                                          getDirectMessageAttachmentDownloadUrl(
+                                            message.attachment,
+                                          ))
+                                        : null
+                                    }
+                                    downloadName={
+                                      message.attachment.kind === "IMAGE"
+                                        ? message.attachment.originalName
+                                        : null
                                     }
                                     label={
                                       message.attachment.kind === "VIDEO"

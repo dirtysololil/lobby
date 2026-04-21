@@ -17,6 +17,7 @@ import {
   mediaPickerCatalogResponseSchema,
   type DirectConversationDetail,
   type DirectMessage,
+  type DirectMessageReplyPreview,
   type FriendshipState,
   type MediaPickerCatalog,
   type UserRole,
@@ -81,6 +82,8 @@ function buildSearchableMessageText(message: ThreadMessageItem) {
     message.sticker?.title,
     message.gif?.title,
     message.attachment?.originalName,
+    message.replyTo?.content,
+    message.replyTo?.attachment?.originalName,
   ]
     .filter((value): value is string => Boolean(value))
     .join(" ")
@@ -92,6 +95,7 @@ function buildOptimisticMessage(args: {
   conversationId: string;
   payload: ComposerSendPayload;
   clientNonce: string;
+  replyToMessage: DirectMessageReplyPreview | null;
 }): ThreadMessageItem {
   const createdAt = new Date().toISOString();
 
@@ -108,6 +112,7 @@ function buildOptimisticMessage(args: {
       args.payload.type === "TEXT"
         ? buildPendingLinkEmbed(args.payload.content)
         : null,
+    replyTo: args.replyToMessage,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: null,
@@ -125,6 +130,7 @@ function buildOptimisticAttachmentMessage(args: {
   clientNonce: string;
   localPreviewUrl: string | null;
   localAssetUrl: string | null;
+  replyToMessage: DirectMessageReplyPreview | null;
 }): ThreadMessageItem {
   const createdAt = new Date().toISOString();
   const inferredKind = inferAttachmentKind(args.file);
@@ -151,6 +157,7 @@ function buildOptimisticAttachmentMessage(args: {
       updatedAt: createdAt,
     },
     linkEmbed: null,
+    replyTo: args.replyToMessage,
     isDeleted: false,
     canDelete: true,
     deleteExpiresAt: null,
@@ -347,6 +354,23 @@ function applyParticipantRead(
   };
 }
 
+function buildReplyPreviewFromThreadMessage(
+  message: ThreadMessageItem,
+): DirectMessageReplyPreview {
+  return {
+    id: message.id,
+    conversationId: message.conversationId,
+    type: message.type,
+    author: message.author,
+    content: message.isDeleted ? null : message.content,
+    sticker: message.isDeleted ? null : message.sticker,
+    gif: message.isDeleted ? null : message.gif,
+    attachment: message.isDeleted ? null : message.attachment,
+    isDeleted: message.isDeleted,
+    createdAt: message.createdAt,
+  };
+}
+
 function getDirectMessageWriteRestriction(
   friendshipState: FriendshipState,
   isBlocked: boolean,
@@ -389,6 +413,8 @@ export function ConversationView({
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const [replyToMessage, setReplyToMessage] =
+    useState<DirectMessageReplyPreview | null>(null);
   const [forceThreadScrollToken, setForceThreadScrollToken] = useState(0);
   const normalizedMessageSearchQuery = messageSearchQuery.trim().toLowerCase();
   const messageSearchMatches = useMemo(() => {
@@ -520,6 +546,10 @@ export function ConversationView({
   }, [loadConversation]);
 
   useEffect(() => {
+    setReplyToMessage(null);
+  }, [conversationId]);
+
+  useEffect(() => {
     const hasLocalDrafts = messages.some((message) => Boolean(message.localState));
 
     if (hasLocalDrafts) {
@@ -615,6 +645,9 @@ export function ConversationView({
       setMessages((current) =>
         removeThreadMessage(current, latestDmSignal.messageId!),
       );
+      setReplyToMessage((current) =>
+        current?.id === latestDmSignal.messageId ? null : current,
+      );
       return;
     }
 
@@ -699,7 +732,10 @@ export function ConversationView({
   );
   const isComposerDisabled = Boolean(writeRestrictionMessage) || isUploadingFiles;
 
-  async function sendMessage(payload: ComposerSendPayload) {
+  async function sendMessage(
+    payload: ComposerSendPayload,
+    replyTarget = replyToMessage,
+  ) {
     if (!conversation || !counterpart) {
       return;
     }
@@ -721,6 +757,7 @@ export function ConversationView({
       conversationId,
       payload,
       clientNonce,
+      replyToMessage: replyTarget,
     });
 
     setMessages((current) => sortDirectMessages([...current, optimisticMessage]));
@@ -742,6 +779,7 @@ export function ConversationView({
           content: payload.type === "TEXT" ? payload.content : undefined,
           stickerId: payload.type === "STICKER" ? payload.stickerId : undefined,
           gifId: payload.type === "GIF" ? payload.gifId : undefined,
+          replyToMessageId: replyTarget?.id ?? undefined,
           clientNonce,
         }),
       });
@@ -754,6 +792,9 @@ export function ConversationView({
           parsed.message.id,
           parsed.message.createdAt,
         ),
+      );
+      setReplyToMessage((current) =>
+        current?.id === replyTarget?.id ? null : current,
       );
       setErrorMessage(null);
     } catch (error) {
@@ -772,7 +813,11 @@ export function ConversationView({
     localBlobUrlsRef.current.add(url);
   }
 
-  async function uploadSingleFile(file: File, mode?: ComposerFileUploadMode) {
+  async function uploadSingleFile(
+    file: File,
+    mode?: ComposerFileUploadMode,
+    replyTarget = replyToMessage,
+  ) {
     if (!conversation || !counterpart) {
       return;
     }
@@ -807,6 +852,7 @@ export function ConversationView({
       clientNonce,
       localPreviewUrl,
       localAssetUrl,
+      replyToMessage: replyTarget,
     });
 
     setMessages((current) => sortDirectMessages([...current, optimisticMessage]));
@@ -825,6 +871,7 @@ export function ConversationView({
         conversationId,
         file,
         clientNonce,
+        replyToMessageId: replyTarget?.id ?? null,
         onProgress: (progress) => {
           setMessages((current) =>
             updateMessageUploadProgress(current, optimisticMessage.id, progress),
@@ -840,6 +887,9 @@ export function ConversationView({
           parsed.message.id,
           parsed.message.createdAt,
         ),
+      );
+      setReplyToMessage((current) =>
+        current?.id === replyTarget?.id ? null : current,
       );
       setErrorMessage(null);
     } catch (error) {
@@ -887,7 +937,7 @@ export function ConversationView({
         type: "STICKER",
         stickerId: failedMessage.sticker.id,
         sticker: failedMessage.sticker,
-      });
+      }, failedMessage.replyTo);
       return;
     }
 
@@ -896,14 +946,15 @@ export function ConversationView({
         type: "GIF",
         gifId: failedMessage.gif.id,
         gif: failedMessage.gif,
-      });
+      }, failedMessage.replyTo);
       return;
     }
 
     if (failedMessage.retryUploadFile) {
-      await uploadFiles(
-        [failedMessage.retryUploadFile],
+      await uploadSingleFile(
+        failedMessage.retryUploadFile,
         failedMessage.attachment?.kind === "DOCUMENT" ? "document" : "media",
+        failedMessage.replyTo,
       );
       return;
     }
@@ -912,7 +963,7 @@ export function ConversationView({
       await sendMessage({
         type: "TEXT",
         content: failedMessage.content,
-      });
+      }, failedMessage.replyTo);
     }
   }
 
@@ -947,6 +998,18 @@ export function ConversationView({
     }
 
     void uploadFiles(Array.from(files));
+  }
+
+  function replyToThreadMessage(messageId: string) {
+    const targetMessage = messages.find(
+      (message) => message.id === messageId && !message.localState,
+    );
+
+    if (!targetMessage || targetMessage.isDeleted) {
+      return;
+    }
+
+    setReplyToMessage(buildReplyPreviewFromThreadMessage(targetMessage));
   }
 
   async function deleteMessage(messageId: string) {
@@ -1208,6 +1271,7 @@ export function ConversationView({
             customEmojis={pickerCatalog?.customEmojis ?? []}
             forceScrollToBottomToken={forceThreadScrollToken}
             searchQuery={messageSearchQuery}
+            onReply={replyToThreadMessage}
             onDelete={deleteMessage}
             onRetry={retryMessage}
           />
@@ -1249,6 +1313,8 @@ export function ConversationView({
             }
             onUploadFiles={(files, mode) => uploadFiles(files, mode)}
             onSend={sendMessage}
+            replyToMessage={replyToMessage}
+            onCancelReply={() => setReplyToMessage(null)}
           />
         </div>
       </section>

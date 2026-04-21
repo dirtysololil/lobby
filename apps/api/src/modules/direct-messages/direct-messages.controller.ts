@@ -122,12 +122,18 @@ export class DirectMessagesController {
     @CurrentUser() currentUser: PublicUser,
     @Param('conversationId') conversationId: string,
     @UploadedFile() file: UploadedBinaryFile | undefined,
-    @Body() body: { clientNonce?: string } | undefined,
+    @Body() body:
+      | { clientNonce?: string; replyToMessageId?: string | null }
+      | undefined,
     @Req() request: AuthenticatedRequest,
   ) {
     const parsed = uploadDirectMessageAttachmentSchema.parse({
       clientNonce:
         typeof body?.clientNonce === 'string' ? body.clientNonce : undefined,
+      replyToMessageId:
+        typeof body?.replyToMessageId === 'string'
+          ? body.replyToMessageId
+          : undefined,
     });
     const message = await this.directMessagesService.createAttachmentMessage(
       currentUser,
@@ -244,6 +250,34 @@ export class DirectMessagesController {
       asset.fileKey,
     );
     response.setHeader('Content-Length', String(asset.size));
+
+    return response.send(fullAsset);
+  }
+
+  @RequireAuth()
+  @Get('attachments/:attachmentId/download')
+  public async downloadAttachmentAsset(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('attachmentId') attachmentId: string,
+    @Res() response: Response,
+  ) {
+    const asset =
+      await this.directMessagesService.getAttachmentAssetDescriptorForViewer(
+        currentUser.id,
+        attachmentId,
+        'asset',
+      );
+    const fullAsset = await this.directMessagesService.readAttachmentAsset(
+      asset.fileKey,
+    );
+
+    response.setHeader('Content-Type', asset.mimeType);
+    response.setHeader('Content-Length', String(asset.size));
+    response.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+    response.setHeader(
+      'Content-Disposition',
+      buildAttachmentContentDisposition(asset.originalName),
+    );
 
     return response.send(fullAsset);
   }
@@ -383,4 +417,18 @@ function parseSingleByteRange(
     start: parsedStart,
     end: resolvedEnd,
   };
+}
+
+function buildAttachmentContentDisposition(originalName: string): string {
+  const fallbackName =
+    originalName
+      .replace(/[\\\r\n"]/g, '')
+      .replace(/[^\x20-\x7e]/g, '_')
+      .trim() || 'attachment';
+  const encodedName = encodeURIComponent(originalName).replace(
+    /['()]/g,
+    (value) => `%${value.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+
+  return `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`;
 }
