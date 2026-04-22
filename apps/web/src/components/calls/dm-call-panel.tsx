@@ -628,7 +628,7 @@ export function DmCallPanel({
   if (variant === "header") {
     return (
       <>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2.5">
           {!activeCall ? (
             <>
               <HeaderActionButton
@@ -917,11 +917,11 @@ function HeaderActionButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "dm-action-button",
+        "dm-header-tool-button",
         tone === "danger"
-          ? "dm-action-button-danger"
+          ? "dm-header-tool-button-danger"
           : active
-            ? "dm-action-button-active"
+            ? "dm-header-tool-button-active"
             : "",
       )}
     >

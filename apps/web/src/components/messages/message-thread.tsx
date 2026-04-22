@@ -910,9 +910,9 @@ export function MessageThread({
             <p className="text-sm">Сообщений пока нет.</p>
           </div>
         ) : (
-          <div className="relative z-[1] space-y-2.5 px-3 py-3 md:px-5 md:py-4">
+          <div className="relative z-[1] space-y-3 px-4 py-4 md:px-7 md:py-5">
             {groupedMessages.map((group) => (
-              <div key={group.label} className="space-y-1.5">
+              <div key={group.label} className="space-y-1">
                 <div className="flex justify-center py-1">
                   <span className="dm-date-separator">{group.label}</span>
                 </div>
@@ -1003,8 +1003,8 @@ export function MessageThread({
                     isRoundVideoNote
                       ? "w-[min(244px,74vw)] max-w-full"
                       : isMediaLikeMessage
-                        ? "w-fit max-w-[min(380px,84%)]"
-                        : "max-w-[min(38rem,82%)]",
+                        ? "w-fit max-w-[min(388px,74%)]"
+                        : "max-w-[min(360px,72%)]",
                     isOwn && "ml-auto",
                   );
                   const bubbleClassName = cn(
@@ -1014,7 +1014,7 @@ export function MessageThread({
                     !isBareMediaMessage && (isOwn ? "dm-bubble-out" : "dm-bubble-in"),
                     continuation &&
                       !isBareMediaMessage &&
-                      "py-[0.62rem]",
+                      "py-[0.58rem]",
                     isContextMenuOpen &&
                       !isBareMediaMessage &&
                       "dm-bubble-highlight",
@@ -1090,7 +1090,9 @@ export function MessageThread({
                         className={cn(
                           "group/message flex py-[3px]",
                           continuation && "mt-[-1px]",
-                          isOwn ? "justify-end pr-1 sm:pr-2" : "justify-start pl-1 sm:pl-2",
+                          isOwn
+                            ? "justify-end pr-2 md:pr-5"
+                            : "justify-start pl-2 md:pl-4",
                         )}
                         onContextMenu={(event) =>
                           handleMessageContextMenu(
@@ -1165,7 +1167,7 @@ export function MessageThread({
                                   onClick={() =>
                                     focusOriginalMessage(message.replyTo!.id)
                                   }
-                                  className="mb-2.5 grid w-full min-w-0 gap-0.5 rounded-[13px] border border-white/6 bg-black/20 px-3 py-2 text-left transition-colors hover:bg-black/28"
+                                  className="mb-2.5 grid w-full min-w-0 gap-0.5 rounded-[14px] border border-white/5 bg-black/18 px-3 py-2 text-left transition-colors hover:bg-black/24"
                                 >
                                   <span className="truncate text-[11px] font-medium text-[#8fbaff]">
                                     {message.replyTo.author.profile.displayName}
