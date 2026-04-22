@@ -10,4 +10,9 @@ coverage
 .env.development.local
 apps/api/dist
 apps/web/.next
+.tools
+.codex-artifacts/*.log
+.codex-artifacts/*.html
+.codex-artifacts/screens/
+.codex-artifacts/*-check.png
 *.log
