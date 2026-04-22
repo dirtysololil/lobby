@@ -35,7 +35,6 @@ import {
   CompactList,
   CompactListCount,
   CompactListHeader,
-  CompactListLink,
 } from "@/components/ui/compact-list";
 import { apiClientFetch } from "@/lib/api-client";
 import { matchesPath, parseAppPath } from "@/lib/app-shell";
@@ -138,30 +137,78 @@ function RailRow({
   unread?: boolean;
 }) {
   return (
-    <CompactListLink href={href} active={active} unread={unread} compact className="gap-2.5">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center">{leading}</div>
+    <Link
+      href={href}
+      className={cn(
+        "group relative flex w-full min-w-0 items-center gap-3 rounded-[18px] border px-3.5 py-3 transition-all duration-150",
+        active
+          ? "border-white/7 bg-[#101b27] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
+          : "border-transparent text-[#a6afbd] hover:border-white/6 hover:bg-white/[0.026] hover:text-white",
+        unread &&
+          !active &&
+          "before:absolute before:inset-y-3 before:left-0 before:w-[2px] before:rounded-full before:bg-[#4a84ff]",
+      )}
+    >
+      {active ? (
+        <>
+          <span className="pointer-events-none absolute left-[-18px] top-1/2 hidden h-11 w-10 -translate-y-1/2 rounded-full bg-[#4a84ff]/16 blur-[14px] md:block" />
+          <span className="pointer-events-none absolute left-[-16px] top-1/2 hidden h-10 w-[2px] -translate-y-1/2 rounded-full bg-[#4a84ff] shadow-[0_0_13px_rgba(74,132,255,0.58)] md:block" />
+        </>
+      ) : null}
+
+      <span
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border transition-all duration-150",
+          active
+            ? "border-white/8 bg-white/[0.045] text-white"
+            : "border-white/[0.04] bg-[#0f1720] text-[#8d98aa] group-hover:border-white/8 group-hover:bg-white/[0.04] group-hover:text-white",
+        )}
+      >
+        {leading}
+      </span>
+
       <span className="min-w-0 flex-1">
         <span
           className={cn(
-            "block truncate text-sm leading-tight",
-            active ? "text-white" : "text-zinc-100",
+            "block truncate text-sm font-medium leading-tight",
+            active ? "text-white" : "text-[#d7dfeb] group-hover:text-white",
           )}
         >
           {label}
         </span>
         {detail ? (
-          <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
+          <span className="mt-1 block truncate text-xs text-[#7f8a9c] group-hover:text-[#aeb9c9]">
             {detail}
           </span>
         ) : null}
       </span>
+
       {meta}
-    </CompactListLink>
+    </Link>
   );
 }
 
 function RailEmpty({ children }: { children: ReactNode }) {
-  return <div className="px-3 py-4 text-sm text-[var(--text-muted)]">{children}</div>;
+  return <div className="px-4 py-4 text-sm text-[#7f8a9c]">{children}</div>;
+}
+
+const railHeaderClassName =
+  "px-4 pb-2 pt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-[#6f7b8e]";
+const railHeaderLinkClassName =
+  "inline-flex items-center gap-1.5 normal-case tracking-normal text-[#8590a2] transition-colors hover:text-white";
+const railListClassName = "gap-1 px-2 pb-2";
+const railCountClassName =
+  "min-h-6 rounded-full border-white/8 bg-[#111821] px-2.5 text-[11px] font-medium text-[#c7d0dd]";
+
+function getPeopleViewLeading(viewId: (typeof peopleViews)[number]["id"]) {
+  switch (viewId) {
+    case "discover":
+      return <Search {...railIconProps} className="text-current" />;
+    case "blocked":
+      return <LockKeyhole {...railIconProps} className="text-current" />;
+    default:
+      return <Users2 {...railIconProps} className="text-current" />;
+  }
 }
 
 export function AppContextRail({ viewer }: AppContextRailProps) {
@@ -404,25 +451,34 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   return (
     <aside
       className={cn(
-        "context-rail relative hidden h-full shrink-0 border-r border-white/5 shadow-[10px_0_26px_rgba(4,8,16,0.18)] md:flex md:flex-col",
+        "context-rail relative hidden h-full shrink-0 border-r border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.014),transparent_16%),#0a1016] shadow-[10px_0_26px_rgba(4,8,16,0.18)] md:flex md:flex-col",
         route.section === "messages"
-          ? "w-[306px] bg-[#0d151f]"
-          : "w-60 bg-[#10161f]",
+          ? "w-[306px]"
+          : "w-60",
       )}
     >
       {route.section !== "messages" ? (
-        <div className="border-b border-white/5 px-3 py-3">
-          <div className="flex items-center gap-2 rounded-[16px] border border-white/6 bg-white/[0.03] px-2.5 py-2">
-            <UserAvatar user={viewer} size="sm" showPresenceIndicator={false} />
+        <div className="border-b border-white/5 px-3 py-3.5">
+          <div className="flex items-center gap-2.5 rounded-[18px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_65%),#0f1822] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <UserAvatar
+              user={viewer}
+              size="sm"
+              className="h-10 w-10 text-[11px]"
+              showPresenceIndicator={false}
+            />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-white">
                 {viewer.profile.displayName}
               </p>
-              <p className="truncate text-xs text-[var(--text-muted)]">
+              <p className="truncate text-xs text-[#7f8a9c]">
                 @{viewer.username}
               </p>
             </div>
-            <PresenceIndicator user={viewer} compact />
+            <PresenceIndicator
+              user={viewer}
+              compact
+              className="border-white/8 bg-[#111821] px-2.5 py-1 text-[11px] text-[#c7d0dd]"
+            />
           </div>
         </div>
       ) : null}
@@ -604,11 +660,11 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "hubs" && !route.hubId ? (
           <div>
-            <CompactListHeader>
+            <CompactListHeader className={railHeaderClassName}>
               <span>Хабы</span>
               <Link
                 href="/app/hubs"
-                className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
+                className={railHeaderLinkClassName}
               >
                 <Layers3 {...railIconProps} />
                 Все
@@ -620,7 +676,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
             ) : hubs.length === 0 ? (
               <RailEmpty>Присоединитесь к хабу или создайте его, чтобы увидеть список.</RailEmpty>
             ) : (
-              <CompactList>
+              <CompactList className={railListClassName}>
                 {hubs.map((item) => (
                   <RailRow
                     key={item.id}
@@ -647,28 +703,28 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "hubs" && route.hubId ? (
           <div>
-            <div className="px-3 py-3">
+            <div className="px-4 py-4">
               <p className="truncate text-sm font-medium text-white">{hub?.name ?? "Хаб"}</p>
-              <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+              <p className="mt-1 truncate text-xs text-[#7f8a9c]">
                 {formatMembershipRole(hub?.membershipRole)}
               </p>
             </div>
 
-            <CompactList>
+            <CompactList className={railListClassName}>
               <RailRow
                 href={`/app/hubs/${route.hubId}`}
                 active={safePathname === `/app/hubs/${route.hubId}`}
-                leading={<House {...railIconProps} className="text-zinc-400" />}
+                leading={<House {...railIconProps} className="text-current" />}
                 label="Обзор"
               />
             </CompactList>
 
             {groupedLobbies.map((group) => (
               <div key={group.label}>
-                <CompactListHeader>
+                <CompactListHeader className={railHeaderClassName}>
                   <span>{group.label}</span>
                 </CompactListHeader>
-                <CompactList>
+                <CompactList className={railListClassName}>
                   {group.items.map((lobby) => {
                     const href = buildHubLobbyHref(route.hubId!, lobby.id, lobby.type);
                     const active =
@@ -681,9 +737,9 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                         active={active}
                         leading={
                           lobby.type === "VOICE" ? (
-                            <Mic {...railIconProps} className="text-zinc-400" />
+                            <Mic {...railIconProps} className="text-current" />
                           ) : (
-                            <Hash {...railIconProps} className="text-zinc-400" />
+                            <Hash {...railIconProps} className="text-current" />
                           )
                         }
                         label={lobby.name}
@@ -706,29 +762,29 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
           <div>
             {route.peopleUsername ? (
               <>
-                <CompactListHeader>
+                <CompactListHeader className={railHeaderClassName}>
                   <span>Profile</span>
                   <Link
                     href="/app/people?view=discover"
-                    className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
+                    className={railHeaderLinkClassName}
                   >
                     <Users2 {...railIconProps} />
                     People
                   </Link>
                 </CompactListHeader>
 
-                <CompactList>
+                <CompactList className={railListClassName}>
                   <RailRow
                     href="/app/people?view=discover"
                     active={false}
-                    leading={<Users2 {...railIconProps} className="text-zinc-400" />}
+                    leading={<Users2 {...railIconProps} className="text-current" />}
                     label={`@${route.peopleUsername}`}
                     detail="Открыт публичный профиль"
                   />
                   <RailRow
                     href="/app/messages"
                     active={false}
-                    leading={<MessageSquareMore {...railIconProps} className="text-zinc-400" />}
+                    leading={<MessageSquareMore {...railIconProps} className="text-current" />}
                     label="Диалоги"
                     detail="Быстрый возврат к переписке"
                   />
@@ -736,18 +792,18 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               </>
             ) : (
               <>
-            <CompactListHeader>
+            <CompactListHeader className={railHeaderClassName}>
               <span>Люди</span>
               <Link
                 href="/app/messages"
-                className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
+                className={railHeaderLinkClassName}
               >
                 <MessageSquareMore {...railIconProps} />
                 Диалоги
               </Link>
             </CompactListHeader>
 
-            <CompactList>
+            <CompactList className={railListClassName}>
               {peopleViews.map((item) => {
                 const href = `/app/people?view=${item.id}`;
                 const active = activePeopleView === item.id;
@@ -765,10 +821,14 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     key={item.id}
                     href={href}
                     active={active}
-                    leading={<Users2 {...railIconProps} className="text-zinc-400" />}
+                    leading={getPeopleViewLeading(item.id)}
                     label={item.label}
                     meta={
-                      count !== undefined ? <CompactListCount>{count}</CompactListCount> : null
+                      count !== undefined ? (
+                        <CompactListCount className={railCountClassName}>
+                          {count}
+                        </CompactListCount>
+                      ) : null
                     }
                   />
                 );
@@ -781,16 +841,16 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "settings" ? (
           <div>
-            <CompactListHeader>
+            <CompactListHeader className={railHeaderClassName}>
               <span>Настройки</span>
             </CompactListHeader>
-            <CompactList>
+            <CompactList className={railListClassName}>
               {settingsLinks.map((item) => (
                 <RailRow
                   key={item.href}
                   href={item.href}
                   active={matchesPath(safePathname, item.href)}
-                  leading={<Settings2 {...railIconProps} className="text-zinc-400" />}
+                  leading={<Settings2 {...railIconProps} className="text-current" />}
                   label={item.label}
                 />
               ))}
@@ -800,10 +860,10 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
         {route.section === "admin" ? (
           <div>
-            <CompactListHeader>
+            <CompactListHeader className={railHeaderClassName}>
               <span>Админка</span>
             </CompactListHeader>
-            <CompactList>
+            <CompactList className={railListClassName}>
               {adminNavigationItems.map((item) => (
                 <RailRow
                   key={item.href}
@@ -813,7 +873,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                       ? route.adminSection === "overview"
                       : safePathname === item.href
                   }
-                  leading={<ShieldCheck {...railIconProps} className="text-zinc-400" />}
+                  leading={<ShieldCheck {...railIconProps} className="text-current" />}
                   label={item.label}
                 />
               ))}
