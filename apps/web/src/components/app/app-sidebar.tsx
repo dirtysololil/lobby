@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
-  ChevronDown,
-  ChevronUp,
   Layers3,
   MessageSquareMore,
   Settings2,
@@ -39,7 +37,6 @@ const utilityLinks = [
 ] as const;
 
 const railIconProps = { size: 22, strokeWidth: 2.15 } as const;
-const mobileDockIconProps = { size: 28, strokeWidth: 1.85 } as const;
 
 function SidebarIconLink({
   active,
@@ -78,110 +75,13 @@ function SidebarIconLink({
   );
 }
 
-function MobileDockLink({
-  active,
-  children,
-  href,
-  label,
-}: {
-  active: boolean;
-  children: ReactNode;
-  href: string;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "workspace-dock-mobile-link",
-        active && "workspace-dock-mobile-link-active",
-      )}
-    >
-      <span className="workspace-dock-mobile-icon">{children}</span>
-      <span className="workspace-dock-mobile-label">{label}</span>
-    </Link>
-  );
-}
-
 export function AppSidebar({ viewer }: AppSidebarProps) {
   const pathname = usePathname();
   const safePathname = pathname ?? "";
   const isMessagesRoute = matchesPath(safePathname, "/app/messages");
-  const [mobileDockCollapsed, setMobileDockCollapsed] = useState(false);
 
   return (
-    <aside
-      className={cn(
-        "workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#0a1016] md:static md:inset-auto md:z-auto md:flex md:h-full md:w-[88px] md:flex-col md:border-r md:border-t-0 md:bg-[#0a1016]",
-        mobileDockCollapsed && "workspace-dock-collapsed",
-      )}
-    >
-      <button
-        type="button"
-        className="workspace-dock-toggle md:hidden"
-        onClick={() => setMobileDockCollapsed((current) => !current)}
-        aria-expanded={!mobileDockCollapsed}
-        aria-label={
-          mobileDockCollapsed
-            ? "Развернуть нижнюю навигацию"
-            : "Свернуть нижнюю навигацию"
-        }
-        title={
-          mobileDockCollapsed
-            ? "Развернуть нижнюю навигацию"
-            : "Свернуть нижнюю навигацию"
-        }
-      >
-        {mobileDockCollapsed ? (
-          <ChevronUp size={18} strokeWidth={1.8} />
-        ) : (
-          <ChevronDown size={18} strokeWidth={1.8} />
-        )}
-      </button>
-      <nav className="workspace-dock-mobile md:hidden" aria-label="Основная навигация">
-        <MobileDockLink
-          href="/app/messages"
-          label="Чаты"
-          active={matchesPath(safePathname, "/app/messages")}
-        >
-          <MessageSquareMore {...mobileDockIconProps} />
-        </MobileDockLink>
-        <MobileDockLink
-          href="/app/people"
-          label="Люди"
-          active={matchesPath(safePathname, "/app/people")}
-        >
-          <Users2 {...mobileDockIconProps} />
-        </MobileDockLink>
-        <MobileDockLink
-          href="/app/hubs"
-          label="Сервисы"
-          active={matchesPath(safePathname, "/app/hubs")}
-        >
-          <Layers3 {...mobileDockIconProps} />
-        </MobileDockLink>
-        <MobileDockLink
-          href="/app/settings/notifications"
-          label="Уведомления"
-          active={matchesPath(safePathname, "/app/settings/notifications")}
-        >
-          <Bell {...mobileDockIconProps} />
-        </MobileDockLink>
-        <MobileDockLink
-          href="/app/settings/profile"
-          label="Профиль"
-          active={matchesPath(safePathname, "/app/settings/profile")}
-        >
-          <UserAvatar
-            user={viewer}
-            size="md"
-            className="h-10 w-10 text-[10px]"
-          />
-        </MobileDockLink>
-      </nav>
-
+    <aside className="workspace-dock hidden bg-[#0a1016] md:static md:z-auto md:flex md:h-full md:w-[88px] md:flex-col md:border-r md:border-white/5 md:bg-[#0a1016]">
       <div className="hidden h-full items-center justify-between gap-2 px-2 py-2 md:flex md:flex-col md:items-center md:justify-start md:px-0 md:pb-4 md:pt-[28px]">
         <Link
           href="/app/messages"
