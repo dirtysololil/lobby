@@ -111,7 +111,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
 
         <div className="hidden h-px w-[74px] bg-white/6 md:mt-[28px] md:block" />
 
-        <div className="ml-auto flex items-center gap-1.5 md:mt-auto md:flex-col md:gap-[18px] md:pb-3">
+        <div className="ml-auto flex items-center gap-1.5 md:ml-0 md:mt-auto md:w-full md:flex-col md:items-center md:gap-[18px] md:pb-3">
           {utilityLinks.map((item) => (
             <SidebarIconLink
               key={item.href}
