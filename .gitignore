@@ -9,7 +9,6 @@ coverage
 .env.production.local
 .env.development.local
 apps/api/dist
-apps/web/.next
 .tools
 .codex-artifacts/*.log
 .codex-artifacts/*.html
