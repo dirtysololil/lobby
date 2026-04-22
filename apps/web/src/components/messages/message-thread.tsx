@@ -1041,7 +1041,8 @@ export function MessageThread({
                         isBareMediaMessage &&
                           !isBareFramedMediaMessage &&
                           "mt-1 px-1.5",
-                        isBareFramedMediaMessage && "px-1",
+                        isBareFramedMediaMessage &&
+                          "dm-message-footer-overlay px-1",
                       )}
                     >
                       {message.localState === "sending" ? (
@@ -1319,6 +1320,7 @@ export function MessageThread({
                                       </p>
                                     </div>
                                   ) : null}
+                                  {isBareFramedMediaMessage ? messageFooter : null}
                                 </div>
                               ) : isFileAttachment && message.attachment ? (
                                 <div className="grid gap-2">
@@ -1392,9 +1394,7 @@ export function MessageThread({
                                   ) : null}
                                 </div>
                               )}
-                              {!isBareMediaMessage || isBareFramedMediaMessage
-                                ? messageFooter
-                                : null}
+                              {!isBareMediaMessage ? messageFooter : null}
                             </div>
                           </div>
 
