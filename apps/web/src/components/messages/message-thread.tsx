@@ -1284,7 +1284,8 @@ export function MessageThread({
                                       isRoundVideoNote ? 1 : mediaAspectRatio
                                     }
                                     mediaFit={
-                                      message.attachment.kind === "IMAGE"
+                                      message.attachment.kind === "IMAGE" &&
+                                      !isBareFramedMediaMessage
                                         ? "contain"
                                         : "cover"
                                     }
