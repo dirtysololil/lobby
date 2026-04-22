@@ -140,10 +140,10 @@ function RailRow({
     <Link
       href={href}
       className={cn(
-        "group relative flex w-full min-w-0 items-center gap-3 rounded-[18px] border px-3.5 py-3 transition-all duration-150",
+        "group relative flex w-full min-w-0 items-center gap-3 rounded-[15px] px-3 py-2.5 transition-all duration-150",
         active
-          ? "border-white/7 bg-[#101b27] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
-          : "border-transparent text-[#a6afbd] hover:border-white/6 hover:bg-white/[0.026] hover:text-white",
+          ? "bg-[#101b27] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
+          : "text-[#a6afbd] hover:bg-white/[0.026] hover:text-white",
         unread &&
           !active &&
           "before:absolute before:inset-y-3 before:left-0 before:w-[2px] before:rounded-full before:bg-[#4a84ff]",
@@ -151,17 +151,17 @@ function RailRow({
     >
       {active ? (
         <>
-          <span className="pointer-events-none absolute left-[-18px] top-1/2 hidden h-11 w-10 -translate-y-1/2 rounded-full bg-[#4a84ff]/16 blur-[14px] md:block" />
-          <span className="pointer-events-none absolute left-[-16px] top-1/2 hidden h-10 w-[2px] -translate-y-1/2 rounded-full bg-[#4a84ff] shadow-[0_0_13px_rgba(74,132,255,0.58)] md:block" />
+          <span className="pointer-events-none absolute left-[-20px] top-1/2 hidden h-12 w-10 -translate-y-1/2 rounded-full bg-[#4a84ff]/16 blur-[14px] md:block" />
+          <span className="pointer-events-none absolute left-[-18px] top-1/2 hidden h-11 w-[2px] -translate-y-1/2 rounded-full bg-[#4a84ff] shadow-[0_0_13px_rgba(74,132,255,0.58)] md:block" />
         </>
       ) : null}
 
       <span
         className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border transition-all duration-150",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] transition-all duration-150",
           active
-            ? "border-white/8 bg-white/[0.045] text-white"
-            : "border-white/[0.04] bg-[#0f1720] text-[#8d98aa] group-hover:border-white/8 group-hover:bg-white/[0.04] group-hover:text-white",
+            ? "text-white"
+            : "text-[#a6afbd] group-hover:text-white",
         )}
       >
         {leading}
@@ -171,13 +171,13 @@ function RailRow({
         <span
           className={cn(
             "block truncate text-sm font-medium leading-tight",
-            active ? "text-white" : "text-[#d7dfeb] group-hover:text-white",
+            active ? "text-white" : "text-[#dbe3ef] group-hover:text-white",
           )}
         >
           {label}
         </span>
         {detail ? (
-          <span className="mt-1 block truncate text-xs text-[#7f8a9c] group-hover:text-[#aeb9c9]">
+          <span className="mt-0.5 block truncate text-xs text-[#7f8a9c] group-hover:text-[#aeb9c9]">
             {detail}
           </span>
         ) : null}
@@ -195,8 +195,8 @@ function RailEmpty({ children }: { children: ReactNode }) {
 const railHeaderClassName =
   "px-4 pb-2 pt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-[#6f7b8e]";
 const railHeaderLinkClassName =
-  "inline-flex items-center gap-1.5 normal-case tracking-normal text-[#8590a2] transition-colors hover:text-white";
-const railListClassName = "gap-1 px-2 pb-2";
+  "inline-flex items-center gap-1.5 normal-case tracking-normal text-[#a6afbd] transition-colors hover:text-white";
+const railListClassName = "gap-1.5 px-3 pb-3";
 const railCountClassName =
   "min-h-6 rounded-full border-white/8 bg-[#111821] px-2.5 text-[11px] font-medium text-[#c7d0dd]";
 
@@ -451,7 +451,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   return (
     <aside
       className={cn(
-        "context-rail relative hidden h-full shrink-0 border-r border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.014),transparent_16%),#0a1016] shadow-[10px_0_26px_rgba(4,8,16,0.18)] md:flex md:flex-col",
+        "context-rail relative hidden h-full shrink-0 border-r border-white/5 bg-[#0a1016] md:flex md:flex-col",
         route.section === "messages"
           ? "w-[306px]"
           : "w-60",
@@ -459,7 +459,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
     >
       {route.section !== "messages" ? (
         <div className="border-b border-white/5 px-3 py-3.5">
-          <div className="flex items-center gap-2.5 rounded-[18px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_65%),#0f1822] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="flex items-center gap-2.5 rounded-[18px] border border-white/8 bg-[#0f1720] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
             <UserAvatar
               user={viewer}
               size="sm"
@@ -477,7 +477,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
             <PresenceIndicator
               user={viewer}
               compact
-              className="border-white/8 bg-[#111821] px-2.5 py-1 text-[11px] text-[#c7d0dd]"
+              className="border-white/8 bg-white/[0.026] px-2.5 py-1 text-[11px] text-[#d7dfeb]"
             />
           </div>
         </div>
