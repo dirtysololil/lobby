@@ -405,7 +405,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
       className={cn(
         "context-rail relative hidden h-full shrink-0 border-r border-white/5 shadow-[10px_0_26px_rgba(4,8,16,0.18)] md:flex md:flex-col",
         route.section === "messages"
-          ? "w-[19.5rem] bg-[#0d151f]"
+          ? "w-[306px] bg-[#0d151f]"
           : "w-60 bg-[#10161f]",
       )}
     >
@@ -429,32 +429,32 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
       <div className="min-h-0 flex-1 overflow-y-auto">
         {route.section === "messages" ? (
           <div className="flex h-full min-h-0 flex-col">
-            <div className="border-b border-white/5 px-4 pb-3 pt-5">
+            <div className="border-b border-white/5 px-[18px] pb-[11px] pt-[18px]">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 text-[27px] font-semibold tracking-[-0.04em] text-white"
+                    className="inline-flex items-center gap-1.5 text-[20px] font-semibold tracking-[-0.03em] text-white"
                   >
                     <span>Чаты</span>
-                    <ChevronDown size={16} strokeWidth={1.9} className="mt-1 text-[#7b8697]" />
+                    <ChevronDown size={16} strokeWidth={1.9} className="mt-0.5 text-[#7b8697]" />
                   </button>
                 </div>
                 <Link
                   href="/app/people?view=discover"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/6 bg-white/[0.03] text-[#9ca9bb] transition-colors hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/6 bg-white/[0.03] text-[#9ca9bb] transition-colors hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
                   aria-label="Новый чат"
                   title="Новый чат"
                 >
-                  <SquarePen size={20} strokeWidth={1.65} />
+                  <SquarePen size={18} strokeWidth={1.65} />
                 </Link>
               </div>
             </div>
 
-            <div className="border-b border-white/5 px-4 py-3">
+            <div className="border-b border-white/5 px-[14px] py-[12px]">
               <div className="flex items-center gap-2">
-                <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[15px] border border-white/6 bg-white/[0.04] px-3 text-[#9ca9bb] transition-colors focus-within:border-[#3b6ed8]/32 focus-within:bg-white/[0.055]">
-                  <Search size={18} strokeWidth={1.7} className="shrink-0" />
+                <label className="flex h-[42px] min-w-0 flex-1 items-center gap-2 rounded-[14px] border border-white/6 bg-white/[0.04] px-3 text-[#9ca9bb] transition-colors focus-within:border-[#3b6ed8]/32 focus-within:bg-white/[0.055]">
+                  <Search size={17} strokeWidth={1.65} className="shrink-0" />
                   <input
                     className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[#7b8697]"
                     value={messageSearchQuery}
@@ -465,15 +465,15 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                 </label>
                 <button
                   type="button"
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-[15px] border border-white/6 bg-white/[0.04] text-[#9ca9bb] transition-colors hover:border-white/10 hover:bg-white/[0.055] hover:text-white"
+                  className="inline-flex h-[42px] w-[42px] items-center justify-center rounded-[14px] border border-white/6 bg-white/[0.04] text-[#9ca9bb] transition-colors hover:border-white/10 hover:bg-white/[0.055] hover:text-white"
                   aria-label="Фильтры диалогов"
                   title="Фильтры диалогов"
                 >
-                  <SlidersHorizontal size={18} strokeWidth={1.7} />
+                  <SlidersHorizontal size={17} strokeWidth={1.65} />
                 </button>
               </div>
 
-              <div className="mt-3 flex items-center gap-5 border-b border-white/5 pb-0.5 text-[14px] font-medium text-[#7f8a9c]">
+              <div className="mt-3 flex items-center gap-6 border-b border-white/5 pb-0.5 pl-1 text-[13px] font-medium text-[#7f8a9c]">
                 {[
                   { id: "all", label: "Все" },
                   { id: "personal", label: "Личные" },
@@ -503,7 +503,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2.5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-0 py-2">
               {loadingLabel === "messages" ? (
                 <div className="flex h-full items-center justify-center px-4 text-center text-sm text-[#7b8697]">
                   Загружаем диалоги...
@@ -515,7 +515,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     : "Личных диалогов пока нет."}
                 </div>
               ) : (
-                <div className="grid gap-1.5">
+                <div className="grid gap-0.5">
                   {filteredConversations.map((conversation) => {
                     const href = `/app/messages/${conversation.id}`;
                     const active = safePathname === href;
@@ -534,21 +534,21 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                         key={conversation.id}
                         href={href}
                         className={cn(
-                          "group relative grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 rounded-[20px] border px-3 py-3 transition-all duration-150",
+                          "group relative grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 border py-3 pl-[18px] pr-[14px] transition-all duration-150",
                           active
-                            ? "border-[#3a6cd4]/32 bg-[linear-gradient(180deg,rgba(51,72,104,0.42),rgba(24,31,45,0.92))] shadow-[0_16px_28px_rgba(5,12,22,0.22)]"
-                            : "border-transparent bg-transparent hover:border-white/6 hover:bg-white/[0.035]",
+                            ? "rounded-r-[18px] rounded-l-none border-[#3a6cd4]/18 bg-[linear-gradient(180deg,rgba(56,74,104,0.46),rgba(29,37,50,0.98))] shadow-none"
+                            : "rounded-r-[18px] rounded-l-none border-transparent bg-transparent hover:border-white/6 hover:bg-white/[0.03]",
                         )}
                       >
                         {active ? (
-                          <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-[#4a84ff]" />
+                          <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full bg-[#4a84ff]" />
                         ) : null}
 
                         <div className="relative row-span-2 mt-0.5">
                           <UserAvatar
                             user={conversation.counterpart}
                             size="sm"
-                            className="h-11 w-11"
+                            className="h-12 w-12 text-[12px]"
                             showPresenceIndicator={false}
                           />
                           <span
@@ -561,7 +561,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <p className="truncate text-[15px] font-medium tracking-[-0.02em] text-white">
+                            <p className="truncate text-[14px] font-semibold tracking-[-0.01em] text-white">
                               {conversation.counterpart.profile.displayName}
                             </p>
                             {liveCounterpart.isOnline ? (
@@ -570,7 +570,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                           </div>
                           <p
                             className={cn(
-                              "mt-1 truncate text-[14px]",
+                              "mt-1 truncate text-[13px]",
                               conversation.unreadCount > 0
                                 ? "text-[#d9e3f2]"
                                 : "text-[#8894a6]",
@@ -583,7 +583,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                         <div className="row-span-2 flex min-w-[2.75rem] flex-col items-end gap-2 text-[12px] text-[#7f8a9c]">
                           <span>{formatConversationTime(conversation.lastMessageAt)}</span>
                           {conversation.unreadCount > 0 ? (
-                            <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#4a84ff] px-1.5 text-[11px] font-semibold text-white">
+                            <span className="inline-flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full bg-[#4a84ff] px-1.5 text-[11px] font-semibold text-white">
                               {conversation.unreadCount}
                             </span>
                           ) : null}
@@ -595,7 +595,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               )}
             </div>
 
-            <div className="px-4 pb-4 pt-1 text-center text-[12px] text-[#7b8697]">
+            <div className="px-4 pb-5 pt-2 text-center text-[12px] text-[#7b8697]">
               {conversations.length} диалогов
             </div>
           </div>

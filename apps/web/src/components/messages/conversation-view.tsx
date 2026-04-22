@@ -1085,12 +1085,12 @@ export function ConversationView({
     <div className="dm-shell flex h-full min-h-0 flex-col overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="dm-header relative shrink-0">
-          <div className="flex min-h-[68px] items-center gap-3 px-4 py-2.5">
+          <div className="flex min-h-[66px] items-center gap-3 px-4 py-2">
             <Link
               href="/app/messages"
               aria-label="Назад к диалогам"
               title="Назад к диалогам"
-              className="dm-action-button rounded-full"
+              className="dm-header-back-button"
             >
               <ArrowLeft {...iconProps} />
             </Link>
@@ -1099,13 +1099,13 @@ export function ConversationView({
               href={buildUserProfileHref(counterpart.username)}
               aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
               title="Открыть профиль"
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border border-transparent px-1 py-0.5 transition-colors hover:bg-white/[0.025]"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border border-transparent px-0.5 py-0.5 transition-colors hover:bg-white/[0.02]"
             >
               <div className="relative shrink-0">
                 <UserAvatar
                   user={counterpart}
                   size="sm"
-                  className="h-10 w-10"
+                  className="h-[42px] w-[42px] text-[12px]"
                   showPresenceIndicator={false}
                 />
                 <span
@@ -1117,7 +1117,7 @@ export function ConversationView({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5">
-                  <span className="truncate text-[15px] font-semibold tracking-[-0.03em] text-white">
+                  <span className="truncate text-[15px] font-semibold tracking-[-0.02em] text-white">
                     {counterpart.profile.displayName}
                   </span>
                   {isBlocked ? (
@@ -1139,7 +1139,7 @@ export function ConversationView({
               </div>
             </Link>
 
-            <div className="ml-auto flex shrink-0 items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-2.5 pr-1">
               <ConversationHeaderIconButton
                 label="Поиск по диалогу"
                 active={isSearchOpen}
@@ -1284,7 +1284,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="shrink-0 bg-[linear-gradient(180deg,rgba(8,12,18,0.24),rgba(8,12,18,0.96))] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:px-4 md:py-3">
+        <div className="shrink-0 bg-[linear-gradient(180deg,rgba(8,12,18,0.16),rgba(8,12,18,0.96))] px-4 pt-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:px-5 md:py-2.5">
           <MessageComposer
             disabled={isComposerDisabled}
             canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
@@ -1346,8 +1346,8 @@ function ConversationHeaderIconButton({
       title={label}
       onClick={onClick}
       className={cn(
-        "dm-action-button rounded-full",
-        active && "dm-action-button-active",
+        "dm-header-tool-button",
+        active && "dm-header-tool-button-active",
         className,
       )}
     >

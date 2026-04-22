@@ -31,10 +31,10 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const effectiveActivityOpen = activityAvailable && activityOpen;
   const isMessagesRoute = route.section === "messages";
   const desktopGridColumns = isMessagesRoute
-    ? "md:grid-cols-[88px_19.5rem_minmax(0,1fr)]"
+    ? "md:grid-cols-[114px_306px_minmax(0,1fr)]"
     : "md:grid-cols-[80px_15rem_minmax(0,1fr)]";
   const dockedGridColumns = isMessagesRoute
-    ? "2xl:grid-cols-[88px_19.5rem_minmax(0,1fr)_18rem]"
+    ? "2xl:grid-cols-[114px_306px_minmax(0,1fr)_18rem]"
     : "2xl:grid-cols-[80px_15rem_minmax(0,1fr)_18rem]";
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
 
   return (
     <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-app)] text-[var(--text)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(106,168,248,0.08),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_20%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(92,140,214,0.05),transparent_20%),linear-gradient(180deg,rgba(255,255,255,0.012),transparent_18%)]" />
       <div
         className={cn(
           "relative z-10 grid h-full min-h-0 grid-cols-1",
@@ -77,7 +77,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
         <AppSidebar viewer={viewer} />
         <AppContextRail viewer={viewer} />
 
-        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_18%)] pb-[var(--app-mobile-dock-clearance)] md:pb-0">
+        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.008),transparent_18%)] pb-[var(--app-mobile-dock-clearance)] md:pb-0">
           {activityAvailable ? (
             <button
               type="button"
@@ -100,8 +100,8 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
           <IncomingCallBanner />
           <NotificationSoundManager viewer={viewer} />
 
-          <div className="min-h-0 flex-1 overflow-hidden p-1.5 md:p-2 lg:p-2.5">
-            <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_16%),rgba(8,13,20,0.92)]">
+          <div className="min-h-0 flex-1 overflow-hidden p-[4px]">
+            <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),rgba(8,13,20,0.96)]">
               {children}
             </div>
           </div>

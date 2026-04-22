@@ -63,7 +63,7 @@ const RECENT_GIFS_KEY = "lobby:dm:recent-gifs";
 const MAX_RECENT_EMOJIS = 28;
 const MAX_RECENT_STICKERS = 24;
 const MAX_RECENT_GIFS = 20;
-const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+const iconProps = { size: 19, strokeWidth: 1.55 } as const;
 const MOBILE_VIEWPORT_QUERY = "(max-width: 767px)";
 
 function readRecentStrings(storageKey: string) {
@@ -582,7 +582,7 @@ export function MessageComposer({
           <div className="dm-reply-strip">
             <div className="dm-reply-strip-line" aria-hidden="true" />
             <Reply
-              size={16}
+              size={15}
               strokeWidth={1.6}
               className="shrink-0 text-[var(--accent-strong)]"
             />
@@ -602,7 +602,7 @@ export function MessageComposer({
               title="Отменить ответ"
               style={{ height: 28, width: 28 }}
             >
-              <X size={14} strokeWidth={1.6} />
+              <X size={13} strokeWidth={1.6} />
             </button>
           </div>
         ) : null}
@@ -762,7 +762,7 @@ export function MessageComposer({
               isSendingText ? "Отправляем сообщение" : "Отправить сообщение"
             }
           >
-            <SendHorizontal {...iconProps} />
+            <SendHorizontal size={20} strokeWidth={1.6} />
           </Button>
         </div>
       </form>
