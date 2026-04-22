@@ -34,6 +34,8 @@ interface EmbeddedMediaBubbleProps {
   downloadName?: string | null;
   label?: string | null;
   className?: string;
+  aspectRatio?: number | null;
+  mediaFit?: "cover" | "contain";
   previewPlayback?: "visible" | "always";
   previewPreload?: "metadata" | "auto";
 }
@@ -59,6 +61,8 @@ export function EmbeddedMediaBubble({
   downloadName = null,
   label = null,
   className,
+  aspectRatio = null,
+  mediaFit = "cover",
   previewPlayback = "visible",
   previewPreload = "metadata",
 }: EmbeddedMediaBubbleProps) {
@@ -101,6 +105,11 @@ export function EmbeddedMediaBubble({
     kind === "VIDEO" ? "Видео недоступно" : "Медиа недоступно";
   const previewShouldPlay =
     previewPlayback === "always" ? !isViewerOpen : isInView && !isViewerOpen;
+  const resolvedAspectRatio = resolveMediaAspectRatio(aspectRatio, kind);
+  const previewMediaClassName =
+    mediaFit === "contain"
+      ? "h-full w-full object-contain"
+      : "h-full w-full object-cover";
 
   useEffect(() => {
     if (viewerAudio.volume > 0) {
@@ -639,9 +648,10 @@ export function EmbeddedMediaBubble({
         type="button"
         onClick={openViewer}
         className={cn(
-          "block aspect-square w-full overflow-hidden rounded-[12px] bg-transparent text-left transition-opacity hover:opacity-[0.98]",
+          "block w-full overflow-hidden rounded-[14px] bg-[rgba(8,12,18,0.62)] text-left transition-opacity hover:opacity-[0.98]",
           className,
         )}
+        style={{ aspectRatio: resolvedAspectRatio }}
       >
         <PreviewSurface
           kind={kind}
@@ -653,8 +663,8 @@ export function EmbeddedMediaBubble({
           forcePlay={previewShouldPlay}
           preloadMode={previewPreload}
           onVideoError={() => setPreviewVideoFailed(true)}
-          className="h-full w-full"
-          mediaClassName="h-full w-full object-cover"
+          className="h-full w-full bg-[rgba(8,12,18,0.42)]"
+          mediaClassName={previewMediaClassName}
           fallbackLabel={fallbackLabel}
         />
       </button>
@@ -669,6 +679,21 @@ function clampViewerVolume(value: number) {
   }
 
   return Math.min(1, Math.max(0, value));
+}
+
+function resolveMediaAspectRatio(
+  value: number | null | undefined,
+  kind: "IMAGE" | "VIDEO" | "GIF",
+) {
+  if (Number.isFinite(value) && value && value > 0.2 && value < 4.5) {
+    return value;
+  }
+
+  if (kind === "VIDEO") {
+    return 16 / 9;
+  }
+
+  return 1;
 }
 
 function readStoredViewerAudioState(): ViewerAudioState {
