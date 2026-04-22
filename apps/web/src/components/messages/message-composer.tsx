@@ -9,13 +9,14 @@ import type {
   StickerCatalog,
 } from "@lobby/shared";
 import {
+  Bookmark,
   FileText,
   ImagePlus,
+  Mic,
   Paperclip,
   Reply,
   SendHorizontal,
-  SmilePlus,
-  Video,
+  Smile,
   X,
 } from "lucide-react";
 import {
@@ -32,7 +33,6 @@ import { buildCustomEmojiToken } from "@/lib/stickers";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker, type PickerTab } from "./emoji-sticker-picker";
-import { VideoNoteRecorder } from "./video-note-recorder";
 
 export type ComposerSendPayload =
   | { type: "TEXT"; content: string }
@@ -164,7 +164,6 @@ export function MessageComposer({
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PickerTab>("emoji");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
-  const [videoNoteOpen, setVideoNoteOpen] = useState(false);
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [recentGifIds, setRecentGifIds] = useState<string[]>([]);
   const [pendingStickerIds, setPendingStickerIds] = useState<string[]>([]);
@@ -293,6 +292,22 @@ export function MessageComposer({
 
     return await onRefreshPickerCatalog();
   }, [isPickerCatalogLoading, onRefreshPickerCatalog, pickerCatalog]);
+
+  async function togglePickerTab(nextTab: PickerTab) {
+    const shouldClose = pickerOpen && activeTab === nextTab;
+
+    setAttachMenuOpen(false);
+    setActiveTab(nextTab);
+    setPickerOpen(!shouldClose);
+
+    if (isMobileViewport) {
+      textareaRef.current?.blur();
+    }
+
+    if (!shouldClose) {
+      await refreshCatalogIfNeeded();
+    }
+  }
 
   function syncSelection() {
     const element = textareaRef.current;
@@ -540,16 +555,6 @@ export function MessageComposer({
 
   return (
     <div className="dm-composer-stack">
-      {videoNoteOpen ? (
-        <VideoNoteRecorder
-          disabled={disabled || isUploadingFiles}
-          onClose={() => setVideoNoteOpen(false)}
-          onSend={async (file) => {
-            await onUploadFiles([file], "media");
-          }}
-        />
-      ) : null}
-
       <form className="dm-composer-shell" onSubmit={handleSubmit}>
         <input
           ref={mediaInputRef}
@@ -603,7 +608,10 @@ export function MessageComposer({
         ) : null}
 
         <div className="dm-composer-main">
-          <div className="relative" data-composer-attach-root="true">
+          <div
+            className="dm-composer-cluster relative"
+            data-composer-attach-root="true"
+          >
             {attachMenuOpen ? (
               <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
                 <button
@@ -635,16 +643,32 @@ export function MessageComposer({
               type="button"
               size="sm"
               variant="ghost"
-              disabled={disabled || isUploadingFiles || videoNoteOpen}
+              disabled={disabled || isUploadingFiles}
               onClick={() => {
                 setAttachMenuOpen((current) => !current);
                 setPickerOpen(false);
-                setVideoNoteOpen(false);
               }}
-              className="dm-composer-button"
+              className="dm-composer-cluster-button"
               aria-label="Прикрепить файл"
             >
               <Paperclip {...iconProps} />
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={disabled || isUploadingFiles}
+              onClick={() => void togglePickerTab("sticker")}
+              className={cn(
+                "dm-composer-cluster-button",
+                pickerOpen &&
+                  activeTab === "sticker" &&
+                  "dm-composer-cluster-button-active",
+              )}
+              aria-label="Открыть стикеры и GIF"
+            >
+              <Bookmark {...iconProps} />
             </Button>
           </div>
 
@@ -691,26 +715,20 @@ export function MessageComposer({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  disabled={disabled || isUploadingFiles || videoNoteOpen}
+                  disabled={disabled || isUploadingFiles}
                   onClick={() => {
-                    setAttachMenuOpen(false);
-                    setVideoNoteOpen(false);
-                    setPickerOpen((current) => !current);
                     syncSelection();
-
-                    if (isMobileViewport) {
-                      textareaRef.current?.blur();
-                    }
-
-                    void refreshCatalogIfNeeded();
+                    void togglePickerTab("emoji");
                   }}
                   className={cn(
-                    "dm-composer-inline-action",
-                    pickerOpen && "dm-action-button-active",
+                    "dm-composer-input-icon",
+                    pickerOpen &&
+                      activeTab === "emoji" &&
+                      "dm-composer-input-icon-active",
                   )}
-                  aria-label="Открыть смайлики, стикеры и GIF"
+                  aria-label="Открыть смайлики"
                 >
-                  <SmilePlus {...iconProps} />
+                  <Smile {...iconProps} />
                 </Button>
               </div>
             </div>
@@ -720,27 +738,16 @@ export function MessageComposer({
             type="button"
             size="sm"
             variant="ghost"
-            disabled={disabled || isUploadingFiles || videoNoteOpen}
+            disabled={disabled || isUploadingFiles}
             onClick={() => {
-              if (videoNoteOpen) {
-                return;
-              }
-
               setAttachMenuOpen(false);
               setPickerOpen(false);
-              setVideoNoteOpen(true);
-
-              if (isMobileViewport) {
-                textareaRef.current?.blur();
-              }
+              textareaRef.current?.focus();
             }}
-            className={cn(
-              "dm-composer-button",
-              videoNoteOpen && "dm-action-button-active",
-            )}
-            aria-label="Записать видео-кружок"
+            className="dm-composer-button dm-composer-mic"
+            aria-label="Голосовые сообщения"
           >
-            <Video {...iconProps} />
+            <Mic {...iconProps} />
           </Button>
 
           <Button
