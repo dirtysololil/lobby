@@ -208,7 +208,10 @@ textarea {
   background: #0a1016;
 }
 
-.context-rail,
+.context-rail {
+  background: #0a1016;
+}
+
 .activity-rail {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.014), transparent 18%),
