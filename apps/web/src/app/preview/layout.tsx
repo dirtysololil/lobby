@@ -10,6 +10,7 @@ export default function PreviewLayout({
     { href: "/preview/dm-thread", label: "DM Thread" },
     { href: "/preview/dm-call", label: "DM Call" },
     { href: "/preview/hubs", label: "Hubs" },
+    { href: "/preview/people-rail", label: "People Rail" },
     { href: "/preview/settings", label: "Settings" },
     { href: "/preview/admin", label: "Admin" },
   ] as const;
