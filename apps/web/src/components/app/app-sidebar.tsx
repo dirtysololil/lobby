@@ -1,10 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  ChevronDown,
+  ChevronUp,
   Layers3,
   MessageSquareMore,
   Settings2,
@@ -107,9 +109,37 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
   const pathname = usePathname();
   const safePathname = pathname ?? "";
   const isMessagesRoute = matchesPath(safePathname, "/app/messages");
+  const [mobileDockCollapsed, setMobileDockCollapsed] = useState(false);
 
   return (
-    <aside className="workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#0a1016] md:static md:inset-auto md:z-auto md:flex md:h-full md:w-[88px] md:flex-col md:border-r md:border-t-0 md:bg-[#0a1016]">
+    <aside
+      className={cn(
+        "workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#0a1016] md:static md:inset-auto md:z-auto md:flex md:h-full md:w-[88px] md:flex-col md:border-r md:border-t-0 md:bg-[#0a1016]",
+        mobileDockCollapsed && "workspace-dock-collapsed",
+      )}
+    >
+      <button
+        type="button"
+        className="workspace-dock-toggle md:hidden"
+        onClick={() => setMobileDockCollapsed((current) => !current)}
+        aria-expanded={!mobileDockCollapsed}
+        aria-label={
+          mobileDockCollapsed
+            ? "Развернуть нижнюю навигацию"
+            : "Свернуть нижнюю навигацию"
+        }
+        title={
+          mobileDockCollapsed
+            ? "Развернуть нижнюю навигацию"
+            : "Свернуть нижнюю навигацию"
+        }
+      >
+        {mobileDockCollapsed ? (
+          <ChevronUp size={18} strokeWidth={1.8} />
+        ) : (
+          <ChevronDown size={18} strokeWidth={1.8} />
+        )}
+      </button>
       <nav className="workspace-dock-mobile md:hidden" aria-label="Основная навигация">
         <MobileDockLink
           href="/app/messages"
