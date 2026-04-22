@@ -13,7 +13,9 @@ import {
 } from "@lobby/shared";
 import {
   Ban,
+  Bell,
   ChevronDown,
+  ChevronRight,
   ContactRound,
   Ellipsis,
   Grid2x2,
@@ -172,7 +174,7 @@ function ViewTabs({
   pendingCount: number;
 }) {
   return (
-    <div className="flex items-center gap-5 overflow-x-auto border-b border-white/5 pb-0.5 text-[13px] font-medium text-[#7f8a9c]">
+    <div className="flex items-center gap-1.5 overflow-x-auto rounded-[22px] border border-white/6 bg-[#151d29] p-2 text-[14px] font-medium text-[#8c98ab] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
       {peopleViews.map((item) => {
         const active = activeView === item.id;
 
@@ -182,18 +184,25 @@ function ViewTabs({
             type="button"
             onClick={() => onSelect(item.id)}
             className={cn(
-              "relative flex shrink-0 items-center gap-1.5 whitespace-nowrap pb-3 transition-colors",
-              active ? "text-[#4a84ff]" : "hover:text-white",
+              "relative flex shrink-0 items-center gap-2 whitespace-nowrap rounded-[16px] px-4 py-3 transition-all duration-150",
+              active
+                ? "bg-[#1b2330] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
+                : "hover:bg-white/[0.03] hover:text-white",
             )}
           >
             <span>{item.label}</span>
             {item.id === "requests" && pendingCount > 0 ? (
-              <span className="inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white/[0.08] px-1.5 text-[11px] font-medium text-white">
+              <span className="inline-flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full border border-white/8 bg-white/[0.05] px-1.5 text-[11px] font-medium text-[#dce4f1]">
                 {pendingCount}
               </span>
             ) : null}
+            {item.id === "suggested" ? (
+              <span className="inline-flex min-h-[20px] items-center rounded-full bg-[rgba(120,74,255,0.18)] px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b994ff]">
+                Новое
+              </span>
+            ) : null}
             {active ? (
-              <span className="absolute inset-x-0 bottom-[-2px] h-[2px] rounded-full bg-[#4a84ff]" />
+              <span className="absolute inset-x-4 bottom-0 h-[2px] rounded-full bg-[#7a5cff]" />
             ) : null}
           </button>
         );
@@ -254,7 +263,7 @@ function SectionCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-[20px] border border-white/6 bg-[#141d28]/78 shadow-[0_18px_38px_rgba(4,10,18,0.18)]",
+        "overflow-hidden rounded-[22px] border border-white/6 bg-[#151d29] shadow-[0_20px_34px_rgba(5,10,18,0.22)]",
         className,
       )}
     >
@@ -273,14 +282,16 @@ function SidebarCard({
   icon: typeof Users2;
 }) {
   return (
-    <section className="overflow-hidden rounded-[18px] border border-white/6 bg-[#141d28]/82 shadow-[0_16px_30px_rgba(4,10,18,0.16)]">
-      <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
-        <Icon className="h-4 w-4 text-[#9ca9bb]" />
-        <h3 className="text-[15px] font-semibold tracking-[-0.02em] text-white">
+    <section className="overflow-hidden rounded-[22px] border border-white/6 bg-[#151d29] shadow-[0_20px_34px_rgba(5,10,18,0.2)]">
+      <div className="flex items-center gap-2 px-4 py-4">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-[12px] bg-white/[0.04] text-[#9f7cff]">
+          <Icon className="h-4 w-4" />
+        </span>
+        <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-white">
           {title}
         </h3>
       </div>
-      <div className="p-3">{children}</div>
+      <div className="px-4 pb-4">{children}</div>
     </section>
   );
 }
@@ -298,23 +309,50 @@ function MetricCard({
   label: string;
   value: number;
 }) {
+  const isPrimary = iconClassName.includes("#162235");
+  const isSuccess = iconClassName.includes("#13261f");
+  const isWarning = iconClassName.includes("#2a2113");
+  const displayLabel = isPrimary
+    ? "Все друзья"
+    : isSuccess
+      ? "В сети"
+      : isWarning
+        ? "Заявки"
+        : label;
+  const displayDescription = isPrimary
+    ? `Из ${Math.max(500, value * 125)} возможных`
+    : isSuccess
+      ? "Сейчас онлайн"
+      : isWarning
+        ? "Ожидают ответа"
+        : description;
+
   return (
-    <div className="rounded-[16px] border border-white/6 bg-[#141d28]/76 px-4 py-4 shadow-[0_14px_28px_rgba(4,10,18,0.14)]">
-      <div className="flex items-start gap-3">
+    <div
+      className={cn(
+        "rounded-[20px] border border-white/6 px-5 py-5 shadow-[0_18px_30px_rgba(4,10,18,0.18)]",
+        isPrimary
+          ? "bg-[linear-gradient(180deg,rgba(90,111,255,0.14),transparent_100%),#1b2434]"
+          : "bg-[#151d29]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#97a3b6]">
+            {displayLabel}
+          </p>
+          <p className="mt-3 text-[46px] font-semibold leading-none tracking-[-0.06em] text-white">
+            {value}
+          </p>
+          <p className="mt-3 text-[14px] text-[#8d98aa]">{displayDescription}</p>
+        </div>
         <div
           className={cn(
-            "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/6",
+            "inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/8",
             iconClassName,
           )}
         >
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[13px] font-medium text-[#94a0b3]">{label}</p>
-          <p className="mt-1 text-[36px] font-semibold leading-none tracking-[-0.05em] text-white">
-            {value}
-          </p>
-          <p className="mt-2 text-[13px] text-[#7f8a9c]">{description}</p>
+          <Icon className="h-6 w-6" />
         </div>
       </div>
     </div>
@@ -336,13 +374,16 @@ function QuickActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-start gap-3 rounded-[14px] border border-white/6 bg-[#151f2a]/84 px-4 py-3 text-left transition-colors hover:bg-[#1a2431]"
+      className="flex w-full items-center gap-3 rounded-[16px] border border-white/6 bg-[#1a2331] px-4 py-3.5 text-left transition-colors hover:bg-[#1e2838]"
     >
-      <Icon className="mt-0.5 h-4.5 w-4.5 shrink-0 text-[#9ca9bb]" />
+      <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/6 bg-[#121a25] text-[#dfe7f4]">
+        <Icon className="h-4.5 w-4.5" />
+      </div>
       <div className="min-w-0">
-        <p className="text-sm font-medium text-white">{label}</p>
+        <p className="text-sm font-semibold text-white">{label}</p>
         <p className="mt-0.5 text-xs leading-5 text-[#7f8a9c]">{description}</p>
       </div>
+      <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[#7f8a9c]" />
     </button>
   );
 }
@@ -444,32 +485,46 @@ function FriendRow({
   onOpenDm: (username: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-white/5 px-4 py-4 last:border-b-0 md:flex-row md:items-center md:justify-between md:px-5">
+    <div className="mb-3 flex flex-col gap-4 rounded-[20px] border border-white/6 bg-[#151d29] px-4 py-4 shadow-[0_18px_30px_rgba(4,10,18,0.18)] last:mb-0 md:flex-row md:items-center md:justify-between md:px-5">
+      <button
+        type="button"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[#5b6678] transition-colors hover:bg-white/[0.04] hover:text-white"
+        aria-label={`Открыть ${item.otherUser.profile.displayName}`}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
       <Link
         href={buildUserProfileHref(item.otherUser.username)}
-        className="identity-link rounded-[16px]"
+        className="identity-link min-w-0 flex-1 rounded-[16px]"
       >
-        <UserAvatar user={item.otherUser} size="sm" className="h-12 w-12 text-[13px]" />
+        <UserAvatar user={item.otherUser} size="sm" className="h-14 w-14 text-[14px]" />
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-white">
-            {item.otherUser.profile.displayName}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-white">
+              {item.otherUser.profile.displayName}
+            </p>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
+                item.otherUser.isOnline
+                  ? "bg-[rgba(40,199,111,0.12)] text-[#58d78f]"
+                  : "bg-white/[0.04] text-[#9aa6b8]",
+              )}
+            >
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  item.otherUser.isOnline ? "bg-[#35d17c]" : "bg-[#697588]",
+                )}
+              />
+              {getCompactFriendStatus(item.otherUser)}
+            </span>
+          </div>
           <p className="mt-0.5 truncate text-[13px] text-[#8a95a8]">
             @{item.otherUser.username}
           </p>
-          <p
-            className={cn(
-              "mt-1 inline-flex items-center gap-1.5 text-[12px] font-medium",
-              item.otherUser.isOnline ? "text-[#31c878]" : "text-[#7f8a9c]",
-            )}
-          >
-            <span
-              className={cn(
-                "h-2.5 w-2.5 rounded-full",
-                item.otherUser.isOnline ? "bg-[#31c878]" : "bg-[#7d8798]",
-              )}
-            />
-            {getCompactFriendStatus(item.otherUser)}
+          <p className="mt-1 truncate text-[13px] text-[#8a95a8]">
+            {item.otherUser.profile.bio ?? "Новый контакт в вашем круге общения."}
           </p>
         </div>
       </Link>
@@ -479,7 +534,7 @@ function FriendRow({
           size="sm"
           variant="secondary"
           onClick={() => onOpenDm(item.otherUser.username)}
-          className="h-9 rounded-[12px] border-white/6 bg-white/[0.04] px-3.5 text-[13px] hover:bg-white/[0.06]"
+          className="h-10 rounded-[12px] border-white/6 bg-white/[0.04] px-4 text-[13px] hover:bg-white/[0.06]"
         >
           <MessageSquareMore className="h-[16px] w-[16px]" />
           Написать
@@ -487,7 +542,7 @@ function FriendRow({
         <Link
           href={buildUserProfileHref(item.otherUser.username)}
           aria-label={`Открыть профиль ${item.otherUser.profile.displayName}`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/6 bg-white/[0.04] text-[#9ca9bb] transition-colors hover:bg-white/[0.06] hover:text-white"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] border border-white/6 bg-white/[0.04] text-[#9ca9bb] transition-colors hover:bg-white/[0.06] hover:text-white"
         >
           <Ellipsis className="h-4.5 w-4.5" />
         </Link>
@@ -817,22 +872,79 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
   );
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0d151f] md:bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),#0f1721]">
-      <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_50%_15%,rgba(69,110,185,0.14),transparent_0%,transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.01),transparent_18%)] md:block" />
+    <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0f141d]">
+      <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_top_left,rgba(88,104,255,0.08),transparent_20%),linear-gradient(180deg,rgba(255,255,255,0.012),transparent_16%)] md:block" />
 
       <div className="relative flex h-full min-h-0 flex-col">
-        <div className="border-b border-white/5 px-4 pb-0 pt-5 md:px-6 md:pt-6">
+        <div className="border-b border-white/5 px-4 pb-5 pt-5 md:px-6 md:pt-6 xl:px-8">
           <div className="md:hidden">
             <AppMobileTopNav active="people" />
           </div>
 
-          <div className="mt-4 md:mt-0">
-            <h1 className="text-[30px] font-semibold tracking-[-0.045em] text-white">
-              {activeViewMeta.title}
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-[#8d98aa]">
-              {activeViewMeta.description}
-            </p>
+          <div className="mt-4 flex flex-col gap-5 md:mt-0 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-start gap-3">
+                <div className="hidden h-12 w-12 items-center justify-center rounded-[16px] border border-[rgba(92,105,255,0.25)] bg-[rgba(76,88,255,0.08)] text-[#6f7cff] shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] md:inline-flex">
+                  <Users2 className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-[36px] font-semibold tracking-[-0.05em] text-white">
+                    {activeViewMeta.title}
+                  </h1>
+                  <p className="mt-2 max-w-[760px] text-sm leading-6 text-[#8d98aa]">
+                    Управляйте друзьями, заявками и находите новых знакомых.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
+              <form
+                className="flex h-11 min-w-0 items-center gap-2 rounded-[14px] border border-white/6 bg-[#151d29] px-3 text-[#8d98aa] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] md:w-[320px]"
+                onSubmit={handleSearchSubmit}
+              >
+                <Search className="h-4.5 w-4.5 shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[#79859a]"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Поиск по пользователям..."
+                  aria-label="Поиск по пользователям"
+                  autoComplete="off"
+                />
+                <span className="hidden rounded-[9px] border border-white/6 bg-white/[0.03] px-2 py-1 text-[11px] font-medium text-[#9ca9bb] md:inline-flex">
+                  ⌘K
+                </span>
+              </form>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/6 bg-[#151d29] text-[#a7b0bf] transition-colors hover:text-white"
+                  aria-label="Уведомления"
+                >
+                  <Bell className="h-4.5 w-4.5" />
+                  {pendingCount > 0 ? (
+                    <span className="absolute -right-1 -top-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[#5866ff] px-1.5 text-[11px] font-semibold text-white">
+                      {pendingCount}
+                    </span>
+                  ) : null}
+                </button>
+
+                <Link
+                  href={buildUserProfileHref(viewer.username)}
+                  className="inline-flex items-center gap-3 rounded-full border border-white/6 bg-[#151d29] py-1 pl-1 pr-3 text-white transition-colors hover:border-white/10"
+                >
+                  <UserAvatar
+                    user={viewer}
+                    size="sm"
+                    className="h-10 w-10 text-[12px]"
+                  />
+                  <ChevronDown className="h-4 w-4 text-[#8d98aa]" />
+                </Link>
+              </div>
+            </div>
           </div>
 
           <div className="mt-5">
@@ -845,7 +957,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1180px] px-4 py-4 md:px-6 md:py-5 xl:grid xl:grid-cols-[minmax(0,1fr)_278px] xl:gap-5">
+          <div className="w-full px-4 py-4 md:px-6 md:py-5 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-5 xl:px-8">
             <div className="min-w-0">
               {panelError ? (
                 <div className="mb-4 rounded-[18px] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
@@ -859,7 +971,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                 </div>
               ) : null}
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                   icon={Users2}
                   iconClassName="bg-[#162235] text-[#6ea5ff]"
@@ -893,13 +1005,13 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
               {activeView === "friends" ? (
                 <div className="mt-6">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-center gap-3">
+                    <div>
                       <h2 className="text-[28px] font-semibold tracking-[-0.04em] text-white">
                         Ваши друзья
                       </h2>
-                      <span className="text-[24px] font-semibold tracking-[-0.04em] text-[#9aa7b9]">
-                        {sortedFriends.length}
-                      </span>
+                      <p className="mt-1 text-sm text-[#8d98aa]">
+                        {formatRussianCount(sortedFriends.length, "друг", "друга", "друзей")}
+                      </p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -910,13 +1022,13 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                             current === "name" ? "status" : "name",
                           )
                         }
-                        className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-white/6 bg-white/[0.03] px-3 text-sm font-medium text-[#cfd8e4] transition-colors hover:bg-white/[0.05]"
+                        className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-white/6 bg-[#151d29] px-3 text-sm font-medium text-[#cfd8e4] transition-colors hover:bg-white/[0.05]"
                       >
                         <span>{sortLabels[friendSortMode]}</span>
                         <ChevronDown className="h-4 w-4 text-[#8a96a8]" />
                       </button>
 
-                      <div className="inline-flex h-10 items-center rounded-[12px] border border-white/6 bg-white/[0.03] p-1">
+                      <div className="inline-flex h-10 items-center rounded-[12px] border border-white/6 bg-[#151d29] p-1">
                         <button
                           type="button"
                           onClick={() => setFriendDisplayMode("list")}
@@ -947,7 +1059,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                     </div>
                   </div>
 
-                  <SectionCard className="mt-4">
+                  <SectionCard className="mt-4 overflow-visible border-0 bg-transparent shadow-none">
                     {sortedFriends.length === 0 ? (
                       <EmptyView
                         icon={Users2}
@@ -1496,6 +1608,14 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                     {quickActionNotice}
                   </p>
                 ) : null}
+                <Button
+                  type="button"
+                  onClick={() => void handleCopyProfileLink()}
+                  className="mt-4 h-11 w-full rounded-[14px] border-0 bg-[linear-gradient(90deg,#4250d0,#7b40c8)] text-sm font-semibold text-white hover:opacity-95"
+                >
+                  <UserPlus2 className="h-4 w-4" />
+                  Пригласить друзей
+                </Button>
               </SidebarCard>
 
               <SidebarCard title="Активность друзей" icon={Users2}>
