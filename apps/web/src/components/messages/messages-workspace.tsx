@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  ChevronDown,
   Layers3,
   MessageSquareMore,
   Search,
@@ -146,30 +145,8 @@ export function MessagesWorkspace() {
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0d151f] md:bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),#0f1721]">
       <div className="flex h-full min-h-0 flex-col md:hidden">
         <div className="border-b border-white/5 px-4 pb-3 pt-5">
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 text-[24px] font-semibold tracking-[-0.04em] text-white"
-            >
-              <span>Чаты</span>
-              <ChevronDown
-                size={16}
-                strokeWidth={1.9}
-                className="mt-1 text-[#7b8697]"
-              />
-            </button>
-            <Link
-              href="/app/people?view=discover"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-white/6 bg-white/[0.035] text-[#9ca9bb]"
-              aria-label="Новый чат"
-              title="Новый чат"
-            >
-              <SquarePen size={18} strokeWidth={1.75} />
-            </Link>
-          </div>
-
           <nav
-            className="mt-3 grid grid-cols-4 gap-1"
+            className="grid grid-cols-4 gap-1"
             aria-label="Основная навигация"
           >
             {mobileHeaderLinks.map((item) => (
@@ -331,7 +308,7 @@ export function MessagesWorkspace() {
           )}
         </div>
 
-        <div className="px-4 pb-4 pt-2 text-center text-[12px] text-[#7b8697]">
+        <div className="px-4 pb-2 pt-2 text-center text-[12px] text-[#7b8697]">
           {conversations.length} диалогов
         </div>
       </div>
