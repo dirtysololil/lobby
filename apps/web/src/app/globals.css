@@ -1213,7 +1213,7 @@ textarea {
   border-color: rgba(74, 104, 150, 0.74);
   border-radius: 24px;
   background: rgba(8, 15, 24, 0.98);
-  padding: 0.46rem 0.46rem 0.52rem;
+  padding: 0;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.024),
     0 6px 18px rgba(2, 6, 12, 0.12);
@@ -1226,7 +1226,7 @@ textarea {
 
 .dm-media-frame .dm-media-preview {
   overflow: hidden;
-  border-radius: 17px;
+  border-radius: 22px;
 }
 
 .dm-message-footer-overlay {
@@ -1732,16 +1732,16 @@ textarea {
   .dm-media-frame {
     border-width: 2px;
     border-radius: 25px;
-    padding: 7px;
+    padding: 0;
   }
 
   .dm-media-frame .dm-media-preview {
-    border-radius: 18px;
+    border-radius: 23px;
   }
 
   .dm-message-footer-overlay {
-    right: 13px;
-    bottom: 13px;
+    right: 8px;
+    bottom: 8px;
     min-height: 24px;
     padding: 0 0.48rem;
   }
