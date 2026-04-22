@@ -24,7 +24,6 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { isDirectMessageVideoNote } from "@/lib/direct-message-video-notes";
 import {
   getDirectMessageAttachmentAssetUrl,
@@ -911,15 +910,11 @@ export function MessageThread({
             <p className="text-sm">Сообщений пока нет.</p>
           </div>
         ) : (
-          <div className="space-y-2.5 px-3 py-3">
+          <div className="relative z-[1] space-y-2.5 px-3 py-3 md:px-5 md:py-4">
             {groupedMessages.map((group) => (
               <div key={group.label} className="space-y-1.5">
-                <div className="flex items-center gap-3 py-0.5">
-                  <div className="dm-rule h-px flex-1" />
-                  <span className="dm-date-separator text-[10px] font-medium uppercase tracking-[0.16em]">
-                    {group.label}
-                  </span>
-                  <div className="dm-rule h-px flex-1" />
+                <div className="flex justify-center py-1">
+                  <span className="dm-date-separator">{group.label}</span>
                 </div>
 
                 {group.items.map((message, index) => {
@@ -938,7 +933,8 @@ export function MessageThread({
                     isSticker || isGif || isMediaAttachment || isFileAttachment;
                   const hasReplyPreview = message.replyTo !== null;
                   const isBareMediaMessage =
-                    isMediaLikeMessage && !hasReplyPreview;
+                    (isSticker || isGif || isMediaAttachment) &&
+                    !hasReplyPreview;
                   const isVisualMessage =
                     isSticker || isGif || isMediaAttachment;
                   const hasInlineEmbed =
@@ -985,15 +981,24 @@ export function MessageThread({
                     counterpartLastReadTimestamp !== null &&
                     new Date(message.createdAt).getTime() <=
                       counterpartLastReadTimestamp;
+                  const showAuthorLabel = !isOwn && !continuation;
+                  const messageWidthClassName = cn(
+                    "relative min-w-0",
+                    isRoundVideoNote
+                      ? "w-[min(244px,74vw)] max-w-full"
+                      : isMediaLikeMessage
+                        ? "w-fit max-w-[min(360px,84%)]"
+                        : "max-w-[min(38rem,82%)]",
+                    isOwn && "ml-auto",
+                  );
                   const bubbleClassName = cn(
                     "dm-bubble",
                     isBareMediaMessage &&
                       "border-transparent bg-transparent p-0 shadow-none",
-                    !isBareMediaMessage &&
-                      (isOwn ? "dm-bubble-out ml-auto" : "dm-bubble-in"),
+                    !isBareMediaMessage && (isOwn ? "dm-bubble-out" : "dm-bubble-in"),
                     continuation &&
                       !isBareMediaMessage &&
-                      "rounded-[18px] py-1.5",
+                      "py-[0.62rem]",
                     isContextMenuOpen &&
                       !isBareMediaMessage &&
                       "dm-bubble-highlight",
@@ -1005,6 +1010,41 @@ export function MessageThread({
                       matchingMessageIds.has(message.id) &&
                       !isBareMediaMessage &&
                       "dm-bubble-highlight",
+                  );
+                  const messageFooter = (
+                    <div
+                      className={cn(
+                        "mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-none text-[#7e8b9f]",
+                        isOwn ? "justify-end" : "justify-start",
+                        isBareMediaMessage && "mt-1 px-1.5",
+                      )}
+                    >
+                      {message.localState === "sending" ? (
+                        <span className="dm-message-meta-chip">Отправляем</span>
+                      ) : null}
+                      {message.localState === "uploading" ? (
+                        <span className="dm-message-meta-chip">
+                          Загрузка
+                          {typeof message.uploadProgress === "number"
+                            ? ` ${Math.round(message.uploadProgress * 100)}%`
+                            : ""}
+                        </span>
+                      ) : null}
+                      {message.localState === "failed" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[11px] text-amber-300">
+                          <AlertCircle size={14} strokeWidth={1.5} />
+                          Ошибка
+                        </span>
+                      ) : null}
+                      <span className="tabular-nums text-[#8390a4]">
+                        {formatThreadTime(message.createdAt)}
+                      </span>
+                      {isOwn && isDelivered ? (
+                        <OutgoingMessageDeliveryStatus
+                          isRead={isReadByCounterpart}
+                        />
+                      ) : null}
+                    </div>
                   );
 
                   return (
@@ -1032,9 +1072,9 @@ export function MessageThread({
 
                       <div
                         className={cn(
-                          "group/message flex gap-2.5 py-0.5",
+                          "group/message flex py-[3px]",
                           continuation && "mt-[-1px]",
-                          isOwn && "flex-row-reverse",
+                          isOwn ? "justify-end pr-1 sm:pr-2" : "justify-start pl-1 sm:pl-2",
                         )}
                         onContextMenu={(event) =>
                           handleMessageContextMenu(
@@ -1058,78 +1098,11 @@ export function MessageThread({
                           handleMessageClickCapture(event, message.id)
                         }
                       >
-                        <div className="w-8 shrink-0">
-                          {continuation ? null : (
-                            <UserAvatar
-                              user={message.author}
-                              size="sm"
-                              className={cn(isOwn && "ml-auto")}
-                            />
-                          )}
-                        </div>
-
-                        <div
-                          className={cn(
-                            isRoundVideoNote
-                              ? "min-w-0 w-[min(244px,74vw)] max-w-full"
-                              : isMediaLikeMessage
-                                ? "min-w-0 max-w-[min(360px,100%)] flex-1"
-                                : "min-w-0 max-w-[min(72ch,100%)] flex-1",
-                            isOwn && !isRoundVideoNote && "text-right",
-                            isOwn && isRoundVideoNote && "ml-auto",
-                          )}
-                        >
-                          {!continuation ? (
-                            <div
-                              className={cn(
-                                "mb-1 flex items-center gap-2.5",
-                                isOwn && "justify-end",
-                              )}
-                            >
-                              <p
-                                className={cn(
-                                  "dm-message-author",
-                                  isOwn && "dm-message-author-own",
-                                )}
-                              >
-                                {message.author.profile.displayName}
-                              </p>
-                              {isOwn ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
-                                  <span>
-                                    {formatThreadTime(message.createdAt)}
-                                  </span>
-                                  {isDelivered ? (
-                                    <OutgoingMessageDeliveryStatus
-                                      isRead={isReadByCounterpart}
-                                    />
-                                  ) : null}
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-[var(--text-muted)]">
-                                  {formatThreadTime(message.createdAt)}
-                                </span>
-                              )}
-                              {message.localState === "sending" ? (
-                                <span className="dm-message-meta-chip">
-                                  Отправляем
-                                </span>
-                              ) : null}
-                              {message.localState === "uploading" ? (
-                                <span className="dm-message-meta-chip">
-                                  Загрузка
-                                  {typeof message.uploadProgress === "number"
-                                    ? ` ${Math.round(message.uploadProgress * 100)}%`
-                                    : ""}
-                                </span>
-                              ) : null}
-                              {message.localState === "failed" ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[11px] text-amber-300">
-                                  <AlertCircle size={14} strokeWidth={1.5} />
-                                  Ошибка
-                                </span>
-                              ) : null}
-                            </div>
+                        <div className={messageWidthClassName}>
+                          {showAuthorLabel && isBareMediaMessage ? (
+                            <p className="dm-message-author mb-1 px-1">
+                              {message.author.profile.displayName}
+                            </p>
                           ) : null}
 
                           <div className="relative">
@@ -1150,31 +1123,38 @@ export function MessageThread({
                                 }}
                                 disabled={isDeleting === message.id}
                                 className={cn(
-                                  "dm-action-button absolute -left-9 top-1/2 hidden h-7 w-7 -translate-y-1/2 opacity-0 focus-visible:opacity-100 md:inline-flex disabled:cursor-not-allowed disabled:opacity-50",
+                                  "dm-action-button absolute top-1/2 hidden h-7 w-7 -translate-y-1/2 opacity-0 focus-visible:opacity-100 md:inline-flex disabled:cursor-not-allowed disabled:opacity-50",
+                                  isOwn ? "-left-10" : "-right-10",
                                   (isContextMenuOpen ||
                                     isDeleting === message.id) &&
                                     "opacity-100",
                                   "md:group-hover/message:opacity-100",
                                 )}
                                 aria-label="Действия с сообщением"
+                                style={{ height: 28, width: 28 }}
                               >
                                 <MoreHorizontal size={15} strokeWidth={1.5} />
                               </button>
                             ) : null}
 
                             <div className={bubbleClassName}>
+                              {showAuthorLabel && !isBareMediaMessage ? (
+                                <p className="dm-message-author mb-1.5">
+                                  {message.author.profile.displayName}
+                                </p>
+                              ) : null}
                               {message.replyTo ? (
                                 <button
                                   type="button"
                                   onClick={() =>
                                     focusOriginalMessage(message.replyTo!.id)
                                   }
-                                  className="mb-2 grid w-full min-w-0 gap-0.5 rounded-[12px] border-l-2 border-[var(--accent)] bg-white/[0.04] px-2.5 py-2 text-left transition-colors hover:bg-white/[0.06]"
+                                  className="mb-2.5 grid w-full min-w-0 gap-0.5 rounded-[13px] border border-white/6 bg-black/20 px-3 py-2 text-left transition-colors hover:bg-black/28"
                                 >
-                                  <span className="truncate text-[11px] font-medium text-[var(--text-soft)]">
+                                  <span className="truncate text-[11px] font-medium text-[#8fbaff]">
                                     {message.replyTo.author.profile.displayName}
                                   </span>
-                                  <span className="truncate text-xs text-[var(--text-muted)]">
+                                  <span className="truncate text-xs text-[#8b97a9]">
                                     {buildReplyPreviewText(message.replyTo)}
                                   </span>
                                 </button>
@@ -1346,30 +1326,23 @@ export function MessageThread({
                                     <LinkEmbedCard
                                       embed={message.linkEmbed}
                                       messageCreatedAt={message.createdAt}
-                                      className={cn(
+                                    className={cn(
                                         "w-[min(248px,72vw)]",
-                                        isOwn && "ml-auto",
                                       )}
                                     />
                                   ) : null}
                                 </div>
                               )}
+                              {!isBareMediaMessage ? messageFooter : null}
                             </div>
                           </div>
 
-                          {continuation && isOwn && isDelivered ? (
-                            <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-[var(--text-muted)]">
-                              <span>{formatThreadTime(message.createdAt)}</span>
-                              <OutgoingMessageDeliveryStatus
-                                isRead={isReadByCounterpart}
-                              />
-                            </div>
-                          ) : null}
+                          {isBareMediaMessage ? messageFooter : null}
 
                           {message.localState === "failed" ? (
                             <div
                               className={cn(
-                                "mt-1 flex items-center gap-2 text-[11px]",
+                                "mt-1.5 flex items-center gap-2 px-1.5 text-[11px]",
                                 isOwn ? "justify-end" : "justify-start",
                               )}
                             >

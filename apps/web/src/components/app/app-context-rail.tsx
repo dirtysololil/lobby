@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  ChevronDown,
   Hash,
   House,
   Layers3,
   LockKeyhole,
   MessageSquareMore,
+  Search,
+  SlidersHorizontal,
+  SquarePen,
   Mic,
   Settings2,
   ShieldCheck,
-  UserRoundPlus,
   Users2,
 } from "lucide-react";
 import {
@@ -45,7 +48,10 @@ import {
 } from "@/lib/hub-shell-cache";
 import { adminNavigationItems } from "@/lib/admin-navigation";
 import { cn } from "@/lib/utils";
-import { useRealtime } from "@/components/realtime/realtime-provider";
+import {
+  useOptionalRealtimePresence,
+  useRealtime,
+} from "@/components/realtime/realtime-provider";
 
 interface AppContextRailProps {
   viewer: PublicUser;
@@ -91,6 +97,26 @@ function formatLobbyType(type: string) {
     default:
       return type;
   }
+}
+
+function formatConversationTime(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  const now = new Date();
+  const sameDay = date.toDateString() === now.toDateString();
+
+  return sameDay
+    ? date.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : date.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "short",
+      });
 }
 
 function RailRow({
@@ -143,9 +169,14 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   const searchParams = useSearchParams();
   const route = parseAppPath(safePathname);
   const { latestDmSignal } = useRealtime();
+  const realtimePresence = useOptionalRealtimePresence();
   const [conversations, setConversations] = useState<DirectConversationSummary[]>([]);
   const [hubs, setHubs] = useState<HubSummary[]>([]);
   const [hub, setHub] = useState<HubShell["hub"] | null>(null);
+  const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const [messageFilter, setMessageFilter] = useState<"all" | "personal" | "unread">(
+    "personal",
+  );
   const [peopleSummary, setPeopleSummary] = useState<{
     friends: number;
     incoming: number;
@@ -338,66 +369,234 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
       },
     ].filter((group) => group.items.length > 0);
   }, [hub]);
+  const normalizedMessageSearchQuery = messageSearchQuery.trim().toLowerCase();
+  const filteredConversations = useMemo(() => {
+    const orderedItems = [...conversations].sort((left, right) => {
+      return (
+        new Date(right.lastMessageAt ?? 0).getTime() -
+        new Date(left.lastMessageAt ?? 0).getTime()
+      );
+    });
+
+    return orderedItems.filter((conversation) => {
+      if (messageFilter === "unread" && conversation.unreadCount === 0) {
+        return false;
+      }
+
+      const searchableText = [
+        conversation.counterpart.profile.displayName,
+        conversation.counterpart.username,
+        conversation.lastMessagePreview,
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(" ")
+        .toLowerCase();
+
+      if (!normalizedMessageSearchQuery) {
+        return true;
+      }
+
+      return searchableText.includes(normalizedMessageSearchQuery);
+    });
+  }, [conversations, messageFilter, normalizedMessageSearchQuery]);
 
   return (
-    <aside className="context-rail relative hidden h-full w-56 shrink-0 border-r border-white/5 bg-[#10161f] shadow-[10px_0_26px_rgba(4,8,16,0.18)] md:flex md:flex-col">
-      <div className="border-b border-white/5 px-3 py-3">
-        <div className="flex items-center gap-2 rounded-[16px] border border-white/6 bg-white/[0.03] px-2.5 py-2">
-          <UserAvatar user={viewer} size="sm" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">
-              {viewer.profile.displayName}
-            </p>
-            <p className="truncate text-xs text-[var(--text-muted)]">@{viewer.username}</p>
+    <aside
+      className={cn(
+        "context-rail relative hidden h-full shrink-0 border-r border-white/5 shadow-[10px_0_26px_rgba(4,8,16,0.18)] md:flex md:flex-col",
+        route.section === "messages"
+          ? "w-[19.5rem] bg-[#0d151f]"
+          : "w-60 bg-[#10161f]",
+      )}
+    >
+      {route.section !== "messages" ? (
+        <div className="border-b border-white/5 px-3 py-3">
+          <div className="flex items-center gap-2 rounded-[16px] border border-white/6 bg-white/[0.03] px-2.5 py-2">
+            <UserAvatar user={viewer} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-white">
+                {viewer.profile.displayName}
+              </p>
+              <p className="truncate text-xs text-[var(--text-muted)]">
+                @{viewer.username}
+              </p>
+            </div>
+            <PresenceIndicator user={viewer} compact />
           </div>
-          <PresenceIndicator user={viewer} compact />
         </div>
-      </div>
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {route.section === "messages" ? (
-          <div>
-            <CompactListHeader>
-              <span>Диалоги</span>
-              <Link
-                href="/app/people?view=discover"
-                className="inline-flex items-center gap-1 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white"
-              >
-                <UserRoundPlus {...railIconProps} />
-                Новое
-              </Link>
-            </CompactListHeader>
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="border-b border-white/5 px-4 pb-3 pt-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 text-[27px] font-semibold tracking-[-0.04em] text-white"
+                  >
+                    <span>Чаты</span>
+                    <ChevronDown size={16} strokeWidth={1.9} className="mt-1 text-[#7b8697]" />
+                  </button>
+                </div>
+                <Link
+                  href="/app/people?view=discover"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/6 bg-white/[0.03] text-[#9ca9bb] transition-colors hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
+                  aria-label="Новый чат"
+                  title="Новый чат"
+                >
+                  <SquarePen size={20} strokeWidth={1.65} />
+                </Link>
+              </div>
+            </div>
 
-            {loadingLabel === "messages" ? (
-              <RailEmpty>Загружаем диалоги...</RailEmpty>
-            ) : conversations.length === 0 ? (
-              <RailEmpty>Личных диалогов пока нет.</RailEmpty>
-            ) : (
-              <CompactList>
-                {conversations.map((conversation) => {
-                  const href = `/app/messages/${conversation.id}`;
+            <div className="border-b border-white/5 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <label className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[15px] border border-white/6 bg-white/[0.04] px-3 text-[#9ca9bb] transition-colors focus-within:border-[#3b6ed8]/32 focus-within:bg-white/[0.055]">
+                  <Search size={18} strokeWidth={1.7} className="shrink-0" />
+                  <input
+                    className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[#7b8697]"
+                    value={messageSearchQuery}
+                    onChange={(event) => setMessageSearchQuery(event.target.value)}
+                    placeholder="Поиск"
+                    aria-label="Поиск по диалогам"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-[15px] border border-white/6 bg-white/[0.04] text-[#9ca9bb] transition-colors hover:border-white/10 hover:bg-white/[0.055] hover:text-white"
+                  aria-label="Фильтры диалогов"
+                  title="Фильтры диалогов"
+                >
+                  <SlidersHorizontal size={18} strokeWidth={1.7} />
+                </button>
+              </div>
+
+              <div className="mt-3 flex items-center gap-5 border-b border-white/5 pb-0.5 text-[14px] font-medium text-[#7f8a9c]">
+                {[
+                  { id: "all", label: "Все" },
+                  { id: "personal", label: "Личные" },
+                  { id: "unread", label: "Непрочитанные" },
+                ].map((item) => {
+                  const active = messageFilter === item.id;
 
                   return (
-                    <RailRow
-                      key={conversation.id}
-                      href={href}
-                      active={safePathname === href}
-                      unread={conversation.unreadCount > 0}
-                      leading={<UserAvatar user={conversation.counterpart} size="sm" />}
-                      label={conversation.counterpart.profile.displayName}
-                      detail={
-                        conversation.lastMessagePreview ?? "Сообщений пока нет"
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() =>
+                        setMessageFilter(item.id as "all" | "personal" | "unread")
                       }
-                      meta={
-                        conversation.unreadCount > 0 ? (
-                          <CompactListCount>{conversation.unreadCount}</CompactListCount>
-                        ) : null
-                      }
-                    />
+                      className={cn(
+                        "relative pb-2 transition-colors",
+                        active ? "text-[#4a84ff]" : "hover:text-white",
+                      )}
+                    >
+                      {item.label}
+                      {active ? (
+                        <span className="absolute inset-x-0 bottom-[-2px] h-[2px] rounded-full bg-[#4a84ff]" />
+                      ) : null}
+                    </button>
                   );
                 })}
-              </CompactList>
-            )}
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2.5">
+              {loadingLabel === "messages" ? (
+                <div className="flex h-full items-center justify-center px-4 text-center text-sm text-[#7b8697]">
+                  Загружаем диалоги...
+                </div>
+              ) : filteredConversations.length === 0 ? (
+                <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[#7b8697]">
+                  {messageSearchQuery
+                    ? "По вашему запросу диалогов не найдено."
+                    : "Личных диалогов пока нет."}
+                </div>
+              ) : (
+                <div className="grid gap-1.5">
+                  {filteredConversations.map((conversation) => {
+                    const href = `/app/messages/${conversation.id}`;
+                    const active = safePathname === href;
+                    const liveCounterpart =
+                      realtimePresence !== null
+                        ? {
+                            ...conversation.counterpart,
+                            isOnline: Boolean(
+                              realtimePresence[conversation.counterpart.id],
+                            ),
+                          }
+                        : conversation.counterpart;
+
+                    return (
+                      <Link
+                        key={conversation.id}
+                        href={href}
+                        className={cn(
+                          "group relative grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 rounded-[20px] border px-3 py-3 transition-all duration-150",
+                          active
+                            ? "border-[#3a6cd4]/32 bg-[linear-gradient(180deg,rgba(51,72,104,0.42),rgba(24,31,45,0.92))] shadow-[0_16px_28px_rgba(5,12,22,0.22)]"
+                            : "border-transparent bg-transparent hover:border-white/6 hover:bg-white/[0.035]",
+                        )}
+                      >
+                        {active ? (
+                          <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-[#4a84ff]" />
+                        ) : null}
+
+                        <div className="relative row-span-2 mt-0.5">
+                          <UserAvatar
+                            user={conversation.counterpart}
+                            size="sm"
+                            className="h-11 w-11"
+                          />
+                          <span
+                            className={cn(
+                              "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-[2px] border-[#0d151f] bg-[#6b7381]",
+                              liveCounterpart.isOnline && "bg-[#2ecf7c]",
+                            )}
+                          />
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-[15px] font-medium tracking-[-0.02em] text-white">
+                              {conversation.counterpart.profile.displayName}
+                            </p>
+                            {liveCounterpart.isOnline ? (
+                              <span className="h-2 w-2 rounded-full bg-[#2ecf7c]" />
+                            ) : null}
+                          </div>
+                          <p
+                            className={cn(
+                              "mt-1 truncate text-[14px]",
+                              conversation.unreadCount > 0
+                                ? "text-[#d9e3f2]"
+                                : "text-[#8894a6]",
+                            )}
+                          >
+                            {conversation.lastMessagePreview ?? "Сообщений пока нет"}
+                          </p>
+                        </div>
+
+                        <div className="row-span-2 flex min-w-[2.75rem] flex-col items-end gap-2 text-[12px] text-[#7f8a9c]">
+                          <span>{formatConversationTime(conversation.lastMessageAt)}</span>
+                          {conversation.unreadCount > 0 ? (
+                            <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#4a84ff] px-1.5 text-[11px] font-semibold text-white">
+                              {conversation.unreadCount}
+                            </span>
+                          ) : null}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 pb-4 pt-1 text-center text-[12px] text-[#7b8697]">
+              {conversations.length} диалогов
+            </div>
           </div>
         ) : null}
 

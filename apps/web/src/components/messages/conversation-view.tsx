@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   ArrowLeft,
-  Info,
+  MoreVertical,
   Search,
   ShieldAlert,
   UserRound,
@@ -1085,72 +1085,56 @@ export function ConversationView({
     <div className="dm-shell flex h-full min-h-0 flex-col overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="dm-header relative shrink-0">
-          <div className="flex min-h-[66px] items-center gap-3 px-3 py-2">
+          <div className="flex min-h-[74px] items-center gap-3 px-4 py-3">
             <Link
               href="/app/messages"
               aria-label="Назад к диалогам"
               title="Назад к диалогам"
-              className="dm-action-button md:hidden"
+              className="dm-action-button"
             >
-                <ArrowLeft {...iconProps} />
+              <ArrowLeft {...iconProps} />
             </Link>
 
-            <div className="min-w-0 flex flex-1 items-center gap-3">
-              <div className="dm-avatar-aura shrink-0">
-                <Link
-                href={buildUserProfileHref(counterpart.username)}
-                aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
-                title="Открыть профиль"
-                className="rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)]"
-              >
-                <UserAvatar user={counterpart} size="sm" />
-                </Link>
-                <span className="dm-avatar-particle dm-avatar-particle-1" aria-hidden="true" />
-                <span className="dm-avatar-particle dm-avatar-particle-2" aria-hidden="true" />
-                <span className="dm-avatar-particle dm-avatar-particle-3" aria-hidden="true" />
-                <span className="dm-avatar-particle dm-avatar-particle-4" aria-hidden="true" />
-                <span className="dm-avatar-particle dm-avatar-particle-5" aria-hidden="true" />
+            <Link
+              href={buildUserProfileHref(counterpart.username)}
+              aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
+              title="Открыть профиль"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border border-transparent px-1 py-0.5 transition-colors hover:bg-white/[0.025]"
+            >
+              <div className="relative shrink-0">
+                <UserAvatar user={counterpart} size="sm" className="h-11 w-11" />
+                <span
+                  className={cn(
+                    "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-[2px] border-[#101824] bg-[#6c7484]",
+                    liveCounterpart?.isOnline && "bg-[#2ecf7c]",
+                  )}
+                />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5">
-                  <Link
-                    href={buildUserProfileHref(counterpart.username)}
-                    aria-label={`Открыть профиль ${counterpart.profile.displayName}`}
-                    title="Открыть профиль"
-                    className="dm-identity-title truncate text-[15px] font-semibold tracking-tight transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(106,168,248,0.22)]"
-                  >
+                  <span className="truncate text-[16px] font-semibold tracking-[-0.03em] text-white">
                     {counterpart.profile.displayName}
-                  </Link>
+                  </span>
                   {isBlocked ? (
                     <span className="hidden rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-200 lg:inline-flex">
                       Ограничено
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-[var(--text-muted)]">
-                  <span
-                    className={cn(
-                      "inline-flex h-1.5 w-1.5 rounded-full bg-white/18",
-                      liveCounterpart?.isOnline &&
-                        "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.28)]",
-                    )}
-                  />
-                  <span>@{counterpart.username}</span>
-                  <span className="px-1">•</span>
-                  <span
-                    className={cn(
-                      liveCounterpart?.isOnline
-                        ? "text-emerald-200"
-                        : "text-[var(--text-muted)]",
-                    )}
-                  >
-                    {compactStatusLabel}
+                <p className="mt-1 flex items-center gap-1.5 truncate text-[13px] text-[#8d98aa]">
+                  {liveCounterpart?.isOnline ? (
+                    <span className="h-2 w-2 rounded-full bg-[#2ecf7c]" />
+                  ) : null}
+                  <span>
+                    {liveCounterpart?.isOnline
+                      ? "в сети"
+                      : compactStatusLabel}
                   </span>
                 </p>
               </div>
-            </div>
+            </Link>
 
-            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
               <ConversationHeaderIconButton
                 label="Поиск по диалогу"
                 active={isSearchOpen}
@@ -1176,16 +1160,19 @@ export function ConversationView({
                 active={isInfoPanelOpen}
                 onClick={() => setIsInfoPanelOpen((current) => !current)}
               >
-                <Info {...iconProps} />
+                <MoreVertical {...iconProps} />
               </ConversationHeaderIconButton>
-
             </div>
           </div>
 
           {isSearchOpen ? (
-            <div className="dm-search-row px-3 pb-2 pt-1.5">
+            <div className="dm-search-row px-4 pb-3 pt-0">
               <div className="dm-search-shell">
-                <Search size={16} strokeWidth={1.5} className="shrink-0 text-[var(--text-soft)]" />
+                <Search
+                  size={16}
+                  strokeWidth={1.5}
+                  className="shrink-0 text-[var(--text-soft)]"
+                />
                 <input
                   ref={searchInputRef}
                   value={messageSearchQuery}
@@ -1292,7 +1279,7 @@ export function ConversationView({
           />
         </div>
 
-        <div className="shrink-0 border-t border-white/5 bg-[rgba(11,16,24,0.92)] px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:py-2">
+        <div className="shrink-0 bg-[linear-gradient(180deg,rgba(8,12,18,0.24),rgba(8,12,18,0.96))] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:px-4 md:py-3">
           <MessageComposer
             disabled={isComposerDisabled}
             canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
