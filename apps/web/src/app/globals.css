@@ -225,11 +225,11 @@ textarea {
   }
 
   .workspace-dock-collapsed {
-    transform: translateY(calc(100% - 20px));
+    transform: translateY(calc(100% - 10px));
   }
 
   .workspace-dock-collapsed ~ main {
-    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .workspace-dock-toggle {
@@ -252,9 +252,14 @@ textarea {
       inset 0 1px 0 rgba(255, 255, 255, 0.03),
       0 8px 20px rgba(2, 6, 12, 0.22);
     transition:
+      top 150ms ease,
       border-color 150ms ease,
       background 150ms ease,
       color 150ms ease;
+  }
+
+  .workspace-dock-collapsed .workspace-dock-toggle {
+    top: -6px;
   }
 
   .workspace-dock-toggle:hover {
@@ -1036,6 +1041,29 @@ textarea {
     #0d151f;
 }
 
+.dm-message-viewport {
+  background: #0d151f;
+}
+
+.dm-composer-region {
+  position: relative;
+  z-index: 8;
+  isolation: isolate;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+  background:
+    linear-gradient(180deg, rgba(9, 16, 24, 0.98), #091018 30%),
+    #091018;
+}
+
+.dm-composer-region::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -12px 0 auto;
+  height: 12px;
+  background: linear-gradient(180deg, rgba(9, 16, 24, 0), #091018);
+}
+
 .dm-thread-surface::before {
   content: "";
   pointer-events: none;
@@ -1599,6 +1627,10 @@ textarea {
     background: #091018;
   }
 
+  .dm-message-viewport {
+    background: #091018;
+  }
+
   .dm-thread-surface::before,
   .dm-thread-surface::after {
     display: none;
@@ -1693,9 +1725,16 @@ textarea {
   }
 
   .dm-composer-region {
+    border-top-color: rgba(64, 78, 97, 0.34);
     background: #091018 !important;
     padding: 6px 8px 8px !important;
+    box-shadow: 0 -10px 18px #091018;
     backdrop-filter: none;
+  }
+
+  .dm-composer-region::before {
+    top: -18px;
+    height: 18px;
   }
 
   .dm-video-note-bubble {
