@@ -110,8 +110,8 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
           {isMessagesRoute ? (
             children
           ) : (
-            <div className="min-h-0 flex-1 overflow-hidden p-[4px]">
-              <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),rgba(8,13,20,0.96)]">
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-none border-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),rgba(8,13,20,0.96)]">
                 {children}
               </div>
             </div>
