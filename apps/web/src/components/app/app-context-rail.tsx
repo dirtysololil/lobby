@@ -69,7 +69,7 @@ const peopleViews = [
   { id: "blocked", label: "Блокировки" },
 ] as const;
 
-const railIconProps = { size: 18, strokeWidth: 1.5 } as const;
+const railIconProps = { size: 18, strokeWidth: 1.9 } as const;
 
 function formatMembershipRole(role: string | null | undefined) {
   switch (role) {
@@ -158,7 +158,7 @@ function RailRow({
 
       <span
         className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] transition-all duration-150",
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] transition-all duration-150",
           active
             ? "text-white"
             : "text-[#a6afbd] group-hover:text-white",
@@ -171,7 +171,7 @@ function RailRow({
         <span
           className={cn(
             "block truncate text-sm font-medium leading-tight",
-            active ? "text-white" : "text-[#dbe3ef] group-hover:text-white",
+            active ? "text-white" : "text-[#a6afbd] group-hover:text-white",
           )}
         >
           {label}
@@ -198,7 +198,7 @@ const railHeaderLinkClassName =
   "inline-flex items-center gap-1.5 normal-case tracking-normal text-[#a6afbd] transition-colors hover:text-white";
 const railListClassName = "gap-1.5 px-3 pb-3";
 const railCountClassName =
-  "min-h-6 rounded-full border-white/8 bg-[#111821] px-2.5 text-[11px] font-medium text-[#c7d0dd]";
+  "min-h-6 rounded-full border-white/10 bg-white/[0.026] px-2.5 text-[11px] font-medium text-[#a6afbd]";
 
 function getPeopleViewLeading(viewId: (typeof peopleViews)[number]["id"]) {
   switch (viewId) {
@@ -459,7 +459,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
     >
       {route.section !== "messages" ? (
         <div className="border-b border-white/5 px-3 py-3.5">
-          <div className="flex items-center gap-2.5 rounded-[18px] border border-white/8 bg-[#0f1720] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+          <div className="flex items-center gap-2.5 rounded-[20px] border border-white/13 bg-[#111821] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
             <UserAvatar
               user={viewer}
               size="sm"
@@ -477,7 +477,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
             <PresenceIndicator
               user={viewer}
               compact
-              className="border-white/8 bg-white/[0.026] px-2.5 py-1 text-[11px] text-[#d7dfeb]"
+              className="border-white/10 bg-white/[0.026] px-2.5 py-1 text-[11px] text-[#a6afbd]"
             />
           </div>
         </div>
