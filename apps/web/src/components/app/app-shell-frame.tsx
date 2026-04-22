@@ -31,11 +31,11 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const effectiveActivityOpen = activityAvailable && activityOpen;
   const isMessagesRoute = route.section === "messages";
   const desktopGridColumns = isMessagesRoute
-    ? "md:grid-cols-[114px_306px_minmax(0,1fr)]"
-    : "md:grid-cols-[80px_15rem_minmax(0,1fr)]";
+    ? "md:grid-cols-[88px_306px_minmax(0,1fr)]"
+    : "md:grid-cols-[88px_15rem_minmax(0,1fr)]";
   const dockedGridColumns = isMessagesRoute
-    ? "2xl:grid-cols-[114px_306px_minmax(0,1fr)_18rem]"
-    : "2xl:grid-cols-[80px_15rem_minmax(0,1fr)_18rem]";
+    ? "2xl:grid-cols-[88px_306px_minmax(0,1fr)_18rem]"
+    : "2xl:grid-cols-[88px_15rem_minmax(0,1fr)_18rem]";
 
   useEffect(() => {
     if (typeof window === "undefined") {
