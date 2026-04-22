@@ -77,7 +77,14 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
         <AppSidebar viewer={viewer} />
         <AppContextRail viewer={viewer} />
 
-        <main className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.008),transparent_18%)] pb-[var(--app-mobile-dock-clearance)] md:pb-0">
+        <main
+          className={cn(
+            "relative flex min-h-0 min-w-0 flex-col overflow-hidden pb-[var(--app-mobile-dock-clearance)] md:pb-0",
+            isMessagesRoute
+              ? "bg-[#0c141d]"
+              : "bg-[linear-gradient(180deg,rgba(255,255,255,0.008),transparent_18%)]",
+          )}
+        >
           {activityAvailable ? (
             <button
               type="button"
@@ -100,11 +107,17 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
           <IncomingCallBanner />
           <NotificationSoundManager viewer={viewer} />
 
-          <div className="min-h-0 flex-1 overflow-hidden p-[4px]">
-            <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),rgba(8,13,20,0.96)]">
+          {isMessagesRoute ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               {children}
             </div>
-          </div>
+          ) : (
+            <div className="min-h-0 flex-1 overflow-hidden p-[4px]">
+              <div className="shell-frame flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),rgba(8,13,20,0.96)]">
+                {children}
+              </div>
+            </div>
+          )}
         </main>
 
         {showDockedActivityRail ? (
