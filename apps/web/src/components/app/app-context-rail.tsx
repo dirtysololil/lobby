@@ -66,6 +66,7 @@ const peopleViews = [
   { id: "friends", label: "Друзья" },
   { id: "requests", label: "Заявки" },
   { id: "discover", label: "Поиск" },
+  { id: "suggested", label: "Возможные друзья" },
   { id: "blocked", label: "Блокировки" },
 ] as const;
 
