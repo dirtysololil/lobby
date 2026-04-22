@@ -1566,14 +1566,14 @@ textarea {
   }
 
   .dm-header-row {
-    min-height: 82px;
-    gap: 10px;
-    padding: 18px 17px 13px 18px;
+    min-height: 60px;
+    gap: 9px;
+    padding: 8px 14px;
   }
 
   .dm-header-back-button {
-    height: 42px;
-    width: 32px;
+    height: 36px;
+    width: 30px;
     flex-shrink: 0;
     border: 0;
     border-radius: 999px;
@@ -1589,13 +1589,13 @@ textarea {
   .dm-header-profile-link {
     max-width: min(46vw, 14rem);
     flex: 0 1 auto;
-    gap: 12px;
+    gap: 10px;
     padding: 0;
   }
 
   .dm-header-avatar {
-    height: 40px;
-    width: 40px;
+    height: 34px;
+    width: 34px;
   }
 
   .dm-header-copy {
@@ -1604,7 +1604,7 @@ textarea {
   }
 
   .dm-header-title {
-    font-size: 17px;
+    font-size: 15.5px;
     font-weight: 700;
     letter-spacing: 0;
     line-height: 1.08;
@@ -1612,23 +1612,23 @@ textarea {
 
   .dm-header-status {
     margin-top: 0;
-    font-size: 13.5px;
-    line-height: 1.24;
+    font-size: 12.5px;
+    line-height: 1.18;
     color: #8e98a8;
   }
 
   .dm-header-actions {
-    gap: 13px;
+    gap: 10px;
     padding-right: 0;
   }
 
   .dm-header-actions > .flex {
-    gap: 13px;
+    gap: 10px;
   }
 
   .dm-header-tool-button {
-    height: 38px;
-    width: 30px;
+    height: 34px;
+    width: 28px;
     border-radius: 999px;
     color: #eef4fb;
   }
@@ -1856,6 +1856,9 @@ textarea {
 @media (max-width: 380px) {
   .dm-header-row {
     gap: 8px;
+    min-height: 60px;
+    padding-top: 8px;
+    padding-bottom: 8px;
     padding-right: 10px;
     padding-left: 12px;
   }
@@ -1866,8 +1869,8 @@ textarea {
   }
 
   .dm-header-avatar {
-    height: 36px;
-    width: 36px;
+    height: 32px;
+    width: 32px;
   }
 
   .dm-header-title {
