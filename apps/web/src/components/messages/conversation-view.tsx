@@ -1082,9 +1082,8 @@ export function ConversationView({
   }
 
   return (
-    <div className="dm-shell flex h-full min-h-0 flex-col overflow-hidden">
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="dm-header relative shrink-0">
+    <div className="dm-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="dm-header relative shrink-0">
           <div className="flex min-h-[66px] items-center gap-3 px-4 py-2">
             <Link
               href="/app/messages"
@@ -1215,101 +1214,100 @@ export function ConversationView({
             </div>
           ) : null}
 
-          <div ref={callStageHostRef} className="contents" />
-        </div>
+        <div ref={callStageHostRef} className="contents" />
+      </div>
 
-        {errorMessage ? (
-          <div className="shrink-0 border-b border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
-            {errorMessage}
+      {errorMessage ? (
+        <div className="shrink-0 border-b border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+          {errorMessage}
+        </div>
+      ) : null}
+
+      {!errorMessage && writeRestrictionMessage ? (
+        <div className="shrink-0 border-b border-white/5 bg-[rgba(20,29,40,0.74)] px-3 py-2 text-sm text-[var(--text-soft)]">
+          {writeRestrictionMessage}
+        </div>
+      ) : null}
+
+      <div
+        ref={messageViewportRef}
+        className="relative min-h-0 flex-1"
+        onDragEnter={(event) => {
+          event.preventDefault();
+          handleDragEnter();
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault();
+
+          if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            return;
+          }
+
+          handleDragLeave();
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          handleDropFiles(event.dataTransfer.files);
+        }}
+      >
+        <MessageThread
+          viewerId={viewerId}
+          messages={messages}
+          isDeleting={isDeleting}
+          lastReadAt={viewerParticipant.lastReadAt}
+          counterpartLastReadAt={counterpartParticipant?.lastReadAt ?? null}
+          customEmojis={pickerCatalog?.customEmojis ?? []}
+          forceScrollToBottomToken={forceThreadScrollToken}
+          searchQuery={messageSearchQuery}
+          onReply={replyToThreadMessage}
+          onDelete={deleteMessage}
+          onRetry={retryMessage}
+        />
+        {isDraggingFiles ? (
+          <div className="pointer-events-none absolute inset-3 z-20 flex items-center justify-center rounded-[24px] border border-[rgba(106,168,248,0.28)] bg-[rgba(8,16,26,0.74)] text-sm text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-sm">
+            Перетащите фото, видео или документ, чтобы отправить
           </div>
         ) : null}
+        <MovableConversationInfoPanel
+          containerRef={messageViewportRef}
+          conversationId={conversationId}
+          isOpen={isInfoPanelOpen}
+          notificationSetting={viewerParticipant.notificationSetting}
+          retentionMode={conversation.retentionMode}
+          retentionSeconds={conversation.retentionSeconds}
+          onClose={() => setIsInfoPanelOpen(false)}
+          onSave={saveSettings}
+        />
+      </div>
 
-        {!errorMessage && writeRestrictionMessage ? (
-          <div className="shrink-0 border-b border-white/5 bg-[rgba(20,29,40,0.74)] px-3 py-2 text-sm text-[var(--text-soft)]">
-            {writeRestrictionMessage}
-          </div>
-        ) : null}
-
-        <div
-          ref={messageViewportRef}
-          className="relative min-h-0 flex-1"
-          onDragEnter={(event) => {
-            event.preventDefault();
-            handleDragEnter();
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-          }}
-          onDragLeave={(event) => {
-            event.preventDefault();
-
-            if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
-              return;
-            }
-
-            handleDragLeave();
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            handleDropFiles(event.dataTransfer.files);
-          }}
-        >
-          <MessageThread
-            viewerId={viewerId}
-            messages={messages}
-            isDeleting={isDeleting}
-            lastReadAt={viewerParticipant.lastReadAt}
-            counterpartLastReadAt={counterpartParticipant?.lastReadAt ?? null}
-            customEmojis={pickerCatalog?.customEmojis ?? []}
-            forceScrollToBottomToken={forceThreadScrollToken}
-            searchQuery={messageSearchQuery}
-            onReply={replyToThreadMessage}
-            onDelete={deleteMessage}
-            onRetry={retryMessage}
-          />
-          {isDraggingFiles ? (
-            <div className="pointer-events-none absolute inset-3 z-20 flex items-center justify-center rounded-[24px] border border-[rgba(106,168,248,0.28)] bg-[rgba(8,16,26,0.74)] text-sm text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-sm">
-              Перетащите фото, видео или документ, чтобы отправить
-            </div>
-          ) : null}
-          <MovableConversationInfoPanel
-            containerRef={messageViewportRef}
-            conversationId={conversationId}
-            isOpen={isInfoPanelOpen}
-            notificationSetting={viewerParticipant.notificationSetting}
-            retentionMode={conversation.retentionMode}
-            retentionSeconds={conversation.retentionSeconds}
-            onClose={() => setIsInfoPanelOpen(false)}
-            onSave={saveSettings}
-          />
-        </div>
-
-        <div className="shrink-0 bg-[linear-gradient(180deg,rgba(8,12,18,0.16),rgba(8,12,18,0.96))] px-4 pt-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:px-5 md:py-2.5">
-          <MessageComposer
-            disabled={isComposerDisabled}
-            canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
-            pickerCatalog={pickerCatalog}
-            isPickerCatalogLoading={isPickerCatalogLoading}
-            pickerCatalogError={pickerCatalogError}
-            isUploadingFiles={isUploadingFiles}
-            onRefreshPickerCatalog={refreshPickerCatalog}
-            onStickerCatalogChange={(catalog) =>
-              setPickerCatalog((current) =>
-                current
-                  ? {
-                      ...current,
-                      stickers: catalog,
-                    }
-                  : current,
-              )
-            }
-            onUploadFiles={(files, mode) => uploadFiles(files, mode)}
-            onSend={sendMessage}
-            replyToMessage={replyToMessage}
-            onCancelReply={() => setReplyToMessage(null)}
-          />
-        </div>
-      </section>
+      <div className="shrink-0 bg-[linear-gradient(180deg,rgba(8,12,18,0.16),rgba(8,12,18,0.96))] px-4 pt-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:px-5 md:py-2.5">
+        <MessageComposer
+          disabled={isComposerDisabled}
+          canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
+          pickerCatalog={pickerCatalog}
+          isPickerCatalogLoading={isPickerCatalogLoading}
+          pickerCatalogError={pickerCatalogError}
+          isUploadingFiles={isUploadingFiles}
+          onRefreshPickerCatalog={refreshPickerCatalog}
+          onStickerCatalogChange={(catalog) =>
+            setPickerCatalog((current) =>
+              current
+                ? {
+                    ...current,
+                    stickers: catalog,
+                  }
+                : current,
+            )
+          }
+          onUploadFiles={(files, mode) => uploadFiles(files, mode)}
+          onSend={sendMessage}
+          replyToMessage={replyToMessage}
+          onCancelReply={() => setReplyToMessage(null)}
+        />
+      </div>
 
       {isInfoPanelOpen ? (
         <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-3 py-2.5 md:hidden 2xl:hidden">
