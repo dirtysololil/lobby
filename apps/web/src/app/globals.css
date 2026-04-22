@@ -1864,8 +1864,8 @@ textarea {
   }
 
   .dm-header-profile-link {
-    max-width: 108px;
-    gap: 8px;
+    max-width: 136px;
+    gap: 7px;
   }
 
   .dm-header-avatar {
@@ -1883,11 +1883,11 @@ textarea {
 
   .dm-header-actions,
   .dm-header-actions > .flex {
-    gap: 8px;
+    gap: 5px;
   }
 
   .dm-header-tool-button {
-    width: 28px;
+    width: 24px;
   }
 
   .dm-composer-region {
