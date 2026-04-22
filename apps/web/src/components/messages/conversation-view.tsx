@@ -1231,7 +1231,7 @@ export function ConversationView({
 
       <div
         ref={messageViewportRef}
-        className="relative min-h-0 flex-1"
+        className="dm-message-viewport relative min-h-0 flex-1 overflow-hidden"
         onDragEnter={(event) => {
           event.preventDefault();
           handleDragEnter();
