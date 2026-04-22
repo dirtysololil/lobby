@@ -169,10 +169,10 @@ export function MessagesWorkspace() {
           </div>
 
           <nav
-            className="mt-3 grid grid-cols-5 gap-1"
+            className="mt-3 grid grid-cols-4 gap-1"
             aria-label="Основная навигация"
           >
-            {mobileHeaderLinks.slice(0, 3).map((item) => (
+            {mobileHeaderLinks.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -187,32 +187,11 @@ export function MessagesWorkspace() {
                 <span className="max-w-full truncate">{item.label}</span>
               </Link>
             ))}
-            <button
-              type="button"
-              className="inline-flex min-h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] text-[11px] font-medium tracking-[-0.01em] text-[#8e99aa] transition-colors hover:bg-white/[0.03] hover:text-white"
-              aria-label="Фильтры диалогов"
-              title="Фильтры диалогов"
-            >
-              <SlidersHorizontal {...mobileNavIconProps} />
-              <span className="max-w-full truncate">Фильтры</span>
-            </button>
-            {mobileHeaderLinks.slice(3).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-label={item.label}
-                title={item.label}
-                className="inline-flex min-h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] text-[11px] font-medium tracking-[-0.01em] text-[#8e99aa] transition-colors hover:bg-white/[0.03] hover:text-white"
-              >
-                <item.icon {...mobileNavIconProps} />
-                <span className="max-w-full truncate">{item.label}</span>
-              </Link>
-            ))}
           </nav>
         </div>
 
         <div className="border-b border-white/5 px-4 py-3">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-[14px] border border-white/6 bg-white/[0.04] px-3 text-[#9ca9bb] focus-within:border-[#3b6ed8]/32">
               <Search size={17} strokeWidth={1.75} className="shrink-0" />
               <input
@@ -223,6 +202,14 @@ export function MessagesWorkspace() {
                 aria-label="Поиск по диалогам"
               />
             </label>
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/6 bg-white/[0.04] text-[#9ca9bb]"
+              aria-label="Фильтры диалогов"
+              title="Фильтры диалогов"
+            >
+              <SlidersHorizontal size={17} strokeWidth={1.75} />
+            </button>
           </div>
 
           <div className="mt-3 flex items-center gap-6 border-b border-white/5 pb-0.5 pl-1 text-[13px] font-medium text-[#7f8a9c]">
