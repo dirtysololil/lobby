@@ -10,7 +10,6 @@ import type {
 } from "@lobby/shared";
 import {
   FileText,
-  Grid2X2,
   ImagePlus,
   Mic,
   Paperclip,
@@ -654,22 +653,6 @@ export function MessageComposer({
               <Paperclip {...iconProps} />
             </Button>
 
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={disabled || isUploadingFiles}
-              onClick={() => void togglePickerTab("sticker")}
-              className={cn(
-                "dm-composer-cluster-button",
-                pickerOpen &&
-                  activeTab === "sticker" &&
-                  "dm-composer-cluster-button-active",
-              )}
-              aria-label="Открыть стикеры и GIF"
-            >
-              <Grid2X2 {...iconProps} />
-            </Button>
           </div>
 
           <div className="dm-composer-input-shell">
