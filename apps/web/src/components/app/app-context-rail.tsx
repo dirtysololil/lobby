@@ -142,7 +142,7 @@ function RailRow({
       className={cn(
         "group relative flex w-full min-w-0 items-center gap-3 rounded-[15px] px-3 py-2.5 transition-all duration-150",
         active
-          ? "bg-[#101b27] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
+          ? "text-white"
           : "text-[#a6afbd] hover:bg-white/[0.026] hover:text-white",
         unread &&
           !active &&
@@ -160,7 +160,7 @@ function RailRow({
         className={cn(
           "flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] transition-all duration-150",
           active
-            ? "text-white"
+            ? "bg-[#101b27] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
             : "text-[#a6afbd] group-hover:text-white",
         )}
       >
