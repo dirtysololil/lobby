@@ -9,8 +9,8 @@ import type {
   StickerCatalog,
 } from "@lobby/shared";
 import {
-  Bookmark,
   FileText,
+  Grid2X2,
   ImagePlus,
   Mic,
   Paperclip,
@@ -668,7 +668,7 @@ export function MessageComposer({
               )}
               aria-label="Открыть стикеры и GIF"
             >
-              <Bookmark {...iconProps} />
+              <Grid2X2 {...iconProps} />
             </Button>
           </div>
 

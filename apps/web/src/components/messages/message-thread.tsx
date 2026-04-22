@@ -910,7 +910,7 @@ export function MessageThread({
             <p className="text-sm">Сообщений пока нет.</p>
           </div>
         ) : (
-          <div className="relative z-[1] space-y-3 px-4 py-4 md:px-7 md:py-5">
+          <div className="dm-thread-stack relative z-[1] space-y-3 px-4 py-4 md:px-7 md:py-5">
             {groupedMessages.map((group) => (
               <div key={group.label} className="space-y-1">
                 <div className="flex justify-center py-1">
@@ -937,6 +937,8 @@ export function MessageThread({
                     (isSticker || isGif || isMediaAttachment) &&
                     !hasReplyPreview &&
                     !hasAttachmentCaption;
+                  const isBareFramedMediaMessage =
+                    isBareMediaMessage && isMediaAttachment && !isRoundVideoNote;
                   const isVisualMessage =
                     isSticker || isGif || isMediaAttachment;
                   const hasInlineEmbed =
@@ -1010,8 +1012,12 @@ export function MessageThread({
                   const bubbleClassName = cn(
                     "dm-bubble",
                     isBareMediaMessage &&
+                      !isBareFramedMediaMessage &&
                       "border-transparent bg-transparent p-0 shadow-none",
-                    !isBareMediaMessage && (isOwn ? "dm-bubble-out" : "dm-bubble-in"),
+                    isBareFramedMediaMessage &&
+                      (isOwn ? "dm-media-frame dm-media-frame-own" : "dm-media-frame"),
+                    !isBareMediaMessage &&
+                      (isOwn ? "dm-bubble-out" : "dm-bubble-in"),
                     continuation &&
                       !isBareMediaMessage &&
                       "py-[0.58rem]",
@@ -1030,9 +1036,12 @@ export function MessageThread({
                   const messageFooter = (
                     <div
                       className={cn(
-                        "mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-none text-[#7e8b9f]",
+                        "dm-message-footer mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-none text-[#7e8b9f]",
                         isOwn ? "justify-end" : "justify-start",
-                        isBareMediaMessage && "mt-1 px-1.5",
+                        isBareMediaMessage &&
+                          !isBareFramedMediaMessage &&
+                          "mt-1 px-1.5",
+                        isBareFramedMediaMessage && "px-1",
                       )}
                     >
                       {message.localState === "sending" ? (
@@ -1282,8 +1291,8 @@ export function MessageThread({
                                       isRoundVideoNote
                                         ? "dm-video-note-bubble"
                                         : isWideMediaPreview
-                                          ? "w-[min(360px,74vw)]"
-                                          : "w-[min(284px,72vw)]"
+                                          ? "dm-media-preview dm-media-preview-wide"
+                                          : "dm-media-preview dm-media-preview-regular"
                                     }
                                     previewPlayback={
                                       isRoundVideoNote ? "always" : "visible"
@@ -1383,11 +1392,15 @@ export function MessageThread({
                                   ) : null}
                                 </div>
                               )}
-                              {!isBareMediaMessage ? messageFooter : null}
+                              {!isBareMediaMessage || isBareFramedMediaMessage
+                                ? messageFooter
+                                : null}
                             </div>
                           </div>
 
-                          {isBareMediaMessage ? messageFooter : null}
+                          {isBareMediaMessage && !isBareFramedMediaMessage
+                            ? messageFooter
+                            : null}
 
                           {message.localState === "failed" ? (
                             <div
