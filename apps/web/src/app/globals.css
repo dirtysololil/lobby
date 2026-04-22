@@ -1835,6 +1835,7 @@ textarea {
 
   .dm-composer-textarea {
     min-height: 1.5rem;
+    padding-top: 8px;
     font-size: 14.5px;
     line-height: 1.32;
   }
