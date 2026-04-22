@@ -36,7 +36,7 @@ const utilityLinks = [
   },
 ] as const;
 
-const railIconProps = { size: 23, strokeWidth: 1.8 } as const;
+const railIconProps = { size: 22, strokeWidth: 2.15 } as const;
 
 function SidebarIconLink({
   active,
@@ -57,17 +57,17 @@ function SidebarIconLink({
       aria-label={label}
       title={label}
       className={cn(
-        "group relative inline-flex h-11 w-11 items-center justify-center rounded-[14px] border border-transparent text-[#99a5b6] transition-all duration-150 md:h-[58px] md:w-[58px] md:rounded-[18px]",
-        "hover:border-white/6 hover:bg-white/[0.028] hover:text-white",
+        "group relative inline-flex h-11 w-11 items-center justify-center rounded-[14px] text-[#a6afbd] transition-all duration-150 md:h-[52px] md:w-[52px] md:rounded-[15px]",
+        "hover:bg-white/[0.026] hover:text-white",
         active &&
-          "border-[#183963] bg-[#101923] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+          "bg-[#101b27] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]",
         className,
       )}
     >
       {active ? (
         <>
-          <span className="pointer-events-none absolute left-[-24px] top-1/2 hidden h-11 w-10 -translate-y-1/2 rounded-full bg-[#4a84ff]/18 blur-[14px] md:block" />
-          <span className="pointer-events-none absolute left-[-18px] top-1/2 hidden h-10 w-[3px] -translate-y-1/2 rounded-full bg-[#4a84ff] shadow-[0_0_14px_rgba(74,132,255,0.55)] md:block" />
+          <span className="pointer-events-none absolute left-[-20px] top-1/2 hidden h-12 w-10 -translate-y-1/2 rounded-full bg-[#4a84ff]/16 blur-[14px] md:block" />
+          <span className="pointer-events-none absolute left-[-18px] top-1/2 hidden h-11 w-[2px] -translate-y-1/2 rounded-full bg-[#4a84ff] shadow-[0_0_13px_rgba(74,132,255,0.58)] md:block" />
         </>
       ) : null}
       {children}
@@ -81,22 +81,22 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
   const isMessagesRoute = matchesPath(safePathname, "/app/messages");
 
   return (
-    <aside className="workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#0a1016] md:static md:inset-auto md:z-auto md:flex md:h-full md:w-[114px] md:flex-col md:border-r md:border-t-0 md:bg-[#0a1016]">
-      <div className="flex h-full items-center justify-between gap-2 px-2 py-2 md:flex-col md:items-center md:justify-start md:px-0 md:py-4">
+    <aside className="workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#0a1016] md:static md:inset-auto md:z-auto md:flex md:h-full md:w-[88px] md:flex-col md:border-r md:border-t-0 md:bg-[#0a1016]">
+      <div className="flex h-full items-center justify-between gap-2 px-2 py-2 md:flex-col md:items-center md:justify-start md:px-0 md:pb-4 md:pt-[28px]">
         <Link
           href="/app/messages"
-          className="hidden h-[58px] w-[58px] items-center justify-center rounded-[16px] border border-white/12 bg-[#121923] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] md:flex"
+          className="hidden h-[46px] w-[46px] items-center justify-center rounded-[11px] border border-white/13 bg-[#111821] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] md:flex"
           aria-label="Lobby"
           title="Lobby"
         >
-          <span className="select-none text-[18px] font-semibold tracking-[-0.08em] text-white">
+          <span className="select-none text-[14px] font-bold tracking-[-0.07em] text-white">
             LB
           </span>
         </Link>
 
-        <div className="hidden h-px w-[82px] bg-white/6 md:mt-6 md:block" />
+        <div className="hidden h-px w-[74px] bg-white/6 md:mt-[28px] md:block" />
 
-        <nav className="flex items-center gap-1.5 md:mt-6 md:flex-col md:gap-3">
+        <nav className="flex items-center gap-1.5 md:mt-[18px] md:flex-col md:gap-[18px]">
           {coreLinks.map((item) => (
             <SidebarIconLink
               key={item.href}
@@ -109,9 +109,9 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
           ))}
         </nav>
 
-        <div className="hidden h-px w-[82px] bg-white/6 md:mt-6 md:block" />
+        <div className="hidden h-px w-[74px] bg-white/6 md:mt-[28px] md:block" />
 
-        <div className="ml-auto flex items-center gap-1.5 md:mt-auto md:flex-col md:gap-3 md:pb-3">
+        <div className="ml-auto flex items-center gap-1.5 md:mt-auto md:flex-col md:gap-[18px] md:pb-3">
           {utilityLinks.map((item) => (
             <SidebarIconLink
               key={item.href}
@@ -144,7 +144,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
               showIcon
               variant="ghost"
               size="sm"
-              className="hidden h-[58px] w-[58px] rounded-[18px] border border-transparent bg-transparent px-0 text-[#99a5b6] transition-all duration-150 hover:border-white/6 hover:bg-white/[0.028] hover:text-white [&_svg]:h-[23px] [&_svg]:w-[23px] md:inline-flex"
+              className="hidden h-[52px] w-[52px] rounded-[15px] border-0 bg-transparent px-0 text-[#a6afbd] transition-all duration-150 hover:bg-white/[0.026] hover:text-white [&_svg]:h-[22px] [&_svg]:w-[22px] [&_svg]:stroke-[2.15] md:inline-flex"
             />
           ) : null}
 
@@ -157,7 +157,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
             <UserAvatar
               user={viewer}
               size="lg"
-              className="h-11 w-11 text-[11px]"
+              className="h-[46px] w-[46px] text-[11px]"
             />
           </Link>
         </div>

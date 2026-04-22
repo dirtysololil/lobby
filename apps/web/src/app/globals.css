@@ -205,9 +205,7 @@ textarea {
 }
 
 .workspace-dock {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.014), transparent 18%),
-    linear-gradient(180deg, rgba(12, 19, 28, 0.99), rgba(12, 19, 28, 0.97));
+  background: #0a1016;
 }
 
 @media (max-width: 767px) {
