@@ -65,9 +65,6 @@ const directMessageWithAuthorInclude = {
   sticker: true,
   gif: true,
   attachment: true,
-  replyTo: {
-    include: directMessageReplyPreviewInclude,
-  },
   linkEmbed: true,
 } satisfies Prisma.DirectMessageInclude;
 
@@ -309,6 +306,11 @@ export class DirectMessagesService implements OnModuleInit {
     const lastSeenAtByUserId = await this.getLastSeenAtByUserIds(
       conversation.participants.map((participant) => participant.userId),
     );
+    const hydratedMessages = await this.hydrateMessageReplies(
+      [...conversation.messages].sort(
+        (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
+      ),
+    );
 
     return toDirectConversationDetail({
       conversationId: conversation.id,
@@ -319,9 +321,7 @@ export class DirectMessagesService implements OnModuleInit {
       isBlockedByViewer: relationship.isBlockedByViewer,
       hasBlockedViewer: relationship.hasBlockedViewer,
       participants: conversation.participants,
-      messages: [...conversation.messages].sort(
-        (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
-      ),
+      messages: hydratedMessages,
       lastSeenAtByUserId,
     });
   }
@@ -389,10 +389,15 @@ export class DirectMessagesService implements OnModuleInit {
             ? this.buildStickerSnapshot(sticker)
             : Prisma.JsonNull,
           gifId: gif?.id ?? null,
-          replyToMessageId,
         },
         include: directMessageWithAuthorInclude,
       });
+
+      await this.attachReplyTarget(
+        transaction,
+        createdMessage.id,
+        replyToMessageId,
+      );
 
       if (linkCandidate) {
         await transaction.directMessageLinkEmbed.create({
@@ -556,7 +561,6 @@ export class DirectMessagesService implements OnModuleInit {
           data: {
             conversationId,
             authorId: actor.id,
-            replyToMessageId,
             type:
               processed.kind === 'DOCUMENT'
                 ? DirectMessageType.FILE
@@ -584,6 +588,12 @@ export class DirectMessagesService implements OnModuleInit {
           },
           include: directMessageWithAuthorInclude,
         });
+
+        await this.attachReplyTarget(
+          transaction,
+          createdMessage.id,
+          replyToMessageId,
+        );
 
         await transaction.directConversation.update({
           where: {
@@ -1330,6 +1340,9 @@ export class DirectMessagesService implements OnModuleInit {
         : ((await this.getLastSeenAtByUserIds([counterpart.userId])).get(
             counterpart.userId,
           ) ?? null);
+    const [lastMessage] = await this.hydrateMessageReplies(
+      conversation.messages.slice(0, 1),
+    );
 
     return toDirectConversationSummary({
       conversationId: conversation.id,
@@ -1340,7 +1353,7 @@ export class DirectMessagesService implements OnModuleInit {
       counterpart: counterpart.user,
       counterpartLastSeenAt,
       participant,
-      lastMessage: conversation.messages[0] ?? null,
+      lastMessage: lastMessage ?? null,
       friendshipState: relationship.friendshipState,
       isBlockedByViewer: relationship.isBlockedByViewer,
       hasBlockedViewer: relationship.hasBlockedViewer,
@@ -1492,6 +1505,85 @@ export class DirectMessagesService implements OnModuleInit {
     return targetMessage.id;
   }
 
+  private async attachReplyTarget(
+    transaction: Prisma.TransactionClient,
+    messageId: string,
+    replyToMessageId: string | null,
+  ): Promise<void> {
+    if (!replyToMessageId) {
+      return;
+    }
+
+    await transaction.$executeRaw`
+      UPDATE \`DirectMessage\`
+      SET \`replyToMessageId\` = ${replyToMessageId}
+      WHERE \`id\` = ${messageId}
+    `;
+  }
+
+  private async hydrateMessageReplies(
+    messages: MessageWithAuthor[],
+  ): Promise<MessageWithAuthor[]> {
+    if (messages.length === 0) {
+      return messages;
+    }
+
+    const replyTargetIdsByMessageId = await this.loadReplyTargetIdsByMessageIds(
+      messages.map((message) => message.id),
+    );
+
+    if (replyTargetIdsByMessageId.size === 0) {
+      return messages.map((message) => ({
+        ...message,
+        replyTo: null,
+      }));
+    }
+
+    const replyTargetIds = [...new Set(replyTargetIdsByMessageId.values())];
+    const replyTargets = await this.prisma.directMessage.findMany({
+      where: {
+        id: {
+          in: replyTargetIds,
+        },
+      },
+      include: directMessageReplyPreviewInclude,
+    });
+    const replyTargetsById = new Map(
+      replyTargets.map((message) => [message.id, message]),
+    );
+
+    return messages.map((message) => ({
+      ...message,
+      replyTo:
+        replyTargetsById.get(replyTargetIdsByMessageId.get(message.id) ?? '') ??
+        null,
+    }));
+  }
+
+  private async loadReplyTargetIdsByMessageIds(messageIds: string[]) {
+    if (messageIds.length === 0) {
+      return new Map<string, string>();
+    }
+
+    const replyLinks = await this.prisma.$queryRaw<
+      Array<{ id: string; replyToMessageId: string | null }>
+    >(Prisma.sql`
+      SELECT \`id\`, \`replyToMessageId\`
+      FROM \`DirectMessage\`
+      WHERE \`id\` IN (${Prisma.join(messageIds)})
+        AND \`replyToMessageId\` IS NOT NULL
+    `);
+
+    return new Map(
+      replyLinks
+        .filter(
+          (replyLink): replyLink is { id: string; replyToMessageId: string } =>
+            typeof replyLink.replyToMessageId === 'string',
+        )
+        .map((replyLink) => [replyLink.id, replyLink.replyToMessageId]),
+    );
+  }
+
   private async processAttachmentUpload(
     file: UploadedBinaryFile,
     maxFileMb: number,
@@ -1543,12 +1635,14 @@ export class DirectMessagesService implements OnModuleInit {
   private async loadMessageOrThrow(
     messageId: string,
   ): Promise<MessageWithAuthor> {
-    return await this.prisma.directMessage.findUniqueOrThrow({
+    const message = await this.prisma.directMessage.findUniqueOrThrow({
       where: {
         id: messageId,
       },
       include: directMessageWithAuthorInclude,
     });
+
+    return (await this.hydrateMessageReplies([message]))[0]!;
   }
 
   private async emitConversationSignal(args: {

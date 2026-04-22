@@ -27,7 +27,7 @@ export type MessageWithAuthor = PrismaDirectMessage & {
   gif: PrismaGifAsset | null;
   attachment: PrismaDirectMessageAttachment | null;
   linkEmbed: PrismaDirectMessageLinkEmbed | null;
-  replyTo: ReplyPreviewWithAuthor | null;
+  replyTo?: ReplyPreviewWithAuthor | null;
 };
 
 export type ReplyPreviewWithAuthor = PrismaDirectMessage & {
@@ -48,7 +48,8 @@ export function toDirectMessage(
     clientNonce?: string | null;
   },
 ): DirectMessage {
-  const canDelete = !message.deletedAt && options?.viewerId === message.authorId;
+  const canDelete =
+    !message.deletedAt && options?.viewerId === message.authorId;
 
   return directMessageSchema.parse({
     id: message.id,
@@ -91,7 +92,9 @@ export function toDirectMessage(
             failureCode: message.linkEmbed.failureCode,
           }
         : null,
-    replyTo: !message.deletedAt ? toDirectMessageReplyPreview(message.replyTo) : null,
+    replyTo: !message.deletedAt
+      ? toDirectMessageReplyPreview(message.replyTo ?? null)
+      : null,
     isDeleted: Boolean(message.deletedAt),
     canDelete,
     deleteExpiresAt: null,
@@ -164,7 +167,9 @@ export function toDirectConversationSummary(args: {
   });
 }
 
-function toDirectMessageReplyPreview(message: ReplyPreviewWithAuthor | null) {
+function toDirectMessageReplyPreview(
+  message: ReplyPreviewWithAuthor | null | undefined,
+) {
   if (!message) {
     return null;
   }
