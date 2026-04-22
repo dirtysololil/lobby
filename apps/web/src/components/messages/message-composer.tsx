@@ -536,6 +536,7 @@ export function MessageComposer({
       className={isMobileViewport ? "dm-picker-shell-mobile" : undefined}
     />
   );
+  const hasTextDraft = content.trim().length > 0;
 
   return (
     <div className="dm-composer-stack">
@@ -573,7 +574,8 @@ export function MessageComposer({
         />
 
         {replyToMessage ? (
-          <div className="mx-1 mt-1 flex min-h-11 items-center gap-2 rounded-[18px] border border-white/8 bg-white/[0.035] px-3 py-2">
+          <div className="dm-reply-strip">
+            <div className="dm-reply-strip-line" aria-hidden="true" />
             <Reply
               size={16}
               strokeWidth={1.6}
@@ -593,6 +595,7 @@ export function MessageComposer({
               onClick={onCancelReply}
               aria-label="Отменить ответ"
               title="Отменить ответ"
+              style={{ height: 28, width: 28 }}
             >
               <X size={14} strokeWidth={1.6} />
             </button>
@@ -600,83 +603,33 @@ export function MessageComposer({
         ) : null}
 
         <div className="dm-composer-main">
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            onInput={syncTextareaHeight}
-            onPaste={handlePaste}
-            onClick={syncSelection}
-            onKeyUp={syncSelection}
-            onSelect={syncSelection}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              isUploadingFiles
-                ? "Загружаем файлы…"
-                : disabled
-                  ? "В этом диалоге нельзя отправлять сообщения."
-                  : "Сообщение"
-            }
-            disabled={disabled || isSendingText || isUploadingFiles}
-            rows={1}
-            className={cn(
-              "dm-composer-textarea relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words border-none bg-transparent text-sm leading-[1.44] text-white caret-white outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60 [overflow-wrap:anywhere]",
-            )}
-            style={{
-              resize: "none",
-              overflowWrap: "anywhere",
-              wordBreak: "break-word",
-              whiteSpace: "pre-wrap",
-            }}
-          />
-        </div>
-
-        <div className="dm-composer-footer">
-          <div className="dm-composer-tools">
-            <div className="relative" data-composer-attach-root="true">
-              {attachMenuOpen ? (
-                <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAttachMenuOpen(false);
-                      mediaInputRef.current?.click();
-                    }}
-                    className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
-                  >
-                    <ImagePlus {...iconProps} />
-                    Фото или видео
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAttachMenuOpen(false);
-                      documentInputRef.current?.click();
-                    }}
-                    className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
-                  >
-                    <FileText {...iconProps} />
-                    Документ
-                  </button>
-                </div>
-              ) : null}
-
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={disabled || isUploadingFiles || videoNoteOpen}
-                onClick={() => {
-                  setAttachMenuOpen((current) => !current);
-                  setPickerOpen(false);
-                  setVideoNoteOpen(false);
-                }}
-                className="dm-composer-button px-0"
-                aria-label="Прикрепить файл"
-              >
-                <Paperclip {...iconProps} />
-              </Button>
-            </div>
+          <div className="relative" data-composer-attach-root="true">
+            {attachMenuOpen ? (
+              <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAttachMenuOpen(false);
+                    mediaInputRef.current?.click();
+                  }}
+                  className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
+                >
+                  <ImagePlus {...iconProps} />
+                  Фото или видео
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAttachMenuOpen(false);
+                    documentInputRef.current?.click();
+                  }}
+                  className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.05]"
+                >
+                  <FileText {...iconProps} />
+                  Документ
+                </button>
+              </div>
+            ) : null}
 
             <Button
               type="button"
@@ -684,71 +637,119 @@ export function MessageComposer({
               variant="ghost"
               disabled={disabled || isUploadingFiles || videoNoteOpen}
               onClick={() => {
-                if (videoNoteOpen) {
-                  return;
-                }
-
-                setAttachMenuOpen(false);
+                setAttachMenuOpen((current) => !current);
                 setPickerOpen(false);
-                setVideoNoteOpen(true);
-
-                if (isMobileViewport) {
-                  textareaRef.current?.blur();
-                }
+                setVideoNoteOpen(false);
               }}
-              className={cn(
-                "dm-composer-button px-0",
-                videoNoteOpen && "dm-action-button-active",
-              )}
-              aria-label="Записать видео-кружок"
+              className="dm-composer-button"
+              aria-label="Прикрепить файл"
             >
-              <Video {...iconProps} />
+              <Paperclip {...iconProps} />
             </Button>
+          </div>
 
-            <div className="relative" data-composer-picker-root="true">
-              {!isMobileViewport && pickerOpen ? (
-                <div className="absolute bottom-full left-0 z-50 mb-3">
-                  {pickerMarkup}
-                </div>
-              ) : null}
+          <div className="dm-composer-input-shell">
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              onInput={syncTextareaHeight}
+              onPaste={handlePaste}
+              onClick={syncSelection}
+              onKeyUp={syncSelection}
+              onSelect={syncSelection}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                isUploadingFiles
+                  ? "Загружаем файлы…"
+                  : disabled
+                    ? "В этом диалоге нельзя отправлять сообщения."
+                    : "Сообщение..."
+              }
+              disabled={disabled || isSendingText || isUploadingFiles}
+              rows={1}
+              className={cn(
+                "dm-composer-textarea relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words border-none bg-transparent text-sm leading-[1.44] text-white caret-white outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60 [overflow-wrap:anywhere]",
+              )}
+              style={{
+                resize: "none",
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
+                whiteSpace: "pre-wrap",
+              }}
+            />
 
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={disabled || isUploadingFiles || videoNoteOpen}
-                onClick={() => {
-                  setAttachMenuOpen(false);
-                  setVideoNoteOpen(false);
-                  setPickerOpen((current) => !current);
-                  syncSelection();
+            <div className="dm-composer-input-actions">
+              <div className="relative" data-composer-picker-root="true">
+                {!isMobileViewport && pickerOpen ? (
+                  <div className="absolute bottom-full right-0 z-50 mb-3">
+                    {pickerMarkup}
+                  </div>
+                ) : null}
 
-                  if (isMobileViewport) {
-                    textareaRef.current?.blur();
-                  }
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={disabled || isUploadingFiles || videoNoteOpen}
+                  onClick={() => {
+                    setAttachMenuOpen(false);
+                    setVideoNoteOpen(false);
+                    setPickerOpen((current) => !current);
+                    syncSelection();
 
-                  void refreshCatalogIfNeeded();
-                }}
-                className={cn(
-                  "dm-composer-button px-0",
-                  pickerOpen && "dm-action-button-active",
-                )}
-                aria-label="Открыть смайлики, стикеры и GIF"
-              >
-                <SmilePlus {...iconProps} />
-              </Button>
+                    if (isMobileViewport) {
+                      textareaRef.current?.blur();
+                    }
+
+                    void refreshCatalogIfNeeded();
+                  }}
+                  className={cn(
+                    "dm-composer-inline-action",
+                    pickerOpen && "dm-action-button-active",
+                  )}
+                  aria-label="Открыть смайлики, стикеры и GIF"
+                >
+                  <SmilePlus {...iconProps} />
+                </Button>
+              </div>
             </div>
           </div>
 
           <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={disabled || isUploadingFiles || videoNoteOpen}
+            onClick={() => {
+              if (videoNoteOpen) {
+                return;
+              }
+
+              setAttachMenuOpen(false);
+              setPickerOpen(false);
+              setVideoNoteOpen(true);
+
+              if (isMobileViewport) {
+                textareaRef.current?.blur();
+              }
+            }}
+            className={cn(
+              "dm-composer-button",
+              videoNoteOpen && "dm-action-button-active",
+            )}
+            aria-label="Записать видео-кружок"
+          >
+            <Video {...iconProps} />
+          </Button>
+
+          <Button
             type="submit"
             size="sm"
-            disabled={
-              disabled || isSendingText || isUploadingFiles || !content.trim()
-            }
+            disabled={disabled || isSendingText || isUploadingFiles || !hasTextDraft}
             className={cn(
-              "dm-composer-button dm-composer-send px-0",
-              content.trim() && "dm-composer-send-ready",
+              "dm-composer-button dm-composer-send",
+              hasTextDraft && "dm-composer-send-ready",
             )}
             aria-label={
               isSendingText ? "Отправляем сообщение" : "Отправить сообщение"

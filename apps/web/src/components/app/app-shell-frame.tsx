@@ -29,6 +29,13 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const [activityOpen, setActivityOpen] = useState(false);
   const [isWideScreen, setIsWideScreen] = useState(false);
   const effectiveActivityOpen = activityAvailable && activityOpen;
+  const isMessagesRoute = route.section === "messages";
+  const desktopGridColumns = isMessagesRoute
+    ? "md:grid-cols-[88px_19.5rem_minmax(0,1fr)]"
+    : "md:grid-cols-[80px_15rem_minmax(0,1fr)]";
+  const dockedGridColumns = isMessagesRoute
+    ? "2xl:grid-cols-[88px_19.5rem_minmax(0,1fr)_18rem]"
+    : "2xl:grid-cols-[80px_15rem_minmax(0,1fr)_18rem]";
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -62,8 +69,9 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(106,168,248,0.08),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_20%)]" />
       <div
         className={cn(
-          "relative z-10 grid h-full min-h-0 grid-cols-1 md:grid-cols-[64px_14rem_minmax(0,1fr)]",
-          showDockedActivityRail && "2xl:grid-cols-[64px_14rem_minmax(0,1fr)_18rem]",
+          "relative z-10 grid h-full min-h-0 grid-cols-1",
+          desktopGridColumns,
+          showDockedActivityRail && dockedGridColumns,
         )}
       >
         <AppSidebar viewer={viewer} />
