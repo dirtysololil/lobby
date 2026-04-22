@@ -2,20 +2,18 @@
 
 import Link from "next/link";
 import {
-  Layers3,
   MessageSquareMore,
   Search,
   SlidersHorizontal,
   SquarePen,
-  UserRound,
   UserRoundPlus,
-  Users2,
 } from "lucide-react";
 import {
   directConversationListResponseSchema,
   type DirectConversationSummary,
 } from "@lobby/shared";
 import { useEffect, useMemo, useState } from "react";
+import { AppMobileTopNav } from "@/components/app/app-mobile-top-nav";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
@@ -26,20 +24,6 @@ import {
 } from "@/components/realtime/realtime-provider";
 
 const iconProps = { size: 20, strokeWidth: 1.6 } as const;
-const mobileNavIconProps = { size: 18, strokeWidth: 1.75 } as const;
-
-const mobileHeaderLinks = [
-  {
-    href: "/app/messages",
-    label: "Чаты",
-    icon: MessageSquareMore,
-    active: true,
-  },
-  { href: "/app/people", label: "Люди", icon: Users2, active: false },
-  { href: "/app/hubs", label: "Сервисы", icon: Layers3, active: false },
-  { href: "/app/settings/profile", label: "Профиль", icon: UserRound, active: false },
-] as const;
-
 function formatConversationTime(value: string | null) {
   if (!value) {
     return "";
@@ -145,26 +129,7 @@ export function MessagesWorkspace() {
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0d151f] md:bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),#0f1721]">
       <div className="flex h-full min-h-0 flex-col md:hidden">
         <div className="border-b border-white/5 px-4 pb-3 pt-5">
-          <nav
-            className="grid grid-cols-4 gap-1"
-            aria-label="Основная навигация"
-          >
-            {mobileHeaderLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-label={item.label}
-                title={item.label}
-                className={cn(
-                  "inline-flex min-h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] text-[11px] font-medium tracking-[-0.01em] text-[#8e99aa] transition-colors hover:bg-white/[0.03] hover:text-white",
-                  item.active && "bg-[#101b27] text-[#5a9cff]",
-                )}
-              >
-                <item.icon {...mobileNavIconProps} />
-                <span className="max-w-full truncate">{item.label}</span>
-              </Link>
-            ))}
-          </nav>
+          <AppMobileTopNav active="messages" />
         </div>
 
         <div className="border-b border-white/5 px-4 py-3">

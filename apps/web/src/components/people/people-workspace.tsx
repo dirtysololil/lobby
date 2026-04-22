@@ -13,17 +13,16 @@ import {
 } from "@lobby/shared";
 import {
   Inbox,
-  Layers3,
   MessageSquareMore,
   Search,
   Send,
   ShieldBan,
   UserPlus2,
-  UserRound,
   Users2,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AppMobileTopNav } from "@/components/app/app-mobile-top-nav";
 import {
   CompactList,
   CompactListCount,
@@ -46,15 +45,6 @@ const peopleViews: Array<{ id: PeopleView; label: string }> = [
   { id: "discover", label: "Поиск" },
   { id: "blocked", label: "Блокировки" },
 ];
-
-const mobileNavIconProps = { size: 18, strokeWidth: 1.75 } as const;
-
-const mobileHeaderLinks = [
-  { href: "/app/messages", label: "Чаты", icon: MessageSquareMore, active: false },
-  { href: "/app/people", label: "Люди", icon: Users2, active: true },
-  { href: "/app/hubs", label: "Сервисы", icon: Layers3, active: false },
-  { href: "/app/settings/profile", label: "Профиль", icon: UserRound, active: false },
-] as const;
 
 const peopleViewCopy: Record<
   PeopleView,
@@ -396,23 +386,7 @@ export function PeopleWorkspace() {
       <div className="relative flex h-full min-h-0 flex-col">
         <div className="border-b border-white/5 px-4 pb-3 pt-5 md:px-5 md:pb-4 md:pt-5">
           <div className="md:hidden">
-            <nav className="grid grid-cols-4 gap-1" aria-label="Основная навигация">
-              {mobileHeaderLinks.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-label={item.label}
-                  title={item.label}
-                  className={cn(
-                    "inline-flex min-h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] text-[11px] font-medium tracking-[-0.01em] text-[#8e99aa] transition-colors hover:bg-white/[0.03] hover:text-white",
-                    item.active && "bg-[#101b27] text-[#5a9cff]",
-                  )}
-                >
-                  <item.icon {...mobileNavIconProps} />
-                  <span className="max-w-full truncate">{item.label}</span>
-                </Link>
-              ))}
-            </nav>
+            <AppMobileTopNav active="people" />
           </div>
 
           <div className="mt-4 flex flex-col gap-4 md:mt-0 md:flex-row md:items-start md:justify-between">
