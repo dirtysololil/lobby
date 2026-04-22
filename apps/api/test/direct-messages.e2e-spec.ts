@@ -99,6 +99,91 @@ describe('DirectMessagesController (e2e)', () => {
     ).toBe('hello from delta');
   });
 
+  it('creates a reply to an existing direct message and exposes reply preview in the thread', async () => {
+    const alice = await createTestUser(prisma, {
+      username: 'replyalpha',
+      email: 'replyalpha@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Reply Alpha',
+    });
+    const bob = await createTestUser(prisma, {
+      username: 'replybeta',
+      email: 'replybeta@test.local',
+      password: 'VeryStrongPass123',
+      displayName: 'Reply Beta',
+    });
+
+    const aliceCookies = await loginAs(
+      app,
+      alice.username,
+      'VeryStrongPass123',
+    );
+    const openResponse = await request(httpServer)
+      .post('/v1/direct-messages/open')
+      .set('Cookie', aliceCookies)
+      .send({ username: bob.username })
+      .expect(201);
+    const conversation = directConversationSummaryResponseSchema.parse(
+      openResponse.body,
+    ).conversation;
+
+    const originalMessageResponse = await request(httpServer)
+      .post(`/v1/direct-messages/${conversation.id}/messages`)
+      .set('Cookie', aliceCookies)
+      .send({ content: 'original thread message' })
+      .expect(201);
+    const originalMessage = directMessageResponseSchema.parse(
+      originalMessageResponse.body,
+    ).message;
+
+    const bobCookies = await loginAs(app, bob.username, 'VeryStrongPass123');
+
+    await request(httpServer)
+      .post('/v1/direct-messages/open')
+      .set('Cookie', bobCookies)
+      .send({ username: alice.username })
+      .expect(201);
+
+    const replyMessageResponse = await request(httpServer)
+      .post(`/v1/direct-messages/${conversation.id}/messages`)
+      .set('Cookie', bobCookies)
+      .send({
+        content: 'reply message',
+        replyToMessageId: originalMessage.id,
+      })
+      .expect(201);
+    const replyMessage = directMessageResponseSchema.parse(
+      replyMessageResponse.body,
+    ).message;
+
+    expect(replyMessage.replyTo?.id).toBe(originalMessage.id);
+    expect(replyMessage.replyTo?.content).toBe('original thread message');
+    expect(replyMessage.replyTo?.author.id).toBe(alice.id);
+
+    const storedReplyLink = await prisma.$queryRaw<
+      Array<{ replyToMessageId: string | null }>
+    >`
+      SELECT \`replyToMessageId\`
+      FROM \`DirectMessage\`
+      WHERE \`id\` = ${replyMessage.id}
+    `;
+
+    expect(storedReplyLink[0]?.replyToMessageId).toBe(originalMessage.id);
+
+    const detailResponse = await request(httpServer)
+      .get(`/v1/direct-messages/${conversation.id}`)
+      .set('Cookie', aliceCookies)
+      .expect(200);
+    const detail = directConversationDetailSchema.parse(detailResponse.body);
+    const threadReply = detail.conversation.messages.find(
+      (message) => message.id === replyMessage.id,
+    );
+
+    expect(threadReply?.replyTo?.id).toBe(originalMessage.id);
+    expect(threadReply?.replyTo?.content).toBe('original thread message');
+    expect(threadReply?.replyTo?.author.id).toBe(alice.id);
+  });
+
   it('creates a pending Tenor embed without delaying text message delivery', async () => {
     const alpha = await createTestUser(prisma, {
       username: 'tenoralpha',
@@ -133,7 +218,9 @@ describe('DirectMessagesController (e2e)', () => {
           'https://tenor.com/view/cat-kitten-pet-gif-15031226867688336559',
       })
       .expect(201);
-    const message = directMessageResponseSchema.parse(messageResponse.body).message;
+    const message = directMessageResponseSchema.parse(
+      messageResponse.body,
+    ).message;
 
     expect(message.type).toBe('TEXT');
     expect(message.linkEmbed?.status).toBe('PENDING');
@@ -210,7 +297,9 @@ describe('DirectMessagesController (e2e)', () => {
       .send({ type: 'STICKER', stickerId: sticker.id })
       .expect(201);
 
-    const message = directMessageResponseSchema.parse(messageResponse.body).message;
+    const message = directMessageResponseSchema.parse(
+      messageResponse.body,
+    ).message;
 
     expect(message.type).toBe('STICKER');
     expect(message.content).toBeNull();
@@ -287,7 +376,9 @@ describe('DirectMessagesController (e2e)', () => {
       .set('Cookie', alphaCookies)
       .send({ type: 'STICKER', stickerId: sticker.id })
       .expect(201);
-    const message = directMessageResponseSchema.parse(messageResponse.body).message;
+    const message = directMessageResponseSchema.parse(
+      messageResponse.body,
+    ).message;
 
     await prisma.directMessage.update({
       where: {
@@ -430,16 +521,18 @@ describe('DirectMessagesController (e2e)', () => {
 
     expect(detailBeforeDelete.conversation.messages).toHaveLength(1);
     expect(detailBeforeDelete.conversation.messages[0]?.canDelete).toBe(true);
-    expect(detailBeforeDelete.conversation.messages[0]?.deleteExpiresAt).toBeNull();
+    expect(
+      detailBeforeDelete.conversation.messages[0]?.deleteExpiresAt,
+    ).toBeNull();
 
     const deleteResponse = await request(httpServer)
       .delete(`/v1/direct-messages/${conversation.id}/messages/${messageId}`)
       .set('Cookie', alphaCookies)
       .expect(200);
 
-    expect(directMessageResponseSchema.parse(deleteResponse.body).message.isDeleted).toBe(
-      true,
-    );
+    expect(
+      directMessageResponseSchema.parse(deleteResponse.body).message.isDeleted,
+    ).toBe(true);
 
     const detailAfterDeleteResponse = await request(httpServer)
       .get(`/v1/direct-messages/${conversation.id}`)
@@ -452,14 +545,15 @@ describe('DirectMessagesController (e2e)', () => {
 
     expect(detailAfterDelete.conversation.messages).toHaveLength(0);
 
-    const storedConversation = await prisma.directConversation.findUniqueOrThrow({
-      where: {
-        id: conversation.id,
-      },
-      select: {
-        lastMessageAt: true,
-      },
-    });
+    const storedConversation =
+      await prisma.directConversation.findUniqueOrThrow({
+        where: {
+          id: conversation.id,
+        },
+        select: {
+          lastMessageAt: true,
+        },
+      });
 
     expect(storedConversation.lastMessageAt).toBeNull();
   });
