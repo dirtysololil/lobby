@@ -412,7 +412,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
       {route.section !== "messages" ? (
         <div className="border-b border-white/5 px-3 py-3">
           <div className="flex items-center gap-2 rounded-[16px] border border-white/6 bg-white/[0.03] px-2.5 py-2">
-            <UserAvatar user={viewer} size="sm" />
+            <UserAvatar user={viewer} size="sm" showPresenceIndicator={false} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-white">
                 {viewer.profile.displayName}
@@ -549,6 +549,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                             user={conversation.counterpart}
                             size="sm"
                             className="h-11 w-11"
+                            showPresenceIndicator={false}
                           />
                           <span
                             className={cn(

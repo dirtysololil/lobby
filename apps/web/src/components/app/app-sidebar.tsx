@@ -62,6 +62,7 @@ function SidebarIconLink({
 export function AppSidebar({ viewer }: AppSidebarProps) {
   const pathname = usePathname();
   const safePathname = pathname ?? "";
+  const isMessagesRoute = matchesPath(safePathname, "/app/messages");
 
   return (
     <aside className="workspace-dock fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#0b121b] md:static md:inset-auto md:z-auto md:flex md:h-full md:w-[88px] md:flex-col md:border-r md:border-t-0 md:bg-[#0a121a]">
@@ -104,7 +105,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
             <Settings2 {...railIconProps} />
           </SidebarIconLink>
 
-          {viewer.role !== "MEMBER" ? (
+          {!isMessagesRoute && viewer.role !== "MEMBER" ? (
             <SidebarIconLink
               href="/app/admin"
               label="Админка"
@@ -114,16 +115,18 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
             </SidebarIconLink>
           ) : null}
 
-          <LogoutButton
-            aria-label="Выйти"
-            title="Выйти"
-            label=""
-            pendingLabel=""
-            showIcon
-            variant="ghost"
-            size="sm"
-            className="hidden h-11 w-11 rounded-[16px] border border-transparent px-0 text-[#8d9aad] transition-all duration-150 hover:border-white/8 hover:bg-white/[0.035] hover:text-white md:inline-flex"
-          />
+          {!isMessagesRoute ? (
+            <LogoutButton
+              aria-label="Выйти"
+              title="Выйти"
+              label=""
+              pendingLabel=""
+              showIcon
+              variant="ghost"
+              size="sm"
+              className="hidden h-11 w-11 rounded-[16px] border border-transparent px-0 text-[#8d9aad] transition-all duration-150 hover:border-white/8 hover:bg-white/[0.035] hover:text-white md:inline-flex"
+            />
+          ) : null}
 
           <Link
             href="/app/settings/profile"

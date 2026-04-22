@@ -932,9 +932,11 @@ export function MessageThread({
                   const isMediaLikeMessage =
                     isSticker || isGif || isMediaAttachment || isFileAttachment;
                   const hasReplyPreview = message.replyTo !== null;
+                  const hasAttachmentCaption = Boolean(message.content?.trim());
                   const isBareMediaMessage =
                     (isSticker || isGif || isMediaAttachment) &&
-                    !hasReplyPreview;
+                    !hasReplyPreview &&
+                    !hasAttachmentCaption;
                   const isVisualMessage =
                     isSticker || isGif || isMediaAttachment;
                   const hasInlineEmbed =
@@ -981,13 +983,27 @@ export function MessageThread({
                     counterpartLastReadTimestamp !== null &&
                     new Date(message.createdAt).getTime() <=
                       counterpartLastReadTimestamp;
+                  const mediaAspectRatio =
+                    isMediaAttachment &&
+                    message.attachment?.width &&
+                    message.attachment?.height
+                      ? message.attachment.width / message.attachment.height
+                      : null;
+                  const embedAspectRatio =
+                    message.linkEmbed?.aspectRatio ??
+                    (message.linkEmbed?.width && message.linkEmbed?.height
+                      ? message.linkEmbed.width / message.linkEmbed.height
+                      : null);
+                  const isWideMediaPreview =
+                    Boolean(mediaAspectRatio && mediaAspectRatio > 1.2) ||
+                    Boolean(embedAspectRatio && embedAspectRatio > 1.2);
                   const showAuthorLabel = !isOwn && !continuation;
                   const messageWidthClassName = cn(
                     "relative min-w-0",
                     isRoundVideoNote
                       ? "w-[min(244px,74vw)] max-w-full"
                       : isMediaLikeMessage
-                        ? "w-fit max-w-[min(360px,84%)]"
+                        ? "w-fit max-w-[min(380px,84%)]"
                         : "max-w-[min(38rem,82%)]",
                     isOwn && "ml-auto",
                   );
@@ -1252,10 +1268,20 @@ export function MessageThread({
                                         ? "Видео"
                                         : "Фото"
                                     }
+                                    aspectRatio={
+                                      isRoundVideoNote ? 1 : mediaAspectRatio
+                                    }
+                                    mediaFit={
+                                      message.attachment.kind === "IMAGE"
+                                        ? "contain"
+                                        : "cover"
+                                    }
                                     className={
                                       isRoundVideoNote
                                         ? "dm-video-note-bubble"
-                                        : "w-[min(248px,72vw)]"
+                                        : isWideMediaPreview
+                                          ? "w-[min(360px,74vw)]"
+                                          : "w-[min(284px,72vw)]"
                                     }
                                     previewPlayback={
                                       isRoundVideoNote ? "always" : "visible"
@@ -1272,32 +1298,52 @@ export function MessageThread({
                                       )}
                                     </span>
                                   ) : null}
+                                  {message.content?.trim() ? (
+                                    <div className="mt-2 max-w-[min(360px,72vw)] px-1">
+                                      <p className="dm-message-text">
+                                        <InlineCustomEmojiText
+                                          text={message.content}
+                                          customEmojis={customEmojis}
+                                        />
+                                      </p>
+                                    </div>
+                                  ) : null}
                                 </div>
                               ) : isFileAttachment && message.attachment ? (
-                                <a
-                                  href={
-                                    message.localAttachmentAssetUrl ??
-                                    getDirectMessageAttachmentAssetUrl(
-                                      message.attachment,
-                                    )
-                                  }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className={cn(
-                                    "block max-w-[min(320px,72vw)] text-left transition-opacity hover:opacity-[0.98]",
-                                    isOwn && "ml-auto",
-                                  )}
-                                >
-                                  <p className="truncate text-sm font-medium text-white">
-                                    {message.attachment.originalName}
-                                  </p>
-                                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                                    Документ •{" "}
-                                    {formatFileSize(
-                                      message.attachment.fileSize,
+                                <div className="grid gap-2">
+                                  <a
+                                    href={
+                                      message.localAttachmentAssetUrl ??
+                                      getDirectMessageAttachmentAssetUrl(
+                                        message.attachment,
+                                      )
+                                    }
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={cn(
+                                      "block max-w-[min(320px,72vw)] text-left transition-opacity hover:opacity-[0.98]",
+                                      isOwn && "ml-auto",
                                     )}
-                                  </p>
-                                </a>
+                                  >
+                                    <p className="truncate text-sm font-medium text-white">
+                                      {message.attachment.originalName}
+                                    </p>
+                                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                                      Документ •{" "}
+                                      {formatFileSize(
+                                        message.attachment.fileSize,
+                                      )}
+                                    </p>
+                                  </a>
+                                  {message.content?.trim() ? (
+                                    <p className="dm-message-text">
+                                      <InlineCustomEmojiText
+                                        text={message.content}
+                                        customEmojis={customEmojis}
+                                      />
+                                    </p>
+                                  ) : null}
+                                </div>
                               ) : (
                                 <div
                                   className={cn(
@@ -1326,8 +1372,10 @@ export function MessageThread({
                                     <LinkEmbedCard
                                       embed={message.linkEmbed}
                                       messageCreatedAt={message.createdAt}
-                                    className={cn(
-                                        "w-[min(248px,72vw)]",
+                                      className={cn(
+                                        isWideMediaPreview
+                                          ? "w-[min(360px,74vw)]"
+                                          : "w-[min(284px,72vw)]",
                                       )}
                                     />
                                   ) : null}

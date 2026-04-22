@@ -20,31 +20,33 @@ export function LinkEmbedCard({
   className,
   messageCreatedAt = null,
 }: LinkEmbedCardProps) {
-  const [isPendingVisible, setIsPendingVisible] = useState(true);
+  const createdAtTimestamp = messageCreatedAt
+    ? new Date(messageCreatedAt).getTime()
+    : null;
+  const pendingExpiresAt =
+    createdAtTimestamp === null
+      ? null
+      : createdAtTimestamp + pendingStaleAfterMs;
+  const [expiredPendingAt, setExpiredPendingAt] = useState<number | null>(null);
+  const isPendingVisible =
+    embed.status !== "PENDING" ||
+    pendingExpiresAt === null ||
+    expiredPendingAt !== pendingExpiresAt;
 
   useEffect(() => {
-    if (embed.status !== "PENDING" || !messageCreatedAt) {
-      setIsPendingVisible(true);
+    if (embed.status !== "PENDING" || pendingExpiresAt === null) {
       return;
     }
 
-    const expiresAt =
-      new Date(messageCreatedAt).getTime() + pendingStaleAfterMs - Date.now();
-
-    if (expiresAt <= 0) {
-      setIsPendingVisible(false);
-      return;
-    }
-
-    setIsPendingVisible(true);
+    const expiresInMs = Math.max(pendingExpiresAt - Date.now(), 0);
     const timer = window.setTimeout(() => {
-      setIsPendingVisible(false);
-    }, expiresAt);
+      setExpiredPendingAt(pendingExpiresAt);
+    }, expiresInMs);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [embed.status, messageCreatedAt]);
+  }, [embed.status, pendingExpiresAt]);
 
   if (embed.status === "FAILED") {
     return null;
@@ -83,6 +85,11 @@ export function LinkEmbedCard({
       posterUrl={embed.posterUrl}
       href={embed.canonicalUrl ?? embed.sourceUrl}
       label={embed.provider === "TENOR" ? "Tenor" : "Медиа"}
+      aspectRatio={
+        embed.aspectRatio ??
+        (embed.width && embed.height ? embed.width / embed.height : null)
+      }
+      mediaFit="contain"
       className={className}
     />
   );

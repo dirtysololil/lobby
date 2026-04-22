@@ -1085,12 +1085,12 @@ export function ConversationView({
     <div className="dm-shell flex h-full min-h-0 flex-col overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="dm-header relative shrink-0">
-          <div className="flex min-h-[74px] items-center gap-3 px-4 py-3">
+          <div className="flex min-h-[68px] items-center gap-3 px-4 py-2.5">
             <Link
               href="/app/messages"
               aria-label="Назад к диалогам"
               title="Назад к диалогам"
-              className="dm-action-button"
+              className="dm-action-button rounded-full"
             >
               <ArrowLeft {...iconProps} />
             </Link>
@@ -1102,7 +1102,12 @@ export function ConversationView({
               className="flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border border-transparent px-1 py-0.5 transition-colors hover:bg-white/[0.025]"
             >
               <div className="relative shrink-0">
-                <UserAvatar user={counterpart} size="sm" className="h-11 w-11" />
+                <UserAvatar
+                  user={counterpart}
+                  size="sm"
+                  className="h-10 w-10"
+                  showPresenceIndicator={false}
+                />
                 <span
                   className={cn(
                     "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-[2px] border-[#101824] bg-[#6c7484]",
@@ -1112,7 +1117,7 @@ export function ConversationView({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5">
-                  <span className="truncate text-[16px] font-semibold tracking-[-0.03em] text-white">
+                  <span className="truncate text-[15px] font-semibold tracking-[-0.03em] text-white">
                     {counterpart.profile.displayName}
                   </span>
                   {isBlocked ? (
@@ -1121,7 +1126,7 @@ export function ConversationView({
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 flex items-center gap-1.5 truncate text-[13px] text-[#8d98aa]">
+                <p className="mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-[#8d98aa]">
                   {liveCounterpart?.isOnline ? (
                     <span className="h-2 w-2 rounded-full bg-[#2ecf7c]" />
                   ) : null}
@@ -1341,7 +1346,7 @@ function ConversationHeaderIconButton({
       title={label}
       onClick={onClick}
       className={cn(
-        "dm-action-button",
+        "dm-action-button rounded-full",
         active && "dm-action-button-active",
         className,
       )}
