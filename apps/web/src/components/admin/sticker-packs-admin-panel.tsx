@@ -116,6 +116,24 @@ export function StickerPacksAdminPanel({
     );
   }, [selectedPack, stickerSearch]);
 
+  const totalStickerCount = useMemo(
+    () => packs.reduce((sum, pack) => sum + pack.stickerCount, 0),
+    [packs],
+  );
+  const activePackCount = useMemo(
+    () =>
+      packs.filter((pack) => pack.isPublished && !pack.isHidden && !pack.isArchived).length,
+    [packs],
+  );
+  const draftPackCount = useMemo(
+    () => packs.filter((pack) => !pack.isPublished).length,
+    [packs],
+  );
+  const archivedPackCount = useMemo(
+    () => packs.filter((pack) => pack.isArchived).length,
+    [packs],
+  );
+
   function setPackDraftFromPack(pack: StickerPack | null) {
     if (!pack) {
       setPackDraft(emptyPackDraft);
@@ -439,41 +457,69 @@ export function StickerPacksAdminPanel({
 
   return (
     <>
-      <div className="grid gap-4">
-        <section className="premium-panel rounded-[24px] p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="eyebrow-pill">
-                  <StickerIcon className="h-4 w-4" />
-                  Наборы стикеров
-                </span>
+      <div className="grid gap-3">
+        <section className="premium-panel rounded-[24px] p-4 md:p-5">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 max-w-3xl">
+                <p className="section-kicker">Sticker Packs</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-black text-white">
+                    <StickerIcon className="h-4.5 w-4.5" />
+                  </span>
+                  <h2 className="text-[28px] font-semibold tracking-[-0.04em] text-white">
+                    Наборы стикеров
+                  </h2>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--text-dim)]">
+                  Управляйте каталогом наборов и самими стикерами в одном строгом
+                  рабочем пространстве: без декоративных панелей, с понятной
+                  левой навигацией, быстрым поиском и точечными действиями.
+                </p>
               </div>
-              <h2 className="mt-2 text-lg font-semibold tracking-tight text-white">
-                Рабочее пространство наборов
-              </h2>
+
+              <div className="grid grid-cols-2 gap-2 sm:min-w-[320px]">
+                {[
+                  { label: "Наборов", value: packs.length },
+                  { label: "Стикеров", value: totalStickerCount },
+                  { label: "Активных", value: activePackCount },
+                  { label: "Неактивных", value: draftPackCount + archivedPackCount },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[16px] border border-[var(--border-soft)] bg-black px-3 py-3"
+                  >
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold tracking-[-0.03em] text-white">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex min-w-[220px] items-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.03] px-3 text-[var(--text-muted)]">
+            <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <label className="flex min-h-11 items-center gap-2 rounded-[14px] border border-[var(--border)] bg-black px-3 text-[var(--text-muted)]">
                 <Search className="h-4 w-4 shrink-0" />
                 <Input
                   value={stickerSearch}
                   onChange={(event) => setStickerSearch(event.target.value)}
                   placeholder="Поиск по стикерам"
-                  className="h-9 border-0 bg-transparent px-0 text-sm text-white"
+                  className="h-10 border-0 bg-transparent px-0 text-sm text-white shadow-none"
                 />
               </label>
-              <Button type="button" size="sm" onClick={openCreatePackDrawer}>
+              <Button type="button" onClick={openCreatePackDrawer} className="h-11 px-4">
                 <FolderPlus className="h-4 w-4" />
                 Создать набор
               </Button>
               <Button
                 type="button"
-                size="sm"
                 variant="secondary"
                 disabled={!selectedPack}
                 onClick={() => uploadInputRef.current?.click()}
+                className="h-11 px-4"
               >
                 <ImagePlus className="h-4 w-4" />
                 Добавить стикер
@@ -505,23 +551,26 @@ export function StickerPacksAdminPanel({
           ) : null}
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <section className="grid gap-3 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="premium-panel rounded-[24px] p-3">
-            <div className="flex items-center justify-between gap-2 px-1 pb-3">
-              <div className="text-sm font-semibold text-white">Наборы</div>
+            <div className="flex items-center justify-between gap-2 border-b border-[var(--border-soft)] px-1 pb-3">
+              <div>
+                <p className="section-kicker">Catalog</p>
+                <div className="mt-1 text-sm font-semibold text-white">Наборы</div>
+              </div>
               <Button type="button" size="sm" variant="ghost" onClick={openCreatePackDrawer}>
                 <FolderPlus className="h-4 w-4" />
                 Новый
               </Button>
             </div>
 
-            <label className="mb-3 flex items-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.03] px-3 text-[var(--text-muted)]">
+            <label className="mb-3 mt-3 flex items-center gap-2 rounded-[14px] border border-[var(--border)] bg-black px-3 text-[var(--text-muted)]">
               <Search className="h-4 w-4 shrink-0" />
               <Input
                 value={packSearch}
                 onChange={(event) => setPackSearch(event.target.value)}
                 placeholder="Поиск по наборам"
-                className="h-9 border-0 bg-transparent px-0 text-sm text-white"
+                className="h-9 border-0 bg-transparent px-0 text-sm text-white shadow-none"
               />
             </label>
 
@@ -530,6 +579,12 @@ export function StickerPacksAdminPanel({
                 <EmptyState
                   title="Наборы не найдены"
                   description="Создайте новый набор или измените запрос."
+                  action={
+                    <Button type="button" size="sm" onClick={openCreatePackDrawer}>
+                      <FolderPlus className="h-4 w-4" />
+                      Создать набор
+                    </Button>
+                  }
                 />
               ) : (
                 filteredPacks.map((pack) => (
@@ -552,20 +607,31 @@ export function StickerPacksAdminPanel({
             </div>
           </aside>
 
-          <section className="premium-panel rounded-[24px] p-3">
+          <section className="premium-panel rounded-[24px] p-3 md:p-4">
             {!selectedPack ? (
               <EmptyState
                 title="Выберите набор"
                 description="Слева показаны все доступные наборы стикеров."
+                action={
+                  <Button type="button" size="sm" onClick={openCreatePackDrawer}>
+                    <FolderPlus className="h-4 w-4" />
+                    Новый набор
+                  </Button>
+                }
               />
             ) : (
               <div className="grid gap-4">
-                <div className="sticky top-3 z-10 rounded-[20px] border border-white/8 bg-[rgba(8,12,18,0.9)] px-3 py-3 backdrop-blur-sm">
-                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div className="sticky top-3 z-10 rounded-[20px] border border-[var(--border)] bg-black px-4 py-4">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0">
-                      <div className="truncate text-base font-semibold text-white">
+                      <p className="section-kicker">Selected Pack</p>
+                      <div className="mt-2 truncate text-[22px] font-semibold tracking-[-0.03em] text-white">
                         {selectedPack.title}
                       </div>
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
+                        {selectedPack.description?.trim() ||
+                          "Описание не задано. Набор уже можно упорядочивать, публиковать и наполнять новыми стикерами."}
+                      </p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <StatusBadge label={`${selectedPack.stickerCount} шт.`} tone="neutral" />
                         {selectedPack.isPublished && !selectedPack.isHidden && !selectedPack.isArchived ? (
@@ -584,22 +650,57 @@ export function StickerPacksAdminPanel({
                           <StatusBadge label="Архив" tone="danger" />
                         ) : null}
                       </div>
+
+                      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-[14px] border border-[var(--border-soft)] bg-black px-3 py-2.5">
+                          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                            Стикеров
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-white">
+                            {selectedPack.stickerCount}
+                          </p>
+                        </div>
+                        <div className="rounded-[14px] border border-[var(--border-soft)] bg-black px-3 py-2.5">
+                          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                            Обложка
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-white">
+                            {selectedPack.coverStickerId ? "Назначена" : "Не выбрана"}
+                          </p>
+                        </div>
+                        <div className="rounded-[14px] border border-[var(--border-soft)] bg-black px-3 py-2.5">
+                          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                            Видимость
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-white">
+                            {selectedPack.isArchived
+                              ? "Архив"
+                              : selectedPack.isHidden
+                                ? "Скрыт"
+                                : selectedPack.isDiscoverable && selectedPack.isPublished
+                                  ? "Поиск"
+                                  : selectedPack.isPublished
+                                    ? "Опубликован"
+                                    : "Черновик"}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                       <Button
                         type="button"
-                        size="sm"
                         variant="secondary"
                         onClick={() => openEditPackDrawer(selectedPack)}
+                        className="h-10 px-4"
                       >
                         Редактировать набор
                       </Button>
                       <Button
                         type="button"
-                        size="sm"
                         variant="secondary"
                         onClick={() => uploadInputRef.current?.click()}
+                        className="h-10 px-4"
                       >
                         Добавить стикер
                       </Button>
@@ -635,14 +736,27 @@ export function StickerPacksAdminPanel({
                 {visibleStickers.length === 0 ? (
                   <EmptyState
                     title="Стикеры не найдены"
-                  description={
+                    description={
                       stickerSearch
                         ? "Измените запрос или очистите поиск."
                         : "Добавьте первый стикер в выбранный набор."
                     }
+                    action={
+                      !stickerSearch ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => uploadInputRef.current?.click()}
+                        >
+                          <ImagePlus className="h-4 w-4" />
+                          Добавить стикер
+                        </Button>
+                      ) : undefined
+                    }
                   />
                 ) : (
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-3">
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(184px,1fr))] gap-3">
                     {visibleStickers.map((sticker) => (
                       <StickerGridCard
                         key={sticker.id}

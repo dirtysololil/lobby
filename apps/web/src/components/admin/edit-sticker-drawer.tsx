@@ -63,7 +63,7 @@ export function EditStickerDrawer({
     >
       {sticker ? (
         <div className="grid gap-4">
-          <div className="overflow-hidden rounded-[20px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_52%),rgba(255,255,255,0.03)]">
+          <div className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-black">
             <StickerAssetPreview
               sticker={sticker}
               className="aspect-square rounded-[20px]"
@@ -82,7 +82,7 @@ export function EditStickerDrawer({
             <Input
               value={draft.title}
               onChange={(event) => onChange({ title: event.target.value })}
-              className="h-10 border-white/8 bg-white/[0.03] text-white"
+              className="h-10 border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
             />
           </label>
 
@@ -94,7 +94,7 @@ export function EditStickerDrawer({
               value={draft.keywords}
               onChange={(event) => onChange({ keywords: event.target.value })}
               placeholder="мем, вау, реакция"
-              className="h-10 border-white/8 bg-white/[0.03] text-white"
+              className="h-10 border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
             />
           </label>
 

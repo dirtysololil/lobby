@@ -65,7 +65,7 @@ export function EditStickerPackDrawer({
             value={draft.title}
             onChange={(event) => onChange({ title: event.target.value })}
             placeholder="Например, Мемы"
-            className="h-10 border-white/8 bg-white/[0.03] text-white"
+            className="h-10 border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
           />
         </label>
 
@@ -78,7 +78,7 @@ export function EditStickerPackDrawer({
             onChange={(event) => onChange({ description: event.target.value })}
             placeholder="Коротко, без лишнего шума."
             rows={4}
-            className="min-h-[104px] rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-white/12"
+            className="min-h-[104px] rounded-[16px] border border-[var(--border)] bg-black px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)]"
           />
         </label>
 
