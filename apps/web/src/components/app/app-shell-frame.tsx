@@ -73,7 +73,6 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
 
   return (
     <div className="relative h-[100dvh] overflow-hidden bg-[var(--bg-app)] text-[var(--text)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(92,140,214,0.05),transparent_20%),linear-gradient(180deg,rgba(255,255,255,0.012),transparent_18%)]" />
       <div
         className={cn(
           "relative z-10 grid h-full min-h-0 grid-cols-1",
@@ -87,9 +86,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
         <main
           className={cn(
             "relative flex min-h-0 min-w-0 flex-col overflow-hidden pb-[var(--app-mobile-dock-clearance)] md:pb-0",
-            isMessagesRoute
-              ? "bg-[#0c141d]"
-              : "bg-[linear-gradient(180deg,rgba(255,255,255,0.008),transparent_18%)]",
+            "bg-black",
           )}
         >
           {activityAvailable ? (
@@ -97,9 +94,9 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
               type="button"
               onClick={() => setActivityOpen((current) => !current)}
               className={cn(
-                "absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-[var(--bg-sidebar)]/92 text-[var(--text-muted)] backdrop-blur-md transition-colors hover:bg-white/5 hover:text-white",
+                "absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-white/8 bg-black text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white",
                 effectiveActivityOpen &&
-                  "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-white",
+                  "border-[var(--border-strong)] bg-[var(--bg-active)] text-white",
               )}
               aria-label={effectiveActivityOpen ? "Скрыть детали" : "Показать детали"}
             >
@@ -123,7 +120,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
                   "flex h-full min-h-0 flex-col overflow-hidden rounded-none border-0",
                   isPeopleWorkspaceRoute
                     ? "bg-transparent"
-                    : "shell-frame bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),rgba(8,13,20,0.96)]",
+                    : "shell-frame bg-black",
                 )}
               >
                 {children}

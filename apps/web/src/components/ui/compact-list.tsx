@@ -13,11 +13,11 @@ const rowVariants = cva(
   {
     variants: {
       active: {
-        true: "bg-[linear-gradient(90deg,rgba(106,168,248,0.18),rgba(106,168,248,0.08)_72%,transparent)] text-white",
+        true: "border-[var(--border-strong)] bg-[var(--bg-active)] text-white",
         false: "text-[var(--text-dim)] hover:bg-[var(--surface-3)] hover:text-white",
       },
       unread: {
-        true: "before:absolute before:inset-y-2 before:left-0 before:w-[2px] before:rounded-full before:bg-[var(--accent)]",
+        true: "before:absolute before:inset-y-2 before:left-0 before:w-[2px] before:rounded-full before:bg-white",
         false: "",
       },
       compact: {
@@ -91,7 +91,7 @@ export function CompactListMeta({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-[var(--border-soft)] bg-white/[0.04] px-2 py-1 text-[11px] font-medium text-[var(--text-dim)]",
+        "inline-flex items-center gap-1 rounded-full border border-[var(--border-soft)] bg-black px-2 py-1 text-[11px] font-medium text-[var(--text-dim)]",
         className,
       )}
     >

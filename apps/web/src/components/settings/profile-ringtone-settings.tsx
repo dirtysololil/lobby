@@ -270,7 +270,7 @@ export function ProfileRingtoneSettings({
       </div>
 
       <div className="grid gap-4 px-4 py-4">
-        <div className="grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+        <div className="grid gap-3 rounded-[20px] border border-white/8 bg-black p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
@@ -285,8 +285,8 @@ export function ProfileRingtoneSettings({
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium",
                 activeRingtoneMode === "custom"
-                  ? "border-[rgba(106,168,248,0.24)] bg-[rgba(106,168,248,0.12)] text-white"
-                  : "border-white/8 bg-white/[0.05] text-[var(--text-soft)]",
+                  ? "border-[var(--border-strong)] bg-[var(--bg-active)] text-white"
+                  : "border-white/8 bg-black text-[var(--text-soft)]",
               )}
             >
               <Volume2 size={13} strokeWidth={1.5} />
@@ -318,7 +318,7 @@ export function ProfileRingtoneSettings({
           </div>
         </div>
 
-        <div className="grid gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+        <div className="grid gap-3 rounded-[20px] border border-white/8 bg-black p-4">
           <div>
             <p className="text-sm font-medium text-white">Источник рингтона</p>
             <p className="mt-1 text-xs leading-5 text-[var(--text-dim)]">
@@ -339,8 +339,8 @@ export function ProfileRingtoneSettings({
               className={cn(
                 "grid gap-1 rounded-[18px] border px-3.5 py-3 text-left transition-colors",
                 selectedMode === "BUILTIN"
-                  ? "border-[rgba(106,168,248,0.26)] bg-[rgba(106,168,248,0.12)]"
-                  : "border-white/8 bg-white/[0.03] hover:border-[var(--border-strong)] hover:bg-white/[0.05]",
+                  ? "border-[var(--border-strong)] bg-[var(--bg-active)]"
+                  : "border-white/8 bg-black hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]",
               )}
             >
               <span className="text-sm font-medium text-white">Системный</span>
@@ -364,8 +364,8 @@ export function ProfileRingtoneSettings({
               className={cn(
                 "grid gap-1 rounded-[18px] border px-3.5 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                 selectedMode === "CUSTOM"
-                  ? "border-[rgba(106,168,248,0.26)] bg-[rgba(106,168,248,0.12)]"
-                  : "border-white/8 bg-white/[0.03] hover:border-[var(--border-strong)] hover:bg-white/[0.05]",
+                  ? "border-[var(--border-strong)] bg-[var(--bg-active)]"
+                  : "border-white/8 bg-black hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]",
               )}
             >
               <span className="text-sm font-medium text-white">Свой файл</span>
@@ -393,8 +393,8 @@ export function ProfileRingtoneSettings({
                 className={cn(
                   "flex items-center gap-3 rounded-[18px] border px-3 py-3 transition-colors",
                   isSelected
-                    ? "border-[rgba(106,168,248,0.26)] bg-[rgba(106,168,248,0.12)]"
-                    : "border-white/8 bg-white/[0.03]",
+                    ? "border-[var(--border-strong)] bg-[var(--bg-active)]"
+                    : "border-white/8 bg-black",
                 )}
               >
                 <button
@@ -411,8 +411,8 @@ export function ProfileRingtoneSettings({
                     className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
                       isSelected
-                        ? "border-[rgba(106,168,248,0.3)] bg-[rgba(106,168,248,0.18)] text-white"
-                        : "border-white/10 bg-white/[0.04] text-[var(--text-muted)]",
+                        ? "border-white bg-white text-black"
+                        : "border-white/10 bg-black text-[var(--text-muted)]",
                     )}
                   >
                     {isSelected ? (
@@ -436,7 +436,7 @@ export function ProfileRingtoneSettings({
                   size="sm"
                   variant="secondary"
                   onClick={() => void toggleBuiltInPreview(ringtone.id)}
-                  className="h-9 shrink-0 rounded-[12px] border-white/8 bg-white/[0.05] px-3 hover:bg-white/[0.09]"
+                  className="h-9 shrink-0 rounded-[12px] border-white/8 bg-black px-3 hover:bg-[var(--bg-hover)]"
                 >
                   {isPreviewActive ? (
                     <Square size={14} strokeWidth={1.8} />
@@ -450,10 +450,10 @@ export function ProfileRingtoneSettings({
           })}
         </div>
 
-        <div className="rounded-[20px] border border-white/8 bg-white/[0.03] p-4">
+        <div className="rounded-[20px] border border-white/8 bg-black p-4">
           <div className="grid gap-3">
-            <div className="flex items-start gap-3 rounded-[18px] border border-white/8 bg-white/[0.04] px-3.5 py-3.5">
-              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-[var(--text-soft)]">
+            <div className="flex items-start gap-3 rounded-[18px] border border-white/8 bg-[var(--bg-panel-soft)] px-3.5 py-3.5">
+              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black text-[var(--text-soft)]">
                 <Upload size={17} strokeWidth={1.6} />
               </span>
 
@@ -464,8 +464,8 @@ export function ProfileRingtoneSettings({
                     className={cn(
                       "inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
                       hasCustomRingtone
-                        ? "border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-white"
-                        : "border-white/8 bg-white/[0.04] text-[var(--text-soft)]",
+                        ? "border-[var(--border-strong)] bg-[var(--bg-active)] text-white"
+                        : "border-white/8 bg-black text-[var(--text-soft)]",
                     )}
                   >
                     {hasCustomRingtone
@@ -496,7 +496,7 @@ export function ProfileRingtoneSettings({
             </div>
 
             <div className="grid gap-2">
-              <label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.05] px-3.5 text-center text-sm font-medium leading-4 text-white transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
+              <label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-black px-3.5 text-center text-sm font-medium leading-4 text-white transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]">
                 <input
                   type="file"
                   accept={ringtoneUploadAccept}

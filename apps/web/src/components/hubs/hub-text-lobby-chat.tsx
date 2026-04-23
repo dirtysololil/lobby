@@ -262,7 +262,7 @@ export function HubTextLobbyChat({
               return (
                 <article
                   key={topic.id}
-                  className="rounded-[20px] border border-[var(--border-soft)] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_42%),rgba(255,255,255,0.028)] px-4 py-4"
+                  className="rounded-[20px] border border-[var(--border-soft)] bg-black px-4 py-4"
                 >
                   <div className="flex items-start gap-3">
                     <Link href={buildUserProfileHref(topic.author.username)}>
@@ -275,7 +275,7 @@ export function HubTextLobbyChat({
                           <div className="flex flex-wrap items-center gap-2">
                             <Link
                               href={buildUserProfileHref(topic.author.username)}
-                              className="truncate text-sm font-semibold text-white transition-colors hover:text-[var(--accent-strong)]"
+                              className="truncate text-sm font-semibold text-white transition-colors hover:text-[var(--text-soft)]"
                             >
                               {topic.author.profile.displayName}
                             </Link>
@@ -286,12 +286,12 @@ export function HubTextLobbyChat({
                           </p>
                         </div>
 
-                        <span className="inline-flex w-fit items-center rounded-full border border-[var(--border-soft)] bg-white/[0.035] px-2.5 py-1 text-[11px] font-medium text-[var(--text-dim)]">
+                        <span className="inline-flex w-fit items-center rounded-full border border-[var(--border-soft)] bg-black px-2.5 py-1 text-[11px] font-medium text-[var(--text-dim)]">
                           {formatMessageDate(topic.createdAt)}
                         </span>
                       </div>
 
-                      <div className="mt-3 rounded-[16px] border border-white/5 bg-[rgba(7,11,17,0.28)] px-3.5 py-3">
+                      <div className="mt-3 rounded-[16px] border border-white/5 bg-[var(--bg-panel-soft)] px-3.5 py-3">
                         <p className="whitespace-pre-wrap break-words text-sm leading-6 text-[var(--text-soft)]">
                           {topic.content}
                         </p>
@@ -307,7 +307,7 @@ export function HubTextLobbyChat({
 
       <form
         onSubmit={handleSubmit}
-        className="border-t border-white/5 bg-[rgba(11,16,24,0.72)] px-4 py-4"
+        className="border-t border-white/5 bg-black px-4 py-4"
       >
         <div className="grid gap-3">
           <textarea

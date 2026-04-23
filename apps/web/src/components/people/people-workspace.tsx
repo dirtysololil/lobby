@@ -174,7 +174,7 @@ function ViewTabs({
   pendingCount: number;
 }) {
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto rounded-[22px] border border-white/6 bg-[#151d29] p-2 text-[14px] font-medium text-[#8c98ab] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+    <div className="flex items-center gap-1.5 overflow-x-auto rounded-[22px] border border-[var(--border)] bg-black p-2 text-[14px] font-medium text-[var(--text-dim)]">
       {peopleViews.map((item) => {
         const active = activeView === item.id;
 
@@ -184,25 +184,25 @@ function ViewTabs({
             type="button"
             onClick={() => onSelect(item.id)}
             className={cn(
-              "relative flex shrink-0 items-center gap-2 whitespace-nowrap rounded-[16px] px-4 py-3 transition-all duration-150",
+              "relative flex shrink-0 items-center gap-2 whitespace-nowrap rounded-[16px] border px-4 py-3 transition-all duration-150",
               active
-                ? "bg-[#1b2330] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
-                : "hover:bg-white/[0.03] hover:text-white",
+                ? "border-[var(--border-strong)] bg-[var(--bg-active)] text-white"
+                : "border-transparent hover:border-[var(--border-soft)] hover:bg-[var(--bg-hover)] hover:text-white",
             )}
           >
             <span>{item.label}</span>
             {item.id === "requests" && pendingCount > 0 ? (
-              <span className="inline-flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full border border-white/8 bg-white/[0.05] px-1.5 text-[11px] font-medium text-[#dce4f1]">
+              <span className="inline-flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-panel-soft)] px-1.5 text-[11px] font-medium text-white">
                 {pendingCount}
               </span>
             ) : null}
             {item.id === "suggested" ? (
-              <span className="inline-flex min-h-[20px] items-center rounded-full bg-[rgba(120,74,255,0.18)] px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#b994ff]">
+              <span className="inline-flex min-h-[20px] items-center rounded-full border border-[var(--border-soft)] bg-black px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                 Новое
               </span>
             ) : null}
             {active ? (
-              <span className="absolute inset-x-4 bottom-0 h-[2px] rounded-full bg-[#7a5cff]" />
+              <span className="absolute inset-x-4 bottom-0 h-[2px] rounded-full bg-white" />
             ) : null}
           </button>
         );
@@ -242,7 +242,7 @@ function CompactEmptyState({
 }) {
   return (
     <div className="flex min-h-[144px] flex-col items-center justify-center gap-2 px-4 py-5 text-center">
-      <div className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-white/[0.04] text-[var(--text-muted)]">
+      <div className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-black text-[var(--text-muted)]">
         <Icon className="h-4.5 w-4.5" />
       </div>
       <div className="space-y-1">
@@ -263,7 +263,7 @@ function SectionCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-[22px] border border-white/6 bg-[#151d29] shadow-[0_20px_34px_rgba(5,10,18,0.22)]",
+        "overflow-hidden rounded-[22px] border border-[var(--border)] bg-black shadow-[0_20px_34px_rgba(0,0,0,0.22)]",
         className,
       )}
     >
@@ -282,9 +282,9 @@ function SidebarCard({
   icon: typeof Users2;
 }) {
   return (
-    <section className="overflow-hidden rounded-[22px] border border-white/6 bg-[#151d29] shadow-[0_20px_34px_rgba(5,10,18,0.2)]">
+    <section className="overflow-hidden rounded-[22px] border border-[var(--border)] bg-black shadow-[0_20px_34px_rgba(0,0,0,0.2)]">
       <div className="flex items-center gap-2 px-4 py-4">
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-[12px] bg-white/[0.04] text-[#9f7cff]">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-[12px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white">
           <Icon className="h-4 w-4" />
         </span>
         <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-white">
@@ -309,46 +309,23 @@ function MetricCard({
   label: string;
   value: number;
 }) {
-  const isPrimary = iconClassName.includes("#162235");
-  const isSuccess = iconClassName.includes("#13261f");
-  const isWarning = iconClassName.includes("#2a2113");
-  const displayLabel = isPrimary
-    ? "Все друзья"
-    : isSuccess
-      ? "В сети"
-      : isWarning
-        ? "Заявки"
-        : label;
-  const displayDescription = isPrimary
-    ? `Из ${Math.max(500, value * 125)} возможных`
-    : isSuccess
-      ? "Сейчас онлайн"
-      : isWarning
-        ? "Ожидают ответа"
-        : description;
-
   return (
     <div
-      className={cn(
-        "rounded-[20px] border border-white/6 px-5 py-5 shadow-[0_18px_30px_rgba(4,10,18,0.18)]",
-        isPrimary
-          ? "bg-[linear-gradient(180deg,rgba(90,111,255,0.14),transparent_100%),#1b2434]"
-          : "bg-[#151d29]",
-      )}
+      className="rounded-[20px] border border-[var(--border)] bg-black px-5 py-5 shadow-[0_18px_30px_rgba(0,0,0,0.18)]"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#97a3b6]">
-            {displayLabel}
+          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            {label}
           </p>
           <p className="mt-3 text-[46px] font-semibold leading-none tracking-[-0.06em] text-white">
             {value}
           </p>
-          <p className="mt-3 text-[14px] text-[#8d98aa]">{displayDescription}</p>
+          <p className="mt-3 text-[14px] text-[var(--text-dim)]">{description}</p>
         </div>
         <div
           className={cn(
-            "inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/8",
+            "inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border",
             iconClassName,
           )}
         >
@@ -374,16 +351,18 @@ function QuickActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-[16px] border border-white/6 bg-[#1a2331] px-4 py-3.5 text-left transition-colors hover:bg-[#1e2838]"
+      className="flex w-full items-center gap-3 rounded-[16px] border border-[var(--border)] bg-black px-4 py-3.5 text-left transition-colors hover:bg-[var(--bg-hover)]"
     >
-      <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/6 bg-[#121a25] text-[#dfe7f4]">
+      <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white">
         <Icon className="h-4.5 w-4.5" />
       </div>
       <div className="min-w-0">
         <p className="text-sm font-semibold text-white">{label}</p>
-        <p className="mt-0.5 text-xs leading-5 text-[#7f8a9c]">{description}</p>
+        <p className="mt-0.5 text-xs leading-5 text-[var(--text-dim)]">
+          {description}
+        </p>
       </div>
-      <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[#7f8a9c]" />
+      <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[var(--text-dim)]" />
     </button>
   );
 }
@@ -406,22 +385,22 @@ function RequestPanel({
   children: ReactNode;
 }) {
   return (
-    <SectionCard className="rounded-[18px] bg-[#141d28]/78">
+    <SectionCard className="rounded-[18px] bg-black">
       <div className="flex items-start justify-between gap-3 px-4 py-4">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/6 bg-white/[0.04] text-[#9fbfff]">
+          <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white">
             <Icon className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium tracking-tight text-white">{title}</p>
-            <p className="mt-1 text-sm text-[#8d98aa]">{description}</p>
+            <p className="mt-1 text-sm text-[var(--text-dim)]">{description}</p>
           </div>
         </div>
 
         <CompactListCount>{count}</CompactListCount>
       </div>
 
-      <div className="overflow-hidden border-t border-white/5 bg-[#0f1823]/82">
+      <div className="overflow-hidden border-t border-[var(--border-soft)] bg-black">
         {count === 0 ? (
           <CompactEmptyState
             icon={Icon}
@@ -485,10 +464,10 @@ function FriendRow({
   onOpenDm: (username: string) => void;
 }) {
   return (
-    <div className="mb-3 flex flex-col gap-4 rounded-[20px] border border-white/6 bg-[#151d29] px-4 py-4 shadow-[0_18px_30px_rgba(4,10,18,0.18)] last:mb-0 md:flex-row md:items-center md:justify-between md:px-5">
+    <div className="mb-3 flex flex-col gap-4 rounded-[20px] border border-[var(--border)] bg-black px-4 py-4 shadow-[0_18px_30px_rgba(0,0,0,0.18)] last:mb-0 md:flex-row md:items-center md:justify-between md:px-5">
       <button
         type="button"
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[#5b6678] transition-colors hover:bg-white/[0.04] hover:text-white"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
         aria-label={`Открыть ${item.otherUser.profile.displayName}`}
       >
         <ChevronRight className="h-4 w-4" />
@@ -505,25 +484,25 @@ function FriendRow({
             </p>
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
+                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium",
                 item.otherUser.isOnline
-                  ? "bg-[rgba(40,199,111,0.12)] text-[#58d78f]"
-                  : "bg-white/[0.04] text-[#9aa6b8]",
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+                  : "border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-[var(--text-muted)]",
               )}
             >
               <span
                 className={cn(
                   "h-2 w-2 rounded-full",
-                  item.otherUser.isOnline ? "bg-[#35d17c]" : "bg-[#697588]",
+                  item.otherUser.isOnline ? "bg-emerald-400" : "bg-[var(--text-dim)]",
                 )}
               />
               {getCompactFriendStatus(item.otherUser)}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-[13px] text-[#8a95a8]">
+          <p className="mt-0.5 truncate text-[13px] text-[var(--text-dim)]">
             @{item.otherUser.username}
           </p>
-          <p className="mt-1 truncate text-[13px] text-[#8a95a8]">
+          <p className="mt-1 truncate text-[13px] text-[var(--text-dim)]">
             {item.otherUser.profile.bio ?? "Новый контакт в вашем круге общения."}
           </p>
         </div>
@@ -534,7 +513,7 @@ function FriendRow({
           size="sm"
           variant="secondary"
           onClick={() => onOpenDm(item.otherUser.username)}
-          className="h-10 rounded-[12px] border-white/6 bg-white/[0.04] px-4 text-[13px] hover:bg-white/[0.06]"
+          className="h-10 rounded-[12px] border-[var(--border)] bg-black px-4 text-[13px] hover:bg-[var(--bg-hover)]"
         >
           <MessageSquareMore className="h-[16px] w-[16px]" />
           Написать
@@ -542,7 +521,7 @@ function FriendRow({
         <Link
           href={buildUserProfileHref(item.otherUser.username)}
           aria-label={`Открыть профиль ${item.otherUser.profile.displayName}`}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] border border-white/6 bg-white/[0.04] text-[#9ca9bb] transition-colors hover:bg-white/[0.06] hover:text-white"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] border border-[var(--border)] bg-black text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
         >
           <Ellipsis className="h-4.5 w-4.5" />
         </Link>
@@ -559,7 +538,7 @@ function FriendGridCard({
   onOpenDm: (username: string) => void;
 }) {
   return (
-    <div className="rounded-[16px] border border-white/6 bg-white/[0.03] p-4">
+    <div className="rounded-[16px] border border-[var(--border)] bg-black p-4">
       <Link
         href={buildUserProfileHref(item.otherUser.username)}
         className="identity-link flex-col items-start rounded-[14px]"
@@ -573,19 +552,21 @@ function FriendGridCard({
           <p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-white">
             {item.otherUser.profile.displayName}
           </p>
-          <p className="mt-0.5 truncate text-[13px] text-[#8a95a8]">
+          <p className="mt-0.5 truncate text-[13px] text-[var(--text-dim)]">
             @{item.otherUser.username}
           </p>
           <p
             className={cn(
               "mt-1 inline-flex items-center gap-1.5 text-[12px] font-medium",
-              item.otherUser.isOnline ? "text-[#31c878]" : "text-[#7f8a9c]",
+              item.otherUser.isOnline
+                ? "text-emerald-300"
+                : "text-[var(--text-dim)]",
             )}
           >
             <span
               className={cn(
                 "h-2.5 w-2.5 rounded-full",
-                item.otherUser.isOnline ? "bg-[#31c878]" : "bg-[#7d8798]",
+                item.otherUser.isOnline ? "bg-emerald-400" : "bg-[var(--text-dim)]",
               )}
             />
             {getCompactFriendStatus(item.otherUser)}
@@ -598,7 +579,7 @@ function FriendGridCard({
           size="sm"
           variant="secondary"
           onClick={() => onOpenDm(item.otherUser.username)}
-          className="h-9 flex-1 rounded-[12px] border-white/6 bg-white/[0.04] px-3.5 text-[13px] hover:bg-white/[0.06]"
+          className="h-9 flex-1 rounded-[12px] border-[var(--border)] bg-black px-3.5 text-[13px] hover:bg-[var(--bg-hover)]"
         >
           <MessageSquareMore className="h-[16px] w-[16px]" />
           Написать
@@ -606,7 +587,7 @@ function FriendGridCard({
         <Link
           href={buildUserProfileHref(item.otherUser.username)}
           aria-label={`Открыть профиль ${item.otherUser.profile.displayName}`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/6 bg-white/[0.04] text-[#9ca9bb] transition-colors hover:bg-white/[0.06] hover:text-white"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-[var(--border)] bg-black text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
         >
           <Ellipsis className="h-4.5 w-4.5" />
         </Link>
@@ -872,11 +853,9 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
   );
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0f141d]">
-      <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_top_left,rgba(88,104,255,0.08),transparent_20%),linear-gradient(180deg,rgba(255,255,255,0.012),transparent_16%)] md:block" />
-
+    <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
       <div className="relative flex h-full min-h-0 flex-col">
-        <div className="border-b border-white/5 px-4 pb-5 pt-5 md:px-6 md:pt-6 xl:px-8">
+        <div className="border-b border-[var(--border-soft)] px-4 pb-5 pt-5 md:px-6 md:pt-6 xl:px-8">
           <div className="md:hidden">
             <AppMobileTopNav active="people" />
           </div>
@@ -884,14 +863,14 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
           <div className="mt-4 flex flex-col gap-5 md:mt-0 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className="flex items-start gap-3">
-                <div className="hidden h-12 w-12 items-center justify-center rounded-[16px] border border-[rgba(92,105,255,0.25)] bg-[rgba(76,88,255,0.08)] text-[#6f7cff] shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] md:inline-flex">
+                <div className="hidden h-12 w-12 items-center justify-center rounded-[16px] border border-[var(--border-strong)] bg-black text-white md:inline-flex">
                   <Users2 className="h-6 w-6" />
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-[36px] font-semibold tracking-[-0.05em] text-white">
                     {activeViewMeta.title}
                   </h1>
-                  <p className="mt-2 max-w-[760px] text-sm leading-6 text-[#8d98aa]">
+                  <p className="mt-2 max-w-[760px] text-sm leading-6 text-[var(--text-dim)]">
                     Управляйте друзьями, заявками и находите новых знакомых.
                   </p>
                 </div>
@@ -900,20 +879,20 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
 
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
               <form
-                className="flex h-11 min-w-0 items-center gap-2 rounded-[14px] border border-white/6 bg-[#151d29] px-3 text-[#8d98aa] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] md:w-[320px]"
+                className="flex h-11 min-w-0 items-center gap-2 rounded-[14px] border border-[var(--border)] bg-black px-3 text-[var(--text-dim)] md:w-[320px]"
                 onSubmit={handleSearchSubmit}
               >
                 <Search className="h-4.5 w-4.5 shrink-0" />
                 <input
                   ref={searchInputRef}
-                  className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[#79859a]"
+                  className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[var(--text-muted)]"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Поиск по пользователям..."
                   aria-label="Поиск по пользователям"
                   autoComplete="off"
                 />
-                <span className="hidden rounded-[9px] border border-white/6 bg-white/[0.03] px-2 py-1 text-[11px] font-medium text-[#9ca9bb] md:inline-flex">
+                <span className="hidden rounded-[9px] border border-[var(--border-soft)] bg-black px-2 py-1 text-[11px] font-medium text-[var(--text-muted)] md:inline-flex">
                   ⌘K
                 </span>
               </form>
@@ -921,12 +900,12 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/6 bg-[#151d29] text-[#a7b0bf] transition-colors hover:text-white"
+                  className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-black text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-white"
                   aria-label="Уведомления"
                 >
                   <Bell className="h-4.5 w-4.5" />
                   {pendingCount > 0 ? (
-                    <span className="absolute -right-1 -top-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[#5866ff] px-1.5 text-[11px] font-semibold text-white">
+                    <span className="absolute -right-1 -top-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-white px-1.5 text-[11px] font-semibold text-black">
                       {pendingCount}
                     </span>
                   ) : null}
@@ -934,14 +913,14 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
 
                 <Link
                   href={buildUserProfileHref(viewer.username)}
-                  className="inline-flex items-center gap-3 rounded-full border border-white/6 bg-[#151d29] py-1 pl-1 pr-3 text-white transition-colors hover:border-white/10"
+                  className="inline-flex items-center gap-3 rounded-full border border-[var(--border)] bg-black py-1 pl-1 pr-3 text-white transition-colors hover:border-[var(--border-strong)]"
                 >
                   <UserAvatar
                     user={viewer}
                     size="sm"
                     className="h-10 w-10 text-[12px]"
                   />
-                  <ChevronDown className="h-4 w-4 text-[#8d98aa]" />
+                  <ChevronDown className="h-4 w-4 text-[var(--text-dim)]" />
                 </Link>
               </div>
             </div>
@@ -974,28 +953,28 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                   icon={Users2}
-                  iconClassName="bg-[#162235] text-[#6ea5ff]"
+                  iconClassName="border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white"
                   label="Друзья"
                   value={sortedFriends.length}
                   description={formatRussianCount(sortedFriends.length, "ваш друг", "ваших друга", "ваших друзей")}
                 />
                 <MetricCard
                   icon={ContactRound}
-                  iconClassName="bg-[#13261f] text-[#32c978]"
+                  iconClassName="border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white"
                   label="В сети"
                   value={onlineFriendCount}
                   description="сейчас онлайн"
                 />
                 <MetricCard
                   icon={UserPlus2}
-                  iconClassName="bg-[#2a2113] text-[#f3b35d]"
+                  iconClassName="border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white"
                   label="Заявки"
                   value={pendingCount}
                   description="ожидают ответа"
                 />
                 <MetricCard
                   icon={Ban}
-                  iconClassName="bg-[#28161d] text-[#ff6a84]"
+                  iconClassName="border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white"
                   label="Блокировки"
                   value={blocks.length}
                   description="заблокировано"
@@ -1009,7 +988,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                       <h2 className="text-[28px] font-semibold tracking-[-0.04em] text-white">
                         Ваши друзья
                       </h2>
-                      <p className="mt-1 text-sm text-[#8d98aa]">
+                      <p className="mt-1 text-sm text-[var(--text-dim)]">
                         {formatRussianCount(sortedFriends.length, "друг", "друга", "друзей")}
                       </p>
                     </div>
@@ -1022,20 +1001,20 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                             current === "name" ? "status" : "name",
                           )
                         }
-                        className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-white/6 bg-[#151d29] px-3 text-sm font-medium text-[#cfd8e4] transition-colors hover:bg-white/[0.05]"
+                        className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-black px-3 text-sm font-medium text-white transition-colors hover:bg-[var(--bg-hover)]"
                       >
                         <span>{sortLabels[friendSortMode]}</span>
-                        <ChevronDown className="h-4 w-4 text-[#8a96a8]" />
+                        <ChevronDown className="h-4 w-4 text-[var(--text-dim)]" />
                       </button>
 
-                      <div className="inline-flex h-10 items-center rounded-[12px] border border-white/6 bg-[#151d29] p-1">
+                      <div className="inline-flex h-10 items-center rounded-[12px] border border-[var(--border)] bg-black p-1">
                         <button
                           type="button"
                           onClick={() => setFriendDisplayMode("list")}
                           className={cn(
-                            "inline-flex h-8 w-8 items-center justify-center rounded-[9px] text-[#8a96a8] transition-colors",
+                            "inline-flex h-8 w-8 items-center justify-center rounded-[9px] text-[var(--text-dim)] transition-colors",
                             friendDisplayMode === "list" &&
-                              "bg-white/[0.06] text-white",
+                              "bg-[var(--bg-active)] text-white",
                           )}
                           aria-label="Список"
                           title="Список"
@@ -1046,9 +1025,9 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                           type="button"
                           onClick={() => setFriendDisplayMode("grid")}
                           className={cn(
-                            "inline-flex h-8 w-8 items-center justify-center rounded-[9px] text-[#8a96a8] transition-colors",
+                            "inline-flex h-8 w-8 items-center justify-center rounded-[9px] text-[var(--text-dim)] transition-colors",
                             friendDisplayMode === "grid" &&
-                              "bg-white/[0.06] text-white",
+                              "bg-[var(--bg-active)] text-white",
                           )}
                           aria-label="Сетка"
                           title="Сетка"
@@ -1089,7 +1068,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                     )}
                   </SectionCard>
 
-                  <div className="pt-5 text-center text-[12px] text-[#7b8697]">
+                  <div className="pt-5 text-center text-[12px] text-[var(--text-muted)]">
                     {formatRussianCount(sortedFriends.length, "друг", "друга", "друзей")}
                   </div>
                 </div>
@@ -1213,7 +1192,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                       <h2 className="text-[28px] font-semibold tracking-[-0.04em] text-white">
                         Поиск людей
                       </h2>
-                      <p className="mt-1 text-sm text-[#8d98aa]">
+                      <p className="mt-1 text-sm text-[var(--text-dim)]">
                         Ищите по имени или никнейму и сразу переходите к действиям.
                       </p>
                     </div>
@@ -1222,11 +1201,11 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                       className="flex w-full gap-2 md:max-w-[440px]"
                       onSubmit={handleSearchSubmit}
                     >
-                      <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-[14px] border border-white/6 bg-white/[0.04] px-3 text-[#9ca9bb] focus-within:border-[#3b6ed8]/32">
+                      <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-[14px] border border-[var(--border)] bg-black px-3 text-[var(--text-muted)] focus-within:border-[var(--border-strong)]">
                         <Search size={17} strokeWidth={1.75} className="shrink-0" />
                         <input
                           ref={searchInputRef}
-                          className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[#7b8697]"
+                          className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[var(--text-muted)]"
                           value={query}
                           onChange={(event) => setQuery(event.target.value)}
                           placeholder="Поиск по имени или никнейму"
@@ -1433,7 +1412,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                     <h2 className="text-[28px] font-semibold tracking-[-0.04em] text-white">
                       Возможные друзья
                     </h2>
-                    <p className="mt-1 text-sm text-[#8d98aa]">
+                    <p className="mt-1 text-sm text-[var(--text-dim)]">
                       Пока рекомендации строятся вокруг поиска и уже найденных людей.
                     </p>
                   </div>
@@ -1517,7 +1496,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                     <h2 className="text-[28px] font-semibold tracking-[-0.04em] text-white">
                       Блокировки
                     </h2>
-                    <p className="mt-1 text-sm text-[#8d98aa]">
+                    <p className="mt-1 text-sm text-[var(--text-dim)]">
                       Управление заблокированными аккаунтами и быстрый возврат доступа.
                     </p>
                   </div>
@@ -1575,7 +1554,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
               ) : null}
 
               {activeView !== "friends" ? (
-                <div className="pb-2 pt-5 text-center text-[12px] text-[#7b8697]">
+                <div className="pb-2 pt-5 text-center text-[12px] text-[var(--text-muted)]">
                   {activeCount} {activeViewMeta.countLabel}
                 </div>
               ) : null}
@@ -1604,14 +1583,14 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                   />
                 </div>
                 {quickActionNotice ? (
-                  <p className="mt-3 text-xs leading-5 text-[#8fa5c3]">
+                  <p className="mt-3 text-xs leading-5 text-[var(--text-dim)]">
                     {quickActionNotice}
                   </p>
                 ) : null}
                 <Button
                   type="button"
                   onClick={() => void handleCopyProfileLink()}
-                  className="mt-4 h-11 w-full rounded-[14px] border-0 bg-[linear-gradient(90deg,#4250d0,#7b40c8)] text-sm font-semibold text-white hover:opacity-95"
+                  className="mt-4 h-11 w-full rounded-[14px]"
                 >
                   <UserPlus2 className="h-4 w-4" />
                   Пригласить друзей
@@ -1620,7 +1599,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
 
               <SidebarCard title="Активность друзей" icon={Users2}>
                 {activityFriends.length === 0 ? (
-                  <div className="px-1 py-1 text-sm text-[#8d98aa]">
+                  <div className="px-1 py-1 text-sm text-[var(--text-dim)]">
                     Друзья появятся здесь, когда вы добавите первые контакты.
                   </div>
                 ) : (
@@ -1629,7 +1608,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                       <Link
                         key={item.id}
                         href={buildUserProfileHref(item.otherUser.username)}
-                        className="flex items-center gap-3 rounded-[14px] px-2.5 py-2 transition-colors hover:bg-white/[0.04]"
+                        className="flex items-center gap-3 rounded-[14px] px-2.5 py-2 transition-colors hover:bg-[var(--bg-hover)]"
                       >
                         <UserAvatar
                           user={item.otherUser}
@@ -1641,14 +1620,16 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                           <p className="truncate text-[13px] font-medium text-white">
                             {item.otherUser.profile.displayName}
                           </p>
-                          <p className="mt-0.5 truncate text-[12px] text-[#7f8a9c]">
+                          <p className="mt-0.5 truncate text-[12px] text-[var(--text-dim)]">
                             {getActivityStatus(item.otherUser)}
                           </p>
                         </div>
                         <span
                           className={cn(
                             "h-2.5 w-2.5 rounded-full",
-                            item.otherUser.isOnline ? "bg-[#31c878]" : "bg-[#7d8798]",
+                            item.otherUser.isOnline
+                              ? "bg-emerald-400"
+                              : "bg-[var(--text-dim)]",
                           )}
                         />
                       </Link>
@@ -1658,18 +1639,18 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
               </SidebarCard>
 
               <SidebarCard title="Советы" icon={Lightbulb}>
-                <p className="text-sm leading-6 text-[#8d98aa]">
+                <p className="text-sm leading-6 text-[var(--text-dim)]">
                   Добавляйте больше друзей, чтобы лента была интереснее и доступ к
                   перепискам был быстрее.
                 </p>
                 <div className="mt-4">
-                  <div className="flex items-center justify-between gap-2 text-[12px] font-medium text-[#cfd8e4]">
+                  <div className="flex items-center justify-between gap-2 text-[12px] font-medium text-[var(--text-soft)]">
                     <span>{sortedFriends.length}/{friendsGoal} друзей</span>
                     <span>{friendGoalProgress}%</span>
                   </div>
-                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[var(--bg-panel-soft)]">
                     <div
-                      className="h-full rounded-full bg-[#4a84ff] transition-[width] duration-300"
+                      className="h-full rounded-full bg-white transition-[width] duration-300"
                       style={{ width: `${friendGoalProgress}%` }}
                     />
                   </div>

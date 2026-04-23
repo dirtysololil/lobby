@@ -60,8 +60,8 @@ export function AppMobileTopNav({
           aria-label={item.label}
           title={item.label}
           className={cn(
-            "inline-flex min-h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] text-[11px] font-medium tracking-[-0.01em] text-[#8e99aa] transition-colors hover:bg-white/[0.03] hover:text-white",
-            active === item.key && "bg-[#101b27] text-[#5a9cff]",
+            "inline-flex min-h-[54px] min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] text-[11px] font-medium tracking-[-0.01em] text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white",
+            active === item.key && "border border-white/10 bg-[var(--bg-active)] text-white",
           )}
         >
           <item.icon size={18} strokeWidth={1.75} />

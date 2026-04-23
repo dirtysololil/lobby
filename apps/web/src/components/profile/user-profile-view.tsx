@@ -259,7 +259,7 @@ export function UserProfileView({
                   <button
                     type="button"
                     onClick={() => setIsAvatarPreviewOpen(true)}
-                    className="group relative inline-flex rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.16),transparent_60%),rgba(255,255,255,0.04)] p-2 transition-colors hover:border-white/14 hover:bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.22),transparent_66%),rgba(255,255,255,0.05)]"
+                    className="group relative inline-flex rounded-[28px] border border-white/8 bg-black p-2 transition-colors hover:border-white/14 hover:bg-[var(--bg-hover)]"
                     aria-label="Открыть фото профиля"
                   >
                     <UserAvatar

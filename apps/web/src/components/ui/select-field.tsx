@@ -221,7 +221,7 @@ const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>(
             <div
               ref={listRef}
               className={cn(
-                "select-portal-layer overflow-hidden rounded-[16px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_22%),rgba(11,16,24,0.98)] p-1 shadow-[0_18px_40px_rgba(4,8,16,0.46)] backdrop-blur-xl",
+                "select-portal-layer overflow-hidden rounded-[16px] border border-white/8 bg-black p-1 shadow-[0_18px_40px_rgba(0,0,0,0.46)]",
                 listClassName,
               )}
               style={menuStyle}
@@ -247,13 +247,13 @@ const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>(
                       className={cn(
                         "flex min-h-9 w-full items-center justify-between gap-3 rounded-[12px] px-3 py-2 text-left text-sm transition-colors",
                         active
-                          ? "bg-[var(--bg-active)] text-white"
-                          : "text-[var(--text-soft)] hover:bg-white/[0.06] hover:text-white",
+                          ? "border border-[var(--border-strong)] bg-[var(--bg-active)] text-white"
+                          : "text-[var(--text-soft)] hover:bg-[var(--bg-hover)] hover:text-white",
                         option.disabled && "cursor-not-allowed opacity-50",
                       )}
                     >
                       <span className="min-w-0 truncate">{option.label}</span>
-                      {active ? <Check className="h-4 w-4 text-[var(--accent-strong)]" /> : null}
+                      {active ? <Check className="h-4 w-4 text-white" /> : null}
                     </button>
                   );
                 })}
@@ -305,7 +305,7 @@ const SelectField = React.forwardRef<HTMLSelectElement, SelectFieldProps>(
               });
             }}
             className={cn(
-              "flex min-h-10 w-full items-center justify-between gap-2 rounded-[14px] border border-[var(--border)] bg-[rgba(255,255,255,0.045)] px-3.5 text-left text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-colors duration-150 hover:border-[var(--border-strong)] hover:bg-[rgba(255,255,255,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:cursor-not-allowed disabled:opacity-60",
+              "flex min-h-10 w-full items-center justify-between gap-2 rounded-[14px] border border-[var(--border)] bg-black px-3.5 text-left text-sm text-white transition-colors duration-150 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:cursor-not-allowed disabled:opacity-60",
               className,
             )}
           >

@@ -1,7 +1,7 @@
 import type { EmojiCategoryId, EmojiManifestEntry, EmojiTone } from "@lobby/shared";
 import { emojiManifestEntries } from "@/lib/emoji/manifest";
 
-export interface EmojiEntry extends EmojiManifestEntry {}
+export type EmojiEntry = EmojiManifestEntry;
 
 export interface EmojiCategory {
   id: Exclude<EmojiCategoryId, "recent">;

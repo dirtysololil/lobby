@@ -3,23 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border text-sm font-medium tracking-tight shadow-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[12px] border text-sm font-medium tracking-tight shadow-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]",
+          "border-white bg-white text-black hover:bg-white/90",
         secondary:
-          "border-white/5 bg-white/10 text-white hover:bg-white/15",
+          "border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]",
         ghost:
-          "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-white/5 hover:text-white",
+          "border-transparent bg-transparent text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-white",
         destructive:
-          "border-red-500/45 bg-[#ff0033] text-white shadow-[0_0_0_1px_rgba(255,0,51,0.14),0_12px_28px_rgba(255,0,51,0.18)] hover:border-red-400/60 hover:bg-[#ff1f4b]",
+          "border-red-500/40 bg-red-950/40 text-red-50 hover:border-red-400/60 hover:bg-red-950/60",
       },
       size: {
-        default: "h-9 px-4 text-sm",
+        default: "h-10 px-4 text-sm",
         sm: "h-8 px-3 text-xs",
-        lg: "h-9 px-4 text-sm",
+        lg: "h-11 px-4 text-sm",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

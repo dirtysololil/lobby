@@ -415,8 +415,8 @@ export function EmbeddedMediaBubble({
   const viewerMarkup =
     typeof document !== "undefined" && isViewerOpen
       ? createPortal(
-          <div
-            className="dm-viewer-overlay fixed inset-0 z-[120] bg-[rgba(4,7,11,0.88)] backdrop-blur-[10px]"
+        <div
+            className="dm-viewer-overlay fixed inset-0 z-[120] bg-black/92"
             onClick={closeViewer}
           >
             <div className="dm-viewer-frame absolute inset-0 flex items-center justify-center p-6">
@@ -622,7 +622,7 @@ export function EmbeddedMediaBubble({
                       draggable={false}
                     />
                   ) : (
-                    <div className="flex min-h-[320px] w-full max-w-[640px] items-center justify-center rounded-[24px] bg-[rgba(8,12,18,0.5)] text-center text-sm text-[var(--text-muted)]">
+                    <div className="flex min-h-[320px] w-full max-w-[640px] items-center justify-center rounded-[24px] bg-black text-center text-sm text-[var(--text-muted)]">
                       <div className="grid gap-2 px-6">
                         <ImageOff
                           size={18}
@@ -648,7 +648,7 @@ export function EmbeddedMediaBubble({
         type="button"
         onClick={openViewer}
         className={cn(
-          "block w-full overflow-hidden rounded-[14px] bg-[rgba(8,12,18,0.62)] text-left transition-opacity hover:opacity-[0.98]",
+          "block w-full overflow-hidden rounded-[14px] bg-black text-left transition-opacity hover:opacity-[0.98]",
           className,
         )}
         style={{ aspectRatio: resolvedAspectRatio }}
@@ -663,7 +663,7 @@ export function EmbeddedMediaBubble({
           forcePlay={previewShouldPlay}
           preloadMode={previewPreload}
           onVideoError={() => setPreviewVideoFailed(true)}
-          className="h-full w-full bg-[rgba(8,12,18,0.42)]"
+          className="h-full w-full bg-black"
           mediaClassName={previewMediaClassName}
           fallbackLabel={fallbackLabel}
         />

@@ -41,10 +41,10 @@ export function AuthShell({
           <div className="mt-6 max-w-2xl">
             <p className="section-kicker">{eyebrow}</p>
             <h1 className="mt-2.5 font-[var(--font-heading)] text-3xl font-semibold tracking-[-0.05em] text-white sm:text-[2.6rem]">
-              Приватные коммуникации в компактном контуре.
+              Приватные коммуникации в точной, малошумной оболочке.
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-dim)]">
-              Диалоги, люди и хабы без лишнего слоя панели.
+              Диалоги, люди и хабы без лишнего декоративного шума.
             </p>
           </div>
 
@@ -70,7 +70,7 @@ export function AuthShell({
                 key={item.label}
                 className="surface-subtle rounded-[16px] p-3.5"
               >
-                <item.icon className="h-4 w-4 text-[var(--accent)]" />
+                <item.icon className="h-4 w-4 text-white" />
                 <p className="mt-2.5 text-sm font-semibold text-white">
                   {item.label}
                 </p>
@@ -96,7 +96,7 @@ export function AuthShell({
           </CardHeader>
           <CardContent className="space-y-4">
             {children}
-            <div className="rounded-[14px] border border-[var(--border)] bg-white/[0.03] px-3 py-3 text-sm text-[var(--text-dim)]">
+            <div className="rounded-[14px] border border-[var(--border)] bg-black px-3 py-3 text-sm text-[var(--text-dim)]">
               {footer}
             </div>
           </CardContent>

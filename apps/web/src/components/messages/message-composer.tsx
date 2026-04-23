@@ -612,7 +612,7 @@ export function MessageComposer({
             data-composer-attach-root="true"
           >
             {attachMenuOpen ? (
-              <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-2 shadow-[0_18px_40px_rgba(2,6,12,0.42)]">
+              <div className="absolute bottom-full left-0 z-50 mb-3 w-52 rounded-[18px] border border-white/8 bg-black p-2 shadow-[0_18px_40px_rgba(0,0,0,0.42)]">
                 <button
                   type="button"
                   onClick={() => {

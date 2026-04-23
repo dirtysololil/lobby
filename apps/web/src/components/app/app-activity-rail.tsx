@@ -204,7 +204,7 @@ export function AppActivityRail({
   const panel = (
     <aside
       className={cn(
-        "activity-rail flex w-72 min-w-72 flex-col border-l border-white/5 bg-[#10161f]",
+        "activity-rail flex w-72 min-w-72 flex-col border-l border-white/8 bg-black",
         mode === "overlay" ? "absolute inset-y-0 right-0 z-50 h-full" : "h-full",
       )}
       onClick={(event) => {
@@ -225,7 +225,7 @@ export function AppActivityRail({
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/5 bg-white/5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-white/8 bg-black text-zinc-400 transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
           aria-label="Закрыть панель"
         >
           <X {...iconProps} />

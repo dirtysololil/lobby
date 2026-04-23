@@ -42,7 +42,7 @@ export function NativeMobileShell() {
       statusBarPlugin?.setOverlaysWebView?.({ overlay: false }),
     ).catch(() => undefined);
     void Promise.resolve(
-      statusBarPlugin?.setBackgroundColor?.({ color: "#091018" }),
+      statusBarPlugin?.setBackgroundColor?.({ color: "#000000" }),
     ).catch(() => undefined);
 
     void Promise.resolve(

@@ -55,12 +55,12 @@ export function MovableConversationInfoPanel({
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20 hidden md:block">
-      <div className="pointer-events-auto absolute right-4 top-4 w-[min(320px,calc(100%-2rem))] max-w-[320px] rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_20%),rgba(10,15,23,0.96)] p-3 shadow-[0_24px_60px_rgba(4,8,16,0.34)] backdrop-blur-xl">
+      <div className="pointer-events-auto absolute right-4 top-4 w-[min(320px,calc(100%-2rem))] max-w-[320px] rounded-[22px] border border-white/8 bg-black p-3 shadow-[0_24px_60px_rgba(4,8,16,0.34)]">
         {onClose ? (
           <Button
             size="sm"
             variant="ghost"
-            className="absolute right-3 top-3 h-8 w-8 rounded-[12px] border border-white/8 bg-white/[0.03] px-0 text-[var(--text-muted)] hover:bg-white/[0.06] hover:text-white"
+            className="absolute right-3 top-3 h-8 w-8 rounded-[12px] border border-white/8 bg-black px-0 text-[var(--text-muted)] hover:bg-black hover:text-white"
             onClick={onClose}
             aria-label="Закрыть панель"
             title="Закрыть панель"

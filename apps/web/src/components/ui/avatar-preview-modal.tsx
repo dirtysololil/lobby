@@ -86,7 +86,7 @@ export function AvatarPreviewModal({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(3,6,12,0.82)] p-4 backdrop-blur-md transition-opacity duration-150",
+        "fixed inset-0 z-[90] flex items-center justify-center bg-black/88 p-4 transition-opacity duration-150",
         visible ? "opacity-100" : "opacity-0",
       )}
       onClick={(event) => {
@@ -98,7 +98,7 @@ export function AvatarPreviewModal({
     >
       <div
         className={cn(
-          "relative w-full max-w-[min(92vw,760px)] overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_20%),rgba(7,12,18,0.96)] shadow-[0_36px_120px_rgba(2,6,12,0.6)] transition duration-200",
+          "relative w-full max-w-[min(92vw,760px)] overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-[0_36px_120px_rgba(0,0,0,0.6)] transition duration-200",
           visible ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.97]",
         )}
       >
@@ -117,7 +117,7 @@ export function AvatarPreviewModal({
             <p className="mt-1 text-sm text-[var(--text-muted)]">@{user.username}</p>
           </div>
 
-          <div className="flex items-center justify-center rounded-[24px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.18),transparent_34%),rgba(255,255,255,0.03)] p-4 sm:p-6">
+          <div className="flex items-center justify-center rounded-[24px] border border-white/8 bg-black p-4 sm:p-6">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -125,7 +125,7 @@ export function AvatarPreviewModal({
                 className="max-h-[72vh] w-auto max-w-full rounded-[22px] object-contain"
               />
             ) : (
-              <div className="flex h-[min(60vw,320px)] w-[min(60vw,320px)] items-center justify-center rounded-full border border-white/8 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.22),transparent_70%),rgba(255,255,255,0.06)] text-[clamp(3rem,9vw,5.5rem)] font-semibold uppercase tracking-[0.08em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              <div className="flex h-[min(60vw,320px)] w-[min(60vw,320px)] items-center justify-center rounded-full border border-white/8 bg-black text-[clamp(3rem,9vw,5.5rem)] font-semibold uppercase tracking-[0.08em] text-white">
                 {initials}
               </div>
             )}

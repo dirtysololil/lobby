@@ -49,7 +49,7 @@ export function UserAvatar({
         className,
       )}
     >
-      <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.22),transparent_70%),rgba(255,255,255,0.06)] text-center font-semibold uppercase tracking-[0.06em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-white/8 bg-black text-center font-semibold uppercase tracking-[0.06em] text-white">
         {imageSrc ? (
           <img
             src={imageSrc}
@@ -67,7 +67,7 @@ export function UserAvatar({
       {showPresenceIndicator ? (
         <span
           className={cn(
-            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-app)]",
+            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-black",
             getResolvedPresenceDotClass(liveUser),
           )}
         />

@@ -1109,8 +1109,8 @@ export function ConversationView({
                 />
                 <span
                   className={cn(
-                    "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-[2px] border-[#101824] bg-[#6c7484]",
-                    liveCounterpart?.isOnline && "bg-[#2ecf7c]",
+                    "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-[2px] border-black bg-[var(--text-dim)]",
+                    liveCounterpart?.isOnline && "bg-emerald-400",
                   )}
                 />
               </div>
@@ -1125,9 +1125,9 @@ export function ConversationView({
                     </span>
                   ) : null}
                 </div>
-                <p className="dm-header-status mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-[#8d98aa]">
+                <p className="dm-header-status mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-[var(--text-dim)]">
                   {liveCounterpart?.isOnline ? (
-                    <span className="h-2 w-2 rounded-full bg-[#2ecf7c]" />
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
                   ) : null}
                   <span>
                     {liveCounterpart?.isOnline
@@ -1224,7 +1224,7 @@ export function ConversationView({
       ) : null}
 
       {!errorMessage && writeRestrictionMessage ? (
-        <div className="shrink-0 border-b border-white/5 bg-[rgba(20,29,40,0.74)] px-3 py-2 text-sm text-[var(--text-soft)]">
+        <div className="shrink-0 border-b border-white/5 bg-black px-3 py-2 text-sm text-[var(--text-soft)]">
           {writeRestrictionMessage}
         </div>
       ) : null}
@@ -1267,7 +1267,7 @@ export function ConversationView({
           onRetry={retryMessage}
         />
         {isDraggingFiles ? (
-          <div className="pointer-events-none absolute inset-3 z-20 flex items-center justify-center rounded-[24px] border border-[rgba(106,168,248,0.28)] bg-[rgba(8,16,26,0.74)] text-sm text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-sm">
+          <div className="pointer-events-none absolute inset-3 z-20 flex items-center justify-center rounded-[24px] border border-white/10 bg-black text-sm text-white">
             Перетащите фото, видео или документ, чтобы отправить
           </div>
         ) : null}
@@ -1283,7 +1283,7 @@ export function ConversationView({
         />
       </div>
 
-      <div className="dm-composer-region shrink-0 bg-[linear-gradient(180deg,rgba(8,12,18,0.16),rgba(8,12,18,0.96))] px-4 pt-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:px-5 md:py-2.5">
+      <div className="dm-composer-region shrink-0 bg-black px-4 pt-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom,0px))] md:px-5 md:py-2.5">
         <MessageComposer
           disabled={isComposerDisabled}
           canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
@@ -1310,7 +1310,7 @@ export function ConversationView({
       </div>
 
       {isInfoPanelOpen ? (
-        <div className="border-t border-white/5 bg-[rgba(20,29,40,0.38)] px-3 py-2.5 md:hidden 2xl:hidden">
+        <div className="border-t border-white/5 bg-black px-3 py-2.5 md:hidden 2xl:hidden">
           <ConversationSettings
             notificationSetting={viewerParticipant.notificationSetting}
             retentionMode={conversation.retentionMode}

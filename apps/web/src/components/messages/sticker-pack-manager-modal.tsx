@@ -338,7 +338,7 @@ export function StickerPackManagerModal({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[95] flex items-center justify-center bg-[rgba(3,6,12,0.82)] p-4 backdrop-blur-md transition-opacity duration-150",
+        "fixed inset-0 z-[95] flex items-center justify-center bg-black/88 p-4 transition-opacity duration-150",
         visible ? "opacity-100" : "opacity-0",
       )}
       onClick={(event) => {
@@ -350,7 +350,7 @@ export function StickerPackManagerModal({
     >
       <div
         className={cn(
-          "relative flex h-[min(84vh,760px)] w-full max-w-[min(96vw,1080px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_20%),rgba(7,12,18,0.98)] shadow-[0_36px_120px_rgba(2,6,12,0.6)] transition duration-200",
+          "relative flex h-[min(84vh,760px)] w-full max-w-[min(96vw,1080px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-[0_36px_120px_rgba(0,0,0,0.6)] transition duration-200",
           visible ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.97]",
         )}
       >
@@ -484,7 +484,7 @@ export function StickerPackManagerModal({
                         placeholder="Название следующего стикера"
                         className="h-10"
                       />
-                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.04] px-3 text-sm text-white transition-colors hover:bg-white/[0.08]">
+                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-black px-3 text-sm text-white transition-colors hover:bg-[var(--bg-hover)]">
                         <ImagePlus size={16} strokeWidth={1.5} />
                         Загрузить стикер
                         <input
@@ -543,11 +543,11 @@ export function StickerPackManagerModal({
                       {selectedPack.stickers.map((sticker, index) => (
                         <div
                           key={sticker.id}
-                          className="rounded-[20px] border border-white/8 bg-white/[0.03] p-3"
+                          className="rounded-[20px] border border-white/8 bg-black p-3"
                         >
                           <StickerAssetPreview
                             sticker={sticker}
-                            className="aspect-square rounded-[16px] bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.08),transparent_55%),rgba(255,255,255,0.03)]"
+                            className="aspect-square rounded-[16px] bg-black"
                           />
                           <div className="mt-3 flex items-start justify-between gap-3">
                             <div className="min-w-0">

@@ -55,7 +55,7 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
         <div className="grid min-w-0 gap-3">
           <section className="premium-panel rounded-[22px] px-4 py-3">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[rgba(106,168,248,0.2)] bg-[rgba(106,168,248,0.1)] text-[var(--accent-strong)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-black text-white">
                 <Waves className="h-4.5 w-4.5" />
               </div>
 
