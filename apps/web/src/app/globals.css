@@ -1175,17 +1175,23 @@ textarea {
 }
 
 .dm-composer-send {
-  border-color: rgba(93, 149, 255, 0.28);
-  background: #000;
+  border-color: #0070f3;
+  background: #0070f3;
   color: white;
   box-shadow: none;
 }
 
 .dm-composer-send-ready {
-  border-color: rgba(126, 187, 255, 0.34);
-  background: #000;
+  border-color: #0070f3;
+  background: #0070f3;
   color: white;
   box-shadow: none;
+}
+
+.dm-composer-send:hover,
+.dm-composer-send-ready:hover {
+  border-color: #0064d8;
+  background: #0064d8;
 }
 
 .dm-composer-send:disabled {
