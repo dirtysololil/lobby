@@ -410,9 +410,6 @@ export function ProfileSettingsForm({
                     {nicknameValue}
                   </h2>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                      Статус
-                    </span>
                     <ProfileEmojiPicker
                       value={statusEmojiValue || null}
                       onChange={(value) =>
@@ -482,7 +479,7 @@ export function ProfileSettingsForm({
                   title="Ник и контакты"
                   description="Ник, почта и телефон в одной плотной группе."
                 >
-                  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1.05fr)_auto_minmax(0,1fr)_minmax(0,0.9fr)]">
+                  <div className="grid gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
                     <div className="grid gap-2 md:contents">
                       <div className="order-1 space-y-2">
                         <Label htmlFor="displayName">Ник</Label>
@@ -513,21 +510,6 @@ export function ProfileSettingsForm({
                         {...form.register("phone")}
                         className={fieldClassName}
                       />
-                    </div>
-
-                    <div className="order-2 space-y-2">
-                      <Label>Статус</Label>
-                      <div className="flex h-11 items-center">
-                        <ProfileEmojiPicker
-                          value={statusEmojiValue || null}
-                          onChange={(value) =>
-                            form.setValue("statusEmoji", value ?? "", {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                            })
-                          }
-                        />
-                      </div>
                     </div>
 
                     {form.formState.errors.displayName ? (
