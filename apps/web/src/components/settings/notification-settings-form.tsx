@@ -1,6 +1,6 @@
 "use client";
 
-import { BellRing, Layers3, Sparkles, Volume2 } from "lucide-react";
+import { BellRing, Layers3, Volume2 } from "lucide-react";
 import type {
   HubNotificationSettingResponse,
   LobbyNotificationSettingResponse,
@@ -11,16 +11,11 @@ import type {
 } from "@lobby/shared";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { EmptyState } from "@/components/ui/empty-state";
-import {
-  CompactList,
-  CompactListCount,
-  CompactListHeader,
-  CompactListMeta,
-  CompactListRow,
-} from "@/components/ui/compact-list";
-import { SelectField } from "@/components/ui/select-field";
 import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { CompactListCount, CompactListMeta } from "@/components/ui/compact-list";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SelectField } from "@/components/ui/select-field";
 import { apiClientFetch } from "@/lib/api-client";
 import { dispatchNotificationPreferencesEvent } from "@/lib/notification-preferences";
 
@@ -34,12 +29,16 @@ const notificationOptions: NotificationSetting[] = [
   "MUTED",
   "OFF",
 ];
+
 const notificationLabels: Record<NotificationSetting, string> = {
   ALL: "Все события",
   MENTIONS_ONLY: "Только упоминания",
   MUTED: "Без звука",
   OFF: "Выключено",
 };
+
+const primaryActionClassName =
+  "h-10 rounded-[14px] border-white bg-white px-4 text-black hover:border-white hover:bg-neutral-100";
 
 export function NotificationSettingsForm({
   initialSettings,
@@ -64,7 +63,7 @@ export function NotificationSettingsForm({
           body: JSON.stringify(defaults),
         },
       );
-      setMessage("Базовые правила уведомлений сохранены.");
+      setMessage("Базовые правила сохранены.");
       dispatchNotificationPreferencesEvent({
         scope: "defaults",
         defaults,
@@ -100,7 +99,9 @@ export function NotificationSettingsForm({
       router.refresh();
     } catch (saveError) {
       setError(
-        saveError instanceof Error ? saveError.message : "Не удалось обновить правило хаба.",
+        saveError instanceof Error
+          ? saveError.message
+          : "Не удалось обновить правило хаба.",
       );
     }
   }
@@ -135,52 +136,73 @@ export function NotificationSettingsForm({
   return (
     <div className="grid gap-3">
       <section className="premium-panel overflow-hidden rounded-[22px]">
-        <div className="border-b border-[var(--border-soft)] px-4 py-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <CompactListMeta>
-              <BellRing size={14} strokeWidth={1.5} />
-              По умолчанию
-            </CompactListMeta>
-            <CompactListMeta>Базовые правила</CompactListMeta>
+        <div className="flex flex-col gap-3 border-b border-[var(--border-soft)] px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="section-kicker">По умолчанию</p>
+            <h2 className="mt-1 text-sm font-semibold tracking-tight text-white">
+              Базовые правила
+            </h2>
+            <p className="mt-1 text-xs text-[var(--text-dim)]">
+              Для новых диалогов, хабов и каналов.
+            </p>
           </div>
-          <p className="mt-2 text-sm text-[var(--text-dim)]">
-            Настройте стандартное поведение для новых диалогов, хабов и каналов до
-            локальных переопределений.
-          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => void saveDefaults()}
+              disabled={isSavingDefaults}
+              className={primaryActionClassName}
+            >
+              {isSavingDefaults ? "Сохраняем..." : "Сохранить"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => router.refresh()}
+              className="h-10 rounded-[14px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+            >
+              Обновить
+            </Button>
+          </div>
         </div>
 
-        <CompactList>
+        <div className="grid gap-2 px-4 py-4">
           {[
             {
               key: "dmNotificationDefault" as const,
               label: "Личные сообщения",
-              description: "Применяется при открытии нового диалога.",
+              meta: "Новые диалоги",
               icon: BellRing,
             },
             {
               key: "hubNotificationDefault" as const,
               label: "Хабы",
-              description: "Базовое правило для нового хаба.",
+              meta: "Новые пространства",
               icon: Layers3,
             },
             {
               key: "lobbyNotificationDefault" as const,
               label: "Каналы",
-              description: "Резервное правило для настроек канала.",
+              meta: "Новые каналы",
               icon: Volume2,
             },
           ].map((item) => (
-            <CompactListRow key={item.key} className="gap-3 flex-wrap items-start">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white/[0.04] text-[var(--accent)]">
-                <item.icon size={16} strokeWidth={1.5} />
+            <div
+              key={item.key}
+              className="flex flex-wrap items-center gap-3 rounded-[16px] border border-white/8 bg-black px-3 py-2.5"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-[var(--text-soft)]">
+                <item.icon size={15} strokeWidth={1.5} />
               </div>
+
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-white">{item.label}</p>
-                <p className="text-xs text-[var(--text-muted)]">{item.description}</p>
+                <p className="text-sm font-medium text-white">{item.label}</p>
+                <p className="text-xs text-[var(--text-dim)]">{item.meta}</p>
               </div>
+
               <SelectField
-                className="text-sm"
-                shellClassName="min-w-[220px] w-full flex-1 md:basis-[320px]"
+                className="min-h-10 text-sm"
+                shellClassName="min-w-[220px] w-full md:w-[240px]"
                 value={defaults[item.key]}
                 onChange={(event) =>
                   setDefaults((current) => ({
@@ -195,57 +217,51 @@ export function NotificationSettingsForm({
                   </option>
                 ))}
               </SelectField>
-            </CompactListRow>
+            </div>
           ))}
-        </CompactList>
-
-        <div className="flex flex-wrap gap-2 border-t border-[var(--border-soft)] px-4 py-3">
-          <Button onClick={() => void saveDefaults()} disabled={isSavingDefaults} className="h-10">
-            {isSavingDefaults ? "Сохраняем..." : "Сохранить по умолчанию"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => router.refresh()}
-            className="h-10"
-          >
-            Обновить
-          </Button>
         </div>
       </section>
 
-      <section className="premium-panel overflow-hidden rounded-[22px]">
-        <CompactListHeader className="border-b border-[var(--border-soft)] px-4 py-3">
-          <span>Правила хабов</span>
-          <CompactListCount>{initialSettings.hubs.length}</CompactListCount>
-        </CompactListHeader>
-
+      <CollapsibleSection
+        defaultOpen={initialSettings.hubs.length > 0 && initialSettings.hubs.length <= 5}
+        kicker="Хабы"
+        title="Локальные правила"
+        description="Отдельные настройки для пространств"
+        summary={<CompactListCount>{initialSettings.hubs.length}</CompactListCount>}
+      >
         {initialSettings.hubs.length === 0 ? (
-          <EmptyState
-            title="Нет подключённых хабов"
-            description="Правила хаба появятся после вступления в пространство."
-            className="min-h-[160px]"
-          />
+          <div className="rounded-[18px] border border-white/8 bg-black">
+            <EmptyState
+              title="Нет подключенных хабов"
+              description="Правила появятся после вступления в пространство."
+              className="min-h-[120px]"
+            />
+          </div>
         ) : (
-          <CompactList>
+          <div className="grid gap-2">
             {initialSettings.hubs.map((hub) => (
-              <CompactListRow
+              <div
                 key={hub.hubId}
-                compact
-                className="gap-3 flex-wrap items-start"
+                className="flex flex-wrap items-center gap-3 rounded-[16px] border border-white/8 bg-black px-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-white">{hub.hubName}</p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Базовое правило для каналов внутри этого хаба.
+                  <p className="truncate text-sm font-medium text-white">
+                    {hub.hubName}
+                  </p>
+                  <p className="text-xs text-[var(--text-dim)]">
+                    Правило для новых каналов внутри хаба.
                   </p>
                 </div>
+
                 <SelectField
-                  className="text-sm"
-                  shellClassName="min-w-[220px] w-full flex-1 md:basis-[320px]"
+                  className="min-h-10 text-sm"
+                  shellClassName="min-w-[220px] w-full md:w-[240px]"
                   defaultValue={hub.setting}
                   onChange={(event) =>
-                    void updateHubSetting(hub.hubId, event.target.value as NotificationSetting)
+                    void updateHubSetting(
+                      hub.hubId,
+                      event.target.value as NotificationSetting,
+                    )
                   }
                 >
                   {notificationOptions.map((option) => (
@@ -254,45 +270,48 @@ export function NotificationSettingsForm({
                     </option>
                   ))}
                 </SelectField>
-              </CompactListRow>
+              </div>
             ))}
-          </CompactList>
+          </div>
         )}
-      </section>
+      </CollapsibleSection>
 
-      <section className="premium-panel overflow-hidden rounded-[22px]">
-        <CompactListHeader className="border-b border-[var(--border-soft)] px-4 py-3">
-          <span>Переопределения каналов</span>
-          <CompactListCount>{initialSettings.lobbies.length}</CompactListCount>
-        </CompactListHeader>
-
+      <CollapsibleSection
+        defaultOpen={initialSettings.lobbies.length > 0 && initialSettings.lobbies.length <= 6}
+        kicker="Каналы"
+        title="Переопределения"
+        description="Индивидуальные правила для конкретных каналов"
+        summary={<CompactListCount>{initialSettings.lobbies.length}</CompactListCount>}
+      >
         {initialSettings.lobbies.length === 0 ? (
-          <EmptyState
-            title="Переопределений пока нет"
-            description="Настройки канала появятся после вступления в хаб с доступными пространствами."
-            className="min-h-[160px]"
-          />
+          <div className="rounded-[18px] border border-white/8 bg-black">
+            <EmptyState
+              title="Переопределений пока нет"
+              description="Настройки канала появятся после входа в хабы с доступными пространствами."
+              className="min-h-[120px]"
+            />
+          </div>
         ) : (
-          <CompactList>
+          <div className="grid gap-2">
             {initialSettings.lobbies.map((lobby) => (
-              <CompactListRow
+              <div
                 key={lobby.lobbyId}
-                compact
-                className="gap-3 flex-wrap items-start"
+                className="flex flex-wrap items-center gap-3 rounded-[16px] border border-white/8 bg-black px-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-white">
-                    {lobby.hubName} / {lobby.lobbyName}
-                  </p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {lobby.inherited
-                      ? "Сейчас наследует правило хаба."
-                      : "Для этого канала задано своё правило."}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-sm font-medium text-white">
+                      {lobby.hubName} / {lobby.lobbyName}
+                    </p>
+                    <CompactListMeta>
+                      {lobby.inherited ? "Наследует" : "Локально"}
+                    </CompactListMeta>
+                  </div>
                 </div>
+
                 <SelectField
-                  className="text-sm"
-                  shellClassName="min-w-[220px] w-full flex-1 md:basis-[320px]"
+                  className="min-h-10 text-sm"
+                  shellClassName="min-w-[220px] w-full md:w-[240px]"
                   defaultValue={lobby.setting}
                   onChange={(event) =>
                     void updateLobbySetting(
@@ -308,21 +327,14 @@ export function NotificationSettingsForm({
                     </option>
                   ))}
                 </SelectField>
-              </CompactListRow>
+              </div>
             ))}
-          </CompactList>
+          </div>
         )}
+      </CollapsibleSection>
 
-        <div className="border-t border-[var(--border-soft)] px-4 py-3 text-sm text-[var(--text-dim)]">
-          <span className="inline-flex items-center gap-2 text-white">
-            <Sparkles size={16} strokeWidth={1.5} className="text-[var(--accent)]" />
-            Правила диалогов, хабов и каналов работают отдельно и не раздувают интерфейс.
-          </span>
-        </div>
-      </section>
-
-      {error ? <p className="text-sm text-rose-200">{error}</p> : null}
-      {message ? <p className="text-sm text-emerald-200">{message}</p> : null}
+      {error ? <p className="px-1 text-sm text-rose-200">{error}</p> : null}
+      {message ? <p className="px-1 text-sm text-emerald-200">{message}</p> : null}
     </div>
   );
 }

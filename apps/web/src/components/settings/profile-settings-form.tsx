@@ -14,12 +14,14 @@ import { useForm } from "react-hook-form";
 import { useOptionalRealtimePresence } from "@/components/realtime/realtime-provider";
 import { ProfileRingtoneSettings } from "@/components/settings/profile-ringtone-settings";
 import { SettingsSectionBoundary } from "@/components/settings/settings-section-boundary";
-import { SelectField } from "@/components/ui/select-field";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { AvatarPreviewModal } from "@/components/ui/avatar-preview-modal";
 import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { CompactListMeta } from "@/components/ui/compact-list";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SelectField } from "@/components/ui/select-field";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { getAvailabilityLabel } from "@/lib/last-seen";
 import { getResolvedPresenceDotClass } from "@/lib/presence";
@@ -27,8 +29,6 @@ import { cn } from "@/lib/utils";
 
 interface ProfileSettingsFormProps {
   viewer: PublicUser;
-  maxAvatarMb: number;
-  maxAvatarAnimationMs: number;
   maxRingtoneMb: number;
 }
 
@@ -63,21 +63,22 @@ const presetLabels: Record<UpdateProfileInput["avatarPreset"], string> = {
 };
 
 const fieldClassName =
-  "h-11 rounded-[14px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
+  "h-10 rounded-[14px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
 
 const textareaClassName =
-  "field-textarea min-h-[132px] rounded-[16px] border-white/8 bg-black px-3.5 py-3 text-sm leading-6 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
+  "field-textarea min-h-[104px] rounded-[16px] border-white/8 bg-black px-3.5 py-3 text-sm leading-5 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
 
 const selectClassName =
-  "min-h-11 rounded-[14px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)]";
+  "min-h-10 rounded-[14px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)]";
 
 const selectListClassName =
   "border-[var(--border)] bg-black p-1 shadow-[0_14px_36px_rgba(0,0,0,0.32)]";
 
+const primaryActionClassName =
+  "h-10 rounded-[14px] border-white bg-white px-4 text-black hover:border-white hover:bg-neutral-100";
+
 export function ProfileSettingsForm({
   viewer,
-  maxAvatarMb,
-  maxAvatarAnimationMs,
   maxRingtoneMb,
 }: ProfileSettingsFormProps) {
   const router = useRouter();
@@ -139,6 +140,8 @@ export function ProfileSettingsForm({
       callRingtoneMode: safeViewer.profile.callRingtoneMode,
     },
   });
+  const selectedPresence = form.watch("presence") ?? safeViewer.profile.presence;
+  const selectedPreset = form.watch("avatarPreset") ?? safeViewer.profile.avatarPreset;
 
   async function onSubmit(values: UpdateProfileInput) {
     setError(null);
@@ -227,9 +230,7 @@ export function ProfileSettingsForm({
         method: "POST",
         body: payload,
       });
-      setMessage(
-        "Рингтон загружен. При желании включите его как источник звонка и сохраните профиль.",
-      );
+      setMessage("Рингтон загружен. Сохраните профиль, чтобы включить его.");
       router.refresh();
     } catch (uploadError) {
       setError(
@@ -251,7 +252,7 @@ export function ProfileSettingsForm({
       await apiClientFetch<UserResponse>("/v1/users/me/ringtone", {
         method: "DELETE",
       });
-      setMessage("Кастомный рингтон удален. Системный рингтон снова активен.");
+      setMessage("Кастомный рингтон удален.");
       router.refresh();
     } catch (removeError) {
       setError(
@@ -267,71 +268,56 @@ export function ProfileSettingsForm({
   return (
     <>
       <div className="grid gap-3">
-        <section className="premium-panel rounded-[24px] px-4 py-4 sm:px-5 xl:px-6">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(228px,244px)] xl:items-center">
-            <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-              <div className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsAvatarPreviewOpen(true)}
-                  className="group relative inline-flex rounded-full transition-transform duration-150 hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-                  aria-label="Открыть фото профиля"
-                >
-                  <UserAvatar
-                    user={safeViewer}
-                    size="lg"
-                    showPresenceIndicator={false}
-                    className="h-[108px] w-[108px] text-[1.55rem]"
-                  />
-                  <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full border border-white/10 bg-black px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                    Просмотр
-                  </span>
-                </button>
-                <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border-[3px] border-[var(--bg-panel)] bg-[var(--bg-panel)]">
-                  <span
-                    className={cn(
-                      "h-2.5 w-2.5 rounded-full",
-                      getResolvedPresenceDotClass(liveViewer),
-                    )}
-                  />
+        <section className="premium-panel rounded-[24px] px-4 py-4 sm:px-5">
+          <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsAvatarPreviewOpen(true)}
+                className="group relative inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                aria-label="Открыть фото профиля"
+              >
+                <UserAvatar
+                  user={safeViewer}
+                  size="lg"
+                  showPresenceIndicator={false}
+                  className="h-[88px] w-[88px] text-[1.35rem] sm:h-[96px] sm:w-[96px]"
+                />
+                <span className="pointer-events-none absolute inset-x-3 bottom-2 rounded-full border border-white/10 bg-black px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  Просмотр
                 </span>
-              </div>
-
-              <div className="min-w-0 py-1 xl:pr-3">
-                <h2 className="truncate text-[1.35rem] font-semibold tracking-tight text-white">
-                  {safeViewer.profile.displayName}
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-[var(--text-muted)]">
-                    @{safeViewer.username}
-                  </span>
-                  <span className="h-1 w-1 rounded-full bg-white/12" />
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium",
-                      liveViewer.isOnline
-                        ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-                        : "border-white/8 bg-black text-[var(--text-soft)]",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "h-2 w-2 rounded-full",
-                        getResolvedPresenceDotClass(liveViewer),
-                      )}
-                    />
-                    {availabilityLabel}
-                  </span>
-                </div>
-                {trimmedBio ? (
-                  <p className="mt-3 max-w-[64ch] text-sm leading-6 text-[var(--text-dim)]">
-                    {trimmedBio}
-                  </p>
-                ) : null}
-              </div>
+              </button>
+              <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border-[3px] border-[var(--bg-panel)] bg-[var(--bg-panel)]">
+                <span
+                  className={cn(
+                    "h-2.5 w-2.5 rounded-full",
+                    getResolvedPresenceDotClass(liveViewer),
+                  )}
+                />
+              </span>
             </div>
 
-            <div className="flex w-full flex-col gap-2 xl:min-w-[228px]">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <CompactListMeta>@{safeViewer.username}</CompactListMeta>
+                <CompactListMeta className="text-white">
+                  {availabilityLabel}
+                </CompactListMeta>
+                <CompactListMeta>
+                  {hasCustomAvatar ? "Свой аватар" : "Стандартный аватар"}
+                </CompactListMeta>
+              </div>
+              <h2 className="mt-3 truncate text-[1.25rem] font-semibold tracking-tight text-white sm:text-[1.4rem]">
+                {safeViewer.profile.displayName}
+              </h2>
+              {trimmedBio ? (
+                <p className="mt-2 max-w-[62ch] overflow-hidden text-sm leading-5 text-[var(--text-dim)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                  {trimmedBio}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[228px] lg:grid-cols-1">
               <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-black px-3 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]">
                 <input
                   type="file"
@@ -343,140 +329,80 @@ export function ProfileSettingsForm({
                   disabled={isUploadingAvatar}
                 />
                 <Camera size={16} strokeWidth={1.5} />
-                {isUploadingAvatar ? "Загружаем..." : "Загрузить аватар"}
+                {isUploadingAvatar ? "Загружаем..." : "Загрузить"}
               </label>
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => void handleAvatarRemove()}
                 disabled={!hasCustomAvatar || isRemovingAvatar}
-                className="h-10 rounded-[14px] border-white/8 bg-black px-3 hover:bg-[var(--bg-hover)]"
+                className="h-10 rounded-[14px] border-white/8 bg-black px-3 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
               >
                 <Trash2 size={15} strokeWidth={1.5} />
-                {isRemovingAvatar ? "Удаляем..." : "Удалить аватар"}
+                {isRemovingAvatar ? "Удаляем..." : "Удалить"}
               </Button>
             </div>
           </div>
         </section>
 
         <form
-          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(340px,408px)] 2xl:grid-cols-[minmax(0,1.08fr)_minmax(360px,432px)]"
+          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(320px,368px)]"
           onSubmit={form.handleSubmit((values) => void onSubmit(values))}
         >
           <section className="premium-panel overflow-hidden rounded-[24px]">
-            <div className="border-b border-[var(--border-soft)] px-5 py-4">
+            <div className="border-b border-[var(--border-soft)] px-4 py-3.5 sm:px-5">
               <p className="section-kicker">Основное</p>
               <h3 className="mt-1 text-base font-semibold tracking-tight text-white">
                 Профиль
               </h3>
             </div>
 
-            <div className="grid">
-              <div className="px-5 py-4">
-                <div className="grid gap-2.5">
-                  <Label htmlFor="displayName">Отображаемое имя</Label>
-                  <Input
-                    id="displayName"
-                    {...form.register("displayName")}
-                    className={fieldClassName}
-                  />
-                  {form.formState.errors.displayName ? (
-                    <p className="text-sm text-rose-200">
-                      {form.formState.errors.displayName.message}
-                    </p>
-                  ) : null}
-                </div>
+            <div className="grid gap-4 px-4 py-4 sm:px-5">
+              <div className="grid gap-2">
+                <Label htmlFor="displayName">Отображаемое имя</Label>
+                <Input
+                  id="displayName"
+                  {...form.register("displayName")}
+                  className={fieldClassName}
+                />
+                {form.formState.errors.displayName ? (
+                  <p className="text-sm text-rose-200">
+                    {form.formState.errors.displayName.message}
+                  </p>
+                ) : null}
               </div>
 
-              <div className="border-t border-[var(--border-soft)] px-5 py-4">
-                <div className="grid gap-2.5">
-                  <Label htmlFor="bio">О себе</Label>
-                  <textarea
-                    id="bio"
-                    rows={5}
-                    className={textareaClassName}
-                    {...form.register("bio")}
-                  />
-                  {form.formState.errors.bio ? (
-                    <p className="text-sm text-rose-200">
-                      {form.formState.errors.bio.message}
-                    </p>
-                  ) : null}
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="bio">О себе</Label>
+                <textarea
+                  id="bio"
+                  rows={4}
+                  className={textareaClassName}
+                  {...form.register("bio")}
+                />
+                {form.formState.errors.bio ? (
+                  <p className="text-sm text-rose-200">
+                    {form.formState.errors.bio.message}
+                  </p>
+                ) : null}
               </div>
             </div>
           </section>
 
           <div className="grid gap-3">
-            <section className="premium-panel overflow-hidden rounded-[24px]">
-              <div className="border-b border-[var(--border-soft)] px-4 py-4">
-                <p className="section-kicker">Медиа</p>
-                <h3 className="mt-1 text-sm font-semibold tracking-tight text-white">
-                  Аватар
-                </h3>
-              </div>
-
-              <div className="grid">
-                {[
-                  {
-                    label: "Текущий режим",
-                    value: hasCustomAvatar ? "Свой файл" : "Стандартный",
-                  },
-                  { label: "Форматы", value: "PNG, JPG, WEBP, GIF" },
-                  { label: "Размер", value: `${maxAvatarMb} MB` },
-                  {
-                    label: "Анимация",
-                    value: `${Math.floor(maxAvatarAnimationMs / 1000)} c`,
-                  },
-                ].map((item, index) => (
-                  <div
-                    key={item.label}
-                    className={cn(
-                      "flex items-center justify-between gap-3 px-4 py-3",
-                      index > 0 && "border-t border-[var(--border-soft)]",
-                    )}
-                  >
-                    <span className="text-sm text-[var(--text-dim)]">
-                      {item.label}
-                    </span>
-                    <span className="text-sm font-medium text-white">
-                      {item.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <SettingsSectionBoundary
-              title="Рингтон временно недоступен"
-              description="Не удалось отрисовать настройки рингтона. Остальные параметры профиля доступны."
-              resetKeys={[safeViewer.id, safeViewer.profile.updatedAt]}
+            <CollapsibleSection
+              defaultOpen
+              kicker="Видимость"
+              title="Статус и стиль"
+              summary={
+                <div className="hidden flex-wrap justify-end gap-2 sm:flex">
+                  <CompactListMeta>{presenceLabels[selectedPresence]}</CompactListMeta>
+                  <CompactListMeta>{presetLabels[selectedPreset]}</CompactListMeta>
+                </div>
+              }
             >
-              <ProfileRingtoneSettings
-                viewer={safeViewer}
-                form={form}
-                maxRingtoneMb={maxRingtoneMb}
-                isUploading={isUploadingRingtone}
-                isRemoving={isRemovingRingtone}
-                onUpload={handleRingtoneUpload}
-                onRemove={handleRingtoneRemove}
-                onError={(message) => {
-                  setError(message);
-                  setMessage(null);
-                }}
-              />
-            </SettingsSectionBoundary>
-
-            <section className="premium-panel overflow-hidden rounded-[24px]">
-              <div className="border-b border-[var(--border-soft)] px-4 py-4">
-                <p className="section-kicker">Видимость</p>
-                <h3 className="mt-1 text-sm font-semibold tracking-tight text-white">
-                  Статус и стиль
-                </h3>
-              </div>
-
-              <div className="grid gap-4 px-4 py-4">
-                <div className="grid gap-2.5">
+              <div className="grid gap-3">
+                <div className="grid gap-2">
                   <Label htmlFor="presence">Статус</Label>
                   <SelectField
                     id="presence"
@@ -492,7 +418,7 @@ export function ProfileSettingsForm({
                   </SelectField>
                 </div>
 
-                <div className="grid gap-2.5">
+                <div className="grid gap-2">
                   <Label htmlFor="avatarPreset">Стиль аватара</Label>
                   <SelectField
                     id="avatarPreset"
@@ -508,7 +434,27 @@ export function ProfileSettingsForm({
                   </SelectField>
                 </div>
               </div>
-            </section>
+            </CollapsibleSection>
+
+            <SettingsSectionBoundary
+              title="Рингтон временно недоступен"
+              description="Не удалось отрисовать настройки рингтона. Остальные параметры профиля доступны."
+              resetKeys={[safeViewer.id, safeViewer.profile.updatedAt]}
+            >
+              <ProfileRingtoneSettings
+                viewer={safeViewer}
+                form={form}
+                maxRingtoneMb={maxRingtoneMb}
+                isUploading={isUploadingRingtone}
+                isRemoving={isRemovingRingtone}
+                onUpload={handleRingtoneUpload}
+                onRemove={handleRingtoneRemove}
+                onError={(nextMessage) => {
+                  setError(nextMessage);
+                  setMessage(null);
+                }}
+              />
+            </SettingsSectionBoundary>
           </div>
 
           <section className="premium-panel col-span-full rounded-[24px] px-4 py-3">
@@ -525,11 +471,9 @@ export function ProfileSettingsForm({
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
-                  className="h-11 rounded-[14px] px-5"
+                  className={primaryActionClassName}
                 >
-                  {form.formState.isSubmitting
-                    ? "Сохраняем..."
-                    : "Сохранить профиль"}
+                  {form.formState.isSubmitting ? "Сохраняем..." : "Сохранить"}
                 </Button>
                 <Button
                   type="button"
@@ -540,7 +484,7 @@ export function ProfileSettingsForm({
                     setMessage(null);
                   }}
                   disabled={form.formState.isSubmitting}
-                  className="h-11 rounded-[14px] border-white/8 bg-white/[0.04] px-4 hover:bg-white/[0.07]"
+                  className="h-10 rounded-[14px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
                 >
                   Сбросить
                 </Button>
@@ -551,7 +495,7 @@ export function ProfileSettingsForm({
       </div>
 
       <AvatarPreviewModal
-          user={safeViewer}
+        user={safeViewer}
         open={isAvatarPreviewOpen}
         onClose={() => setIsAvatarPreviewOpen(false)}
       />
