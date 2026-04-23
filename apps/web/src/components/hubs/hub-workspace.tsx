@@ -30,10 +30,10 @@ const roleLabels: Record<string, string> = {
 };
 
 const fieldClassName =
-  "h-11 rounded-[14px] border-white/8 bg-white/[0.03] px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-white/[0.05]";
+  "h-11 rounded-[14px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
 
 const textareaClassName =
-  "field-textarea min-h-[108px] rounded-[16px] border-white/8 bg-white/[0.03] px-3.5 py-3 text-sm leading-6 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-white/[0.05]";
+  "field-textarea min-h-[108px] rounded-[16px] border-white/8 bg-black px-3.5 py-3 text-sm leading-6 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
 
 function EmptyView({
   title,
@@ -81,22 +81,22 @@ function HubsCreatePanel({
   return (
     <aside
       id="create-hub-form"
-      className="order-first rounded-[24px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_18%),rgba(16,24,36,0.76)] p-4 shadow-[0_18px_36px_rgba(4,10,18,0.18)] xl:order-last xl:min-h-0 xl:overflow-y-auto"
+      className="order-first rounded-[24px] border border-white/8 bg-black p-4 shadow-[0_18px_36px_rgba(0,0,0,0.18)] xl:order-last xl:min-h-0 xl:overflow-y-auto"
     >
       <div className="flex items-start gap-3">
-        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] border border-[#4a84ff]/22 bg-[#14233a] text-white">
+        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] border border-white/10 bg-black text-white">
           <Plus size={18} strokeWidth={1.8} />
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <CompactListMeta className="border-white/6 bg-white/[0.04] text-[#9ca9bb]">
+            <CompactListMeta className="border-white/8 bg-black text-[var(--text-dim)]">
               Новый хаб
             </CompactListMeta>
           </div>
           <h3 className="mt-2 text-[18px] font-semibold tracking-[-0.03em] text-white">
             Создать пространство
           </h3>
-          <p className="mt-1 text-sm leading-6 text-[#8d98aa]">
+          <p className="mt-1 text-sm leading-6 text-[var(--text-dim)]">
             Короткое имя, понятный slug и сразу в общение.
           </p>
         </div>
@@ -127,7 +127,7 @@ function HubsCreatePanel({
           placeholder="Короткое описание"
           className={textareaClassName}
         />
-        <label className="field-checkbox rounded-[14px] border border-white/6 bg-white/[0.03] px-3.5 py-3 text-sm text-white">
+        <label className="field-checkbox rounded-[14px] border border-white/8 bg-black px-3.5 py-3 text-sm text-white">
           <input
             type="checkbox"
             checked={isPrivate}
@@ -217,9 +217,7 @@ export function HubWorkspace() {
   }
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#0d151f] md:bg-[linear-gradient(180deg,rgba(255,255,255,0.012),transparent_14%),#0f1721]">
-      <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_50%_15%,rgba(69,110,185,0.14),transparent_0%,transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.01),transparent_18%)] md:block" />
-
+    <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
       <div className="relative flex h-full min-h-0 flex-col">
         <div className="border-b border-white/5 px-4 pb-3 pt-5 md:px-5 md:pb-4 md:pt-5">
           <div className="md:hidden">
@@ -229,14 +227,14 @@ export function HubWorkspace() {
           <div className="mt-4 flex flex-col gap-4 md:mt-0 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <CompactListMeta className="border-white/6 bg-white/[0.04] text-[#9ca9bb]">
+                <CompactListMeta className="border-white/8 bg-black text-[var(--text-dim)]">
                   Хабы
                 </CompactListMeta>
-                <CompactListMeta className="border-white/6 bg-white/[0.04] text-[#9ca9bb]">
+                <CompactListMeta className="border-white/8 bg-black text-[var(--text-dim)]">
                   {hubs.length} пространств
                 </CompactListMeta>
                 {invites.length > 0 ? (
-                  <CompactListMeta className="border-white/6 bg-white/[0.04] text-[#9ca9bb]">
+                  <CompactListMeta className="border-white/8 bg-black text-[var(--text-dim)]">
                     {invites.length} инвайтов
                   </CompactListMeta>
                 ) : null}
@@ -244,7 +242,7 @@ export function HubWorkspace() {
               <h2 className="mt-3 text-[26px] font-semibold tracking-[-0.04em] text-white">
                 Пространства
               </h2>
-              <p className="mt-1 text-sm text-[#8d98aa]">
+              <p className="mt-1 text-sm text-[var(--text-dim)]">
                 Собирайте публичные и приватные хабы, принимайте инвайты и держите
                 все сервисные пространства под рукой.
               </p>
@@ -252,7 +250,7 @@ export function HubWorkspace() {
 
             <a
               href="#create-hub-form"
-              className="hidden min-h-11 items-center justify-center rounded-[14px] border border-[#4a84ff]/24 bg-[#14233a] px-4 text-sm font-medium text-white transition-colors hover:bg-[#18304f] md:inline-flex"
+              className="hidden min-h-11 items-center justify-center rounded-[14px] border border-white bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-white/90 md:inline-flex"
             >
               Создать хаб
             </a>
@@ -283,7 +281,7 @@ export function HubWorkspace() {
               ) : null}
 
               {invites.length > 0 ? (
-                <section className="overflow-hidden rounded-[24px] border border-white/6 bg-white/[0.02]">
+                <section className="overflow-hidden rounded-[24px] border border-white/8 bg-black">
                   <CompactListHeader className="px-4 py-3">
                     <span>Инвайты</span>
                     <CompactListCount>{invites.length}</CompactListCount>
@@ -332,7 +330,7 @@ export function HubWorkspace() {
                 </section>
               ) : null}
 
-              <section className="overflow-hidden rounded-[24px] border border-white/6 bg-white/[0.02]">
+              <section className="overflow-hidden rounded-[24px] border border-white/8 bg-black">
                 <CompactListHeader className="px-4 py-3">
                   <span>Ваши хабы</span>
                   <CompactListCount>{hubs.length}</CompactListCount>
@@ -378,7 +376,7 @@ export function HubWorkspace() {
                 )}
               </section>
 
-              <div className="pb-2 pt-1 text-center text-[12px] text-[#7b8697]">
+              <div className="pb-2 pt-1 text-center text-[12px] text-[var(--text-muted)]">
                 {hubs.length} пространств
               </div>
             </div>

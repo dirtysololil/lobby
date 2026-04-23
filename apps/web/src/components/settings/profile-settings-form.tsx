@@ -63,16 +63,16 @@ const presetLabels: Record<UpdateProfileInput["avatarPreset"], string> = {
 };
 
 const fieldClassName =
-  "h-11 rounded-[14px] border-white/8 bg-white/[0.03] px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-white/[0.05]";
+  "h-11 rounded-[14px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
 
 const textareaClassName =
-  "field-textarea min-h-[132px] rounded-[16px] border-white/8 bg-white/[0.03] px-3.5 py-3 text-sm leading-6 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-white/[0.05]";
+  "field-textarea min-h-[132px] rounded-[16px] border-white/8 bg-black px-3.5 py-3 text-sm leading-6 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
 
 const selectClassName =
-  "min-h-11 rounded-[14px] border-white/8 bg-white/[0.03] px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)]";
+  "min-h-11 rounded-[14px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)]";
 
 const selectListClassName =
-  "border-[var(--border)] bg-[var(--bg-panel)] p-1 shadow-[0_14px_36px_rgba(4,8,16,0.32)]";
+  "border-[var(--border)] bg-black p-1 shadow-[0_14px_36px_rgba(0,0,0,0.32)]";
 
 export function ProfileSettingsForm({
   viewer,
@@ -281,9 +281,9 @@ export function ProfileSettingsForm({
                     user={safeViewer}
                     size="lg"
                     showPresenceIndicator={false}
-                    className="h-[108px] w-[108px] text-[1.55rem] shadow-[0_18px_34px_rgba(4,8,16,0.2)]"
+                    className="h-[108px] w-[108px] text-[1.55rem]"
                   />
-                  <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full border border-white/10 bg-[rgba(8,12,18,0.82)] px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full border border-white/10 bg-black px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                     Просмотр
                   </span>
                 </button>
@@ -311,7 +311,7 @@ export function ProfileSettingsForm({
                       "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium",
                       liveViewer.isOnline
                         ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-                        : "border-white/8 bg-white/[0.04] text-[var(--text-soft)]",
+                        : "border-white/8 bg-black text-[var(--text-soft)]",
                     )}
                   >
                     <span
@@ -332,7 +332,7 @@ export function ProfileSettingsForm({
             </div>
 
             <div className="flex w-full flex-col gap-2 xl:min-w-[228px]">
-              <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-white/[0.05] px-3 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-white/[0.08]">
+              <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[14px] border border-white/8 bg-black px-3 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]">
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/gif"
@@ -350,7 +350,7 @@ export function ProfileSettingsForm({
                 variant="secondary"
                 onClick={() => void handleAvatarRemove()}
                 disabled={!hasCustomAvatar || isRemovingAvatar}
-                className="h-10 rounded-[14px] border-white/8 bg-white/[0.04] px-3 hover:bg-white/[0.07]"
+                className="h-10 rounded-[14px] border-white/8 bg-black px-3 hover:bg-[var(--bg-hover)]"
               >
                 <Trash2 size={15} strokeWidth={1.5} />
                 {isRemovingAvatar ? "Удаляем..." : "Удалить аватар"}

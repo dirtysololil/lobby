@@ -182,12 +182,17 @@ export function DrawerShell({
 
   useEffect(() => {
     if (open) {
-      setMounted(true);
-      const frame = window.requestAnimationFrame(() => {
+      const mountFrame = window.requestAnimationFrame(() => {
+        setMounted(true);
+      });
+      const visibleFrame = window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => setVisible(true));
       });
 
-      return () => window.cancelAnimationFrame(frame);
+      return () => {
+        window.cancelAnimationFrame(mountFrame);
+        window.cancelAnimationFrame(visibleFrame);
+      };
     }
 
     if (!mounted) {

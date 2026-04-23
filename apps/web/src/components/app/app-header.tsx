@@ -60,8 +60,8 @@ export function AppHeader({
             className={cn(
               "inline-flex min-h-[34px] items-center gap-2 rounded-[10px] border px-2.5 text-sm font-medium transition-colors",
               activityOpen
-                ? "border-[rgba(255,117,84,0.18)] bg-[rgba(255,117,84,0.12)] text-white"
-                : "border-[var(--border)] bg-[var(--bg-panel-soft)] text-[var(--text-dim)] hover:bg-[var(--bg-panel-muted)] hover:text-white",
+                ? "border-[var(--border-strong)] bg-[var(--bg-active)] text-white"
+                : "border-[var(--border)] bg-black text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-white",
             )}
           >
             {activityOpen ? (

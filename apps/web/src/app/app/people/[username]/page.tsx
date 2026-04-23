@@ -37,26 +37,28 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     );
   }
 
+  let exactMatch = null;
+
   try {
     const payload = await fetchServerApi(
       `/v1/users/search?query=${encodeURIComponent(normalizedUsername)}`,
     );
     const items = userSearchResponseSchema.parse(payload).items;
-    const exactMatch =
+    exactMatch =
       items.find((item) => item.user.username === normalizedUsername) ?? null;
-
-    if (!exactMatch) {
-      notFound();
-    }
-
-    return (
-      <UserProfileView
-        viewer={viewer}
-        initialUser={exactMatch.user}
-        initialRelationship={exactMatch.relationship}
-      />
-    );
   } catch {
     notFound();
   }
+
+  if (!exactMatch) {
+    notFound();
+  }
+
+  return (
+    <UserProfileView
+      viewer={viewer}
+      initialUser={exactMatch.user}
+      initialRelationship={exactMatch.relationship}
+    />
+  );
 }

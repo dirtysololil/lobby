@@ -5,7 +5,7 @@ export function Card({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("premium-panel rounded-[20px]", className)} {...props} />;
+  return <div className={cn("premium-panel rounded-[18px]", className)} {...props} />;
 }
 
 export function CardHeader({
@@ -14,7 +14,7 @@ export function CardHeader({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("space-y-1 p-4 pb-0", className)}
+      className={cn("space-y-1 p-5 pb-0", className)}
       {...props}
     />
   );
@@ -51,5 +51,5 @@ export function CardContent({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-4", className)} {...props} />;
+  return <div className={cn("p-5", className)} {...props} />;
 }

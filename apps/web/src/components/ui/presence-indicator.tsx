@@ -43,7 +43,7 @@ export function PresenceIndicator({
       className={cn(
         "inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]",
         compact &&
-          "rounded-full border border-white/8 bg-white/[0.04] px-2 py-0.5 text-[11px] text-[var(--text-soft)]",
+          "rounded-full border border-white/8 bg-black px-2 py-0.5 text-[11px] text-[var(--text-soft)]",
         className,
       )}
     >

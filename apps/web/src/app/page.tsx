@@ -14,7 +14,7 @@ export default async function Home() {
     <main className="mx-auto flex min-h-screen w-full max-w-[1380px] flex-col px-3 py-3 lg:px-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="dock-icon flex h-11 w-11 items-center justify-center rounded-[14px] bg-[var(--accent)] text-[#180d08]">
+          <div className="dock-icon flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/10 bg-white text-black">
             <span className="text-sm font-bold tracking-[-0.04em]">Lb</span>
           </div>
           <div>
@@ -28,7 +28,7 @@ export default async function Home() {
           <Link href="/login" className="status-pill">
             Вход
           </Link>
-          <Link href="/register" className="status-pill border-[var(--accent)] bg-[var(--accent)] text-[#180d08]">
+          <Link href="/register" className="status-pill border-white bg-white text-black">
             Активация
           </Link>
         </div>
@@ -45,7 +45,7 @@ export default async function Home() {
               <span className="status-pill">Compact, social, realtime</span>
             </div>
             <h1 className="mt-5 max-w-3xl font-[var(--font-heading)] text-3xl font-semibold tracking-[-0.06em] text-white sm:text-[3.1rem]">
-              Communication first. Identity visible. Noise controlled.
+              Private communication with a sharper signal-to-noise ratio.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-dim)]">
               Lobby соединяет DM, hubs и форумы в один рабочий продукт для закрытых команд.
@@ -81,10 +81,10 @@ export default async function Home() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2.5">
-            <Link href="/register" className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] bg-[var(--accent)] px-4 text-sm font-semibold text-[#180d08]">
+            <Link href="/register" className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] border border-white bg-white px-4 text-sm font-semibold text-black">
               Активировать доступ <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href="/login" className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-white/[0.04] px-4 text-sm font-medium text-[var(--text)]">
+            <Link href="/login" className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-black px-4 text-sm font-medium text-[var(--text)]">
               Войти
             </Link>
           </div>

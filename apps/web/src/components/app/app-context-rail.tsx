@@ -143,25 +143,18 @@ function RailRow({
         "group relative flex w-full min-w-0 items-center gap-3 rounded-[15px] px-3 py-2.5 transition-all duration-150",
         active
           ? "text-white"
-          : "text-[#a6afbd] hover:bg-white/[0.026] hover:text-white",
+          : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-white",
         unread &&
           !active &&
-          "before:absolute before:inset-y-3 before:left-0 before:w-[2px] before:rounded-full before:bg-[#4a84ff]",
+          "before:absolute before:inset-y-3 before:left-0 before:w-[2px] before:rounded-full before:bg-white",
       )}
     >
-      {active ? (
-        <>
-          <span className="pointer-events-none absolute left-[-20px] top-1/2 hidden h-12 w-10 -translate-y-1/2 rounded-full bg-[#4a84ff]/16 blur-[14px] md:block" />
-          <span className="pointer-events-none absolute left-[-18px] top-1/2 hidden h-11 w-[2px] -translate-y-1/2 rounded-full bg-[#4a84ff] shadow-[0_0_13px_rgba(74,132,255,0.58)] md:block" />
-        </>
-      ) : null}
-
       <span
         className={cn(
           "flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] transition-all duration-150",
           active
-            ? "bg-[#101b27] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
-            : "text-[#a6afbd] group-hover:text-white",
+            ? "border border-white/10 bg-[var(--bg-active)] text-white"
+            : "text-[var(--text-dim)] group-hover:text-white",
         )}
       >
         {leading}
@@ -171,13 +164,13 @@ function RailRow({
         <span
           className={cn(
             "block truncate text-sm font-medium leading-tight",
-            active ? "text-white" : "text-[#a6afbd] group-hover:text-white",
+            active ? "text-white" : "text-[var(--text-dim)] group-hover:text-white",
           )}
         >
           {label}
         </span>
         {detail ? (
-          <span className="mt-0.5 block truncate text-xs text-[#7f8a9c] group-hover:text-[#aeb9c9]">
+          <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)] group-hover:text-[var(--text-soft)]">
             {detail}
           </span>
         ) : null}
@@ -189,16 +182,16 @@ function RailRow({
 }
 
 function RailEmpty({ children }: { children: ReactNode }) {
-  return <div className="px-4 py-4 text-sm text-[#7f8a9c]">{children}</div>;
+  return <div className="px-4 py-4 text-sm text-[var(--text-muted)]">{children}</div>;
 }
 
 const railHeaderClassName =
-  "px-4 pb-2 pt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-[#6f7b8e]";
+  "px-4 pb-2 pt-4 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-muted)]";
 const railHeaderLinkClassName =
-  "inline-flex items-center gap-1.5 normal-case tracking-normal text-[#a6afbd] transition-colors hover:text-white";
+  "inline-flex items-center gap-1.5 normal-case tracking-normal text-[var(--text-dim)] transition-colors hover:text-white";
 const railListClassName = "gap-1.5 px-3 pb-3";
 const railCountClassName =
-  "min-h-6 rounded-full border-white/10 bg-white/[0.026] px-2.5 text-[11px] font-medium text-[#a6afbd]";
+  "min-h-6 rounded-full border border-white/8 bg-black px-2.5 text-[11px] font-medium text-[var(--text-dim)]";
 
 function getPeopleViewLeading(viewId: (typeof peopleViews)[number]["id"]) {
   switch (viewId) {
@@ -451,15 +444,15 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
   return (
     <aside
       className={cn(
-        "context-rail relative hidden h-full shrink-0 border-r border-white/5 bg-[#0a1016] md:flex md:flex-col",
+        "context-rail relative hidden h-full shrink-0 border-r border-white/8 bg-black md:flex md:flex-col",
         route.section === "messages"
           ? "w-[306px]"
           : "w-60",
       )}
     >
       {route.section !== "messages" ? (
-        <div className="border-b border-white/5 px-3 py-3.5">
-          <div className="flex items-center gap-2.5 rounded-[20px] border border-white/13 bg-[#111821] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <div className="border-b border-white/8 px-3 py-3.5">
+          <div className="flex items-center gap-2.5 rounded-[20px] border border-white/10 bg-black px-3 py-2.5">
             <UserAvatar
               user={viewer}
               size="sm"
@@ -470,14 +463,14 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               <p className="truncate text-sm font-medium text-white">
                 {viewer.profile.displayName}
               </p>
-              <p className="truncate text-xs text-[#7f8a9c]">
+              <p className="truncate text-xs text-[var(--text-muted)]">
                 @{viewer.username}
               </p>
             </div>
             <PresenceIndicator
               user={viewer}
               compact
-              className="border-white/10 bg-white/[0.026] px-2.5 py-1 text-[11px] text-[#a6afbd]"
+              className="border-white/10 bg-black px-2.5 py-1 text-[11px] text-[var(--text-dim)]"
             />
           </div>
         </div>
@@ -486,7 +479,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
       <div className="min-h-0 flex-1 overflow-y-auto">
         {route.section === "messages" ? (
           <div className="flex h-full min-h-0 flex-col">
-            <div className="border-b border-white/5 px-[18px] pb-[11px] pt-[18px]">
+            <div className="border-b border-white/8 px-[18px] pb-[11px] pt-[18px]">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <button
@@ -494,12 +487,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     className="inline-flex items-center gap-1.5 text-[20px] font-semibold tracking-[-0.03em] text-white"
                   >
                     <span>Чаты</span>
-                    <ChevronDown size={16} strokeWidth={1.9} className="mt-0.5 text-[#7b8697]" />
+                    <ChevronDown size={16} strokeWidth={1.9} className="mt-0.5 text-[var(--text-muted)]" />
                   </button>
                 </div>
                 <Link
                   href="/app/people?view=discover"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/6 bg-white/[0.03] text-[#9ca9bb] transition-colors hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/8 bg-black text-[var(--text-dim)] transition-colors hover:border-white/12 hover:bg-[var(--bg-hover)] hover:text-white"
                   aria-label="Новый чат"
                   title="Новый чат"
                 >
@@ -508,12 +501,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               </div>
             </div>
 
-            <div className="border-b border-white/5 px-[14px] py-[12px]">
+            <div className="border-b border-white/8 px-[14px] py-[12px]">
               <div className="flex items-center gap-2">
-                <label className="flex h-[42px] min-w-0 flex-1 items-center gap-2 rounded-[14px] border border-white/6 bg-white/[0.04] px-3 text-[#9ca9bb] transition-colors focus-within:border-[#3b6ed8]/32 focus-within:bg-white/[0.055]">
+                <label className="flex h-[42px] min-w-0 flex-1 items-center gap-2 rounded-[14px] border border-white/8 bg-black px-3 text-[var(--text-dim)] transition-colors focus-within:border-white/14 focus-within:bg-black">
                   <Search size={17} strokeWidth={1.65} className="shrink-0" />
                   <input
-                    className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[#7b8697]"
+                    className="w-full border-0 bg-transparent p-0 text-[14px] text-white outline-none placeholder:text-[var(--text-muted)]"
                     value={messageSearchQuery}
                     onChange={(event) => setMessageSearchQuery(event.target.value)}
                     placeholder="Поиск"
@@ -522,7 +515,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                 </label>
                 <button
                   type="button"
-                  className="inline-flex h-[42px] w-[42px] items-center justify-center rounded-[14px] border border-white/6 bg-white/[0.04] text-[#9ca9bb] transition-colors hover:border-white/10 hover:bg-white/[0.055] hover:text-white"
+                  className="inline-flex h-[42px] w-[42px] items-center justify-center rounded-[14px] border border-white/8 bg-black text-[var(--text-dim)] transition-colors hover:border-white/12 hover:bg-[var(--bg-hover)] hover:text-white"
                   aria-label="Фильтры диалогов"
                   title="Фильтры диалогов"
                 >
@@ -530,7 +523,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                 </button>
               </div>
 
-              <div className="mt-3 flex items-center gap-6 border-b border-white/5 pb-0.5 pl-1 text-[13px] font-medium text-[#7f8a9c]">
+              <div className="mt-3 flex items-center gap-6 border-b border-white/8 pb-0.5 pl-1 text-[13px] font-medium text-[var(--text-muted)]">
                 {[
                   { id: "all", label: "Все" },
                   { id: "personal", label: "Личные" },
@@ -547,12 +540,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                       }
                       className={cn(
                         "relative pb-2 transition-colors",
-                        active ? "text-[#4a84ff]" : "hover:text-white",
+                        active ? "text-white" : "hover:text-white",
                       )}
                     >
                       {item.label}
                       {active ? (
-                        <span className="absolute inset-x-0 bottom-[-2px] h-[2px] rounded-full bg-[#4a84ff]" />
+                        <span className="absolute inset-x-0 bottom-[-2px] h-[2px] rounded-full bg-white" />
                       ) : null}
                     </button>
                   );
@@ -562,11 +555,11 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-0 py-2">
               {loadingLabel === "messages" ? (
-                <div className="flex h-full items-center justify-center px-4 text-center text-sm text-[#7b8697]">
+                <div className="flex h-full items-center justify-center px-4 text-center text-sm text-[var(--text-muted)]">
                   Загружаем диалоги...
                 </div>
               ) : filteredConversations.length === 0 ? (
-                <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[#7b8697]">
+                <div className="flex h-full items-center justify-center px-6 text-center text-sm text-[var(--text-muted)]">
                   {messageSearchQuery
                     ? "По вашему запросу диалогов не найдено."
                     : "Личных диалогов пока нет."}
@@ -593,12 +586,12 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                         className={cn(
                           "group relative grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 border py-3 pl-[18px] pr-[14px] transition-all duration-150",
                           active
-                            ? "rounded-r-[18px] rounded-l-none border-[#3a6cd4]/18 bg-[linear-gradient(180deg,rgba(56,74,104,0.46),rgba(29,37,50,0.98))] shadow-none"
-                            : "rounded-r-[18px] rounded-l-none border-transparent bg-transparent hover:border-white/6 hover:bg-white/[0.03]",
+                            ? "rounded-r-[18px] rounded-l-none border-white/12 bg-[var(--bg-active)] shadow-none"
+                            : "rounded-r-[18px] rounded-l-none border-transparent bg-transparent hover:border-white/8 hover:bg-[var(--bg-hover)]",
                         )}
                       >
                         {active ? (
-                          <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full bg-[#4a84ff]" />
+                          <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full bg-white" />
                         ) : null}
 
                         <div className="relative row-span-2 mt-0.5">
@@ -610,8 +603,8 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                           />
                           <span
                             className={cn(
-                              "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-[2px] border-[#0d151f] bg-[#6b7381]",
-                              liveCounterpart.isOnline && "bg-[#2ecf7c]",
+                              "absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-[2px] border-black bg-[var(--text-dim)]",
+                              liveCounterpart.isOnline && "bg-emerald-400",
                             )}
                           />
                         </div>
@@ -622,25 +615,25 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                               {conversation.counterpart.profile.displayName}
                             </p>
                             {liveCounterpart.isOnline ? (
-                              <span className="h-2 w-2 rounded-full bg-[#2ecf7c]" />
+                              <span className="h-2 w-2 rounded-full bg-emerald-400" />
                             ) : null}
                           </div>
                           <p
                             className={cn(
                               "mt-1 truncate text-[13px]",
                               conversation.unreadCount > 0
-                                ? "text-[#d9e3f2]"
-                                : "text-[#8894a6]",
+                                ? "text-[var(--text-soft)]"
+                                : "text-[var(--text-muted)]",
                             )}
                           >
                             {conversation.lastMessagePreview ?? "Сообщений пока нет"}
                           </p>
                         </div>
 
-                        <div className="row-span-2 flex min-w-[2.75rem] flex-col items-end gap-2 text-[12px] text-[#7f8a9c]">
+                        <div className="row-span-2 flex min-w-[2.75rem] flex-col items-end gap-2 text-[12px] text-[var(--text-muted)]">
                           <span>{formatConversationTime(conversation.lastMessageAt)}</span>
                           {conversation.unreadCount > 0 ? (
-                            <span className="inline-flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full bg-[#4a84ff] px-1.5 text-[11px] font-semibold text-white">
+                            <span className="inline-flex min-h-[22px] min-w-[22px] items-center justify-center rounded-full border border-white/12 bg-white px-1.5 text-[11px] font-semibold text-black">
                               {conversation.unreadCount}
                             </span>
                           ) : null}
@@ -652,7 +645,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
               )}
             </div>
 
-            <div className="px-4 pb-5 pt-2 text-center text-[12px] text-[#7b8697]">
+            <div className="px-4 pb-5 pt-2 text-center text-[12px] text-[var(--text-muted)]">
               {conversations.length} диалогов
             </div>
           </div>
@@ -683,7 +676,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     href={`/app/hubs/${item.id}`}
                     active={safePathname.startsWith(`/app/hubs/${item.id}`)}
                     leading={
-                      <span className="flex h-8 w-8 items-center justify-center rounded-[12px] bg-white/5 text-[10px] font-semibold text-zinc-200">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-[12px] border border-[var(--border-soft)] bg-black text-[10px] font-semibold text-white">
                         {item.name.slice(0, 2).toUpperCase()}
                       </span>
                     }
@@ -691,7 +684,10 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                     detail={formatMembershipRole(item.membershipRole)}
                     meta={
                       item.isPrivate ? (
-                        <LockKeyhole {...railIconProps} className="text-zinc-500" />
+                        <LockKeyhole
+                          {...railIconProps}
+                          className="text-[var(--text-muted)]"
+                        />
                       ) : null
                     }
                   />
@@ -705,7 +701,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
           <div>
             <div className="px-4 py-4">
               <p className="truncate text-sm font-medium text-white">{hub?.name ?? "Хаб"}</p>
-              <p className="mt-1 truncate text-xs text-[#7f8a9c]">
+              <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
                 {formatMembershipRole(hub?.membershipRole)}
               </p>
             </div>
@@ -746,7 +742,10 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                         detail={formatLobbyType(lobby.type)}
                         meta={
                           lobby.isPrivate ? (
-                            <LockKeyhole {...railIconProps} className="text-zinc-500" />
+                            <LockKeyhole
+                              {...railIconProps}
+                              className="text-[var(--text-muted)]"
+                            />
                           ) : null
                         }
                       />

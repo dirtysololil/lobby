@@ -1,8 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Geist, Geist_Mono } from "next/font/google";
 import { NativeMobileShell } from "@/components/app/native-mobile-shell";
 import { PwaRegistration } from "@/components/app/pwa-registration";
 import "./globals.css";
+
+const geistSans = Geist({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-body",
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: "Lobby - private communication ecosystem",
@@ -31,7 +42,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#101826",
+  themeColor: "#000000",
   colorScheme: "dark",
 };
 
@@ -42,7 +53,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className="antialiased">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <NativeMobileShell />
         <PwaRegistration />
         {children}

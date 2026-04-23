@@ -15,14 +15,14 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <div className="premium-panel rounded-[26px] p-6">
+    <div className="premium-panel rounded-[18px] p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="flex min-w-0 gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-amber-300/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent),rgba(245,158,11,0.12)] text-amber-100">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-amber-300/20 bg-black text-amber-100">
             <ShieldAlert size={20} strokeWidth={1.5} />
           </div>
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-white/[0.04] px-3 py-1 text-xs font-medium text-[var(--text-soft)]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-black px-3 py-1 text-xs font-medium text-[var(--text-soft)]">
               Surface fallback
             </div>
             <h2 className="mt-3 text-lg font-semibold tracking-tight text-white">

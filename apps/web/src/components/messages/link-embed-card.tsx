@@ -60,11 +60,11 @@ export function LinkEmbedCard({
     return (
       <div
         className={cn(
-          "overflow-hidden rounded-[24px] border border-white/8 bg-white/[0.035]",
+          "overflow-hidden rounded-[24px] border border-white/8 bg-black",
           className,
         )}
       >
-        <div className="aspect-square animate-pulse bg-[linear-gradient(135deg,rgba(106,168,248,0.08),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0.015))]" />
+        <div className="aspect-square animate-pulse bg-white/[0.04]" />
         <div className="flex items-center gap-2 border-t border-white/6 px-3 py-2 text-xs text-[var(--text-muted)]">
           <LoaderCircle size={14} strokeWidth={1.5} className="animate-spin" />
           Подтягиваем превью…

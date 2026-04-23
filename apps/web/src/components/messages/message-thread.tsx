@@ -798,15 +798,15 @@ export function MessageThread({
                 type="button"
                 aria-label="Закрыть действия с сообщением"
                 onClick={() => setContextMenu(null)}
-                className="absolute inset-0 bg-[rgba(3,6,12,0.72)] backdrop-blur-[3px]"
+                className="absolute inset-0 bg-black/80"
               />
               <div
                 data-dm-context-menu="true"
-                className="absolute inset-x-3 bottom-[calc(var(--app-mobile-dock-clearance)+0.5rem)] rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_22%),rgba(11,17,24,0.98)] px-3 pb-3 pt-2.5 shadow-[0_22px_48px_rgba(2,6,12,0.52)]"
+                className="absolute inset-x-3 bottom-[calc(var(--app-mobile-dock-clearance)+0.5rem)] rounded-[24px] border border-white/10 bg-black px-3 pb-3 pt-2.5 shadow-[0_22px_48px_rgba(2,6,12,0.52)]"
               >
                 <div className="mx-auto mb-3 h-1 w-11 rounded-full bg-white/10" />
 
-                <div className="rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-3">
+                <div className="rounded-[18px] border border-white/8 bg-black px-3 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-medium tracking-tight text-white">
                       Действия с сообщением
@@ -829,30 +829,30 @@ export function MessageThread({
                     onClick={() =>
                       handleReplyFromMenu(activeContextMenu.messageId)
                     }
-                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 text-sm font-medium text-white transition-colors hover:bg-white/[0.08]"
+                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-black px-4 text-sm font-medium text-white transition-colors hover:bg-black"
                   >
                     <Reply size={18} strokeWidth={1.7} />
                     Ответить
                   </button>
                   {contextMenuMessage.canDelete ? (
                     <button
-                    type="button"
-                    onClick={() =>
-                      void handleDeleteFromMenu(activeContextMenu.messageId)
-                    }
-                    disabled={isDeleting === activeContextMenu.messageId}
-                    className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] border border-rose-400/18 bg-[linear-gradient(180deg,rgba(255,92,122,0.22),rgba(255,92,122,0.14))] px-4 text-sm font-medium text-rose-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-rose-300/24 hover:bg-[linear-gradient(180deg,rgba(255,92,122,0.28),rgba(255,92,122,0.18))] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Trash2 size={18} strokeWidth={1.7} />
-                    {isDeleting === activeContextMenu.messageId
-                      ? "Удаляем..."
-                      : "Удалить"}
-                  </button>
+                      type="button"
+                      onClick={() =>
+                        void handleDeleteFromMenu(activeContextMenu.messageId)
+                      }
+                      disabled={isDeleting === activeContextMenu.messageId}
+                      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] border border-rose-400/18 bg-black px-4 text-sm font-medium text-rose-50 transition-colors hover:border-rose-300/24 hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Trash2 size={18} strokeWidth={1.7} />
+                      {isDeleting === activeContextMenu.messageId
+                        ? "Удаляем..."
+                        : "Удалить"}
+                    </button>
                   ) : null}
                   <button
                     type="button"
                     onClick={() => setContextMenu(null)}
-                    className="flex min-h-11 w-full items-center justify-center rounded-[16px] border border-white/8 bg-white/[0.04] px-4 text-sm text-[var(--text-soft)] transition-colors hover:bg-white/[0.06]"
+                    className="flex min-h-11 w-full items-center justify-center rounded-[16px] border border-white/8 bg-black px-4 text-sm text-[var(--text-soft)] transition-colors hover:bg-black"
                   >
                     Отмена
                   </button>
@@ -862,7 +862,7 @@ export function MessageThread({
           ) : (
             <div
               data-dm-context-menu="true"
-              className="fixed z-[90] hidden w-[196px] rounded-[14px] border border-white/8 bg-[rgba(10,14,20,0.98)] p-1.5 shadow-[0_18px_40px_rgba(2,6,12,0.42)] md:block"
+              className="fixed z-[90] hidden w-[196px] rounded-[14px] border border-white/8 bg-black p-1.5 shadow-[0_18px_40px_rgba(2,6,12,0.42)] md:block"
               style={{
                 left: activeContextMenu.x,
                 top: activeContextMenu.y,
@@ -873,25 +873,25 @@ export function MessageThread({
                 onClick={() =>
                   handleReplyFromMenu(activeContextMenu.messageId)
                 }
-                className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-[var(--text-soft)] transition-colors hover:bg-white/[0.05]"
+                className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-[var(--text-soft)] transition-colors hover:bg-black"
               >
                 <Reply size={16} strokeWidth={1.5} />
                 Ответить
               </button>
               {contextMenuMessage.canDelete ? (
                 <button
-                type="button"
-                onClick={() =>
-                  void handleDeleteFromMenu(activeContextMenu.messageId)
-                }
-                disabled={isDeleting === activeContextMenu.messageId}
-                className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-rose-100 transition-colors hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Trash2 size={16} strokeWidth={1.5} />
-                {isDeleting === activeContextMenu.messageId
-                  ? "Удаляем..."
-                  : "Удалить"}
-              </button>
+                  type="button"
+                  onClick={() =>
+                    void handleDeleteFromMenu(activeContextMenu.messageId)
+                  }
+                  disabled={isDeleting === activeContextMenu.messageId}
+                  className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-sm text-rose-100 transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Trash2 size={16} strokeWidth={1.5} />
+                  {isDeleting === activeContextMenu.messageId
+                    ? "Удаляем..."
+                    : "Удалить"}
+                </button>
               ) : null}
             </div>
           ),
@@ -1036,7 +1036,7 @@ export function MessageThread({
                   const messageFooter = (
                     <div
                       className={cn(
-                        "dm-message-footer mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-none text-[#7e8b9f]",
+                        "dm-message-footer mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-none text-[var(--text-muted)]",
                         isOwn ? "justify-end" : "justify-start",
                         isBareMediaMessage &&
                           !isBareFramedMediaMessage &&
@@ -1062,7 +1062,7 @@ export function MessageThread({
                           Ошибка
                         </span>
                       ) : null}
-                      <span className="tabular-nums text-[#8390a4]">
+                      <span className="tabular-nums text-[var(--text-dim)]">
                         {formatThreadTime(message.createdAt)}
                       </span>
                       {isOwn && isDelivered ? (
@@ -1179,10 +1179,10 @@ export function MessageThread({
                                   }
                                   className="mb-2.5 grid w-full min-w-0 gap-0.5 rounded-[14px] border border-white/5 bg-black/18 px-3 py-2 text-left transition-colors hover:bg-black/24"
                                 >
-                                  <span className="truncate text-[11px] font-medium text-[#8fbaff]">
+                                  <span className="truncate text-[11px] font-medium text-[var(--text-soft)]">
                                     {message.replyTo.author.profile.displayName}
                                   </span>
-                                  <span className="truncate text-xs text-[#8b97a9]">
+                                  <span className="truncate text-xs text-[var(--text-dim)]">
                                     {buildReplyPreviewText(message.replyTo)}
                                   </span>
                                 </button>
