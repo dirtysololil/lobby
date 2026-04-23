@@ -23,9 +23,7 @@ import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
-import { getAvailabilityLabel } from "@/lib/last-seen";
 import { getPresenceDotClass, getResolvedPresenceDotClass } from "@/lib/presence";
-import { getBuiltInRingtoneLabel } from "@/lib/ringtones";
 import { cn } from "@/lib/utils";
 
 interface ProfileSettingsFormProps {
@@ -210,9 +208,6 @@ export function ProfileSettingsForm({
       : safeViewer;
 
   const hasCustomAvatar = Boolean(safeViewer.profile.avatar.fileKey);
-  const availabilityLabel = getAvailabilityLabel(liveViewer) ?? "Не в сети";
-  const hasCustomRingtone = Boolean(safeViewer.profile.customRingtone.fileKey);
-
   const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -241,14 +236,6 @@ export function ProfileSettingsForm({
   const bioPreview = bioValue.trim();
   const selectedPresence = form.watch("presence") ?? safeViewer.profile.presence;
   const selectedPreset = form.watch("avatarPreset") ?? safeViewer.profile.avatarPreset;
-  const selectedRingtonePreset =
-    form.watch("callRingtonePreset") ?? safeViewer.profile.callRingtonePreset;
-  const selectedRingtoneMode =
-    form.watch("callRingtoneMode") ?? safeViewer.profile.callRingtoneMode;
-  const ringtoneLabel =
-    selectedRingtoneMode === "CUSTOM" && hasCustomRingtone
-      ? safeViewer.profile.customRingtone.originalName?.trim() || "Свой файл"
-      : getBuiltInRingtoneLabel(selectedRingtonePreset);
   const isDirty = form.formState.isDirty;
 
   async function onSubmit(values: UpdateProfileInput) {
@@ -388,7 +375,7 @@ export function ProfileSettingsForm({
           onSubmit={form.handleSubmit((values) => void onSubmit(values))}
         >
           <section className="premium-panel overflow-hidden rounded-[26px]">
-            <div className="grid gap-4 border-b border-[var(--border-soft)] px-4 py-4 sm:px-5 lg:grid-cols-[auto_minmax(0,1fr)_minmax(220px,260px)] lg:items-center">
+            <div className="grid gap-4 border-b border-[var(--border-soft)] px-4 py-4 sm:px-5 lg:grid-cols-[auto_minmax(0,1fr)_minmax(220px,240px)] lg:items-center">
               <div className="relative mx-auto lg:mx-0">
                 <button
                   type="button"
@@ -417,22 +404,22 @@ export function ProfileSettingsForm({
               </div>
 
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <InfoPill>{availabilityLabel}</InfoPill>
-                  <InfoPill>{presetLabels[selectedPreset]}</InfoPill>
-                  <InfoPill>{ringtoneLabel}</InfoPill>
-                </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <h2 className="truncate text-[1.4rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.65rem]">
                     {nicknameValue}
                   </h2>
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-black text-lg">
-                    {statusEmojiValue || "•"}
-                  </span>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-soft)] bg-black px-2.5 py-1.5">
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                      Статус
+                    </span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-black text-base">
+                      {statusEmojiValue || "•"}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--text-dim)]">
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-dim)]">
                   <span>@{safeViewer.username}</span>
                   {fullNameValue ? <span>{fullNameValue}</span> : null}
                   {birthDateValue ? <span>{birthDateValue}</span> : null}
@@ -447,9 +434,10 @@ export function ProfileSettingsForm({
                       {phoneValue}
                     </InfoPill>
                   ) : null}
+                  <InfoPill>{presetLabels[selectedPreset]}</InfoPill>
                 </div>
 
-                <p className="mt-3 max-w-[64ch] overflow-hidden text-sm leading-6 text-[var(--text-dim)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                <p className="mt-3 max-w-[60ch] overflow-hidden text-sm leading-6 text-[var(--text-dim)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                   {bioPreview || "Добавьте короткое описание, чтобы профиль выглядел живее."}
                 </p>
               </div>
@@ -488,9 +476,9 @@ export function ProfileSettingsForm({
                   title="Ник и контакты"
                   description="Ник, почта и телефон в одной плотной группе."
                 >
-                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                    <div className="grid gap-2 sm:col-span-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                      <div className="space-y-2">
+                  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1.05fr)_auto_minmax(0,1fr)_minmax(0,0.9fr)]">
+                    <div className="grid gap-2 md:contents">
+                      <div className="order-1 space-y-2">
                         <Label htmlFor="displayName">Ник</Label>
                         <Input
                           id="displayName"
@@ -499,7 +487,7 @@ export function ProfileSettingsForm({
                         />
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="order-3 space-y-2 md:col-span-full xl:col-span-1">
                         <Label htmlFor="email">Почта</Label>
                         <Input
                           id="email"
@@ -510,7 +498,7 @@ export function ProfileSettingsForm({
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="order-4 space-y-2 md:col-span-full xl:col-span-1">
                       <Label htmlFor="phone">Телефон</Label>
                       <Input
                         id="phone"
@@ -521,31 +509,33 @@ export function ProfileSettingsForm({
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Смайлик</Label>
-                      <ProfileEmojiPicker
-                        value={statusEmojiValue || null}
-                        onChange={(value) =>
-                          form.setValue("statusEmoji", value ?? "", {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                          })
-                        }
-                      />
+                    <div className="order-2 space-y-2">
+                      <Label>Статус</Label>
+                      <div className="flex h-11 items-center">
+                        <ProfileEmojiPicker
+                          value={statusEmojiValue || null}
+                          onChange={(value) =>
+                            form.setValue("statusEmoji", value ?? "", {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
 
                     {form.formState.errors.displayName ? (
-                      <p className="sm:col-span-full text-sm text-rose-200">
+                      <p className="md:col-span-full text-sm text-rose-200">
                         {form.formState.errors.displayName.message}
                       </p>
                     ) : null}
                     {form.formState.errors.email ? (
-                      <p className="sm:col-span-full text-sm text-rose-200">
+                      <p className="md:col-span-full text-sm text-rose-200">
                         {form.formState.errors.email.message}
                       </p>
                     ) : null}
                     {form.formState.errors.phone ? (
-                      <p className="sm:col-span-full text-sm text-rose-200">
+                      <p className="md:col-span-full text-sm text-rose-200">
                         {form.formState.errors.phone.message}
                       </p>
                     ) : null}
