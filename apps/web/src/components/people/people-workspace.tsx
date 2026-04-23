@@ -17,7 +17,6 @@ import {
   ChevronDown,
   ChevronRight,
   ContactRound,
-  Ellipsis,
   Grid2x2,
   Inbox,
   Lightbulb,
@@ -174,7 +173,7 @@ function ViewTabs({
   pendingCount: number;
 }) {
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto rounded-[22px] border border-[var(--border)] bg-black p-2 text-[14px] font-medium text-[var(--text-dim)]">
+    <div className="flex items-center gap-1.5 overflow-x-auto rounded-[16px] border border-[var(--border)] bg-black p-1.5 text-[13px] font-medium text-[var(--text-dim)]">
       {peopleViews.map((item) => {
         const active = activeView === item.id;
 
@@ -184,7 +183,7 @@ function ViewTabs({
             type="button"
             onClick={() => onSelect(item.id)}
             className={cn(
-              "relative flex shrink-0 items-center gap-2 whitespace-nowrap rounded-[16px] border px-4 py-3 transition-all duration-150",
+              "relative flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-[12px] border px-3 py-2 transition-all duration-150",
               active
                 ? "border-[var(--border-strong)] bg-[var(--bg-active)] text-white"
                 : "border-transparent hover:border-[var(--border-soft)] hover:bg-[var(--bg-hover)] hover:text-white",
@@ -263,7 +262,7 @@ function SectionCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-[22px] border border-[var(--border)] bg-black shadow-[0_20px_34px_rgba(0,0,0,0.22)]",
+        "overflow-hidden rounded-[18px] border border-[var(--border)] bg-black shadow-[0_12px_24px_rgba(0,0,0,0.18)]",
         className,
       )}
     >
@@ -282,12 +281,12 @@ function SidebarCard({
   icon: typeof Users2;
 }) {
   return (
-    <section className="overflow-hidden rounded-[22px] border border-[var(--border)] bg-black shadow-[0_20px_34px_rgba(0,0,0,0.2)]">
-      <div className="flex items-center gap-2 px-4 py-4">
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-[12px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white">
+    <section className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-black shadow-[0_12px_24px_rgba(0,0,0,0.18)]">
+      <div className="flex items-center gap-2 px-4 py-3.5">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-[10px] border border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white">
           <Icon className="h-4 w-4" />
         </span>
-        <h3 className="text-[16px] font-semibold tracking-[-0.02em] text-white">
+        <h3 className="text-[15px] font-semibold tracking-[-0.02em] text-white">
           {title}
         </h3>
       </div>
@@ -310,26 +309,24 @@ function MetricCard({
   value: number;
 }) {
   return (
-    <div
-      className="rounded-[20px] border border-[var(--border)] bg-black px-5 py-5 shadow-[0_18px_30px_rgba(0,0,0,0.18)]"
-    >
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-[16px] border border-[var(--border)] bg-black px-4 py-3.5 shadow-[0_10px_22px_rgba(0,0,0,0.16)]">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
             {label}
           </p>
-          <p className="mt-3 text-[46px] font-semibold leading-none tracking-[-0.06em] text-white">
+          <p className="mt-2 text-[28px] font-semibold leading-none tracking-[-0.05em] text-white">
             {value}
           </p>
-          <p className="mt-3 text-[14px] text-[var(--text-dim)]">{description}</p>
+          <p className="mt-2 text-xs leading-5 text-[var(--text-dim)]">{description}</p>
         </div>
         <div
           className={cn(
-            "inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full border",
+            "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border",
             iconClassName,
           )}
         >
-          <Icon className="h-6 w-6" />
+          <Icon className="h-4.5 w-4.5" />
         </div>
       </div>
     </div>
@@ -464,27 +461,20 @@ function FriendRow({
   onOpenDm: (username: string) => void;
 }) {
   return (
-    <div className="mb-3 flex flex-col gap-4 rounded-[20px] border border-[var(--border)] bg-black px-4 py-4 shadow-[0_18px_30px_rgba(0,0,0,0.18)] last:mb-0 md:flex-row md:items-center md:justify-between md:px-5">
-      <button
-        type="button"
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
-        aria-label={`Открыть ${item.otherUser.profile.displayName}`}
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
+    <div className="mb-2.5 flex flex-col gap-3 rounded-[16px] border border-[var(--border)] bg-black px-3.5 py-3 shadow-[0_10px_22px_rgba(0,0,0,0.16)] last:mb-0 md:flex-row md:items-center md:justify-between">
       <Link
         href={buildUserProfileHref(item.otherUser.username)}
         className="identity-link min-w-0 flex-1 rounded-[16px]"
       >
-        <UserAvatar user={item.otherUser} size="sm" className="h-14 w-14 text-[14px]" />
+        <UserAvatar user={item.otherUser} size="sm" className="h-11 w-11 text-[12px]" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-white">
+            <p className="truncate text-sm font-semibold tracking-[-0.02em] text-white">
               {item.otherUser.profile.displayName}
             </p>
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium",
                 item.otherUser.isOnline
                   ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
                   : "border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-[var(--text-muted)]",
@@ -499,12 +489,12 @@ function FriendRow({
               {getCompactFriendStatus(item.otherUser)}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-[13px] text-[var(--text-dim)]">
-            @{item.otherUser.username}
-          </p>
-          <p className="mt-1 truncate text-[13px] text-[var(--text-dim)]">
-            {item.otherUser.profile.bio ?? "Новый контакт в вашем круге общения."}
-          </p>
+            <p className="mt-0.5 truncate text-xs text-[var(--text-dim)]">
+              @{item.otherUser.username}
+            </p>
+            <p className="mt-1 truncate text-xs text-[var(--text-dim)]">
+              {item.otherUser.profile.bio ?? "Новый контакт в вашем круге общения."}
+            </p>
         </div>
       </Link>
 
@@ -513,17 +503,17 @@ function FriendRow({
           size="sm"
           variant="secondary"
           onClick={() => onOpenDm(item.otherUser.username)}
-          className="h-10 rounded-[12px] border-[var(--border)] bg-black px-4 text-[13px] hover:bg-[var(--bg-hover)]"
+          className="h-9 rounded-[12px] border-[var(--border)] bg-black px-3.5 text-xs hover:bg-[var(--bg-hover)]"
         >
           <MessageSquareMore className="h-[16px] w-[16px]" />
-          Написать
+          Чат
         </Button>
         <Link
           href={buildUserProfileHref(item.otherUser.username)}
           aria-label={`Открыть профиль ${item.otherUser.profile.displayName}`}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] border border-[var(--border)] bg-black text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-[var(--border)] bg-black text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
         >
-          <Ellipsis className="h-4.5 w-4.5" />
+          <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
     </div>
@@ -538,7 +528,7 @@ function FriendGridCard({
   onOpenDm: (username: string) => void;
 }) {
   return (
-    <div className="rounded-[16px] border border-[var(--border)] bg-black p-4">
+    <div className="rounded-[16px] border border-[var(--border)] bg-black p-3.5 shadow-[0_10px_22px_rgba(0,0,0,0.14)]">
       <Link
         href={buildUserProfileHref(item.otherUser.username)}
         className="identity-link flex-col items-start rounded-[14px]"
@@ -546,18 +536,18 @@ function FriendGridCard({
         <UserAvatar
           user={item.otherUser}
           size="sm"
-          className="h-[52px] w-[52px] text-[13px]"
+          className="h-11 w-11 text-[12px]"
         />
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-white">
+          <p className="truncate text-sm font-semibold tracking-[-0.02em] text-white">
             {item.otherUser.profile.displayName}
           </p>
-          <p className="mt-0.5 truncate text-[13px] text-[var(--text-dim)]">
+          <p className="mt-0.5 truncate text-xs text-[var(--text-dim)]">
             @{item.otherUser.username}
           </p>
           <p
             className={cn(
-              "mt-1 inline-flex items-center gap-1.5 text-[12px] font-medium",
+              "mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium",
               item.otherUser.isOnline
                 ? "text-emerald-300"
                 : "text-[var(--text-dim)]",
@@ -579,17 +569,17 @@ function FriendGridCard({
           size="sm"
           variant="secondary"
           onClick={() => onOpenDm(item.otherUser.username)}
-          className="h-9 flex-1 rounded-[12px] border-[var(--border)] bg-black px-3.5 text-[13px] hover:bg-[var(--bg-hover)]"
+          className="h-9 flex-1 rounded-[12px] border-[var(--border)] bg-black px-3 text-xs hover:bg-[var(--bg-hover)]"
         >
           <MessageSquareMore className="h-[16px] w-[16px]" />
-          Написать
+          Чат
         </Button>
         <Link
           href={buildUserProfileHref(item.otherUser.username)}
           aria-label={`Открыть профиль ${item.otherUser.profile.displayName}`}
           className="inline-flex h-9 w-9 items-center justify-center rounded-[12px] border border-[var(--border)] bg-black text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
         >
-          <Ellipsis className="h-4.5 w-4.5" />
+          <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
     </div>
@@ -855,31 +845,26 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
       <div className="relative flex h-full min-h-0 flex-col">
-        <div className="border-b border-[var(--border-soft)] px-4 pb-5 pt-5 md:px-6 md:pt-6 xl:px-8">
+        <div className="border-b border-[var(--border-soft)] px-4 pb-4 pt-4 md:px-6 md:pt-5 xl:px-8">
           <div className="md:hidden">
             <AppMobileTopNav active="people" />
           </div>
 
-          <div className="mt-4 flex flex-col gap-5 md:mt-0 xl:flex-row xl:items-start xl:justify-between">
+          <div className="mt-3 flex flex-col gap-4 md:mt-0 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
-              <div className="flex items-start gap-3">
-                <div className="hidden h-12 w-12 items-center justify-center rounded-[16px] border border-[var(--border-strong)] bg-black text-white md:inline-flex">
-                  <Users2 className="h-6 w-6" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-[36px] font-semibold tracking-[-0.05em] text-white">
-                    {activeViewMeta.title}
-                  </h1>
-                  <p className="mt-2 max-w-[760px] text-sm leading-6 text-[var(--text-dim)]">
-                    Управляйте друзьями, заявками и находите новых знакомых.
-                  </p>
-                </div>
+              <div className="min-w-0">
+                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-white md:text-[32px]">
+                  {activeViewMeta.title}
+                </h1>
+                <p className="mt-1.5 max-w-[720px] text-[13px] leading-5 text-[var(--text-dim)] md:text-sm md:leading-6">
+                  Управляйте друзьями, заявками и находите новых знакомых.
+                </p>
               </div>
             </div>
 
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
               <form
-                className="flex h-11 min-w-0 items-center gap-2 rounded-[14px] border border-[var(--border)] bg-black px-3 text-[var(--text-dim)] md:w-[320px]"
+                className="flex h-11 min-w-0 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-black px-3 text-[var(--text-dim)] md:w-[300px]"
                 onSubmit={handleSearchSubmit}
               >
                 <Search className="h-4.5 w-4.5 shrink-0" />
@@ -897,10 +882,10 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                 </span>
               </form>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-black text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-white"
+                  className="relative inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-[var(--border)] bg-black text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-white"
                   aria-label="Уведомления"
                 >
                   <Bell className="h-4.5 w-4.5" />
@@ -910,23 +895,11 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                     </span>
                   ) : null}
                 </button>
-
-                <Link
-                  href={buildUserProfileHref(viewer.username)}
-                  className="inline-flex items-center gap-3 rounded-full border border-[var(--border)] bg-black py-1 pl-1 pr-3 text-white transition-colors hover:border-[var(--border-strong)]"
-                >
-                  <UserAvatar
-                    user={viewer}
-                    size="sm"
-                    className="h-10 w-10 text-[12px]"
-                  />
-                  <ChevronDown className="h-4 w-4 text-[var(--text-dim)]" />
-                </Link>
               </div>
             </div>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-4">
             <ViewTabs
               activeView={activeView}
               onSelect={setView}
@@ -950,7 +923,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                 </div>
               ) : null}
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
                   icon={Users2}
                   iconClassName="border-[var(--border-soft)] bg-[var(--bg-panel-soft)] text-white"
@@ -982,13 +955,13 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
               </div>
 
               {activeView === "friends" ? (
-                <div className="mt-6">
+                <div className="mt-5">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <h2 className="text-[28px] font-semibold tracking-[-0.04em] text-white">
+                      <h2 className="text-[22px] font-semibold tracking-[-0.04em] text-white md:text-[24px]">
                         Ваши друзья
                       </h2>
-                      <p className="mt-1 text-sm text-[var(--text-dim)]">
+                      <p className="mt-1 text-[13px] text-[var(--text-dim)]">
                         {formatRussianCount(sortedFriends.length, "друг", "друга", "друзей")}
                       </p>
                     </div>
@@ -1001,7 +974,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                             current === "name" ? "status" : "name",
                           )
                         }
-                        className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-black px-3 text-sm font-medium text-white transition-colors hover:bg-[var(--bg-hover)]"
+                        className="inline-flex h-10 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-black px-3 text-[13px] font-medium text-white transition-colors hover:bg-[var(--bg-hover)]"
                       >
                         <span>{sortLabels[friendSortMode]}</span>
                         <ChevronDown className="h-4 w-4 text-[var(--text-dim)]" />
@@ -1038,7 +1011,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                     </div>
                   </div>
 
-                  <SectionCard className="mt-4 overflow-visible border-0 bg-transparent shadow-none">
+                  <SectionCard className="mt-3 overflow-visible border-0 bg-transparent shadow-none">
                     {sortedFriends.length === 0 ? (
                       <EmptyView
                         icon={Users2}
@@ -1056,7 +1029,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                         ))}
                       </div>
                     ) : (
-                      <div className="grid gap-3 p-4 sm:grid-cols-2">
+                      <div className="grid gap-2.5 p-1 sm:grid-cols-2">
                         {sortedFriends.map((item) => (
                           <FriendGridCard
                             key={item.id}
@@ -1068,7 +1041,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                     )}
                   </SectionCard>
 
-                  <div className="pt-5 text-center text-[12px] text-[var(--text-muted)]">
+                  <div className="pt-4 text-center text-[12px] text-[var(--text-muted)]">
                     {formatRussianCount(sortedFriends.length, "друг", "друга", "друзей")}
                   </div>
                 </div>

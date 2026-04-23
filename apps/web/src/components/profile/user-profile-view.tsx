@@ -18,12 +18,14 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { AvatarPreviewModal } from "@/components/ui/avatar-preview-modal";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { AvatarPreviewModal } from "@/components/ui/avatar-preview-modal";
 import { apiClientFetch } from "@/lib/api-client";
+import { getAvailabilityLabel } from "@/lib/last-seen";
+import { cn } from "@/lib/utils";
 
 interface UserProfileViewProps {
   viewer: PublicUser;
@@ -44,11 +46,11 @@ function getRelationshipLabel(
   isSelf: boolean,
 ) {
   if (isSelf) {
-    return "Ваш публичный профиль";
+    return "Ваш профиль";
   }
 
   if (relationship.isBlockedByViewer) {
-    return "Вы скрыли контакт";
+    return "Контакт скрыт";
   }
 
   if (relationship.hasBlockedViewer) {
@@ -57,13 +59,13 @@ function getRelationshipLabel(
 
   switch (relationship.friendshipState) {
     case "ACCEPTED":
-      return "У вас есть контакт";
+      return "Вы в друзьях";
     case "INCOMING_REQUEST":
-      return "Ждет подтверждения";
+      return "Ждёт подтверждения";
     case "OUTGOING_REQUEST":
-      return "Запрос уже отправлен";
+      return "Запрос отправлен";
     default:
-      return "Можно начать диалог";
+      return "Новый контакт";
   }
 }
 
@@ -72,27 +74,89 @@ function getRelationshipNote(
   isSelf: boolean,
 ) {
   if (isSelf) {
-    return "Так ваш профиль выглядит в списках людей, личных сообщениях и участниках хабов.";
+    return "Так профиль выглядит в списках людей, диалогах и других рабочих экранах.";
   }
 
   if (relationship.isBlockedByViewer) {
-    return "Сообщения, звонки и новые социальные действия отключены, пока вы не снимете блокировку.";
+    return "Вы скрыли этот контакт. Сообщения, звонки и новые социальные действия сейчас ограничены.";
   }
 
   if (relationship.hasBlockedViewer) {
-    return "Пользователь ограничил прямой контакт, поэтому часть быстрых действий может быть недоступна.";
+    return "Этот пользователь ограничил прямой контакт, поэтому часть быстрых действий может быть недоступна.";
   }
 
   switch (relationship.friendshipState) {
     case "ACCEPTED":
-      return "Можно быстро открыть ЛС, продолжить общение или убрать контакт из списка друзей.";
+      return "Контакт уже в вашем круге общения. Отсюда можно быстро открыть диалог или убрать его из друзей.";
     case "INCOMING_REQUEST":
-      return "Заявка уже у вас. Ее можно принять прямо из профиля.";
+      return "Заявка уже у вас. Её можно принять прямо с этой страницы.";
     case "OUTGOING_REQUEST":
-      return "Запрос отправлен. Здесь можно отменить его и перейти в личные сообщения.";
+      return "Запрос уже отправлен. Здесь его можно отменить или позже продолжить общение.";
     default:
-      return "Отсюда можно начать диалог, отправить заявку и быстро решить, нужен ли этот контакт дальше.";
+      return "Отсюда можно начать знакомство, отправить заявку и быстро открыть профиль для общения.";
   }
+}
+
+function SurfaceCard({
+  title,
+  kicker,
+  children,
+  className,
+}: {
+  title: string;
+  kicker?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "overflow-hidden rounded-[20px] border border-[var(--border)] bg-black",
+        className,
+      )}
+    >
+      <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
+        {kicker ? (
+          <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+            {kicker}
+          </p>
+        ) : null}
+        <h2 className={cn("text-[17px] font-semibold tracking-[-0.03em] text-white", kicker && "mt-1")}>
+          {title}
+        </h2>
+      </div>
+      <div className="px-4 py-4">{children}</div>
+    </section>
+  );
+}
+
+function MetaPill({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <span className="inline-flex min-h-8 items-center rounded-full border border-[var(--border-soft)] bg-black px-3 text-[12px] text-[var(--text-soft)]">
+      {children}
+    </span>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="rounded-[14px] border border-[var(--border-soft)] bg-[var(--bg-panel-muted)] px-3.5 py-3">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+        {label}
+      </p>
+      <div className="mt-1.5 text-sm font-medium text-white">{value}</div>
+    </div>
+  );
 }
 
 export function UserProfileView({
@@ -107,6 +171,10 @@ export function UserProfileView({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
   const isSelf = viewer.id === user.id;
+  const availabilityLabel = useMemo(
+    () => getAvailabilityLabel(user) ?? "Не в сети",
+    [user],
+  );
 
   async function refreshProfile() {
     if (isSelf) {
@@ -183,7 +251,7 @@ export function UserProfileView({
             })
           }
           disabled={actionKey !== null}
-          className="h-10 w-full"
+          className="h-10 w-full rounded-[12px]"
         >
           <UserRoundCheck className="h-4 w-4" />
           Принять заявку
@@ -207,7 +275,7 @@ export function UserProfileView({
             })
           }
           disabled={actionKey !== null}
-          className="h-10 w-full"
+          className="h-10 w-full rounded-[12px] border-[var(--border)] bg-black"
         >
           {relationship.friendshipState === "ACCEPTED"
             ? "Убрать из друзей"
@@ -227,7 +295,7 @@ export function UserProfileView({
           })
         }
         disabled={actionKey !== null || relationship.hasBlockedViewer}
-        className="h-10 w-full"
+        className="h-10 w-full rounded-[12px]"
       >
         <UserPlus2 className="h-4 w-4" />
         Добавить в друзья
@@ -237,151 +305,144 @@ export function UserProfileView({
 
   return (
     <>
-      <section className="h-full min-h-0 overflow-y-auto px-3 py-3">
-        <div className="mx-auto grid max-w-[1080px] gap-3 xl:grid-cols-[minmax(0,1fr)_312px]">
+      <section className="h-full min-h-0 overflow-y-auto px-3 py-3 sm:px-4">
+        <div className="mx-auto grid max-w-[1120px] gap-3 xl:grid-cols-[minmax(0,1fr)_296px]">
           <div className="grid gap-3">
-            <div className="social-shell rounded-[26px] p-4 sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            <section className="overflow-hidden rounded-[22px] border border-[var(--border)] bg-black">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-4 py-3.5">
                 <Link
                   href="/app/people?view=discover"
-                  className="status-pill transition-colors hover:text-white"
+                  className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--border-soft)] bg-black px-3 text-sm text-[var(--text-soft)] transition-colors hover:border-[var(--border-strong)] hover:text-white"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
                   Люди
                 </Link>
-                <span className="status-pill">
-                  {getRelationshipLabel(relationship, isSelf)}
-                </span>
+
+                <MetaPill>{getRelationshipLabel(relationship, isSelf)}</MetaPill>
               </div>
 
-              <div className="mt-4 grid gap-4 lg:grid-cols-[112px_minmax(0,1fr)] lg:items-start">
-                <div className="flex flex-col items-start gap-2">
+              <div className="grid gap-4 px-4 py-4 md:px-5 md:py-5 lg:grid-cols-[96px_minmax(0,1fr)]">
+                <div className="relative mx-auto lg:mx-0">
                   <button
                     type="button"
                     onClick={() => setIsAvatarPreviewOpen(true)}
-                    className="group relative inline-flex rounded-[28px] border border-white/8 bg-black p-2 transition-colors hover:border-white/14 hover:bg-[var(--bg-hover)]"
+                    className="group relative inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                     aria-label="Открыть фото профиля"
                   >
                     <UserAvatar
                       user={user}
                       size="lg"
-                      className="h-[92px] w-[92px] text-[1.45rem]"
+                      showPresenceIndicator={false}
+                      className="h-[88px] w-[88px] text-[1.25rem]"
                     />
-                    <span className="pointer-events-none absolute inset-x-3 bottom-3 rounded-full border border-white/10 bg-black/40 px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-                      Открыть фото
+                    <span className="pointer-events-none absolute inset-x-1/2 bottom-1.5 -translate-x-1/2 rounded-full border border-white/10 bg-black px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                      Просмотр
                     </span>
                   </button>
-                  <span className="text-xs text-[var(--text-muted)]">
-                    Нажмите, чтобы увеличить
-                  </span>
                 </div>
 
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="truncate text-[1.35rem] font-semibold tracking-[-0.04em] text-white">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h1 className="truncate text-[1.5rem] font-semibold tracking-[-0.04em] text-white md:text-[1.7rem]">
                       {user.profile.displayName}
                     </h1>
                     <PresenceIndicator user={user} compact />
                   </div>
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">
-                    @{user.username}
-                  </p>
-                  <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-soft)]">
-                    {user.profile.bio?.trim() ||
-                      "Пока без био, но профиль уже можно использовать как точку входа в общение."}
-                  </p>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="glass-badge">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      На платформе с {formatJoinedDate(user.createdAt)}
-                    </span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-[var(--text-dim)]">
+                    <span>@{user.username}</span>
+                    <span>•</span>
+                    <span>{availabilityLabel}</span>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <MetaPill>
+                      <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
+                      С {formatJoinedDate(user.createdAt)}
+                    </MetaPill>
                     {!isSelf && relationship.dmConversationId ? (
-                      <span className="glass-badge">ЛС уже открыт</span>
+                      <MetaPill>ЛС уже открыт</MetaPill>
                     ) : null}
                     {!isSelf && relationship.friendshipState === "ACCEPTED" ? (
-                      <span className="glass-badge">В друзьях</span>
+                      <MetaPill>В друзьях</MetaPill>
                     ) : null}
                     {relationship.isBlockedByViewer ? (
-                      <span className="glass-badge">Заблокирован вами</span>
+                      <MetaPill>Заблокирован вами</MetaPill>
                     ) : null}
                     {relationship.hasBlockedViewer ? (
-                      <span className="glass-badge">Ограничил контакт</span>
+                      <MetaPill>Ограничил контакт</MetaPill>
                     ) : null}
                   </div>
-                </div>
-              </div>
-            </div>
 
-            <div className="premium-panel rounded-[26px] p-4 sm:p-5">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-                <div>
-                  <p className="section-kicker">Контекст</p>
-                  <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">
-                    {getRelationshipNote(relationship, isSelf)}
+                  <p className="mt-3 max-w-[64ch] text-sm leading-6 text-[var(--text-soft)]">
+                    {user.profile.bio?.trim() ||
+                      "Короткого описания пока нет, но профиль уже готов для быстрого перехода к общению."}
                   </p>
 
-                  {(relationship.hasBlockedViewer || relationship.isBlockedByViewer) &&
-                  !isSelf ? (
-                    <div className="mt-4 rounded-[18px] border border-amber-300/20 bg-amber-300/10 px-3 py-3 text-sm text-amber-50">
-                      <div className="flex items-start gap-2">
-                        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                        <span>
-                          {relationship.isBlockedByViewer
-                            ? "Сейчас это скрытый контакт. Снимите блокировку, если хотите вернуть сообщения и заявки."
-                            : "Этот пользователь ограничил прямой контакт, поэтому часть быстрых действий может быть недоступна."}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
-
                   {errorMessage ? (
-                    <div className="mt-4 rounded-[18px] border border-rose-400/20 bg-rose-400/10 px-3 py-3 text-sm text-rose-100">
+                    <div className="mt-4 rounded-[16px] border border-rose-400/20 bg-rose-400/10 px-3.5 py-3 text-sm text-rose-100">
                       {errorMessage}
                     </div>
                   ) : null}
                 </div>
+              </div>
+            </section>
 
-                <div className="rounded-[22px] border border-[var(--border-soft)] bg-[var(--bg-panel-muted)] p-4">
-                  <p className="text-sm font-medium text-white">Коротко</p>
-                  <div className="mt-3 grid gap-3 text-sm">
-                    <div className="rounded-[16px] border border-white/6 bg-black/10 px-3 py-2.5">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-dim)]">
-                        Имя в системе
-                      </p>
-                      <p className="mt-1 text-white">@{user.username}</p>
-                    </div>
-                    <div className="rounded-[16px] border border-white/6 bg-black/10 px-3 py-2.5">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-dim)]">
-                        Присутствие
-                      </p>
-                      <div className="mt-1 inline-flex items-center gap-2 text-white">
-                        <PresenceIndicator user={user} compact />
-                        <span>{user.isOnline ? "Сейчас на связи" : "Сейчас не в сети"}</span>
-                      </div>
-                    </div>
-                    <div className="rounded-[16px] border border-white/6 bg-black/10 px-3 py-2.5">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--text-dim)]">
-                        Статус контакта
-                      </p>
-                      <p className="mt-1 text-white">
-                        {getRelationshipLabel(relationship, isSelf)}
-                      </p>
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+              <SurfaceCard title="Контекст" kicker="Общение">
+                <p className="text-sm leading-6 text-[var(--text-soft)]">
+                  {getRelationshipNote(relationship, isSelf)}
+                </p>
+
+                {(relationship.hasBlockedViewer || relationship.isBlockedByViewer) &&
+                !isSelf ? (
+                  <div className="mt-4 rounded-[16px] border border-amber-300/20 bg-amber-300/10 px-3.5 py-3 text-sm text-amber-50">
+                    <div className="flex items-start gap-2">
+                      <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        {relationship.isBlockedByViewer
+                          ? "Пока блокировка активна, писать и получать новые социальные действия здесь нельзя."
+                          : "Пользователь ограничил прямой контакт, поэтому часть действий сейчас недоступна."}
+                      </span>
                     </div>
                   </div>
+                ) : null}
+              </SurfaceCard>
+
+              <SurfaceCard title="Сводка" kicker="Профиль">
+                <div className="grid gap-2.5">
+                  <SummaryRow label="Ник" value={`@${user.username}`} />
+                  <SummaryRow
+                    label="Статус"
+                    value={
+                      <div className="inline-flex items-center gap-2">
+                        <PresenceIndicator user={user} compact />
+                        <span>{availabilityLabel}</span>
+                      </div>
+                    }
+                  />
+                  <SummaryRow
+                    label="На платформе"
+                    value={formatJoinedDate(user.createdAt)}
+                  />
+                  <SummaryRow
+                    label="Контакт"
+                    value={getRelationshipLabel(relationship, isSelf)}
+                  />
                 </div>
-              </div>
+              </SurfaceCard>
             </div>
           </div>
 
-          <aside className="grid gap-3">
-            <div className="premium-panel rounded-[26px] p-4">
-              <p className="section-kicker">Быстрые действия</p>
-              <div className="mt-3 grid gap-2">
+          <aside className="grid gap-3 xl:content-start">
+            <SurfaceCard title="Действия" kicker="Управление">
+              <div className="grid gap-2.5">
                 {isSelf ? (
                   <Link
                     href="/app/settings/profile"
-                    className={buttonVariants({ className: "h-10 w-full" })}
+                    className={buttonVariants({
+                      className: "h-10 w-full rounded-[12px]",
+                    })}
                   >
                     Редактировать профиль
                   </Link>
@@ -395,12 +456,14 @@ export function UserProfileView({
                         (!relationship.dmConversationId &&
                           relationship.friendshipState !== "ACCEPTED")
                       }
-                      className="h-10 w-full"
+                      className="h-10 w-full rounded-[12px]"
                     >
                       <MessageSquareMore className="h-4 w-4" />
                       {relationship.dmConversationId ? "Открыть ЛС" : "Написать"}
                     </Button>
+
                     {renderFriendAction()}
+
                     <Button
                       variant={
                         relationship.isBlockedByViewer ? "secondary" : "destructive"
@@ -419,7 +482,11 @@ export function UserProfileView({
                         })
                       }
                       disabled={actionKey !== null}
-                      className="h-10 w-full"
+                      className={cn(
+                        "h-10 w-full rounded-[12px]",
+                        relationship.isBlockedByViewer &&
+                          "border-[var(--border)] bg-black",
+                      )}
                     >
                       <ShieldBan className="h-4 w-4" />
                       {relationship.isBlockedByViewer
@@ -429,7 +496,23 @@ export function UserProfileView({
                   </>
                 )}
               </div>
-            </div>
+            </SurfaceCard>
+
+            <SurfaceCard title="Сейчас" kicker="Статус">
+              <div className="grid gap-2.5">
+                <SummaryRow label="Присутствие" value={availabilityLabel} />
+                <SummaryRow
+                  label="Режим"
+                  value={
+                    isSelf
+                      ? "Ваш профиль"
+                      : relationship.friendshipState === "ACCEPTED"
+                        ? "Активный контакт"
+                        : "Просмотр профиля"
+                  }
+                />
+              </div>
+            </SurfaceCard>
           </aside>
         </div>
       </section>

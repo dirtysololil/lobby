@@ -450,6 +450,9 @@ export function ConversationView({
       setMessages((current) =>
         mergeFetchedMessages(current, parsed.conversation.messages),
       );
+      if (!options?.silent) {
+        requestThreadScrollToBottom();
+      }
 
       if (!options?.silent) {
         setErrorMessage(null);
@@ -481,7 +484,7 @@ export function ConversationView({
     }
   // markConversationAsRead is intentionally called from the initial load flow.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, viewerId]);
+  }, [conversationId, requestThreadScrollToBottom, viewerId]);
 
   const refreshPickerCatalog = useCallback(async () => {
     setIsPickerCatalogLoading(true);
@@ -546,7 +549,10 @@ export function ConversationView({
   }, [loadConversation]);
 
   useEffect(() => {
+    setConversation(null);
+    setMessages([]);
     setReplyToMessage(null);
+    setErrorMessage(null);
   }, [conversationId]);
 
   useEffect(() => {
@@ -1254,6 +1260,7 @@ export function ConversationView({
         }}
       >
         <MessageThread
+          key={conversationId}
           viewerId={viewerId}
           messages={messages}
           isDeleting={isDeleting}
