@@ -170,7 +170,7 @@ export function NotificationSettingsForm({
               icon: Volume2,
             },
           ].map((item) => (
-            <CompactListRow key={item.key} className="gap-3">
+            <CompactListRow key={item.key} className="gap-3 flex-wrap items-start">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white/[0.04] text-[var(--accent)]">
                 <item.icon size={16} strokeWidth={1.5} />
               </div>
@@ -180,7 +180,7 @@ export function NotificationSettingsForm({
               </div>
               <SelectField
                 className="text-sm"
-                shellClassName="w-full max-w-[220px]"
+                shellClassName="min-w-[220px] w-full flex-1 md:basis-[320px]"
                 value={defaults[item.key]}
                 onChange={(event) =>
                   setDefaults((current) => ({
@@ -229,7 +229,11 @@ export function NotificationSettingsForm({
         ) : (
           <CompactList>
             {initialSettings.hubs.map((hub) => (
-              <CompactListRow key={hub.hubId} compact className="gap-3">
+              <CompactListRow
+                key={hub.hubId}
+                compact
+                className="gap-3 flex-wrap items-start"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-white">{hub.hubName}</p>
                   <p className="text-xs text-[var(--text-muted)]">
@@ -238,7 +242,7 @@ export function NotificationSettingsForm({
                 </div>
                 <SelectField
                   className="text-sm"
-                  shellClassName="w-full max-w-[220px]"
+                  shellClassName="min-w-[220px] w-full flex-1 md:basis-[320px]"
                   defaultValue={hub.setting}
                   onChange={(event) =>
                     void updateHubSetting(hub.hubId, event.target.value as NotificationSetting)
@@ -271,7 +275,11 @@ export function NotificationSettingsForm({
         ) : (
           <CompactList>
             {initialSettings.lobbies.map((lobby) => (
-              <CompactListRow key={lobby.lobbyId} compact className="gap-3">
+              <CompactListRow
+                key={lobby.lobbyId}
+                compact
+                className="gap-3 flex-wrap items-start"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-white">
                     {lobby.hubName} / {lobby.lobbyName}
@@ -284,7 +292,7 @@ export function NotificationSettingsForm({
                 </div>
                 <SelectField
                   className="text-sm"
-                  shellClassName="w-full max-w-[220px]"
+                  shellClassName="min-w-[220px] w-full flex-1 md:basis-[320px]"
                   defaultValue={lobby.setting}
                   onChange={(event) =>
                     void updateLobbySetting(
