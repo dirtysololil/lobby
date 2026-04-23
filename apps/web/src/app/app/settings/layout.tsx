@@ -51,7 +51,7 @@ export default function SettingsLayout({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="mx-auto grid min-h-full w-full max-w-[1120px] content-start gap-3 px-4 py-3 md:px-5 md:py-5">
+          <div className="grid min-h-full w-full content-start gap-3 px-4 py-3 md:px-5 md:py-5">
             {children}
           </div>
         </div>
