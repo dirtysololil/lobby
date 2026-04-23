@@ -584,14 +584,14 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                         key={conversation.id}
                         href={href}
                         className={cn(
-                          "group relative grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 border py-3 pl-[18px] pr-[14px] transition-all duration-150",
+                          "group relative grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 py-3 pl-[18px] pr-[14px] transition-all duration-150",
                           active
-                            ? "rounded-r-[18px] rounded-l-none border-white/12 bg-[var(--bg-active)] shadow-none"
-                            : "rounded-r-[18px] rounded-l-none border-transparent bg-transparent hover:border-white/8 hover:bg-[var(--bg-hover)]",
+                            ? "bg-[var(--bg-active)] shadow-none"
+                            : "bg-transparent hover:bg-[var(--bg-hover)]",
                         )}
                       >
                         {active ? (
-                          <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full bg-white" />
+                          <span className="absolute bottom-0 left-0 top-0 w-[3px] rounded-r-full bg-[#0070F3]" />
                         ) : null}
 
                         <div className="relative row-span-2 mt-0.5">

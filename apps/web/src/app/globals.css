@@ -862,7 +862,7 @@ textarea {
   justify-content: center;
   min-height: 29px;
   border-radius: 999px;
-  background: #000;
+  background: #0a0a0a;
   padding: 0 0.82rem;
   font-size: 12px;
   font-weight: 500;
@@ -921,7 +921,7 @@ textarea {
 }
 
 .dm-bubble-in {
-  border-color: #0a0a0a;
+  border-color: #1c1c1c;
   background: #0a0a0a;
   border-bottom-left-radius: 9px;
 }
@@ -1005,6 +1005,10 @@ textarea {
 
 .dm-message-footer-overlay .tabular-nums {
   color: rgba(238, 245, 255, 0.94);
+}
+
+.dm-bubble-out .dm-message-footer .tabular-nums {
+  color: #fff;
 }
 
 .dm-video-note-bubble {
@@ -1094,7 +1098,7 @@ textarea {
   min-height: 50px;
   border-radius: 15px;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  background: #000;
+  background: #0a0a0a;
   padding: 0.18rem;
   box-shadow: none;
 }
@@ -1108,7 +1112,7 @@ textarea {
   justify-content: center;
   border-radius: 12px;
   border: 1px solid transparent;
-  background: transparent;
+  background: #0a0a0a;
   padding: 0;
   color: #cad7e8;
   transition:
@@ -1120,7 +1124,7 @@ textarea {
 
 .dm-composer-cluster-button:hover {
   border-color: rgba(255, 255, 255, 0.08);
-  background: #000;
+  background: #0a0a0a;
   color: white;
   transform: translateY(-1px);
 }
@@ -1133,7 +1137,7 @@ textarea {
 
 .dm-composer-cluster-button-active {
   border-color: rgba(92, 148, 255, 0.24);
-  background: #000;
+  background: #0a0a0a;
   color: #f4f8ff;
 }
 
@@ -1146,7 +1150,7 @@ textarea {
   justify-content: center;
   border-radius: 15px;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  background: #000;
+  background: #0a0a0a;
   padding: 0;
   color: #cad7e8;
   box-shadow: none;
@@ -1159,7 +1163,7 @@ textarea {
 
 .dm-composer-button:hover {
   border-color: rgba(255, 255, 255, 0.08);
-  background: #000;
+  background: #0a0a0a;
   color: white;
   transform: translateY(-1px);
 }
@@ -1171,7 +1175,7 @@ textarea {
 }
 
 .dm-composer-mic {
-  background: #000;
+  background: #0a0a0a;
 }
 
 .dm-composer-send {
@@ -1234,7 +1238,7 @@ textarea {
   justify-content: center;
   border-radius: 12px;
   border: 1px solid transparent;
-  background: transparent;
+  background: #0a0a0a;
   padding: 0;
   color: #9aabbe;
   transition:
@@ -1246,7 +1250,7 @@ textarea {
 
 .dm-composer-input-icon:hover {
   border-color: rgba(255, 255, 255, 0.08);
-  background: #000;
+  background: #0a0a0a;
   color: white;
   transform: translateY(-1px);
 }
@@ -1259,7 +1263,7 @@ textarea {
 
 .dm-composer-input-icon-active {
   border-color: rgba(92, 148, 255, 0.24);
-  background: #000;
+  background: #0a0a0a;
   color: #f4f8ff;
 }
 
@@ -1403,7 +1407,7 @@ textarea {
   .dm-date-separator {
     min-height: 30px;
     border-radius: 999px;
-    background: #000;
+    background: #0a0a0a;
     padding: 0 18px;
     font-size: 13px;
     font-weight: 600;
@@ -1418,7 +1422,7 @@ textarea {
   }
 
   .dm-bubble-in {
-    border-color: #0a0a0a;
+    border-color: #1c1c1c;
     background: #0a0a0a;
     border-bottom-left-radius: 15px;
   }
@@ -1539,7 +1543,7 @@ textarea {
     min-height: 42px;
     gap: 0;
     border: 0;
-    background: transparent;
+    background: #0a0a0a;
     padding: 0;
     box-shadow: none;
   }
@@ -1549,7 +1553,7 @@ textarea {
     width: 42px;
     border-radius: 999px;
     border-color: rgba(69, 83, 101, 0.48);
-    background: #000;
+    background: #0a0a0a;
     color: #e3ebf6;
   }
 
