@@ -132,9 +132,17 @@ export const ringtoneMetadataSchema = z.object({
 
 export type RingtoneMetadata = z.infer<typeof ringtoneMetadataSchema>;
 
+export const profileBirthDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/);
+
 export const profileSchema = z.object({
   displayName: z.string(),
+  fullName: z.string().nullable(),
   bio: z.string().nullable(),
+  birthDate: profileBirthDateSchema.nullable(),
+  phone: z.string().nullable(),
+  statusEmoji: z.string().nullable(),
   presence: presenceStatusSchema,
   avatarPreset: avatarPresetSchema,
   avatar: avatarMetadataSchema,

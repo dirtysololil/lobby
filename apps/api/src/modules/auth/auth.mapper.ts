@@ -9,7 +9,11 @@ import {
 
 export const publicProfileSelect = {
   displayName: true,
+  fullName: true,
   bio: true,
+  birthDate: true,
+  phone: true,
+  statusEmoji: true,
   presence: true,
   avatarPreset: true,
   avatarFileKey: true,
@@ -53,7 +57,11 @@ export function toPublicUser(
 ): PublicUser {
   const profile = user.profile ?? {
     displayName: user.username,
+    fullName: null,
     bio: null,
+    birthDate: null,
+    phone: null,
+    statusEmoji: null,
     presence: PresenceStatus.OFFLINE,
     avatarPreset: AvatarPreset.NONE,
     avatarFileKey: null,
@@ -84,7 +92,13 @@ export function toPublicUser(
     createdAt: user.createdAt.toISOString(),
     profile: {
       displayName: profile.displayName,
+      fullName: profile.fullName,
       bio: profile.bio,
+      birthDate: profile.birthDate
+        ? profile.birthDate.toISOString().slice(0, 10)
+        : null,
+      phone: profile.phone,
+      statusEmoji: profile.statusEmoji,
       presence: profile.presence,
       avatarPreset: profile.avatarPreset,
       avatar: {

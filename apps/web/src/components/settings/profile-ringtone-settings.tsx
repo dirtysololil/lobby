@@ -10,7 +10,6 @@ import { CompactListMeta } from "@/components/ui/compact-list";
 import { apiClientFetchBlob } from "@/lib/api-client";
 import {
   builtInCallRingtones,
-  getActiveRingtoneLabel,
   getBuiltInRingtone,
   getBuiltInRingtoneLabel,
   getCurrentRingtoneMode,
@@ -231,7 +230,6 @@ export function ProfileRingtoneSettings({
   const maxRingtoneBytes = maxRingtoneMb * 1024 * 1024;
   const hasCustomRingtone = Boolean(viewer.profile.customRingtone.fileKey);
   const activeRingtoneMode = getCurrentRingtoneMode(viewer.profile);
-  const activeRingtoneLabel = getActiveRingtoneLabel(viewer.profile);
   const selectedPresetLabel = getBuiltInRingtoneLabel(selectedPreset);
   const selectedRingtoneMode =
     selectedMode === "CUSTOM" && hasCustomRingtone ? "custom" : "builtin";
@@ -263,19 +261,9 @@ export function ProfileRingtoneSettings({
 
   return (
     <CollapsibleSection
-      kicker="Звонки"
-      title="Рингтон звонка"
+      title="Рингтон"
       description={selectedRingtoneLabel}
-      summary={
-        <div className="hidden flex-wrap justify-end gap-2 sm:flex">
-          <CompactListMeta>
-            {activeRingtoneMode === "custom" ? "Свой файл" : "Системный"}
-          </CompactListMeta>
-          <CompactListMeta className="max-w-[180px] truncate">
-            {activeRingtoneLabel}
-          </CompactListMeta>
-        </div>
-      }
+      summary={<CompactListMeta>{activeRingtoneMode === "custom" ? "Свой файл" : "Системный"}</CompactListMeta>}
     >
       <div className="grid gap-3">
         <div className="grid gap-2 sm:grid-cols-2">

@@ -9,8 +9,16 @@ import {
 } from "./common";
 
 export const updateProfileSchema = z.object({
+  email: z.string().trim().email(),
   displayName: z.string().trim().min(2).max(40),
+  fullName: z.string().trim().max(120).nullable(),
   bio: z.string().trim().max(240).nullable(),
+  birthDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+  phone: z.string().trim().max(32).nullable(),
+  statusEmoji: z.string().trim().max(16).nullable(),
   presence: presenceStatusSchema,
   avatarPreset: avatarPresetSchema,
   callRingtonePreset: callRingtonePresetSchema,
