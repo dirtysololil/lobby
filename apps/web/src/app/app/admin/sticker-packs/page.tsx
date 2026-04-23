@@ -10,7 +10,7 @@ export default async function AdminStickerPacksPage() {
   const packs = adminStickerPacksResponseSchema.parse(payload).packs;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       <AdminSectionNav />
       <StickerPacksAdminPanel initialPacks={packs} />
     </div>

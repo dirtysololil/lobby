@@ -33,12 +33,12 @@ export function StickerGridCard({
     <button
       type="button"
       onClick={onOpen}
-      className="group flex min-w-0 flex-col rounded-[20px] border border-white/8 bg-white/[0.03] p-2.5 text-left transition-colors hover:border-white/12 hover:bg-white/[0.05]"
+      className="group flex min-w-0 flex-col rounded-[18px] border border-[var(--border-soft)] bg-black p-2.5 text-left transition-colors hover:border-[var(--border)] hover:bg-[var(--bg-hover)]"
     >
-      <div className="relative overflow-hidden rounded-[16px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_56%),rgba(255,255,255,0.03)]">
+      <div className="relative overflow-hidden rounded-[14px] border border-[var(--border-soft)] bg-black">
         <StickerAssetPreview
           sticker={sticker}
-          className="aspect-square rounded-[16px]"
+          className="aspect-square rounded-[14px]"
           imageClassName="h-full w-full object-contain"
         />
       </div>

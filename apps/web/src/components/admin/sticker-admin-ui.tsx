@@ -27,10 +27,10 @@ export function StatusBadge({
       className={cn(
         "inline-flex h-5 items-center rounded-full border px-2 text-[10px] font-semibold uppercase tracking-[0.16em]",
         tone === "live" && "border-emerald-400/18 bg-emerald-400/10 text-emerald-100",
-        tone === "accent" && "border-sky-400/18 bg-sky-400/10 text-sky-100",
+        tone === "accent" && "border-[#0070F3]/24 bg-[#0070F3]/12 text-white",
         tone === "warning" && "border-amber-400/18 bg-amber-400/10 text-amber-100",
         tone === "danger" && "border-rose-400/18 bg-rose-400/10 text-rose-100",
-        tone === "neutral" && "border-white/8 bg-white/[0.04] text-[var(--text-muted)]",
+        tone === "neutral" && "border-[var(--border-soft)] bg-black text-[var(--text-muted)]",
         className,
       )}
     >
@@ -57,7 +57,7 @@ export function ToggleField({
       type="button"
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-white/[0.03] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex w-full items-center justify-between gap-3 rounded-[16px] border border-[var(--border)] bg-black px-3 py-2.5 text-left transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <div className="min-w-0">
         <div className="text-sm font-medium text-white">{label}</div>
@@ -69,8 +69,8 @@ export function ToggleField({
         className={cn(
           "relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors",
           checked
-            ? "border-[rgba(255,117,84,0.3)] bg-[rgba(255,117,84,0.28)]"
-            : "border-white/10 bg-white/[0.06]",
+            ? "border-[#0070F3]/35 bg-[#0070F3]/22"
+            : "border-white/10 bg-[var(--bg-panel-soft)]",
         )}
       >
         <span
@@ -126,7 +126,7 @@ export function KebabMenu({
         type="button"
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-[var(--text-muted)] transition-colors hover:bg-white/[0.07] hover:text-white",
+          "inline-flex h-8 w-8 items-center justify-center rounded-[12px] border border-[var(--border-soft)] bg-black text-[var(--text-muted)] transition-colors hover:border-[var(--border)] hover:bg-[var(--bg-hover)] hover:text-white",
           buttonClassName,
         )}
         aria-label="Открыть действия"
@@ -135,7 +135,7 @@ export function KebabMenu({
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+0.4rem)] z-20 min-w-[180px] overflow-hidden rounded-[16px] border border-white/10 bg-[#0a1018] p-1 shadow-[0_22px_56px_rgba(2,6,12,0.55)]">
+        <div className="absolute right-0 top-[calc(100%+0.4rem)] z-20 min-w-[180px] overflow-hidden rounded-[16px] border border-[var(--border)] bg-black p-1 shadow-[0_22px_56px_rgba(0,0,0,0.55)]">
           {items.map((item) => (
             <button
               key={item.label}
@@ -149,7 +149,7 @@ export function KebabMenu({
                 "flex w-full items-center rounded-[12px] px-3 py-2 text-left text-sm transition-colors",
                 item.destructive
                   ? "text-rose-100 hover:bg-rose-500/10"
-                  : "text-[var(--text-soft)] hover:bg-white/[0.05] hover:text-white",
+                  : "text-[var(--text-soft)] hover:bg-[var(--bg-hover)] hover:text-white",
                 item.disabled && "cursor-not-allowed opacity-50",
               )}
             >
@@ -237,7 +237,7 @@ export function DrawerShell({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[95] flex justify-end bg-[rgba(3,6,12,0.72)] backdrop-blur-sm transition-opacity duration-150",
+        "fixed inset-0 z-[95] flex justify-end bg-black/82 transition-opacity duration-150",
         visible ? "opacity-100" : "opacity-0",
       )}
       onClick={(event) => {
@@ -249,11 +249,11 @@ export function DrawerShell({
     >
       <aside
         className={cn(
-          "flex h-full w-full max-w-[min(92vw,460px)] flex-col border-l border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_22%),rgba(7,12,18,0.98)] shadow-[-28px_0_72px_rgba(2,6,12,0.45)] transition-transform duration-200",
+          "flex h-full w-full max-w-[min(92vw,468px)] flex-col border-l border-[var(--border)] bg-black shadow-[-28px_0_72px_rgba(0,0,0,0.45)] transition-transform duration-200",
           visible ? "translate-x-0" : "translate-x-8",
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/8 px-4 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--border-soft)] px-4 py-4">
           <div className="min-w-0">
             <div className="text-base font-semibold tracking-tight text-white">{title}</div>
             {subtitle ? (
@@ -263,7 +263,7 @@ export function DrawerShell({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 text-[var(--text-soft)] transition-colors hover:bg-black/35 hover:text-white"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border border-[var(--border-soft)] bg-black text-[var(--text-soft)] transition-colors hover:border-[var(--border)] hover:bg-[var(--bg-hover)] hover:text-white"
             aria-label="Закрыть"
           >
             <X className="h-4 w-4" />
@@ -273,7 +273,7 @@ export function DrawerShell({
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
 
         {footer ? (
-          <div className="border-t border-white/8 px-4 py-3">{footer}</div>
+          <div className="border-t border-[var(--border-soft)] px-4 py-3">{footer}</div>
         ) : null}
       </aside>
     </div>,
