@@ -157,7 +157,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
             <UserAvatar
               user={viewer}
               size="lg"
-              className="h-[46px] w-[46px] text-[11px]"
+              className="h-[46px] w-[46px] text-[11px] [&>div]:border-0"
             />
           </Link>
         </div>
