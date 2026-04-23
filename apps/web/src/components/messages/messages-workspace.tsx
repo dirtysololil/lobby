@@ -198,7 +198,7 @@ export function MessagesWorkspace() {
               </p>
               <Link
                 href="/app/people?view=discover"
-                className="inline-flex min-h-10 items-center justify-center rounded-[14px] border border-white bg-white px-4 text-sm font-medium text-black"
+                className="inline-flex min-h-10 items-center justify-center rounded-[14px] border border-[#0070F3] bg-[#0070F3] px-4 text-sm font-medium text-white transition-colors hover:border-[#0064d8] hover:bg-[#0064d8]"
               >
                 Найти людей
               </Link>
@@ -295,7 +295,7 @@ export function MessagesWorkspace() {
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <Link
               href="/app/people?view=discover"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[16px] border border-white bg-white px-4 text-sm font-medium text-black transition-transform duration-150 hover:-translate-y-0.5"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[16px] border border-[#0070F3] bg-[#0070F3] px-4 text-sm font-medium text-white transition-[transform,background-color,border-color] duration-150 hover:-translate-y-0.5 hover:border-[#0064d8] hover:bg-[#0064d8]"
             >
               <SquarePen {...iconProps} />
               Новый чат

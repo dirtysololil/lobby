@@ -411,7 +411,7 @@ export function ProfileRingtoneSettings({
                     className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
                       isSelected
-                        ? "border-white bg-white text-black"
+                        ? "border-[#0070F3] bg-[#0070F3] text-white"
                         : "border-white/10 bg-black text-[var(--text-muted)]",
                     )}
                   >
