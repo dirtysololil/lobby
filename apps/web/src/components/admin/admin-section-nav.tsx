@@ -28,7 +28,7 @@ export function AdminSectionNav() {
               className={cn(
                 "shrink-0 rounded-[12px] border px-3 py-2 text-sm font-medium transition-colors",
                 active
-                  ? "border-[#0070F3]/28 bg-[var(--bg-active)] text-white"
+                  ? "border-[var(--border-strong)] bg-[var(--bg-active)] text-white"
                   : "border-[var(--border-soft)] bg-black text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--bg-hover)] hover:text-white",
               )}
             >

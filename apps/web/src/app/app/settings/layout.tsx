@@ -17,32 +17,20 @@ export default function SettingsLayout({
 
           <div className="mt-4 flex flex-col gap-4 md:mt-0 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <CompactListMeta className="border-[var(--border-soft)] bg-black text-[var(--text-muted)]">
-                  Настройки
-                </CompactListMeta>
-                <CompactListMeta className="border-[var(--border-soft)] bg-black text-[var(--text-muted)]">
-                  Профиль
-                </CompactListMeta>
-                <CompactListMeta className="border-[var(--border-soft)] bg-black text-[var(--text-muted)]">
-                  Аватар
-                </CompactListMeta>
-                <CompactListMeta className="border-[var(--border-soft)] bg-black text-[var(--text-muted)]">
-                  Рингтон
-                </CompactListMeta>
-              </div>
-              <h1 className="mt-3 text-[26px] font-semibold tracking-[-0.04em] text-white">
-                Личное пространство
+              <CompactListMeta className="border-[var(--border-soft)] bg-black text-[var(--text-muted)]">
+                Настройки
+              </CompactListMeta>
+              <h1 className="mt-3 text-[24px] font-semibold tracking-[-0.04em] text-white">
+                Личные параметры
               </h1>
-              <p className="mt-1 max-w-[48rem] text-sm text-[var(--text-dim)]">
-                Настраивайте профиль, присутствие, аватар и звук входящего звонка
-                в том же компактном рабочем каркасе, что и остальные разделы.
+              <p className="mt-1 max-w-[42rem] text-sm text-[var(--text-dim)]">
+                Профиль, статус, звук и уведомления в одной компактной панели.
               </p>
             </div>
 
             <Link
               href="/app/settings/notifications"
-              className="hidden min-h-11 items-center justify-center gap-2 rounded-[14px] border border-[var(--border)] bg-black px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--bg-hover)] md:inline-flex"
+              className="hidden min-h-10 items-center justify-center gap-2 rounded-[14px] border border-[var(--border)] bg-black px-4 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] md:inline-flex"
             >
               <Bell size={17} strokeWidth={1.75} />
               Уведомления

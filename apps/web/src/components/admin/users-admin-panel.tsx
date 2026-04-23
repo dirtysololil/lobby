@@ -12,16 +12,19 @@ import {
 } from "@lobby/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { CompactListMeta } from "@/components/ui/compact-list";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { SelectField } from "@/components/ui/select-field";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { apiClientFetch } from "@/lib/api-client";
 import { buildUserProfileHref } from "@/lib/profile-routes";
 
-const iconProps = { size: 18, strokeWidth: 1.5 } as const;
+const iconProps = { size: 16, strokeWidth: 1.5 } as const;
+const primaryActionClassName =
+  "h-10 rounded-[14px] border-white bg-white px-4 text-black hover:border-white hover:bg-neutral-100";
 
 const roleLabels: Record<UserRole, string> = {
   OWNER: "Владелец",
@@ -38,8 +41,8 @@ const filterRoleOptions: Array<{ value: string; label: string }> = [
 
 const blockedOptions = [
   { value: "all", label: "Все состояния" },
-  { value: "blocked", label: "Только заблокированные" },
-  { value: "active", label: "Только активные" },
+  { value: "blocked", label: "Заблокированные" },
+  { value: "active", label: "Активные" },
 ];
 
 interface UsersAdminPanelProps {
@@ -93,9 +96,19 @@ export function UsersAdminPanel({
 
   function pushFilters(nextPage = 1) {
     const params = new URLSearchParams();
-    if (query) params.set("query", query);
-    if (role) params.set("role", role);
-    if (blocked) params.set("blocked", blocked);
+
+    if (query) {
+      params.set("query", query);
+    }
+
+    if (role) {
+      params.set("role", role);
+    }
+
+    if (blocked) {
+      params.set("blocked", blocked);
+    }
+
     params.set("page", String(nextPage));
 
     startTransition(() => {
@@ -122,6 +135,7 @@ export function UsersAdminPanel({
         },
       );
       const nextPlatformBlock = blockedState ? null : platformBlockSchema.parse(payload);
+
       if (blockedState) {
         actionMessageSchema.parse(payload);
       }
@@ -164,6 +178,7 @@ export function UsersAdminPanel({
         body: JSON.stringify({ role: nextRole }),
       });
       const updatedUser = adminUserSummarySchema.parse(payload);
+
       setItems((current) =>
         current.map((item) => (item.user.id === userId ? updatedUser : item)),
       );
@@ -179,117 +194,137 @@ export function UsersAdminPanel({
   }
 
   return (
-    <div className="grid gap-4">
-      <section className="premium-panel rounded-[26px] p-5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+    <div className="grid gap-3">
+      <section className="premium-panel rounded-[24px] p-4 sm:p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="eyebrow-pill">
+              <UsersRound {...iconProps} />
+              Пользователи
+            </span>
+            <CompactListMeta>
+              <ShieldCheck {...iconProps} />
+              {response.total} всего
+            </CompactListMeta>
+            <CompactListMeta>
+              {startIndex}-{endIndex}
+            </CompactListMeta>
+          </div>
+
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="eyebrow-pill">
-                <UsersRound {...iconProps} />
-                Пользователи
-              </span>
-              <span className="status-pill">
-                <ShieldCheck {...iconProps} />
-                {response.total} в индексе
-              </span>
-            </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
-              Управление участниками платформы
+            <h1 className="text-lg font-semibold tracking-tight text-white">
+              Управление пользователями
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-dim)]">
-              Ищите пользователей, меняйте роли и управляйте блокировками из одной
-              компактной панели.
+            <p className="mt-1 text-sm text-[var(--text-dim)]">
+              Поиск, роли и блокировки без лишних панелей.
             </p>
           </div>
-        </div>
 
-        <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(0,1fr)_190px_190px_auto]">
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Поиск по нику, почте или имени"
-          />
-          <SelectField value={role} onChange={(event) => setRole(event.target.value)}>
-            {filterRoleOptions.map((option) => (
-              <option key={option.value || "all"} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField value={blocked} onChange={(event) => setBlocked(event.target.value)}>
-            {blockedOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectField>
-          <Button onClick={() => pushFilters()} disabled={pendingAction}>
-            {pendingAction ? "Применяем..." : "Применить"}
-          </Button>
-        </div>
+          <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Ник, почта или имя"
+              className="h-10 rounded-[14px] border-white/8 bg-black px-3.5"
+            />
+            <SelectField
+              value={role}
+              onChange={(event) => setRole(event.target.value)}
+              className="min-h-10"
+            >
+              {filterRoleOptions.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField
+              value={blocked}
+              onChange={(event) => setBlocked(event.target.value)}
+              className="min-h-10"
+            >
+              {blockedOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectField>
+            <Button onClick={() => pushFilters()} disabled={pendingAction} className={primaryActionClassName}>
+              {pendingAction ? "Применяем..." : "Применить"}
+            </Button>
+          </div>
 
-        {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
+          {error ? <p className="text-sm text-rose-200">{error}</p> : null}
+        </div>
       </section>
 
-      <section className="premium-panel rounded-[26px] p-0">
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+      <section className="premium-panel overflow-hidden rounded-[24px]">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-4 py-3">
           <div>
-            <p className="text-sm font-medium text-white">Список модерации</p>
+            <p className="text-sm font-medium text-white">Список пользователей</p>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
               Показано {startIndex}-{endIndex} из {response.total}
             </p>
           </div>
         </div>
 
-        <div className="min-h-0 overflow-y-auto">
-          {items.length === 0 ? (
-            <EmptyState
-              className="py-10"
-              title="Ничего не найдено"
-              description="Измените фильтры или расширьте запрос, чтобы увидеть больше пользователей."
-            />
-          ) : (
-            items.map((item) => {
+        {items.length === 0 ? (
+          <EmptyState
+            className="min-h-[180px]"
+            title="Ничего не найдено"
+            description="Измените фильтры или расширьте запрос."
+          />
+        ) : (
+          <div className="divide-y divide-[var(--border-soft)]">
+            {items.map((item) => {
               const canManageUser =
                 viewer.id !== item.user.id &&
                 getRoleRank(viewer.role) > getRoleRank(item.user.role);
               const draftRole = roleDrafts[item.user.id] ?? item.user.role;
               const roleChanged = draftRole !== item.user.role;
+
               return (
                 <div
                   key={item.user.id}
-                  className="group flex flex-col gap-3 border-b border-[var(--border-soft)] px-4 py-3 transition-colors hover:bg-[var(--bg-hover)] xl:flex-row xl:items-center xl:justify-between"
+                  className="grid gap-3 px-4 py-3 transition-colors hover:bg-[var(--bg-hover)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] xl:items-center"
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <UserAvatar user={item.user} size="sm" />
+
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-sm font-medium text-white">
                           {item.user.profile.displayName}
                         </p>
-                        <span className="glass-badge">
+                        <CompactListMeta>
                           {roleLabels[item.user.role] ?? item.user.role}
-                        </span>
+                        </CompactListMeta>
                         <PresenceIndicator user={item.user} compact />
                         {item.platformBlock ? (
-                          <span className="status-pill text-rose-200">
+                          <CompactListMeta className="border-red-500/20 bg-red-950/40 text-rose-200">
                             <ShieldBan {...iconProps} />
                             Заблокирован
-                          </span>
+                          </CompactListMeta>
                         ) : null}
                       </div>
-                      <p className="mt-1 text-xs text-[var(--text-muted)]">
-                        @{item.user.username}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--text-dim)]">{item.user.email}</p>
-                      <p className="mt-2 text-xs text-[var(--text-dim)]">
-                        Активных сессий {item.activeSessionCount} · Хабов {item.hubMembershipCount}
-                        {" · "}
-                        Последняя активность{" "}
-                        {item.lastSeenAt
-                          ? new Date(item.lastSeenAt).toLocaleString("ru-RU")
-                          : "никогда"}
-                      </p>
+
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-dim)]">
+                        <span>@{item.user.username}</span>
+                        <span className="text-[var(--text-muted)]">•</span>
+                        <span className="break-all">{item.user.email}</span>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
+                        <span>Сессии {item.activeSessionCount}</span>
+                        <span>Хабы {item.hubMembershipCount}</span>
+                        <span>
+                          Активность{" "}
+                          {item.lastSeenAt
+                            ? new Date(item.lastSeenAt).toLocaleString("ru-RU")
+                            : "никогда"}
+                        </span>
+                      </div>
+
                       {item.platformBlock ? (
                         <p className="mt-2 text-xs text-rose-200">
                           {item.platformBlock.reason ?? "Причина блокировки не указана."}
@@ -298,8 +333,8 @@ export function UsersAdminPanel({
                     </div>
                   </div>
 
-                  <div className="flex w-full flex-col gap-2 rounded-[18px] border border-[var(--border-soft)] bg-white/[0.03] p-2.5 xl:w-[340px]">
-                    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:justify-items-end">
+                    <div className="grid gap-2 sm:col-span-full sm:grid-cols-[minmax(0,1fr)_auto] xl:w-full">
                       <SelectField
                         value={draftRole}
                         disabled={!canManageUser || actionKey === `role:${item.user.id}`}
@@ -309,6 +344,7 @@ export function UsersAdminPanel({
                             [item.user.id]: event.target.value as UserRole,
                           }))
                         }
+                        className="min-h-10"
                       >
                         {assignableRoles.map((roleOption) => (
                           <option key={roleOption} value={roleOption}>
@@ -316,70 +352,75 @@ export function UsersAdminPanel({
                           </option>
                         ))}
                       </SelectField>
+
                       <Button
                         size="sm"
-                        variant={roleChanged ? "default" : "secondary"}
                         onClick={() => void handleRoleSave(item.user.id)}
                         disabled={
                           !canManageUser ||
                           !roleChanged ||
                           actionKey === `role:${item.user.id}`
                         }
-                        className="h-10 px-3"
+                        className={
+                          roleChanged
+                            ? "h-10 rounded-[14px] border-white bg-white px-4 text-black hover:border-white hover:bg-neutral-100"
+                            : "h-10 rounded-[14px] border-white/8 bg-black px-4 text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+                        }
+                        variant={roleChanged ? "default" : "secondary"}
                       >
-                        {actionKey === `role:${item.user.id}` ? "Сохраняем..." : "Применить роль"}
+                        {actionKey === `role:${item.user.id}` ? "Сохраняем..." : "Роль"}
                       </Button>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <Link href={buildUserProfileHref(item.user.username)}>
-                        <Button size="sm" variant="secondary">
-                          Профиль
-                        </Button>
-                      </Link>
+                    <Link href={buildUserProfileHref(item.user.username)} className="w-full sm:w-auto">
                       <Button
                         size="sm"
-                        variant={item.platformBlock ? "secondary" : "destructive"}
-                        onClick={() =>
-                          void handleModeration(item.user.id, Boolean(item.platformBlock))
-                        }
-                        disabled={
-                          !canManageUser || actionKey === `moderation:${item.user.id}`
-                        }
+                        variant="secondary"
+                        className="h-10 w-full rounded-[14px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
                       >
-                        {actionKey === `moderation:${item.user.id}`
-                          ? "Обновляем..."
-                          : item.platformBlock
-                            ? "Снять блок"
-                            : "Заблокировать"}
+                        Профиль
                       </Button>
-                    </div>
+                    </Link>
+
+                    <Button
+                      size="sm"
+                      variant={item.platformBlock ? "secondary" : "destructive"}
+                      onClick={() =>
+                        void handleModeration(item.user.id, Boolean(item.platformBlock))
+                      }
+                      disabled={!canManageUser || actionKey === `moderation:${item.user.id}`}
+                      className="h-10 rounded-[14px] px-4"
+                    >
+                      {actionKey === `moderation:${item.user.id}`
+                        ? "Обновляем..."
+                        : item.platformBlock
+                          ? "Снять блок"
+                          : "Заблокировать"}
+                    </Button>
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 px-4 py-3">
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              disabled={response.page <= 1 || pendingAction}
-              onClick={() => pushFilters(response.page - 1)}
-            >
-              Назад
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={
-                response.page * response.pageSize >= response.total || pendingAction
-              }
-              onClick={() => pushFilters(response.page + 1)}
-            >
-              Дальше
-            </Button>
+            })}
           </div>
+        )}
+
+        <div className="flex justify-end gap-2 border-t border-[var(--border-soft)] px-4 py-3">
+          <Button
+            variant="secondary"
+            disabled={response.page <= 1 || pendingAction}
+            onClick={() => pushFilters(response.page - 1)}
+            className="h-10 rounded-[14px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+          >
+            Назад
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={response.page * response.pageSize >= response.total || pendingAction}
+            onClick={() => pushFilters(response.page + 1)}
+            className="h-10 rounded-[14px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+          >
+            Дальше
+          </Button>
         </div>
       </section>
     </div>

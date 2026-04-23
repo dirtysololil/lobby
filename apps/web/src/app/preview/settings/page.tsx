@@ -28,8 +28,6 @@ export default function PreviewSettingsPage() {
       <div className="px-4 py-4">
         <ProfileSettingsForm
           viewer={previewViewer}
-          maxAvatarMb={10}
-          maxAvatarAnimationMs={15000}
           maxRingtoneMb={25}
         />
       </div>
