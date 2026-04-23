@@ -59,15 +59,23 @@ export class UsersService {
     input: UpdateProfileInput,
     requestMetadata: RequestMetadata,
   ) {
+    const normalizedBirthDate = input.birthDate
+      ? new Date(`${input.birthDate}T00:00:00.000Z`)
+      : null;
     const user = await this.prisma.user.update({
       where: {
         id: userId,
       },
       data: {
+        email: input.email.trim().toLowerCase(),
         profile: {
           update: {
             displayName: input.displayName.trim(),
+            fullName: input.fullName?.trim() || null,
             bio: input.bio?.trim() || null,
+            birthDate: normalizedBirthDate,
+            phone: input.phone?.trim() || null,
+            statusEmoji: input.statusEmoji?.trim() || null,
             presence: input.presence,
             avatarPreset: input.avatarPreset,
             callRingtonePreset: input.callRingtonePreset,
@@ -86,10 +94,15 @@ export class UsersService {
       ipAddress: requestMetadata.ipAddress,
       userAgent: requestMetadata.userAgent,
       metadata: {
+        email: input.email.trim().toLowerCase(),
         presence: input.presence,
         avatarPreset: input.avatarPreset,
         callRingtonePreset: input.callRingtonePreset,
         callRingtoneMode: input.callRingtoneMode,
+        fullName: input.fullName?.trim() || null,
+        birthDate: input.birthDate ?? null,
+        phone: input.phone?.trim() || null,
+        statusEmoji: input.statusEmoji?.trim() || null,
       },
     });
 

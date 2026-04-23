@@ -22,7 +22,11 @@ function makeUser(args: {
     createdAt: now,
     profile: {
       displayName: args.displayName,
+      fullName: null,
       bio: args.bio ?? null,
+      birthDate: null,
+      phone: null,
+      statusEmoji: null,
       presence: args.presence ?? "ONLINE",
       avatarPreset: "NONE",
       avatar: {

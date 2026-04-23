@@ -1,0 +1,5 @@
+ALTER TABLE `Profile`
+  ADD COLUMN `fullName` VARCHAR(120) NULL,
+  ADD COLUMN `birthDate` DATE NULL,
+  ADD COLUMN `phone` VARCHAR(32) NULL,
+  ADD COLUMN `statusEmoji` VARCHAR(16) NULL;

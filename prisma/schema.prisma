@@ -200,7 +200,11 @@ model User {
 model Profile {
   userId                   String               @id
   displayName              String
+  fullName                 String?
   bio                      String?
+  birthDate                DateTime?
+  phone                    String?
+  statusEmoji              String?
   avatarFileKey            String?
   avatarOriginalName       String?
   avatarMimeType           String?
