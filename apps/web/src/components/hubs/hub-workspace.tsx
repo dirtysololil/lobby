@@ -250,7 +250,7 @@ export function HubWorkspace() {
 
             <a
               href="#create-hub-form"
-              className="hidden min-h-11 items-center justify-center rounded-[14px] border border-white bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-white/90 md:inline-flex"
+              className="hidden min-h-11 items-center justify-center rounded-[14px] border border-[#0070F3] bg-[#0070F3] px-4 text-sm font-medium text-white transition-colors hover:border-[#0064d8] hover:bg-[#0064d8] md:inline-flex"
             >
               Создать хаб
             </a>

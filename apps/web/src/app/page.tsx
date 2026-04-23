@@ -28,7 +28,10 @@ export default async function Home() {
           <Link href="/login" className="status-pill">
             Вход
           </Link>
-          <Link href="/register" className="status-pill border-white bg-white text-black">
+          <Link
+            href="/register"
+            className="status-pill border-[#0070F3] bg-[#0070F3] text-white hover:border-[#0064d8] hover:bg-[#0064d8]"
+          >
             Активация
           </Link>
         </div>
@@ -81,7 +84,10 @@ export default async function Home() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2.5">
-            <Link href="/register" className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] border border-white bg-white px-4 text-sm font-semibold text-black">
+            <Link
+              href="/register"
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] border border-[#0070F3] bg-[#0070F3] px-4 text-sm font-semibold text-white transition-colors hover:border-[#0064d8] hover:bg-[#0064d8]"
+            >
               Активировать доступ <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/login" className="inline-flex min-h-[38px] items-center gap-2 rounded-[12px] border border-[var(--border)] bg-black px-4 text-sm font-medium text-[var(--text)]">
