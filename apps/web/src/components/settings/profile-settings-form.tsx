@@ -409,13 +409,19 @@ export function ProfileSettingsForm({
                   <h2 className="truncate text-[1.4rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.65rem]">
                     {nicknameValue}
                   </h2>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-soft)] bg-black px-2.5 py-1.5">
+                  <div className="flex flex-col gap-1">
                     <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
                       Статус
                     </span>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-black text-base">
-                      {statusEmojiValue || "•"}
-                    </span>
+                    <ProfileEmojiPicker
+                      value={statusEmojiValue || null}
+                      onChange={(value) =>
+                        form.setValue("statusEmoji", value ?? "", {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                      }
+                    />
                   </div>
                 </div>
 
