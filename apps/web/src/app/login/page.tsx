@@ -8,7 +8,7 @@ export default async function LoginPage() {
   const viewer = await fetchViewer();
 
   if (viewer) {
-    redirect("/app");
+    redirect("/app/home");
   }
 
   return (

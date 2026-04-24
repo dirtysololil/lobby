@@ -113,7 +113,7 @@ export function RegisterForm({ inviteFromUrl = null }: RegisterFormProps) {
       authSessionResponseSchema.parse(response);
       console.info("[auth/register] submit:success");
       await ensureSessionCookiePersisted();
-      window.location.assign("/app");
+      window.location.assign("/app/home");
     } catch (error) {
       console.warn("[auth/register] submit:error");
       setErrorMessage(mapRegisterError(error));

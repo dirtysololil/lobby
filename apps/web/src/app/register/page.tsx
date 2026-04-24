@@ -19,7 +19,7 @@ export default async function RegisterPage({
   const inviteFromUrl = getSingleValue(searchParams?.invite)?.trim() || null;
 
   if (viewer) {
-    redirect("/app");
+    redirect("/app/home");
   }
 
   return (

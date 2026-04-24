@@ -7,7 +7,7 @@ export default async function Home() {
   const viewer = await fetchViewer();
 
   if (viewer) {
-    redirect("/app");
+    redirect("/app/home");
   }
 
   return (

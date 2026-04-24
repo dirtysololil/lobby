@@ -702,7 +702,7 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto grid min-h-full w-full max-w-[1280px] gap-3 px-3 py-3 md:px-5 md:py-5 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
+        <div className="grid min-h-full w-full gap-3 px-3 py-3 md:px-5 md:py-5 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
           <aside className="grid content-start gap-3">
             <Panel className="px-4 py-5 text-center">
               <div className="mx-auto w-fit rounded-full border border-white/12 p-1">

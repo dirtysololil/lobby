@@ -40,7 +40,7 @@ export function LoginForm() {
       authSessionResponseSchema.parse(response);
       console.info("[auth/login] submit:success");
       await ensureSessionCookiePersisted();
-      router.replace("/app");
+      router.replace("/app/home");
       router.refresh();
     } catch (error) {
       console.warn("[auth/login] submit:error");
