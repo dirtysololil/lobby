@@ -89,6 +89,11 @@ enum LinkEmbedKind {
   GIF
 }
 
+enum FeedPostKind {
+  ARTICLE
+  VIDEO
+}
+
 enum DirectMessageAttachmentKind {
   IMAGE
   VIDEO
@@ -187,6 +192,7 @@ model User {
   accessiblePrivateLobbies LobbyAccess[]                 @relation("LobbyAccessUser")
   forumTopics              ForumTopic[]                  @relation("ForumTopicAuthor")
   forumReplies             ForumReply[]                  @relation("ForumReplyAuthor")
+  feedPosts                FeedPost[]                    @relation("FeedPostAuthor")
   initiatedCalls           CallSession[]                 @relation("CallInitiator")
   endedCalls               CallSession[]                 @relation("CallEndedBy")
   callParticipations       CallParticipant[]
@@ -403,6 +409,22 @@ model DirectMessageAttachment {
   createdAt    DateTime                    @default(now())
   updatedAt    DateTime                    @updatedAt
   message      DirectMessage               @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model FeedPost {
+  id        String       @id @default(cuid())
+  authorId  String
+  kind      FeedPostKind @default(ARTICLE)
+  title     String?
+  body      String       @db.Text
+  mediaUrl  String?      @db.Text
+  deletedAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  author    User         @relation("FeedPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt, createdAt])
+  @@index([authorId, createdAt])
 }
 
 model StickerPack {

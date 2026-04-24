@@ -107,6 +107,7 @@ export async function resetDatabase(prisma: PrismaClient) {
   await prisma.callParticipant.deleteMany();
   await prisma.callSession.deleteMany();
   await prisma.platformBlock.deleteMany();
+  await prisma.feedPost.deleteMany();
   await prisma.forumTopicTag.deleteMany();
   await prisma.forumReply.deleteMany();
   await prisma.forumTopic.deleteMany();

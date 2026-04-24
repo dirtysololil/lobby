@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { DirectMessagesModule } from './modules/direct-messages/direct-messages.module';
 import { EnvModule } from './modules/env/env.module';
+import { FeedModule } from './modules/feed/feed.module';
 import { ForumModule } from './modules/forum/forum.module';
 import { HealthModule } from './modules/health/health.module';
 import { HubsModule } from './modules/hubs/hubs.module';
@@ -37,6 +38,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     InvitesModule,
     HubsModule,
+    FeedModule,
     ForumModule,
     RelationshipsModule,
     AuthModule,

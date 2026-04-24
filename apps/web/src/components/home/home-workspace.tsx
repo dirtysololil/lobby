@@ -1,13 +1,9 @@
 "use client";
-
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import {
   ArrowUpRight,
   Bell,
   Clock3,
-  FileText,
-  Hash,
   House,
   Layers3,
   LockKeyhole,
@@ -16,34 +12,31 @@ import {
   Search,
   Send,
   Settings2,
-  UserPlus2,
   Users2,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 import {
   directConversationListResponseSchema,
+  feedPostListResponseSchema,
+  feedPostResponseSchema,
   friendshipsResponseSchema,
   hubListResponseSchema,
   viewerHubInvitesResponseSchema,
   type DirectConversationSummary,
+  type FeedPost,
+  type FeedPostKind,
   type FriendshipRecord,
   type HubInvite,
   type HubSummary,
   type PublicUser,
 } from "@lobby/shared";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { AppMobileTopNav } from "@/components/app/app-mobile-top-nav";
 import { useOptionalRealtimePresence, useRealtime } from "@/components/realtime/realtime-provider";
-import { GifAssetPreview } from "@/components/messages/gif-asset-preview";
-import { StickerAssetPreview } from "@/components/messages/sticker-asset-preview";
 import { CompactListCount } from "@/components/ui/compact-list";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
-import {
-  getDirectMessageAttachmentAssetUrl,
-  getDirectMessageAttachmentPreviewUrl,
-  getDirectMessageAttachmentStreamUrl,
-} from "@/lib/direct-message-attachments";
 import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
 import { buildUserProfileHref } from "@/lib/profile-routes";
 import { cn } from "@/lib/utils";
@@ -51,19 +44,6 @@ import { cn } from "@/lib/utils";
 interface HomeWorkspaceProps {
   viewer: PublicUser;
 }
-
-type HomeFeedItem = {
-  id: string;
-  at: string | null;
-  body: string;
-  href: string;
-  icon: LucideIcon;
-  kind: "message" | "friend" | "hub" | "invite";
-  meta: string;
-  title: string;
-  user?: PublicUser;
-  conversation?: DirectConversationSummary;
-};
 
 const emptyLabel = "Сейчас тут пусто";
 const navIconProps = { size: 17, strokeWidth: 1.75 } as const;
@@ -147,10 +127,6 @@ function getConversationPreview(conversation: DirectConversationSummary) {
   }
 }
 
-function byRecentDate(left: { at: string | null }, right: { at: string | null }) {
-  return new Date(right.at ?? 0).getTime() - new Date(left.at ?? 0).getTime();
-}
-
 function EmptyNow({ className }: { className?: string }) {
   return (
     <div className={cn("empty-state-minimal min-h-[112px]", className)}>
@@ -232,125 +208,61 @@ function StatTile({ label, value }: { label: string; value: number }) {
   );
 }
 
-function HomeAttachmentPreview({
-  conversation,
-}: {
-  conversation: DirectConversationSummary;
-}) {
-  const message = conversation.lastMessage;
-
-  if (!message) {
-    return null;
-  }
-
-  if (message.gif) {
-    return (
-      <GifAssetPreview
-        gif={message.gif}
-        className="mt-3 aspect-[16/9] rounded-[18px] border border-white/8 bg-black"
-        showBadge
-      />
-    );
-  }
-
-  if (message.sticker) {
-    return (
-      <StickerAssetPreview
-        sticker={message.sticker}
-        className="mt-3 flex aspect-[16/9] items-center justify-center rounded-[18px] border border-white/8 bg-white/[0.02] p-5"
-      />
-    );
-  }
-
-  if (!message.attachment) {
-    return null;
-  }
-
-  if (message.attachment.kind === "IMAGE") {
-    const src = message.attachment.hasPreview
-      ? getDirectMessageAttachmentPreviewUrl(message.attachment)
-      : getDirectMessageAttachmentAssetUrl(message.attachment);
-
-    return (
-      <div className="mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-black">
-        <img
-          src={src}
-          alt={message.attachment.originalName}
-          loading="lazy"
-          className="aspect-[16/9] h-full w-full object-cover"
-          crossOrigin="use-credentials"
-        />
-      </div>
-    );
-  }
-
-  if (message.attachment.kind === "VIDEO") {
-    return (
-      <div className="mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-black">
-        <video
-          src={getDirectMessageAttachmentStreamUrl(message.attachment)}
-          poster={
-            message.attachment.hasPreview
-              ? getDirectMessageAttachmentPreviewUrl(message.attachment)
-              : undefined
-          }
-          className="aspect-[16/9] h-full w-full object-cover"
-          crossOrigin="use-credentials"
-          muted
-          loop
-          playsInline
-          preload="metadata"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-3 flex min-h-[120px] items-center justify-center rounded-[18px] border border-white/8 bg-white/[0.02] text-center text-sm text-[var(--text-dim)]">
-      <div className="grid gap-2">
-        <FileText className="mx-auto h-5 w-5" />
-        <span>{message.attachment.originalName}</span>
-      </div>
-    </div>
-  );
-}
-
-function FeedItemCard({ item }: { item: HomeFeedItem }) {
-  const Icon = item.icon;
-
+function FeedPostCard({ post }: { post: FeedPost }) {
   return (
     <article className="rounded-[22px] border border-white/8 bg-black p-4 transition-colors hover:border-white/14">
       <div className="flex items-start gap-3">
-        {item.user ? (
-          <UserAvatar user={item.user} size="sm" className="h-11 w-11 text-[12px]" />
-        ) : (
-          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] border border-white/8 bg-white/[0.03] text-white">
-            <Icon size={17} strokeWidth={1.75} />
-          </span>
-        )}
+        <UserAvatar user={post.author} size="sm" className="h-11 w-11 text-[12px]" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={item.href}
-              className="min-w-0 truncate text-sm font-semibold tracking-[-0.02em] text-white transition-colors hover:text-[var(--text-soft)]"
-            >
-              {item.title}
-            </Link>
+            <p className="min-w-0 truncate text-sm font-semibold tracking-[-0.02em] text-white">
+              {post.author.profile.displayName}
+            </p>
+            <CompactListCount>
+              {post.kind === "VIDEO" ? "Видео" : "Статья"}
+            </CompactListCount>
             <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
               <Clock3 className="h-3 w-3" />
-              {formatShortTime(item.at)}
+              {formatShortTime(post.createdAt)}
             </span>
           </div>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">{item.meta}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            @{post.author.username}
+          </p>
         </div>
-        <IconButtonLink href={item.href} icon={ArrowUpRight} label="Открыть" />
       </div>
 
-      <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--text-soft)]">
-        {item.body}
+      {post.title ? (
+        <h2 className="mt-4 text-[18px] font-semibold tracking-[-0.03em] text-white">
+          {post.title}
+        </h2>
+      ) : null}
+
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--text-soft)]">
+        {post.body}
       </p>
 
-      {item.conversation ? <HomeAttachmentPreview conversation={item.conversation} /> : null}
+      {post.kind === "VIDEO" && post.mediaUrl ? (
+        <div className="mt-4 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+          <video
+            src={post.mediaUrl}
+            className="aspect-video h-full w-full bg-black object-contain"
+            controls
+            playsInline
+            preload="metadata"
+          />
+        </div>
+      ) : post.mediaUrl ? (
+        <a
+          href={post.mediaUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-[12px] border border-white/8 bg-black px-3 text-sm font-medium text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
+        >
+          <ArrowUpRight size={15} strokeWidth={1.75} />
+          Открыть ссылку
+        </a>
+      ) : null}
     </article>
   );
 }
@@ -437,11 +349,18 @@ function StoryTile({ user }: { user: PublicUser }) {
 export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
   const { latestDmSignal } = useRealtime();
   const realtimePresence = useOptionalRealtimePresence();
+  const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [conversations, setConversations] = useState<DirectConversationSummary[]>([]);
   const [friendships, setFriendships] = useState<FriendshipRecord[]>([]);
   const [hubs, setHubs] = useState<HubSummary[]>([]);
   const [invites, setInvites] = useState<HubInvite[]>([]);
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const [postKind, setPostKind] = useState<FeedPostKind>("ARTICLE");
+  const [postTitle, setPostTitle] = useState("");
+  const [postBody, setPostBody] = useState("");
+  const [postMediaUrl, setPostMediaUrl] = useState("");
+  const [postErrorMessage, setPostErrorMessage] = useState<string | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -479,8 +398,15 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
       setIsLoading(true);
       setErrorMessage(null);
 
-      const [conversationResult, friendshipsResult, hubsResult, invitesResult] =
+      const [
+        feedResult,
+        conversationResult,
+        friendshipsResult,
+        hubsResult,
+        invitesResult,
+      ] =
         await Promise.allSettled([
+          apiClientFetch("/v1/feed"),
           apiClientFetch("/v1/direct-messages"),
           apiClientFetch("/v1/relationships/friends"),
           apiClientFetch("/v1/hubs"),
@@ -492,6 +418,18 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
       }
 
       let failed = 0;
+
+      if (feedResult.status === "fulfilled") {
+        try {
+          setFeedPosts(feedPostListResponseSchema.parse(feedResult.value).items);
+        } catch {
+          failed += 1;
+          setFeedPosts([]);
+        }
+      } else {
+        failed += 1;
+        setFeedPosts([]);
+      }
 
       if (conversationResult.status === "fulfilled") {
         try {
@@ -543,7 +481,7 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
         setInvites([]);
       }
 
-      if (failed === 4) {
+      if (failed === 5) {
         setErrorMessage("Не удалось загрузить данные главной.");
       }
 
@@ -624,76 +562,50 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
     );
   }, [messageSearchQuery, orderedConversations]);
 
-  const feedItems = useMemo<HomeFeedItem[]>(() => {
-    const messageItems = orderedConversations
-      .filter((conversation) => Boolean(conversation.lastMessageAt))
-      .map<HomeFeedItem>((conversation) => {
-        const author = conversation.lastMessage?.author
-          ? toLiveUser(conversation.lastMessage.author)
-          : conversation.counterpart;
-        const isViewerAuthor = author.id === viewer.id;
+  async function handleCreatePost(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedBody = postBody.trim();
+    const trimmedTitle = postTitle.trim();
+    const trimmedMediaUrl = postMediaUrl.trim();
 
-        return {
-          id: `message:${conversation.id}`,
-          at: conversation.lastMessageAt,
-          body: getConversationPreview(conversation),
-          conversation,
-          href: `/app/messages/${conversation.id}`,
-          icon: MessageSquareMore,
-          kind: "message",
-          meta: isViewerAuthor
-            ? `Диалог с ${conversation.counterpart.profile.displayName}`
-            : "Новое в личных сообщениях",
-          title: isViewerAuthor
-            ? "Вы написали"
-            : `${author.profile.displayName} написал(а)`,
-          user: author,
-        };
+    if (!trimmedBody) {
+      setPostErrorMessage("Напишите текст поста.");
+      return;
+    }
+
+    if (postKind === "VIDEO" && !trimmedMediaUrl) {
+      setPostErrorMessage("Для видео добавьте ссылку на файл.");
+      return;
+    }
+
+    setIsPosting(true);
+    setPostErrorMessage(null);
+
+    try {
+      const payload = await apiClientFetch("/v1/feed", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: postKind,
+          title: trimmedTitle || null,
+          body: trimmedBody,
+          mediaUrl: trimmedMediaUrl || null,
+        }),
       });
+      const createdPost = feedPostResponseSchema.parse(payload).post;
 
-    const requestItems = incomingRequests.map<HomeFeedItem>((request) => {
-      const user = toLiveUser(request.otherUser);
-
-      return {
-        id: `friend:${request.id}`,
-        at: request.createdAt,
-        body: `${user.profile.displayName} хочет добавить вас в контакты.`,
-        href: "/app/people?view=requests",
-        icon: UserPlus2,
-        kind: "friend",
-        meta: "Заявка в друзья",
-        title: "Новая заявка",
-        user,
-      };
-    });
-
-    const inviteItems = invites.map<HomeFeedItem>((invite) => ({
-      id: `invite:${invite.id}`,
-      at: invite.createdAt,
-      body: `${invite.invitedBy.profile.displayName} приглашает вас в ${invite.hub.name}.`,
-      href: "/app/hubs",
-      icon: Bell,
-      kind: "invite",
-      meta: "Инвайт в хаб",
-      title: invite.hub.name,
-      user: toLiveUser(invite.invitedBy),
-    }));
-
-    const hubItems = hubs.map<HomeFeedItem>((hub) => ({
-      id: `hub:${hub.id}`,
-      at: hub.createdAt,
-      body: hub.description?.trim() || "Пространство доступно в ваших хабах.",
-      href: `/app/hubs/${hub.id}`,
-      icon: Layers3,
-      kind: "hub",
-      meta: formatRole(hub.membershipRole),
-      title: hub.name,
-    }));
-
-    return [...messageItems, ...requestItems, ...inviteItems, ...hubItems]
-      .sort(byRecentDate)
-      .slice(0, 8);
-  }, [hubs, incomingRequests, invites, orderedConversations, toLiveUser, viewer.id]);
+      setFeedPosts((current) => [createdPost, ...current]);
+      setPostTitle("");
+      setPostBody("");
+      setPostMediaUrl("");
+      setPostKind("ARTICLE");
+    } catch (error) {
+      setPostErrorMessage(
+        error instanceof Error ? error.message : "Не удалось опубликовать пост.",
+      );
+    } finally {
+      setIsPosting(false);
+    }
+  }
 
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
@@ -820,44 +732,101 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
             </Panel>
 
             <Panel className="p-4">
-              <div className="flex items-center gap-3">
-                <UserAvatar
-                  user={liveViewer}
-                  size="sm"
-                  className="h-10 w-10 text-[11px]"
-                />
-                <Link
-                  href="/app/messages"
-                  className="flex min-h-11 min-w-0 flex-1 items-center rounded-[14px] border border-white/8 bg-black px-3 text-sm text-[var(--text-muted)] transition-colors hover:border-white/14 hover:bg-[var(--bg-hover)] hover:text-white"
-                >
-                  Что нового?
-                </Link>
-                <IconButtonLink href="/app/people?view=discover" icon={Search} label="Найти людей" />
-              </div>
+              <form onSubmit={(event) => void handleCreatePost(event)}>
+                <div className="flex items-start gap-3">
+                  <UserAvatar
+                    user={liveViewer}
+                    size="sm"
+                    className="mt-0.5 h-10 w-10 text-[11px]"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {[
+                        {
+                          id: "ARTICLE" as const,
+                          label: "Статья",
+                          icon: MessageSquareMore,
+                        },
+                        {
+                          id: "VIDEO" as const,
+                          label: "Видео",
+                          icon: Video,
+                        },
+                      ].map((item) => {
+                        const active = postKind === item.id;
+                        const Icon = item.icon;
 
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-[var(--text-dim)]">
-                <Link
-                  href="/app/messages"
-                  className="inline-flex min-h-9 items-center gap-2 rounded-[12px] border border-white/8 bg-black px-3 transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
-                >
-                  <MessageSquareMore size={15} strokeWidth={1.75} />
-                  Сообщение
-                </Link>
-                <Link
-                  href="/app/people?view=discover"
-                  className="inline-flex min-h-9 items-center gap-2 rounded-[12px] border border-white/8 bg-black px-3 transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
-                >
-                  <Users2 size={15} strokeWidth={1.75} />
-                  Контакт
-                </Link>
-                <Link
-                  href="/app/hubs"
-                  className="inline-flex min-h-9 items-center gap-2 rounded-[12px] border border-white/8 bg-black px-3 transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
-                >
-                  <Hash size={15} strokeWidth={1.75} />
-                  Хаб
-                </Link>
-              </div>
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setPostKind(item.id);
+
+                              if (item.id === "ARTICLE") {
+                                setPostMediaUrl("");
+                              }
+                            }}
+                            className={cn(
+                              "inline-flex min-h-9 items-center gap-2 rounded-[12px] border px-3 text-xs font-medium transition-colors",
+                              active
+                                ? "border-white/16 bg-[var(--bg-active)] text-white"
+                                : "border-white/8 bg-black text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-white",
+                            )}
+                          >
+                            <Icon size={15} strokeWidth={1.75} />
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <input
+                      value={postTitle}
+                      onChange={(event) => setPostTitle(event.target.value)}
+                      placeholder="Заголовок"
+                      className="mt-3 h-11 w-full rounded-[14px] border border-white/8 bg-black px-3 text-sm font-medium text-white outline-none placeholder:text-[var(--text-muted)] focus:border-white/16"
+                    />
+
+                    <textarea
+                      value={postBody}
+                      onChange={(event) => setPostBody(event.target.value)}
+                      placeholder={
+                        postKind === "VIDEO"
+                          ? "Описание видео"
+                          : "Напишите статью или заметку"
+                      }
+                      rows={4}
+                      className="mt-3 min-h-[112px] w-full rounded-[16px] border border-white/8 bg-black px-3 py-3 text-sm leading-6 text-white outline-none placeholder:text-[var(--text-muted)] focus:border-white/16"
+                    />
+
+                    {postKind === "VIDEO" ? (
+                      <input
+                        value={postMediaUrl}
+                        onChange={(event) => setPostMediaUrl(event.target.value)}
+                        placeholder="Ссылка на mp4, webm или другое видео"
+                        className="mt-3 h-11 w-full rounded-[14px] border border-white/8 bg-black px-3 text-sm text-white outline-none placeholder:text-[var(--text-muted)] focus:border-white/16"
+                      />
+                    ) : null}
+
+                    {postErrorMessage ? (
+                      <p className="mt-3 text-sm text-red-200">
+                        {postErrorMessage}
+                      </p>
+                    ) : null}
+
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={isPosting}
+                        className="inline-flex min-h-10 items-center justify-center rounded-[12px] border border-white bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-[var(--text-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isPosting ? "Публикуем..." : "Опубликовать"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
             </Panel>
 
             {errorMessage ? (
@@ -873,12 +842,12 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
                     Загружаем главную...
                   </div>
                 </Panel>
-              ) : feedItems.length === 0 ? (
+              ) : feedPosts.length === 0 ? (
                 <Panel>
                   <EmptyNow className="min-h-[220px]" />
                 </Panel>
               ) : (
-                feedItems.map((item) => <FeedItemCard key={item.id} item={item} />)
+                feedPosts.map((post) => <FeedPostCard key={post.id} post={post} />)
               )}
             </div>
           </main>

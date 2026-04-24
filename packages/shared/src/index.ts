@@ -4,6 +4,7 @@ export * from "./lib/calls";
 export * from "./lib/common";
 export * from "./lib/direct-messages";
 export * from "./lib/emojis";
+export * from "./lib/feed";
 export * from "./lib/forum";
 export * from "./lib/hubs";
 export * from "./lib/invites";
