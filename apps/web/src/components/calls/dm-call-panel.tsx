@@ -44,6 +44,7 @@ interface DmCallPanelProps {
   counterpartIsOnline: boolean;
   variant?: "panel" | "header";
   stageHostRef?: RefObject<HTMLDivElement | null>;
+  onHistoryChange?: (history: CallSummary[]) => void;
 }
 
 const iconProps = { size: 16, strokeWidth: 1.5 } as const;
@@ -72,6 +73,7 @@ export function DmCallPanel({
   counterpartIsOnline,
   variant = "panel",
   stageHostRef,
+  onHistoryChange,
 }: DmCallPanelProps) {
   const { socket, latestSignal, clearIncomingCall } = useRealtime();
   const {
@@ -231,6 +233,10 @@ export function DmCallPanel({
   useEffect(() => {
     void loadState();
   }, [loadState]);
+
+  useEffect(() => {
+    onHistoryChange?.(state?.history ?? []);
+  }, [onHistoryChange, state?.history]);
 
   useEffect(() => {
     if (!socket) {

@@ -15,6 +15,7 @@ import {
   directMessageAttachmentUploadResponseSchema,
   directMessageResponseSchema,
   mediaPickerCatalogResponseSchema,
+  type CallSummary,
   type DirectConversationDetail,
   type DirectMessage,
   type DirectMessageReplyPreview,
@@ -413,6 +414,7 @@ export function ConversationView({
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const [callHistory, setCallHistory] = useState<CallSummary[]>([]);
   const [replyToMessage, setReplyToMessage] =
     useState<DirectMessageReplyPreview | null>(null);
   const [forceThreadScrollToken, setForceThreadScrollToken] = useState(0);
@@ -551,6 +553,7 @@ export function ConversationView({
   useEffect(() => {
     setConversation(null);
     setMessages([]);
+    setCallHistory([]);
     setReplyToMessage(null);
     setErrorMessage(null);
   }, [conversationId]);
@@ -1163,6 +1166,7 @@ export function ConversationView({
                 counterpartIsOnline={Boolean(liveCounterpart?.isOnline)}
                 variant="header"
                 stageHostRef={callStageHostRef}
+                onHistoryChange={setCallHistory}
               />
 
               <ConversationHeaderIconButton
@@ -1263,6 +1267,7 @@ export function ConversationView({
           key={conversationId}
           viewerId={viewerId}
           messages={messages}
+          callEvents={callHistory}
           isDeleting={isDeleting}
           lastReadAt={viewerParticipant.lastReadAt}
           counterpartLastReadAt={counterpartParticipant?.lastReadAt ?? null}

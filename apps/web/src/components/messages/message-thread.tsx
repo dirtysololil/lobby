@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  CallSummary,
   CustomEmojiAsset,
   DirectConversationDetail,
   DirectMessageReplyPreview,
@@ -10,6 +11,7 @@ import {
   Check,
   CheckCheck,
   MoreHorizontal,
+  PhoneCall,
   Reply,
   RotateCcw,
   Trash2,
@@ -17,6 +19,7 @@ import {
 import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -57,6 +60,7 @@ export type ThreadMessageItem =
 interface MessageThreadProps {
   viewerId: string;
   messages: ThreadMessageItem[];
+  callEvents?: CallSummary[];
   isDeleting: string | null;
   lastReadAt: string | null;
   counterpartLastReadAt: string | null;
@@ -68,7 +72,10 @@ interface MessageThreadProps {
   onRetry: (messageId: string) => Promise<void>;
 }
 
-type ThreadGroup = { label: string; items: ThreadMessageItem[] };
+type ThreadTimelineItem =
+  | { kind: "message"; message: ThreadMessageItem; createdAt: string }
+  | { kind: "call"; call: CallSummary; createdAt: string };
+type ThreadGroup = { label: string; items: ThreadTimelineItem[] };
 type ContextMenuState =
   | { mode: "floating"; messageId: string; x: number; y: number }
   | { mode: "sheet"; messageId: string };
@@ -130,6 +137,75 @@ function formatAttachmentDuration(durationMs: number | null | undefined) {
   const seconds = totalSeconds % 60;
 
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatCallDuration(call: CallSummary) {
+  if (!call.acceptedAt || !call.endedAt) {
+    return null;
+  }
+
+  const startedAt = new Date(call.acceptedAt).getTime();
+  const endedAt = new Date(call.endedAt).getTime();
+
+  if (!Number.isFinite(startedAt) || !Number.isFinite(endedAt)) {
+    return null;
+  }
+
+  const totalSeconds = Math.max(0, Math.floor((endedAt - startedAt) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const restMinutes = minutes % 60;
+
+    return `${hours}:${String(restMinutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function getCallTimelineTimestamp(call: CallSummary) {
+  return call.endedAt ?? call.acceptedAt ?? call.createdAt;
+}
+
+function getCallTimelineCopy(call: CallSummary, viewerId: string) {
+  const isIncoming = call.initiatedBy.id !== viewerId;
+  const modeLabel = call.mode === "VIDEO" ? "видеозвонок" : "звонок";
+  const duration = formatCallDuration(call);
+
+  if (call.status === "MISSED") {
+    return {
+      title: isIncoming ? "Пропущенный звонок" : "Исходящий звонок без ответа",
+      meta: modeLabel,
+    };
+  }
+
+  if (call.status === "DECLINED") {
+    return {
+      title: isIncoming ? "Входящий звонок отклонён" : "Звонок отклонён",
+      meta: modeLabel,
+    };
+  }
+
+  if (call.status === "ENDED") {
+    return {
+      title: "Звонок завершён",
+      meta: duration ? `${modeLabel} · ${duration}` : modeLabel,
+    };
+  }
+
+  if (call.status === "ACCEPTED") {
+    return {
+      title: "Идёт звонок",
+      meta: modeLabel,
+    };
+  }
+
+  return {
+    title: isIncoming ? "Входящий звонок" : "Исходящий звонок",
+    meta: modeLabel,
+  };
 }
 
 function buildSearchableMessageText(message: ThreadMessageItem) {
@@ -282,6 +358,7 @@ function buildReplyPreviewText(message: DirectMessageReplyPreview) {
 export function MessageThread({
   viewerId,
   messages,
+  callEvents = [],
   isDeleting,
   lastReadAt,
   counterpartLastReadAt,
@@ -308,25 +385,39 @@ export function MessageThread({
     startY: number;
   } | null>(null);
   const suppressNextClickMessageIdRef = useRef<string | null>(null);
-  const groupedMessages = useMemo(
-    () =>
-      messages.reduce<ThreadGroup[]>(
-        (accumulator: ThreadGroup[], message: ThreadMessageItem) => {
-          const label = formatThreadDate(message.createdAt);
-          const group = accumulator[accumulator.length - 1];
+  const groupedMessages = useMemo(() => {
+    const timelineItems = [
+      ...messages.map((message) => ({
+        kind: "message" as const,
+        message,
+        createdAt: message.createdAt,
+      })),
+      ...callEvents.map((call) => ({
+        kind: "call" as const,
+        call,
+        createdAt: getCallTimelineTimestamp(call),
+      })),
+    ].sort(
+      (left, right) =>
+        new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+    );
 
-          if (group && group.label === label) {
-            group.items.push(message);
-            return accumulator;
-          }
+    return timelineItems.reduce<ThreadGroup[]>(
+      (accumulator: ThreadGroup[], item: ThreadTimelineItem) => {
+        const label = formatThreadDate(item.createdAt);
+        const group = accumulator[accumulator.length - 1];
 
-          accumulator.push({ label, items: [message] });
+        if (group && group.label === label) {
+          group.items.push(item);
           return accumulator;
-        },
-        [],
-      ),
-    [messages],
-  );
+        }
+
+        accumulator.push({ label, items: [item] });
+        return accumulator;
+      },
+      [],
+    );
+  }, [callEvents, messages]);
   const messageIndexById = useMemo(
     () => new Map(messages.map((message, index) => [message.id, index])),
     [messages],
@@ -355,6 +446,7 @@ export function MessageThread({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const didInitScrollRef = useRef(false);
   const forcedScrollFrameRef = useRef<number | null>(null);
+  const forcedScrollTimeoutRef = useRef<number | null>(null);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const activeContextMenu =
     contextMenu &&
@@ -379,6 +471,45 @@ export function MessageThread({
         .map((message) => message.id),
     );
   }, [messages, normalizedSearchQuery]);
+
+  const scrollViewportToBottom = useCallback(() => {
+    const viewport = viewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    viewport.scrollTop = viewport.scrollHeight;
+  }, []);
+
+  const scheduleScrollToBottom = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (forcedScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(forcedScrollFrameRef.current);
+    }
+
+    if (forcedScrollTimeoutRef.current !== null) {
+      window.clearTimeout(forcedScrollTimeoutRef.current);
+      forcedScrollTimeoutRef.current = null;
+    }
+
+    forcedScrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollViewportToBottom();
+
+      forcedScrollFrameRef.current = window.requestAnimationFrame(() => {
+        scrollViewportToBottom();
+        forcedScrollFrameRef.current = null;
+      });
+    });
+
+    forcedScrollTimeoutRef.current = window.setTimeout(() => {
+      scrollViewportToBottom();
+      forcedScrollTimeoutRef.current = null;
+    }, 120);
+  }, [scrollViewportToBottom]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -408,6 +539,10 @@ export function MessageThread({
         window.cancelAnimationFrame(forcedScrollFrameRef.current);
       }
 
+      if (forcedScrollTimeoutRef.current !== null) {
+        window.clearTimeout(forcedScrollTimeoutRef.current);
+      }
+
       if (highlightTimerRef.current !== null) {
         window.clearTimeout(highlightTimerRef.current);
       }
@@ -420,28 +555,20 @@ export function MessageThread({
       return;
     }
 
-    if (forcedScrollFrameRef.current !== null) {
-      window.cancelAnimationFrame(forcedScrollFrameRef.current);
-    }
-
-    forcedScrollFrameRef.current = window.requestAnimationFrame(() => {
-      const viewport = viewportRef.current;
-
-      if (!viewport) {
-        return;
-      }
-
-      viewport.scrollTop = viewport.scrollHeight;
-      forcedScrollFrameRef.current = null;
-    });
+    scheduleScrollToBottom();
 
     return () => {
       if (forcedScrollFrameRef.current !== null) {
         window.cancelAnimationFrame(forcedScrollFrameRef.current);
         forcedScrollFrameRef.current = null;
       }
+
+      if (forcedScrollTimeoutRef.current !== null) {
+        window.clearTimeout(forcedScrollTimeoutRef.current);
+        forcedScrollTimeoutRef.current = null;
+      }
     };
-  }, [forceScrollToBottomToken]);
+  }, [forceScrollToBottomToken, scheduleScrollToBottom]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -450,8 +577,12 @@ export function MessageThread({
       return;
     }
 
+    if (messages.length === 0 && callEvents.length === 0) {
+      return;
+    }
+
     if (!didInitScrollRef.current) {
-      viewport.scrollTop = viewport.scrollHeight;
+      scheduleScrollToBottom();
       didInitScrollRef.current = true;
       return;
     }
@@ -460,9 +591,40 @@ export function MessageThread({
       viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
 
     if (distanceFromBottom < 160) {
-      viewport.scrollTop = viewport.scrollHeight;
+      scheduleScrollToBottom();
     }
-  }, [messages]);
+  }, [callEvents, messages, scheduleScrollToBottom]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+
+    if (
+      !viewport ||
+      typeof ResizeObserver === "undefined" ||
+      (messages.length === 0 && callEvents.length === 0)
+    ) {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      const distanceFromBottom =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+
+      if (!didInitScrollRef.current || distanceFromBottom < 200) {
+        scheduleScrollToBottom();
+      }
+    });
+
+    observer.observe(viewport);
+
+    if (viewport.firstElementChild instanceof HTMLElement) {
+      observer.observe(viewport.firstElementChild);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [callEvents.length, messages.length, scheduleScrollToBottom]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -905,19 +1067,41 @@ export function MessageThread({
         ref={viewportRef}
         className="dm-thread-surface h-full min-h-0 overflow-y-auto"
       >
-        {messages.length === 0 ? (
+        {messages.length === 0 && callEvents.length === 0 ? (
           <div className="empty-state-minimal text-[var(--text-muted)]">
             <p className="text-sm">Сообщений пока нет.</p>
           </div>
         ) : (
-          <div className="dm-thread-stack relative z-[1] space-y-3 px-4 py-4 md:px-7 md:py-5">
+          <div className="dm-thread-stack relative z-[1] space-y-3 px-4 pb-8 pt-4 md:px-7 md:pb-8 md:pt-5">
             {groupedMessages.map((group) => (
               <div key={group.label} className="space-y-1">
                 <div className="flex justify-center py-1">
                   <span className="dm-date-separator">{group.label}</span>
                 </div>
 
-                {group.items.map((message, index) => {
+                {group.items.map((item) => {
+                  if (item.kind === "call") {
+                    const copy = getCallTimelineCopy(item.call, viewerId);
+
+                    return (
+                      <div
+                        key={`call:${item.call.id}:${item.call.status}`}
+                        className="dm-call-event-row"
+                      >
+                        <div className="dm-call-event">
+                          <span className="dm-call-event-icon" aria-hidden="true">
+                            <PhoneCall size={14} strokeWidth={1.55} />
+                          </span>
+                          <span className="dm-call-event-title">{copy.title}</span>
+                          <span className="dm-call-event-meta">
+                            {copy.meta} · {formatThreadTime(item.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const message = item.message;
                   const globalIndex = messageIndexById.get(message.id) ?? -1;
                   const isOwn = message.author.id === viewerId;
                   const isSticker = message.type === "STICKER";
@@ -970,7 +1154,8 @@ export function MessageThread({
                     !isMediaLikeMessage &&
                     !message.linkEmbed &&
                     isExpressiveEmojiMessage(visibleText);
-                  const previousMessage = group.items[index - 1];
+                  const previousMessage =
+                    globalIndex > 0 ? messages[globalIndex - 1] : undefined;
                   const continuation = isContinuation(previousMessage, message);
                   const isUnreadMarker =
                     unreadIndex >= 0 && globalIndex === unreadIndex;
