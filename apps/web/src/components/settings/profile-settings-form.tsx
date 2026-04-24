@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AtSign,
   BadgeCheck,
-  CalendarDays,
   Camera,
   CheckCircle2,
   Mail,
@@ -85,6 +84,110 @@ const selectListClassName =
 
 const primaryActionClassName =
   "h-11 rounded-[12px] border-white bg-white px-5 text-sm font-medium text-black hover:border-white hover:bg-neutral-100";
+
+function getBirthDateSegments(value: string) {
+  const [year = "", month = "", day = ""] = value.split("-");
+
+  return {
+    day: day.replace(/\D/g, "").slice(0, 2),
+    month: month.replace(/\D/g, "").slice(0, 2),
+    year: year.replace(/\D/g, "").slice(0, 4),
+  };
+}
+
+function buildBirthDateValue({
+  day,
+  month,
+  year,
+}: {
+  day: string;
+  month: string;
+  year: string;
+}) {
+  if (!day && !month && !year) {
+    return "";
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatBirthDateForDisplay(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) {
+    return value;
+  }
+
+  return `${match[3]}.${match[2]}.${match[1]}`;
+}
+
+function BirthDateField({
+  id,
+  labelId,
+  value,
+  onChange,
+}: {
+  id: string;
+  labelId: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const segments = getBirthDateSegments(value);
+
+  function commitSegment(
+    segment: keyof ReturnType<typeof getBirthDateSegments>,
+    nextValue: string,
+  ) {
+    const nextSegments = {
+      ...segments,
+      [segment]: nextValue.replace(/\D/g, "").slice(0, segment === "year" ? 4 : 2),
+    };
+
+    onChange(buildBirthDateValue(nextSegments));
+  }
+
+  return (
+    <div
+      id={id}
+      className="flex h-11 w-full items-center justify-center rounded-[12px] border border-white/8 bg-black px-3 text-sm text-white transition-colors hover:border-[var(--border-strong)] focus-within:border-[var(--border-strong)] focus-within:ring-2 focus-within:ring-[var(--ring)]"
+      role="group"
+      aria-labelledby={labelId}
+    >
+      <input
+        type="text"
+        inputMode="numeric"
+        aria-label="День рождения"
+        placeholder="ДД"
+        value={segments.day}
+        onChange={(event) => commitSegment("day", event.target.value)}
+        className="h-full w-7 border-0 bg-transparent p-0 text-center text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
+        maxLength={2}
+      />
+      <span className="px-1 text-[var(--text-muted)]">/</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        aria-label="Месяц рождения"
+        placeholder="ММ"
+        value={segments.month}
+        onChange={(event) => commitSegment("month", event.target.value)}
+        className="h-full w-7 border-0 bg-transparent p-0 text-center text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
+        maxLength={2}
+      />
+      <span className="px-1 text-[var(--text-muted)]">/</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        aria-label="Год рождения"
+        placeholder="ГГГГ"
+        value={segments.year}
+        onChange={(event) => commitSegment("year", event.target.value)}
+        className="h-full w-12 border-0 bg-transparent p-0 text-center text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
+        maxLength={4}
+      />
+    </div>
+  );
+}
 
 function InfoPill({
   icon,
@@ -265,6 +368,9 @@ export function ProfileSettingsForm({
   const emailValue = form.watch("email")?.trim() || safeViewer.email;
   const phoneValue = form.watch("phone")?.trim() || "";
   const birthDateValue = form.watch("birthDate")?.trim() || "";
+  const birthDateDisplay = birthDateValue
+    ? formatBirthDateForDisplay(birthDateValue)
+    : "";
   const statusEmojiValue = form.watch("statusEmoji")?.trim() || "";
   const bioValue = form.watch("bio") ?? "";
   const bioPreview = bioValue.trim();
@@ -418,9 +524,9 @@ export function ProfileSettingsForm({
 
   return (
     <>
-      <div className="w-full max-w-[1480px]">
+      <div className="w-full">
         <form
-          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]"
+          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_380px]"
           onSubmit={form.handleSubmit((values) => void onSubmit(values))}
         >
           <section className="premium-panel col-span-full overflow-hidden rounded-[24px]">
@@ -472,7 +578,7 @@ export function ProfileSettingsForm({
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-dim)]">
                     <span>@{safeViewer.username}</span>
                     {fullNameValue ? <span>{fullNameValue}</span> : null}
-                    {birthDateValue ? <span>{birthDateValue}</span> : null}
+                    {birthDateDisplay ? <span>{birthDateDisplay}</span> : null}
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -613,7 +719,7 @@ export function ProfileSettingsForm({
               title="Личные данные"
               description="ФИО и дата рождения отображаются в публичной карточке профиля."
             >
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(220px,0.65fr)]">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_176px] 2xl:grid-cols-[minmax(0,1fr)_184px]">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">ФИО</Label>
                   <Input
@@ -625,20 +731,18 @@ export function ProfileSettingsForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="birthDate">Дата рождения</Label>
-                  <div className="relative">
-                    <Input
-                      id="birthDate"
-                      type="date"
-                      {...form.register("birthDate")}
-                      className={cn(fieldClassName, "pr-10")}
-                    />
-                    <CalendarDays
-                      size={16}
-                      strokeWidth={1.7}
-                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-                    />
-                  </div>
+                  <Label id="birthDate-label">Дата рождения</Label>
+                  <BirthDateField
+                    id="birthDate"
+                    labelId="birthDate-label"
+                    value={birthDateValue}
+                    onChange={(nextValue) =>
+                      form.setValue("birthDate", nextValue, {
+                        shouldDirty: true,
+                        shouldTouch: true,
+                      })
+                    }
+                  />
                 </div>
 
                 {form.formState.errors.fullName ? (
