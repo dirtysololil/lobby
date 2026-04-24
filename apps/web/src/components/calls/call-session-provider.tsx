@@ -1683,10 +1683,10 @@ export function TrackSurface({
         )
       : emphasis === "conversation"
         ? cn(
-            "aspect-[16/10] rounded-[20px] max-h-[72vh]",
+            "aspect-video rounded-[18px] max-h-[min(68vh,720px)]",
             expanded
-              ? "min-h-[300px] lg:min-h-[420px]"
-              : "min-h-[240px] lg:min-h-[340px]",
+              ? "min-h-[clamp(260px,52vh,620px)]"
+              : "min-h-[clamp(220px,46vh,520px)]",
           )
         : "aspect-[16/10] min-h-[180px] rounded-[18px]"
     : emphasis === "stage"
@@ -1774,7 +1774,7 @@ export function TrackSurface({
     <div
       className={cn(
         "relative w-full overflow-hidden border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
-        isScreen ? "bg-[#05080d]" : "bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_48%),rgba(8,12,18,0.96)]",
+        isScreen ? "bg-[#050505]" : "bg-[#080808]",
         surfaceSizingClassName,
       )}
     >
@@ -1789,7 +1789,7 @@ export function TrackSurface({
       ) : null}
 
       {!isVideoTrack ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.16),transparent_42%),rgba(9,14,20,0.96)] px-5 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#080808] px-5 text-center">
           <AvatarOrInitials user={null} name={item.participantName} size="lg" />
           <div>
             <p className="text-base font-semibold text-white">{item.participantName}</p>
@@ -2628,7 +2628,7 @@ export function CallRoomCanvas({
   const showConversationPanels =
     !isConversation || !screenShareVisible || resolvedSecondaryPanelsVisible;
   const rootPanelClassName = isConversation
-    ? "shrink-0 rounded-[20px] p-2.5"
+    ? "dm-call-canvas-conversation shrink-0 rounded-[20px]"
     : hasVisualStage
       ? "flex-1 rounded-[24px] p-3"
       : "rounded-[24px] p-3";
@@ -2717,8 +2717,8 @@ export function CallRoomCanvas({
       )}
     >
       {isConversation ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="dm-call-stage-toolbar">
+          <div className="dm-call-stage-status">
             {screenShareVisible ? (
               <span className="status-pill">
                 <Monitor size={14} strokeWidth={1.5} />
@@ -2740,7 +2740,7 @@ export function CallRoomCanvas({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="dm-call-stage-actions">
             <Button
               size="sm"
               variant={cameraEnabled ? "secondary" : "ghost"}
@@ -2768,7 +2768,7 @@ export function CallRoomCanvas({
               Экран
             </Button>
             {screenShareVisible ? (
-              <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
+              <div className="dm-call-fit-toggle">
                 <Button
                   size="sm"
                   variant={resolvedScreenFitMode === "cover" ? "secondary" : "ghost"}
@@ -2981,8 +2981,8 @@ export function CallRoomCanvas({
                 }
               />
             ) : pendingScreenShareStage ? (
-              <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[20px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(106,168,248,0.12),transparent_30%),rgba(8,12,18,0.94)] px-5 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(106,168,248,0.22)] bg-[rgba(106,168,248,0.12)] text-[var(--accent-strong)]">
+              <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[18px] border border-white/8 bg-[#050505] px-5 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.04] text-[var(--accent-strong)]">
                   <Monitor size={24} strokeWidth={1.5} />
                 </div>
                 <div className="max-w-[34rem]">

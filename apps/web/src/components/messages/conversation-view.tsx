@@ -576,6 +576,25 @@ export function ConversationView({
   }, [conversationId]);
 
   useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
+    const currentSocket = socket;
+
+    function subscribeToConversation() {
+      currentSocket.emit("calls.subscribe_dm", { conversationId });
+    }
+
+    subscribeToConversation();
+    currentSocket.on("connect", subscribeToConversation);
+
+    return () => {
+      currentSocket.off("connect", subscribeToConversation);
+    };
+  }, [conversationId, socket]);
+
+  useEffect(() => {
     const hasLocalDrafts = messages.some((message) => Boolean(message.localState));
 
     if (hasLocalDrafts) {
@@ -653,6 +672,16 @@ export function ConversationView({
       setMessages((current) =>
         mergeThreadMessage(current, latestDmSignal.message as DirectMessage),
       );
+
+      const actorUserId = latestDmSignal.actorUserId;
+
+      if (actorUserId && actorUserId !== viewerId) {
+        setTypingUserIds((current) => {
+          const next = new Set(current);
+          next.delete(actorUserId);
+          return next;
+        });
+      }
 
       if (
         signalEvent === "MESSAGE_CREATED" &&
@@ -1210,11 +1239,19 @@ export function ConversationView({
                   ) : null}
                 </div>
                 <p className="dm-header-status mt-0.5 flex items-center gap-1.5 truncate text-[12.5px] text-[var(--text-dim)]">
-                  {liveCounterpart?.isOnline ? (
+                  {isCounterpartTyping ? (
+                    <span className="dm-header-typing-dots" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  ) : liveCounterpart?.isOnline ? (
                     <span className="h-2 w-2 rounded-full bg-emerald-400" />
                   ) : null}
                   <span>
-                    {liveCounterpart?.isOnline
+                    {isCounterpartTyping
+                      ? `${counterpart.profile.displayName} печатает...`
+                      : liveCounterpart?.isOnline
                       ? "в сети"
                       : compactStatusLabel}
                   </span>
@@ -1378,7 +1415,7 @@ export function ConversationView({
               <span />
               <span />
             </span>
-            <span>{counterpart.profile.displayName} печатает</span>
+            <span>{counterpart.profile.displayName} печатает...</span>
           </div>
         ) : null}
         <MessageComposer

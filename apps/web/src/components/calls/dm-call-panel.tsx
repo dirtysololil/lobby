@@ -578,12 +578,12 @@ export function DmCallPanel({
   const stageMarkup =
     mounted && stageHostRef?.current && expandedCallId
       ? createPortal(
-          <div ref={stageShellRef} className="mt-2 border-t border-white/6 px-3 pb-3 pt-2">
+          <div ref={stageShellRef} className="dm-screen-share-stage-shell">
             {screenShareVisible ? (
-              <div className="dm-screen-share-strip mb-2">
+              <div className="dm-screen-share-strip">
                 <button type="button" className="dm-screen-share-chip dm-screen-share-chip-active" disabled>
                   <Monitor {...iconProps} />
-                  Р’ РґРёР°Р»РѕРіРµ
+                  Экран
                 </button>
                 <button
                   type="button"
@@ -591,7 +591,7 @@ export function DmCallPanel({
                   onClick={() => void openStageFullscreen()}
                 >
                   <Maximize2 {...iconProps} />
-                  РќР° РІРµСЃСЊ СЌРєСЂР°РЅ
+                  Во весь экран
                 </button>
                 {canStopOwnScreenShare ? (
                   <button
@@ -600,12 +600,12 @@ export function DmCallPanel({
                     onClick={() => void toggleScreenShare()}
                   >
                     <MonitorX {...iconProps} />
-                    РћСЃС‚Р°РЅРѕРІРёС‚СЊ РїРѕРєР°Р·
+                    Остановить показ
                   </button>
                 ) : null}
               </div>
             ) : null}
-            <div className="overflow-hidden rounded-[22px] border border-white/6 bg-[rgba(8,12,18,0.82)] shadow-[0_20px_42px_rgba(4,8,16,0.22)]">
+            <div className="dm-screen-share-stage-frame">
               <LiveKitCallRoom
                 callId={expandedCallId}
                 title="DM stage"
