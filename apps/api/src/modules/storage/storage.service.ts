@@ -51,6 +51,13 @@ export class StorageService {
     return this.writeScopedObject('dm-attachment-previews', buffer, extension);
   }
 
+  public async writeFeedMedia(
+    buffer: Buffer,
+    extension: string,
+  ): Promise<string> {
+    return this.writeScopedObject('feed-media', buffer, extension);
+  }
+
   public async writeObjectAtKey(
     fileKey: string,
     buffer: Buffer,

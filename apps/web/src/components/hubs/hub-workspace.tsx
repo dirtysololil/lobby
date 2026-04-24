@@ -7,7 +7,7 @@ import {
   type HubInvite,
   type HubSummary,
 } from "@lobby/shared";
-import { LockKeyhole, Plus, Waves } from "lucide-react";
+import { Image, LockKeyhole, MessageSquare, Plus, Smile, Video, Waves } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AppMobileTopNav } from "@/components/app/app-mobile-top-nav";
 import {
@@ -250,7 +250,7 @@ export function HubWorkspace() {
 
             <a
               href="#create-hub-form"
-              className="hidden min-h-11 items-center justify-center rounded-[14px] border border-[#0070F3] bg-[#0070F3] px-4 text-sm font-medium text-white transition-colors hover:border-[#0064d8] hover:bg-[#0064d8] md:inline-flex"
+              className="hidden min-h-11 items-center justify-center rounded-[14px] border border-white bg-white px-4 text-sm font-medium text-black transition-colors hover:border-[var(--text-soft)] hover:bg-[var(--text-soft)] md:inline-flex"
             >
               Создать хаб
             </a>
@@ -258,7 +258,7 @@ export function HubWorkspace() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto grid min-h-full w-full max-w-[1100px] gap-3 px-4 py-3 md:px-5 md:py-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid min-h-full w-full gap-3 px-3 py-3 md:px-5 md:py-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <HubsCreatePanel
               description={description}
               errorMessage={null}
@@ -346,9 +346,9 @@ export function HubWorkspace() {
                       <CompactListLink
                         key={hub.id}
                         href={`/app/hubs/${hub.id}`}
-                        className="gap-3"
+                        className="grid gap-3 p-3 md:grid-cols-[auto_minmax(0,1fr)_auto]"
                       >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/6 bg-white/[0.04] text-[11px] font-semibold text-white">
+                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border border-white/8 bg-white/[0.04] text-[12px] font-semibold text-white">
                           {hub.name.slice(0, 2).toUpperCase()}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -369,7 +369,35 @@ export function HubWorkspace() {
                           <p className="mt-1 truncate text-xs leading-tight text-[var(--text-dim)]">
                             {hub.description ?? "Описания пока нет."}
                           </p>
+                          <div className="mt-3 grid gap-2 rounded-[16px] border border-white/8 bg-white/[0.02] p-3">
+                            <div className="flex items-center gap-2 text-xs text-[var(--text-dim)]">
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              Лента канала готова для постов и обсуждений
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[
+                                { label: "Фото", icon: Image },
+                                { label: "Видео", icon: Video },
+                                { label: "GIF", icon: Smile },
+                              ].map((item) => {
+                                const Icon = item.icon;
+
+                                return (
+                                  <span
+                                    key={item.label}
+                                    className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/8 bg-black px-2 text-[11px] text-[var(--text-dim)]"
+                                  >
+                                    <Icon className="h-3.5 w-3.5" />
+                                    {item.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
+                        <span className="hidden self-center rounded-full border border-white/8 px-3 py-1 text-xs text-[var(--text-dim)] md:inline-flex">
+                          Открыть
+                        </span>
                       </CompactListLink>
                     ))}
                   </CompactList>

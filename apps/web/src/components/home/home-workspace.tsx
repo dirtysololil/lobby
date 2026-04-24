@@ -4,16 +4,18 @@ import {
   ArrowUpRight,
   Bell,
   Clock3,
+  Link2,
   House,
   Layers3,
   LockKeyhole,
   MessageSquareMore,
+  Paperclip,
   Plus,
   Search,
   Send,
   Settings2,
+  X,
   Users2,
-  Video,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -31,7 +33,17 @@ import {
   type HubSummary,
   type PublicUser,
 } from "@lobby/shared";
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { AppMobileTopNav } from "@/components/app/app-mobile-top-nav";
 import { useOptionalRealtimePresence, useRealtime } from "@/components/realtime/realtime-provider";
 import { CompactListCount } from "@/components/ui/compact-list";
@@ -39,6 +51,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { applyDmSignalToConversationSummaries } from "@/lib/direct-message-state";
 import { buildUserProfileHref } from "@/lib/profile-routes";
+import { resolveApiBaseUrlForBrowser } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 interface HomeWorkspaceProps {
@@ -47,6 +60,7 @@ interface HomeWorkspaceProps {
 
 const emptyLabel = "Сейчас тут пусто";
 const navIconProps = { size: 17, strokeWidth: 1.75 } as const;
+const reactionOptions = ["❤️", "🔥", "✨", "👀"];
 
 const quickLinks: Array<{
   href: string;
@@ -106,6 +120,88 @@ function formatRole(role: string | null | undefined) {
     default:
       return "Участник";
   }
+}
+
+function resolveMediaKind(mediaUrl: string | null, postKind?: FeedPostKind) {
+  if (!mediaUrl) {
+    return "none" as const;
+  }
+
+  const normalized = mediaUrl.split("?")[0]?.toLowerCase() ?? "";
+
+  if (isYouTubeUrl(mediaUrl)) {
+    return "youtube" as const;
+  }
+
+  if (postKind === "VIDEO" || /\.(mp4|webm|mov|m4v)$/i.test(normalized)) {
+    return "video" as const;
+  }
+
+  if (/\.(png|jpe?g|webp|gif|avif)$/i.test(normalized)) {
+    return "image" as const;
+  }
+
+  return "link" as const;
+}
+
+function isYouTubeUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return (
+      url.hostname === "youtu.be" ||
+      url.hostname === "www.youtube.com" ||
+      url.hostname === "youtube.com"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function getYouTubeEmbedUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const videoId =
+      url.hostname === "youtu.be"
+        ? url.pathname.slice(1)
+        : url.searchParams.get("v") ??
+          url.pathname.match(/\/(?:shorts|embed)\/([^/?]+)/)?.[1] ??
+          null;
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  } catch {
+    return null;
+  }
+}
+
+function getMediaLabel(mediaUrl: string | null, postKind?: FeedPostKind) {
+  switch (resolveMediaKind(mediaUrl, postKind)) {
+    case "video":
+      return "Видео";
+    case "youtube":
+      return "YouTube";
+    case "image":
+      return mediaUrl?.split("?")[0]?.toLowerCase().endsWith(".gif")
+        ? "GIF"
+        : "Фото";
+    case "link":
+      return "Ссылка";
+    default:
+      return "Пост";
+  }
+}
+
+function resolveFeedMediaSrc(mediaUrl: string | null) {
+  if (!mediaUrl) {
+    return null;
+  }
+
+  if (/^(https?:|blob:|data:)/i.test(mediaUrl)) {
+    return mediaUrl;
+  }
+
+  const apiBaseUrl = resolveApiBaseUrlForBrowser();
+
+  return apiBaseUrl ? new URL(mediaUrl, apiBaseUrl).toString() : mediaUrl;
 }
 
 function getConversationPreview(conversation: DirectConversationSummary) {
@@ -209,6 +305,10 @@ function StatTile({ label, value }: { label: string; value: number }) {
 }
 
 function FeedPostCard({ post }: { post: FeedPost }) {
+  const mediaKind = resolveMediaKind(post.mediaUrl, post.kind);
+  const mediaSrc = resolveFeedMediaSrc(post.mediaUrl);
+  const youtubeEmbedUrl = post.mediaUrl ? getYouTubeEmbedUrl(post.mediaUrl) : null;
+
   return (
     <article className="rounded-[22px] border border-white/8 bg-black p-4 transition-colors hover:border-white/14">
       <div className="flex items-start gap-3">
@@ -218,9 +318,7 @@ function FeedPostCard({ post }: { post: FeedPost }) {
             <p className="min-w-0 truncate text-sm font-semibold tracking-[-0.02em] text-white">
               {post.author.profile.displayName}
             </p>
-            <CompactListCount>
-              {post.kind === "VIDEO" ? "Видео" : "Статья"}
-            </CompactListCount>
+            <CompactListCount>{getMediaLabel(post.mediaUrl, post.kind)}</CompactListCount>
             <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
               <Clock3 className="h-3 w-3" />
               {formatShortTime(post.createdAt)}
@@ -238,18 +336,40 @@ function FeedPostCard({ post }: { post: FeedPost }) {
         </h2>
       ) : null}
 
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--text-soft)]">
-        {post.body}
-      </p>
+      {post.body ? (
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--text-soft)]">
+          {post.body}
+        </p>
+      ) : null}
 
-      {post.kind === "VIDEO" && post.mediaUrl ? (
+      {mediaKind === "video" && mediaSrc ? (
         <div className="mt-4 overflow-hidden rounded-[18px] border border-white/8 bg-black">
           <video
-            src={post.mediaUrl}
+            src={mediaSrc}
             className="aspect-video h-full w-full bg-black object-contain"
             controls
+            loop
             playsInline
             preload="metadata"
+          />
+        </div>
+      ) : mediaKind === "youtube" && youtubeEmbedUrl ? (
+        <div className="mt-4 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+          <iframe
+            src={youtubeEmbedUrl}
+            title={post.title ?? "YouTube"}
+            className="aspect-video h-full w-full bg-black"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      ) : mediaKind === "image" && mediaSrc ? (
+        <div className="mt-4 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+          <img
+            src={mediaSrc}
+            alt={post.title ?? "Медиа поста"}
+            className="max-h-[620px] w-full object-contain"
+            loading="lazy"
           />
         </div>
       ) : post.mediaUrl ? (
@@ -263,6 +383,18 @@ function FeedPostCard({ post }: { post: FeedPost }) {
           Открыть ссылку
         </a>
       ) : null}
+      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/8 pt-3">
+        {reactionOptions.map((reaction) => (
+          <button
+            key={reaction}
+            type="button"
+            className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-white/8 bg-black px-2 text-sm transition-colors hover:border-white/16 hover:bg-[var(--bg-hover)]"
+            aria-label={`Реакция ${reaction}`}
+          >
+            {reaction}
+          </button>
+        ))}
+      </div>
     </article>
   );
 }
@@ -359,10 +491,15 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
   const [postTitle, setPostTitle] = useState("");
   const [postBody, setPostBody] = useState("");
   const [postMediaUrl, setPostMediaUrl] = useState("");
+  const [postMediaName, setPostMediaName] = useState<string | null>(null);
+  const [postMediaPreviewUrl, setPostMediaPreviewUrl] = useState<string | null>(null);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [isUploadingPostMedia, setIsUploadingPostMedia] = useState(false);
   const [postErrorMessage, setPostErrorMessage] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const postFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const toLiveUser = useCallback(
     (user: PublicUser): PublicUser =>
@@ -390,6 +527,15 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
       window.cancelAnimationFrame(frameId);
     };
   }, [latestDmSignal]);
+
+  useEffect(
+    () => () => {
+      if (postMediaPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(postMediaPreviewUrl);
+      }
+    },
+    [postMediaPreviewUrl],
+  );
 
   useEffect(() => {
     let active = true;
@@ -562,19 +708,89 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
     );
   }, [messageSearchQuery, orderedConversations]);
 
+  function resetPostMedia() {
+    if (postMediaPreviewUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(postMediaPreviewUrl);
+    }
+
+    setPostMediaUrl("");
+    setPostMediaName(null);
+    setPostMediaPreviewUrl(null);
+    setPostKind("ARTICLE");
+
+    if (postFileInputRef.current) {
+      postFileInputRef.current.value = "";
+    }
+  }
+
+  async function uploadPostMedia(file: File) {
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      setPostErrorMessage("Можно загрузить фото, GIF или видео.");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    const formData = new FormData();
+    formData.append("file", file);
+    setIsUploadingPostMedia(true);
+    setPostErrorMessage(null);
+
+    try {
+      const payload = await apiClientFetch<{
+        kind: "IMAGE" | "VIDEO";
+        mediaUrl: string;
+      }>("/v1/feed/media", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (postMediaPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(postMediaPreviewUrl);
+      }
+
+      setPostMediaUrl(payload.mediaUrl);
+      setPostMediaName(file.name);
+      setPostMediaPreviewUrl(previewUrl);
+      setPostKind(payload.kind === "VIDEO" ? "VIDEO" : "ARTICLE");
+    } catch (error) {
+      URL.revokeObjectURL(previewUrl);
+      setPostErrorMessage(
+        error instanceof Error ? error.message : "Не удалось загрузить медиа.",
+      );
+    } finally {
+      setIsUploadingPostMedia(false);
+    }
+  }
+
+  function handlePostFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const [file] = Array.from(event.target.files ?? []);
+
+    if (file) {
+      void uploadPostMedia(file);
+    }
+  }
+
+  function handlePostPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const [file] = Array.from(event.clipboardData.files).filter(
+      (item) => item.type.startsWith("image/") || item.type.startsWith("video/"),
+    );
+
+    if (!file) {
+      return;
+    }
+
+    event.preventDefault();
+    void uploadPostMedia(file);
+  }
+
   async function handleCreatePost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedBody = postBody.trim();
     const trimmedTitle = postTitle.trim();
     const trimmedMediaUrl = postMediaUrl.trim();
 
-    if (!trimmedBody) {
-      setPostErrorMessage("Напишите текст поста.");
-      return;
-    }
-
-    if (postKind === "VIDEO" && !trimmedMediaUrl) {
-      setPostErrorMessage("Для видео добавьте ссылку на файл.");
+    if (!trimmedBody && !trimmedMediaUrl) {
+      setPostErrorMessage("Добавьте текст, фото, GIF, видео или ссылку.");
       return;
     }
 
@@ -596,8 +812,8 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
       setFeedPosts((current) => [createdPost, ...current]);
       setPostTitle("");
       setPostBody("");
-      setPostMediaUrl("");
-      setPostKind("ARTICLE");
+      setShowLinkInput(false);
+      resetPostMedia();
     } catch (error) {
       setPostErrorMessage(
         error instanceof Error ? error.message : "Не удалось опубликовать пост.",
@@ -741,44 +957,39 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      {[
-                        {
-                          id: "ARTICLE" as const,
-                          label: "Статья",
-                          icon: MessageSquareMore,
-                        },
-                        {
-                          id: "VIDEO" as const,
-                          label: "Видео",
-                          icon: Video,
-                        },
-                      ].map((item) => {
-                        const active = postKind === item.id;
-                        const Icon = item.icon;
-
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => {
-                              setPostKind(item.id);
-
-                              if (item.id === "ARTICLE") {
-                                setPostMediaUrl("");
-                              }
-                            }}
-                            className={cn(
-                              "inline-flex min-h-9 items-center gap-2 rounded-[12px] border px-3 text-xs font-medium transition-colors",
-                              active
-                                ? "border-white/16 bg-[var(--bg-active)] text-white"
-                                : "border-white/8 bg-black text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-white",
-                            )}
-                          >
-                            <Icon size={15} strokeWidth={1.75} />
-                            {item.label}
-                          </button>
-                        );
-                      })}
+                      <span className="inline-flex min-h-9 items-center gap-2 rounded-[12px] border border-white/16 bg-[var(--bg-active)] px-3 text-xs font-medium text-white">
+                        <MessageSquareMore size={15} strokeWidth={1.75} />
+                        Пост
+                      </span>
+                      <input
+                        ref={postFileInputRef}
+                        type="file"
+                        accept="image/*,video/*"
+                        onChange={handlePostFileChange}
+                        className="sr-only"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => postFileInputRef.current?.click()}
+                        disabled={isUploadingPostMedia}
+                        className="inline-flex min-h-9 items-center gap-2 rounded-[12px] border border-white/8 bg-black px-3 text-xs font-medium text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Paperclip size={15} strokeWidth={1.75} />
+                        {isUploadingPostMedia ? "Загрузка..." : "Фото / видео / GIF"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowLinkInput((current) => !current)}
+                        className={cn(
+                          "inline-flex min-h-9 items-center gap-2 rounded-[12px] border px-3 text-xs font-medium transition-colors",
+                          showLinkInput
+                            ? "border-white/16 bg-[var(--bg-active)] text-white"
+                            : "border-white/8 bg-black text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-white",
+                        )}
+                      >
+                        <Link2 size={15} strokeWidth={1.75} />
+                        Ссылка
+                      </button>
                     </div>
 
                     <input
@@ -791,20 +1002,60 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
                     <textarea
                       value={postBody}
                       onChange={(event) => setPostBody(event.target.value)}
-                      placeholder={
-                        postKind === "VIDEO"
-                          ? "Описание видео"
-                          : "Напишите статью или заметку"
-                      }
+                      onPaste={handlePostPaste}
+                      placeholder="Напишите пост или вставьте фото из буфера"
                       rows={4}
                       className="mt-3 min-h-[112px] w-full rounded-[16px] border border-white/8 bg-black px-3 py-3 text-sm leading-6 text-white outline-none placeholder:text-[var(--text-muted)] focus:border-white/16"
                     />
 
-                    {postKind === "VIDEO" ? (
+                    {postMediaUrl ? (
+                      <div className="mt-3 overflow-hidden rounded-[16px] border border-white/8 bg-black">
+                        <div className="flex items-center justify-between gap-3 border-b border-white/8 px-3 py-2">
+                          <span className="truncate text-xs text-[var(--text-dim)]">
+                            {postMediaName ?? getMediaLabel(postMediaUrl, postKind)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={resetPostMedia}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-[10px] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
+                            aria-label="Убрать медиа"
+                          >
+                            <X size={14} strokeWidth={1.8} />
+                          </button>
+                        </div>
+                        {resolveMediaKind(postMediaPreviewUrl ?? postMediaUrl, postKind) ===
+                        "video" ? (
+                          <video
+                            src={postMediaPreviewUrl ?? postMediaUrl}
+                            className="aspect-video w-full bg-black object-contain"
+                            controls
+                            loop
+                            playsInline
+                          />
+                        ) : resolveMediaKind(
+                            postMediaPreviewUrl ?? postMediaUrl,
+                            postKind,
+                          ) === "image" ? (
+                          <img
+                            src={postMediaPreviewUrl ?? postMediaUrl}
+                            alt=""
+                            className="max-h-72 w-full object-contain"
+                          />
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {showLinkInput ? (
                       <input
                         value={postMediaUrl}
-                        onChange={(event) => setPostMediaUrl(event.target.value)}
-                        placeholder="Ссылка на mp4, webm или другое видео"
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setPostMediaUrl(value);
+                          setPostMediaName(value ? "Внешняя ссылка" : null);
+                          setPostMediaPreviewUrl(null);
+                          setPostKind(resolveMediaKind(value) === "video" ? "VIDEO" : "ARTICLE");
+                        }}
+                        placeholder="Ссылка на фото, GIF, видео или YouTube"
                         className="mt-3 h-11 w-full rounded-[14px] border border-white/8 bg-black px-3 text-sm text-white outline-none placeholder:text-[var(--text-muted)] focus:border-white/16"
                       />
                     ) : null}

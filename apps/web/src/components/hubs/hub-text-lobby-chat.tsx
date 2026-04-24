@@ -7,7 +7,15 @@ import {
   type ForumTopic,
   type HubShell,
 } from "@lobby/shared";
-import { LoaderCircle, MessageSquare, RefreshCw, SendHorizontal } from "lucide-react";
+import {
+  Image,
+  LoaderCircle,
+  MessageSquare,
+  RefreshCw,
+  SendHorizontal,
+  Smile,
+  Video,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -43,6 +51,49 @@ function buildMessageTitle(content: string) {
   }
 
   return "Сообщение";
+}
+
+function extractFirstUrl(content: string) {
+  return content.match(/https?:\/\/\S+/i)?.[0] ?? null;
+}
+
+function resolveChannelMedia(url: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  const cleanUrl = url.replace(/[),.]+$/, "");
+  const normalized = cleanUrl.split("?")[0]?.toLowerCase() ?? "";
+
+  if (/youtube\.com|youtu\.be/.test(cleanUrl)) {
+    return { kind: "youtube" as const, url: cleanUrl };
+  }
+
+  if (/\.(mp4|webm|mov|m4v)$/i.test(normalized)) {
+    return { kind: "video" as const, url: cleanUrl };
+  }
+
+  if (/\.(png|jpe?g|webp|gif|avif)$/i.test(normalized)) {
+    return { kind: "image" as const, url: cleanUrl };
+  }
+
+  return null;
+}
+
+function getYouTubeEmbedUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const videoId =
+      url.hostname === "youtu.be"
+        ? url.pathname.slice(1)
+        : url.searchParams.get("v") ??
+          url.pathname.match(/\/(?:shorts|embed)\/([^/?]+)/)?.[1] ??
+          null;
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  } catch {
+    return null;
+  }
 }
 
 export function HubTextLobbyChat({
@@ -258,6 +309,9 @@ export function HubTextLobbyChat({
           <div className="space-y-3">
             {orderedTopics.map((topic) => {
               const memberRole = memberRolesByUserId.get(topic.author.id);
+              const media = resolveChannelMedia(extractFirstUrl(topic.content));
+              const youtubeEmbedUrl =
+                media?.kind === "youtube" ? getYouTubeEmbedUrl(media.url) : null;
 
               return (
                 <article
@@ -296,6 +350,49 @@ export function HubTextLobbyChat({
                           {topic.content}
                         </p>
                       </div>
+                      {media?.kind === "image" ? (
+                        <div className="mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+                          <img
+                            src={media.url}
+                            alt=""
+                            className="max-h-[520px] w-full object-contain"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : media?.kind === "video" ? (
+                        <div className="mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+                          <video
+                            src={media.url}
+                            className="aspect-video w-full bg-black object-contain"
+                            controls
+                            loop
+                            playsInline
+                            preload="metadata"
+                          />
+                        </div>
+                      ) : youtubeEmbedUrl ? (
+                        <div className="mt-3 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+                          <iframe
+                            src={youtubeEmbedUrl}
+                            title={topic.title}
+                            className="aspect-video w-full bg-black"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : null}
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {["❤️", "🔥", "✨", "👀"].map((reaction) => (
+                          <button
+                            key={reaction}
+                            type="button"
+                            className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-white/8 bg-black px-2 text-sm transition-colors hover:border-white/16 hover:bg-[var(--bg-hover)]"
+                            aria-label={`Реакция ${reaction}`}
+                          >
+                            {reaction}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -323,6 +420,26 @@ export function HubTextLobbyChat({
             disabled={!canSendMessages || isSubmitting}
             className="field-textarea min-h-[112px] resize-none"
           />
+
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { label: "Фото по ссылке", icon: Image },
+              { label: "Видео по ссылке", icon: Video },
+              { label: "GIF по ссылке", icon: Smile },
+            ].map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <span
+                  key={item.label}
+                  className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/8 bg-black px-2 text-[11px] text-[var(--text-dim)]"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {item.label}
+                </span>
+              );
+            })}
+          </div>
 
           <div
             className={`flex flex-wrap items-center gap-3 ${

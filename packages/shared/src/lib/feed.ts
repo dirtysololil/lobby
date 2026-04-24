@@ -21,15 +21,15 @@ export const createFeedPostSchema = z
   .object({
     kind: feedPostKindSchema.default("ARTICLE"),
     title: z.string().trim().max(160).nullable().optional(),
-    body: z.string().trim().min(1).max(10_000),
-    mediaUrl: z.string().trim().url().max(2_048).nullable().optional(),
+    body: z.string().trim().max(10_000).optional().default(""),
+    mediaUrl: z.string().trim().max(2_048).nullable().optional(),
   })
   .superRefine((value, context) => {
-    if (value.kind === "VIDEO" && !value.mediaUrl) {
+    if (!value.body?.trim() && !value.mediaUrl) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["mediaUrl"],
-        message: "mediaUrl is required for VIDEO posts",
+        path: ["body"],
+        message: "body or mediaUrl is required for posts",
       });
     }
   });

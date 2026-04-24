@@ -87,6 +87,17 @@ const pendingEmbedStaleAfterMs = 60_000;
 const mobileViewportQuery = "(max-width: 767px)";
 const mobileActionPressDelayMs = 420;
 const mobileActionMoveThresholdPx = 14;
+const messageReactionOptions = [
+  "😀",
+  "😎",
+  "🙂",
+  "😉",
+  "🤝",
+  "🔥",
+  "✨",
+  "❤️",
+  "👀",
+];
 
 function isContinuation(
   previousMessage: ThreadMessageItem | undefined,
@@ -406,6 +417,9 @@ export function MessageThread({
   const [highlightedMessageId, setHighlightedMessageId] = useState<
     string | null
   >(null);
+  const [messageReactions, setMessageReactions] = useState<
+    Record<string, string[]>
+  >({});
   const [, setPendingEmbedTick] = useState(0);
   const messageElementRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const longPressTimerRef = useRef<number | null>(null);
@@ -960,6 +974,21 @@ export function MessageThread({
     onReply(messageId);
   }
 
+  function handleReactionFromMenu(messageId: string, reaction: string) {
+    setMessageReactions((current) => {
+      const existing = current[messageId] ?? [];
+      const next = existing.includes(reaction)
+        ? existing.filter((item) => item !== reaction)
+        : [...existing, reaction];
+
+      return {
+        ...current,
+        [messageId]: next,
+      };
+    });
+    setContextMenu(null);
+  }
+
   function focusOriginalMessage(messageId: string) {
     const element = messageElementRefs.current.get(messageId);
 
@@ -1018,6 +1047,24 @@ export function MessageThread({
                 </div>
 
                 <div className="mt-3 grid gap-2">
+                  <div className="grid grid-cols-9 gap-1 rounded-[18px] border border-white/8 bg-black p-2">
+                    {messageReactionOptions.map((reaction) => (
+                      <button
+                        key={reaction}
+                        type="button"
+                        onClick={() =>
+                          handleReactionFromMenu(
+                            activeContextMenu.messageId,
+                            reaction,
+                          )
+                        }
+                        className="flex h-9 items-center justify-center rounded-[12px] text-lg transition-colors hover:bg-[var(--bg-hover)]"
+                        aria-label={`Реакция ${reaction}`}
+                      >
+                        {reaction}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     onClick={() =>
@@ -1065,6 +1112,21 @@ export function MessageThread({
               <div className="dm-context-menu-header">
                 <span>Действия</span>
                 <span>{formatThreadTime(contextMenuMessage.createdAt)}</span>
+              </div>
+              <div className="grid grid-cols-5 gap-1 border-b border-[var(--border-soft)] p-1.5">
+                {messageReactionOptions.slice(0, 5).map((reaction) => (
+                  <button
+                    key={reaction}
+                    type="button"
+                    onClick={() =>
+                      handleReactionFromMenu(activeContextMenu.messageId, reaction)
+                    }
+                    className="flex h-8 items-center justify-center rounded-[10px] text-base transition-colors hover:bg-[var(--bg-hover)]"
+                    aria-label={`Реакция ${reaction}`}
+                  >
+                    {reaction}
+                  </button>
+                ))}
               </div>
               <button
                 type="button"
@@ -1201,6 +1263,7 @@ export function MessageThread({
                     activeContextMenu?.messageId === message.id;
                   const isDelivered =
                     isOwn && !message.localState && !message.isDeleted;
+                  const reactions = messageReactions[message.id] ?? [];
                   const isReadByCounterpart =
                     isDelivered &&
                     counterpartLastReadTimestamp !== null &&
@@ -1625,6 +1688,29 @@ export function MessageThread({
                           {isBareMediaMessage && !isBareFramedMediaMessage
                             ? messageFooter
                             : null}
+
+                          {reactions.length > 0 ? (
+                            <div
+                              className={cn(
+                                "mt-1.5 flex flex-wrap gap-1 px-1",
+                                isOwn ? "justify-end" : "justify-start",
+                              )}
+                            >
+                              {reactions.map((reaction) => (
+                                <button
+                                  key={reaction}
+                                  type="button"
+                                  onClick={() =>
+                                    handleReactionFromMenu(message.id, reaction)
+                                  }
+                                  className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-white/8 bg-black px-2 text-sm transition-colors hover:border-white/16 hover:bg-[var(--bg-hover)]"
+                                  aria-label={`Убрать реакцию ${reaction}`}
+                                >
+                                  {reaction}
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
 
                           {message.localState === "failed" ? (
                             <div
