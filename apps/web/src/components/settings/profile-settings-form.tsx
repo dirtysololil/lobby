@@ -1,7 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarDays, Camera, Mail, Phone, Trash2 } from "lucide-react";
+import {
+  AtSign,
+  BadgeCheck,
+  CalendarDays,
+  Camera,
+  CheckCircle2,
+  Mail,
+  Phone,
+  Save,
+  Trash2,
+} from "lucide-react";
 import {
   updateProfileSchema,
   type PublicUser,
@@ -62,19 +72,19 @@ const presetLabels: Record<UpdateProfileInput["avatarPreset"], string> = {
 };
 
 const fieldClassName =
-  "h-11 rounded-[16px] border-white/8 bg-black px-4 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
+  "h-11 rounded-[12px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
 
 const textareaClassName =
-  "field-textarea min-h-[136px] rounded-[18px] border-white/8 bg-black px-4 py-3 text-sm leading-6 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
+  "field-textarea min-h-[132px] rounded-[14px] border-white/8 bg-black px-3.5 py-3 text-sm leading-6 text-white shadow-none hover:border-[var(--border-strong)] focus:bg-black";
 
 const selectClassName =
-  "min-h-11 rounded-[16px] border-white/8 bg-black px-4 text-sm text-white shadow-none hover:border-[var(--border-strong)]";
+  "min-h-11 rounded-[12px] border-white/8 bg-black px-3.5 text-sm text-white shadow-none hover:border-[var(--border-strong)]";
 
 const selectListClassName =
   "border-[var(--border)] bg-black p-1 shadow-[0_14px_36px_rgba(0,0,0,0.32)]";
 
 const primaryActionClassName =
-  "h-11 rounded-[16px] border-white bg-white px-5 text-sm font-medium text-black hover:border-white hover:bg-neutral-100";
+  "h-11 rounded-[12px] border-white bg-white px-5 text-sm font-medium text-black hover:border-white hover:bg-neutral-100";
 
 function InfoPill({
   icon,
@@ -88,6 +98,30 @@ function InfoPill({
       {icon}
       <span className="truncate">{children}</span>
     </span>
+  );
+}
+
+function ProfileMetaCell({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-[72px] items-center gap-3 bg-[var(--bg-panel)] px-4 py-3 sm:px-5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-[var(--border-soft)] bg-black text-[var(--text-soft)]">
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="section-kicker block">{label}</span>
+        <span className="mt-1 block truncate text-sm font-medium text-white">
+          {value}
+        </span>
+      </span>
+    </div>
   );
 }
 
@@ -105,7 +139,7 @@ function SummaryCard({
   return (
     <div
       className={cn(
-        "rounded-[16px] border border-[var(--border-soft)] bg-black px-3.5 py-3",
+        "rounded-[14px] border border-[var(--border-soft)] bg-black px-3.5 py-3",
         className,
       )}
     >
@@ -120,7 +154,7 @@ function SummaryCard({
   );
 }
 
-function FieldCard({
+function FormPanel({
   title,
   description,
   children,
@@ -134,14 +168,14 @@ function FieldCard({
   return (
     <section
       className={cn(
-        "rounded-[20px] border border-[var(--border-soft)] bg-[var(--bg-panel-muted)] p-4 sm:p-5",
+        "premium-panel rounded-[22px] px-4 py-4 sm:px-5 sm:py-5",
         className,
       )}
     >
-      <div className="mb-3">
-        <p className="text-sm font-semibold tracking-tight text-white">{title}</p>
+      <div className="mb-4 flex flex-col gap-1">
+        <p className="section-kicker">{title}</p>
         {description ? (
-          <p className="mt-1 text-xs leading-5 text-[var(--text-dim)]">
+          <p className="max-w-[62ch] text-sm leading-5 text-[var(--text-dim)]">
             {description}
           </p>
         ) : null}
@@ -237,6 +271,21 @@ export function ProfileSettingsForm({
   const selectedPresence = form.watch("presence") ?? safeViewer.profile.presence;
   const selectedPreset = form.watch("avatarPreset") ?? safeViewer.profile.avatarPreset;
   const isDirty = form.formState.isDirty;
+  const profileFields = [
+    nicknameValue,
+    emailValue,
+    fullNameValue,
+    phoneValue,
+    birthDateValue,
+    bioPreview,
+    statusEmojiValue,
+  ];
+  const completedProfileFields = profileFields.filter(
+    (value) => value.trim().length > 0,
+  ).length;
+  const profileCompletion = Math.round(
+    (completedProfileFields / profileFields.length) * 100,
+  );
 
   async function onSubmit(values: UpdateProfileInput) {
     setError(null);
@@ -369,47 +418,46 @@ export function ProfileSettingsForm({
 
   return (
     <>
-      <div className="grid gap-3">
+      <div className="w-full max-w-[1480px]">
         <form
-          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
+          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]"
           onSubmit={form.handleSubmit((values) => void onSubmit(values))}
         >
-          <section className="premium-panel overflow-hidden rounded-[26px]">
-            <div className="grid gap-4 border-b border-[var(--border-soft)] px-4 py-4 sm:px-5 lg:grid-cols-[auto_minmax(0,1fr)_minmax(220px,240px)] lg:items-center">
-              <div className="relative mx-auto lg:mx-0">
-                <button
-                  type="button"
-                  onClick={() => setIsAvatarPreviewOpen(true)}
-                  className="group relative inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-                  aria-label="Открыть фото профиля"
-                >
-                  <UserAvatar
-                    user={safeViewer}
-                    size="lg"
-                    showPresenceIndicator={false}
-                    className="h-[88px] w-[88px] text-[1.35rem] sm:h-[96px] sm:w-[96px]"
-                  />
-                  <span className="pointer-events-none absolute inset-x-1/2 bottom-2 -translate-x-1/2 rounded-full border border-white/10 bg-black px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                    Просмотр
+          <section className="premium-panel col-span-full overflow-hidden rounded-[24px]">
+            <div className="grid gap-5 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_minmax(220px,260px)] lg:items-center">
+              <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="relative w-max">
+                  <button
+                    type="button"
+                    onClick={() => setIsAvatarPreviewOpen(true)}
+                    className="group relative inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                    aria-label="Открыть фото профиля"
+                  >
+                    <UserAvatar
+                      user={safeViewer}
+                      size="lg"
+                      showPresenceIndicator={false}
+                      className="h-[96px] w-[96px] text-[1.4rem] sm:h-[112px] sm:w-[112px]"
+                    />
+                    <span className="pointer-events-none absolute inset-x-1/2 bottom-3 -translate-x-1/2 rounded-full border border-white/10 bg-black px-2 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                      Просмотр
+                    </span>
+                  </button>
+                  <span className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full border-[4px] border-black bg-black">
+                    <span
+                      className={cn(
+                        "h-3 w-3 rounded-full",
+                        getResolvedPresenceDotClass(liveViewer),
+                      )}
+                    />
                   </span>
-                </button>
-                <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border-[3px] border-black bg-black">
-                  <span
-                    className={cn(
-                      "h-2.5 w-2.5 rounded-full",
-                      getResolvedPresenceDotClass(liveViewer),
-                    )}
-                  />
-                </span>
-              </div>
+                </div>
 
-              <div className="min-w-0">
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="truncate text-[1.4rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.65rem]">
-                    {nicknameValue}
-                  </h2>
-                  <div className="flex flex-col gap-1">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="truncate text-[1.55rem] font-semibold tracking-normal text-white sm:text-[1.9rem]">
+                      {nicknameValue}
+                    </h2>
                     <ProfileEmojiPicker
                       value={statusEmojiValue || null}
                       onChange={(value) =>
@@ -420,33 +468,36 @@ export function ProfileSettingsForm({
                       }
                     />
                   </div>
-                </div>
 
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-dim)]">
-                  <span>@{safeViewer.username}</span>
-                  {fullNameValue ? <span>{fullNameValue}</span> : null}
-                  {birthDateValue ? <span>{birthDateValue}</span> : null}
-                </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-dim)]">
+                    <span>@{safeViewer.username}</span>
+                    {fullNameValue ? <span>{fullNameValue}</span> : null}
+                    {birthDateValue ? <span>{birthDateValue}</span> : null}
+                  </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <InfoPill icon={<Mail size={12} strokeWidth={1.8} />}>
-                    {emailValue}
-                  </InfoPill>
-                  {phoneValue ? (
-                    <InfoPill icon={<Phone size={12} strokeWidth={1.8} />}>
-                      {phoneValue}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <InfoPill icon={<Mail size={12} strokeWidth={1.8} />}>
+                      {emailValue}
                     </InfoPill>
-                  ) : null}
-                  <InfoPill>{presetLabels[selectedPreset]}</InfoPill>
-                </div>
+                    {phoneValue ? (
+                      <InfoPill icon={<Phone size={12} strokeWidth={1.8} />}>
+                        {phoneValue}
+                      </InfoPill>
+                    ) : null}
+                    <InfoPill icon={<BadgeCheck size={12} strokeWidth={1.8} />}>
+                      {presetLabels[selectedPreset]}
+                    </InfoPill>
+                  </div>
 
-                <p className="mt-3 max-w-[60ch] overflow-hidden text-sm leading-6 text-[var(--text-dim)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                  {bioPreview || "Добавьте короткое описание, чтобы профиль выглядел живее."}
-                </p>
+                  <p className="mt-3 max-w-[62ch] overflow-hidden text-sm leading-6 text-[var(--text-dim)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                    {bioPreview ||
+                      "Добавьте короткое описание, чтобы профиль выглядел живее."}
+                  </p>
+                </div>
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-[16px] border border-white/8 bg-black px-4 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]">
+                <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-[12px] border border-white/8 bg-black px-4 text-sm font-medium text-white transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]">
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/gif"
@@ -465,7 +516,7 @@ export function ProfileSettingsForm({
                   variant="secondary"
                   onClick={() => void handleAvatarRemove()}
                   disabled={!hasCustomAvatar || isRemovingAvatar}
-                  className="min-h-11 rounded-[16px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+                  className="min-h-11 rounded-[12px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
                 >
                   <Trash2 size={15} strokeWidth={1.5} />
                   {isRemovingAvatar ? "Удаляем..." : "Удалить аватар"}
@@ -473,167 +524,19 @@ export function ProfileSettingsForm({
               </div>
             </div>
 
-            <div className="grid gap-3 px-4 py-4 sm:px-5">
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                <FieldCard
-                  title="Ник и контакты"
-                  description="Ник, почта и телефон в одной плотной группе."
-                >
-                  <div className="grid gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
-                    <div className="grid gap-2 md:contents">
-                      <div className="order-1 space-y-2">
-                        <Label htmlFor="displayName">Ник</Label>
-                        <Input
-                          id="displayName"
-                          {...form.register("displayName")}
-                          className={fieldClassName}
-                        />
-                      </div>
-
-                      <div className="order-3 space-y-2 md:col-span-full xl:col-span-1">
-                        <Label htmlFor="email">Почта</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          {...form.register("email")}
-                          className={fieldClassName}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="order-4 space-y-2 md:col-span-full xl:col-span-1">
-                      <Label htmlFor="phone">Телефон</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+7 999 123-45-67"
-                        {...form.register("phone")}
-                        className={fieldClassName}
-                      />
-                    </div>
-
-                    {form.formState.errors.displayName ? (
-                      <p className="md:col-span-full text-sm text-rose-200">
-                        {form.formState.errors.displayName.message}
-                      </p>
-                    ) : null}
-                    {form.formState.errors.email ? (
-                      <p className="md:col-span-full text-sm text-rose-200">
-                        {form.formState.errors.email.message}
-                      </p>
-                    ) : null}
-                    {form.formState.errors.phone ? (
-                      <p className="md:col-span-full text-sm text-rose-200">
-                        {form.formState.errors.phone.message}
-                      </p>
-                    ) : null}
-                  </div>
-                </FieldCard>
-
-                <FieldCard
-                  title="Личные данные"
-                  description="ФИО, дата рождения и внешний вид профиля."
-                >
-                  <div className="grid gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">ФИО</Label>
-                      <Input
-                        id="fullName"
-                        placeholder="Имя Фамилия"
-                        {...form.register("fullName")}
-                        className={fieldClassName}
-                      />
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                      <div className="space-y-2">
-                        <Label htmlFor="birthDate">Дата рождения</Label>
-                        <div className="relative">
-                          <Input
-                            id="birthDate"
-                            type="date"
-                            {...form.register("birthDate")}
-                            className={cn(fieldClassName, "pr-10")}
-                          />
-                          <CalendarDays
-                            size={16}
-                            strokeWidth={1.7}
-                            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="avatarPreset">Стиль аватара</Label>
-                        <SelectField
-                          id="avatarPreset"
-                          className={selectClassName}
-                          listClassName={selectListClassName}
-                          {...form.register("avatarPreset")}
-                        >
-                          {presetOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {presetLabels[option]}
-                            </option>
-                          ))}
-                        </SelectField>
-                      </div>
-                    </div>
-
-                    {form.formState.errors.fullName ? (
-                      <p className="text-sm text-rose-200">
-                        {form.formState.errors.fullName.message}
-                      </p>
-                    ) : null}
-                    {form.formState.errors.birthDate ? (
-                      <p className="text-sm text-rose-200">
-                        {form.formState.errors.birthDate.message}
-                      </p>
-                    ) : null}
-                  </div>
-                </FieldCard>
-              </div>
-
-              <FieldCard
-                title="О себе"
-                description="Короткий живой текст. Здесь не нужен огромный блок."
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor="bio">Описание</Label>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      {bioValue.trim().length} симв.
-                    </span>
-                  </div>
-                  <textarea
-                    id="bio"
-                    rows={5}
-                    className={textareaClassName}
-                    {...form.register("bio")}
-                  />
-                  {form.formState.errors.bio ? (
-                    <p className="text-sm text-rose-200">
-                      {form.formState.errors.bio.message}
-                    </p>
-                  ) : null}
-                </div>
-              </FieldCard>
-            </div>
-          </section>
-
-          <section className="premium-panel overflow-hidden rounded-[24px]">
-            <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
-              <p className="section-kicker">Видимость</p>
-              <h3 className="mt-1 text-base font-semibold tracking-tight text-white">
-                Статус и стиль
-              </h3>
-            </div>
-
-            <div className="grid gap-3 px-4 py-4">
-              <SummaryCard
-                label="Сейчас"
-                value={presenceLabels[selectedPresence]}
-                accent={
+            <div className="grid gap-px border-t border-[var(--border-soft)] bg-[var(--border-soft)] sm:grid-cols-2 xl:grid-cols-4">
+              <ProfileMetaCell
+                icon={<AtSign size={16} strokeWidth={1.7} />}
+                label="Логин"
+                value={`@${safeViewer.username}`}
+              />
+              <ProfileMetaCell
+                icon={<Mail size={16} strokeWidth={1.7} />}
+                label="Почта"
+                value={emailValue}
+              />
+              <ProfileMetaCell
+                icon={
                   <span
                     className={cn(
                       "h-2.5 w-2.5 rounded-full",
@@ -641,27 +544,141 @@ export function ProfileSettingsForm({
                     )}
                   />
                 }
+                label="Статус"
+                value={presenceLabels[selectedPresence]}
               />
-
-              <div className="grid gap-2">
-                <Label htmlFor="presence">Статус</Label>
-                <SelectField
-                  id="presence"
-                  className={selectClassName}
-                  listClassName={selectListClassName}
-                  {...form.register("presence")}
-                >
-                  {presenceOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {presenceLabels[option]}
-                    </option>
-                  ))}
-                </SelectField>
-              </div>
+              <ProfileMetaCell
+                icon={<BadgeCheck size={16} strokeWidth={1.7} />}
+                label="Аватар"
+                value={presetLabels[selectedPreset]}
+              />
             </div>
           </section>
 
-          <section className="xl:col-span-full">
+          <div className="grid gap-3">
+            <FormPanel
+              title="Контакты"
+              description="Ник, почта и телефон собраны рядом, чтобы основные данные быстро считывались."
+            >
+              <div className="grid gap-3 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="displayName">Ник</Label>
+                  <Input
+                    id="displayName"
+                    {...form.register("displayName")}
+                    className={fieldClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Почта</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    {...form.register("email")}
+                    className={fieldClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Телефон</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+7 999 123-45-67"
+                    {...form.register("phone")}
+                    className={fieldClassName}
+                  />
+                </div>
+
+                {form.formState.errors.displayName ? (
+                  <p className="text-sm text-rose-200 lg:col-span-3">
+                    {form.formState.errors.displayName.message}
+                  </p>
+                ) : null}
+                {form.formState.errors.email ? (
+                  <p className="text-sm text-rose-200 lg:col-span-3">
+                    {form.formState.errors.email.message}
+                  </p>
+                ) : null}
+                {form.formState.errors.phone ? (
+                  <p className="text-sm text-rose-200 lg:col-span-3">
+                    {form.formState.errors.phone.message}
+                  </p>
+                ) : null}
+              </div>
+            </FormPanel>
+
+            <FormPanel
+              title="Личные данные"
+              description="ФИО и дата рождения отображаются в публичной карточке профиля."
+            >
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(220px,0.65fr)]">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">ФИО</Label>
+                  <Input
+                    id="fullName"
+                    placeholder="Имя Фамилия"
+                    {...form.register("fullName")}
+                    className={fieldClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="birthDate">Дата рождения</Label>
+                  <div className="relative">
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      {...form.register("birthDate")}
+                      className={cn(fieldClassName, "pr-10")}
+                    />
+                    <CalendarDays
+                      size={16}
+                      strokeWidth={1.7}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                    />
+                  </div>
+                </div>
+
+                {form.formState.errors.fullName ? (
+                  <p className="text-sm text-rose-200 lg:col-span-2">
+                    {form.formState.errors.fullName.message}
+                  </p>
+                ) : null}
+                {form.formState.errors.birthDate ? (
+                  <p className="text-sm text-rose-200 lg:col-span-2">
+                    {form.formState.errors.birthDate.message}
+                  </p>
+                ) : null}
+              </div>
+            </FormPanel>
+
+            <FormPanel
+              title="О себе"
+              description="Короткий текст остается компактным, но дает профилю контекст."
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="bio">Описание</Label>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {bioValue.trim().length} симв.
+                  </span>
+                </div>
+                <textarea
+                  id="bio"
+                  rows={5}
+                  className={textareaClassName}
+                  {...form.register("bio")}
+                />
+                {form.formState.errors.bio ? (
+                  <p className="text-sm text-rose-200">
+                    {form.formState.errors.bio.message}
+                  </p>
+                ) : null}
+              </div>
+            </FormPanel>
+
             <SettingsSectionBoundary
               title="Рингтон временно недоступен"
               description="Не удалось отрисовать настройки рингтона. Остальные параметры профиля доступны."
@@ -681,12 +698,90 @@ export function ProfileSettingsForm({
                 }}
               />
             </SettingsSectionBoundary>
-          </section>
+          </div>
 
-          <section className="premium-panel col-span-full rounded-[24px] px-4 py-3.5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <aside className="grid content-start gap-3 xl:sticky xl:top-4">
+            <section className="premium-panel overflow-hidden rounded-[22px]">
+              <div className="border-b border-[var(--border-soft)] px-4 py-3.5">
+                <p className="section-kicker">Видимость</p>
+                <h3 className="mt-1 text-base font-semibold tracking-normal text-white">
+                  Статус и стиль
+                </h3>
+              </div>
+
+              <div className="grid gap-3 px-4 py-4">
+                <SummaryCard
+                  label="Сейчас"
+                  value={presenceLabels[selectedPresence]}
+                  accent={
+                    <span
+                      className={cn(
+                        "h-2.5 w-2.5 rounded-full",
+                        getPresenceDotClass(selectedPresence),
+                      )}
+                    />
+                  }
+                />
+
+                <div className="grid gap-2">
+                  <Label htmlFor="presence">Статус</Label>
+                  <SelectField
+                    id="presence"
+                    className={selectClassName}
+                    listClassName={selectListClassName}
+                    {...form.register("presence")}
+                  >
+                    {presenceOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {presenceLabels[option]}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="avatarPreset">Стиль аватара</Label>
+                  <SelectField
+                    id="avatarPreset"
+                    className={selectClassName}
+                    listClassName={selectListClassName}
+                    {...form.register("avatarPreset")}
+                  >
+                    {presetOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {presetLabels[option]}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+
+                <div className="rounded-[14px] border border-[var(--border-soft)] bg-black px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-2 text-sm font-medium text-white">
+                      <CheckCircle2 size={15} strokeWidth={1.8} />
+                      Профиль
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      {completedProfileFields}/{profileFields.length}
+                    </span>
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--bg-accent-soft)]">
+                    <div
+                      className="h-full rounded-full bg-white"
+                      style={{ width: `${profileCompletion}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="premium-panel rounded-[22px] px-4 py-3.5">
               <div className="flex min-h-[24px] flex-wrap items-center gap-2 text-sm">
-                <CompactListMeta className={cn(isDirty && "border-[var(--border-strong)] text-white")}>
+                <CompactListMeta
+                  className={cn(
+                    isDirty && "border-[var(--border-strong)] text-white",
+                  )}
+                >
                   {isDirty ? "Есть изменения" : "Без изменений"}
                 </CompactListMeta>
                 {error ? (
@@ -700,12 +795,13 @@ export function ProfileSettingsForm({
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2 lg:justify-end">
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
                 <Button
                   type="submit"
                   disabled={form.formState.isSubmitting}
-                  className={primaryActionClassName}
+                  className={cn(primaryActionClassName, "w-full")}
                 >
+                  <Save size={15} strokeWidth={1.8} />
                   {form.formState.isSubmitting ? "Сохраняем..." : "Сохранить"}
                 </Button>
                 <Button
@@ -717,13 +813,13 @@ export function ProfileSettingsForm({
                     setMessage(null);
                   }}
                   disabled={form.formState.isSubmitting}
-                  className="h-11 rounded-[16px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+                  className="h-11 w-full rounded-[12px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
                 >
                   Сбросить
                 </Button>
               </div>
-            </div>
-          </section>
+            </section>
+          </aside>
         </form>
       </div>
 
