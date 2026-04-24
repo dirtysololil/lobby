@@ -170,7 +170,13 @@ export function MessageComposer({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
+  const contentRef = useRef("");
   const selectionRef = useRef({ start: 0, end: 0 });
+
+  const updateContent = useCallback((nextContent: string) => {
+    contentRef.current = nextContent;
+    setContent(nextContent);
+  }, []);
 
   const syncTextareaHeight = useCallback(() => {
     const element = textareaRef.current;
@@ -369,7 +375,7 @@ export function MessageComposer({
     const nextContent = `${before}${token}${after}`;
     const nextPosition = start + token.length;
 
-    setContent(nextContent);
+    updateContent(nextContent);
 
     if (recentEmoji) {
       pushRecentEmoji(recentEmoji);
@@ -405,21 +411,30 @@ export function MessageComposer({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const trimmed = content.trim();
+    if (isSendingText) {
+      return;
+    }
+
+    const submittedContent = contentRef.current;
+    const trimmed = submittedContent.trim();
 
     if (!trimmed) {
       return;
     }
 
     setIsSendingText(true);
+    updateContent("");
+    requestAnimationFrame(() => focusTextarea(0));
 
     try {
       await onSend({
         type: "TEXT",
         content: trimmed,
       });
-      setContent("");
-      requestAnimationFrame(() => focusTextarea(0));
+    } catch (error) {
+      if (contentRef.current.length === 0) {
+        updateContent(submittedContent);
+      }
     } finally {
       setIsSendingText(false);
     }
@@ -659,7 +674,7 @@ export function MessageComposer({
             <textarea
               ref={textareaRef}
               value={content}
-              onChange={(event) => setContent(event.target.value)}
+              onChange={(event) => updateContent(event.target.value)}
               onInput={syncTextareaHeight}
               onPaste={handlePaste}
               onClick={syncSelection}
@@ -673,7 +688,7 @@ export function MessageComposer({
                     ? "В этом диалоге нельзя отправлять сообщения."
                     : "Сообщение..."
               }
-              disabled={disabled || isSendingText || isUploadingFiles}
+              disabled={disabled || isUploadingFiles}
               rows={1}
               className={cn(
                 "dm-composer-textarea relative block min-h-9 max-h-28 w-full resize-none whitespace-pre-wrap break-words border-none bg-transparent text-sm leading-[1.44] text-white caret-white outline-none transition-colors placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60 [overflow-wrap:anywhere]",
