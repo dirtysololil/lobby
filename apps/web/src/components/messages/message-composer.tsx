@@ -51,6 +51,7 @@ interface MessageComposerProps {
   onStickerCatalogChange: (catalog: StickerCatalog) => void;
   onUploadFiles: (files: File[], mode: ComposerFileUploadMode) => Promise<void>;
   onSend: (payload: ComposerSendPayload) => Promise<void>;
+  onTypingChange?: (isTyping: boolean) => void;
   replyToMessage: DirectMessageReplyPreview | null;
   onCancelReply: () => void;
 }
@@ -154,6 +155,7 @@ export function MessageComposer({
   onStickerCatalogChange,
   onUploadFiles,
   onSend,
+  onTypingChange,
   replyToMessage,
   onCancelReply,
 }: MessageComposerProps) {
@@ -172,11 +174,52 @@ export function MessageComposer({
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const contentRef = useRef("");
   const selectionRef = useRef({ start: 0, end: 0 });
+  const typingStopTimerRef = useRef<number | null>(null);
+  const isTypingRef = useRef(false);
 
   const updateContent = useCallback((nextContent: string) => {
     contentRef.current = nextContent;
     setContent(nextContent);
   }, []);
+
+  const stopTyping = useCallback(() => {
+    if (typingStopTimerRef.current !== null) {
+      window.clearTimeout(typingStopTimerRef.current);
+      typingStopTimerRef.current = null;
+    }
+
+    if (!isTypingRef.current) {
+      return;
+    }
+
+    isTypingRef.current = false;
+    onTypingChange?.(false);
+  }, [onTypingChange]);
+
+  const notifyTypingFromDraft = useCallback(
+    (nextContent: string) => {
+      if (!onTypingChange || disabled || isUploadingFiles) {
+        return;
+      }
+
+      if (nextContent.trim().length === 0) {
+        stopTyping();
+        return;
+      }
+
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        onTypingChange(true);
+      }
+
+      if (typingStopTimerRef.current !== null) {
+        window.clearTimeout(typingStopTimerRef.current);
+      }
+
+      typingStopTimerRef.current = window.setTimeout(stopTyping, 2200);
+    },
+    [disabled, isUploadingFiles, onTypingChange, stopTyping],
+  );
 
   const syncTextareaHeight = useCallback(() => {
     const element = textareaRef.current;
@@ -196,6 +239,8 @@ export function MessageComposer({
     setRecentEmojis(readRecentStrings(RECENT_EMOJIS_KEY));
     setRecentGifIds(readRecentStrings(RECENT_GIFS_KEY));
   }, []);
+
+  useEffect(() => stopTyping, [stopTyping]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -423,6 +468,7 @@ export function MessageComposer({
     }
 
     setIsSendingText(true);
+    stopTyping();
     updateContent("");
     requestAnimationFrame(() => focusTextarea(0));
 
@@ -674,7 +720,10 @@ export function MessageComposer({
             <textarea
               ref={textareaRef}
               value={content}
-              onChange={(event) => updateContent(event.target.value)}
+              onChange={(event) => {
+                updateContent(event.target.value);
+                notifyTypingFromDraft(event.target.value);
+              }}
               onInput={syncTextareaHeight}
               onPaste={handlePaste}
               onClick={syncSelection}

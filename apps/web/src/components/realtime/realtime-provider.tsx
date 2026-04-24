@@ -2,12 +2,14 @@
 
 import {
   callSignalSchema,
+  dmTypingSignalSchema,
   dmSignalSchema,
   presenceSnapshotSchema,
   presenceUpdateSchema,
   type CallSignal,
   type CallSummary,
   type DmSignal,
+  type DmTypingSignal,
   type PublicUser,
 } from "@lobby/shared";
 import type { ReactNode } from "react";
@@ -21,6 +23,7 @@ interface RealtimeContextValue {
   socket: Socket | null;
   latestSignal: CallSignal | null;
   latestDmSignal: DmSignal | null;
+  latestDmTypingSignal: DmTypingSignal | null;
   incomingCalls: CallSummary[];
   presenceByUserId: Record<string, boolean>;
   clearIncomingCall: (callId: string) => void;
@@ -91,6 +94,8 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [latestSignal, setLatestSignal] = useState<CallSignal | null>(null);
   const [latestDmSignal, setLatestDmSignal] = useState<DmSignal | null>(null);
+  const [latestDmTypingSignal, setLatestDmTypingSignal] =
+    useState<DmTypingSignal | null>(null);
   const [incomingCalls, setIncomingCalls] = useState<CallSummary[]>([]);
   const [presenceByUserId, setPresenceByUserId] = useState<Record<string, boolean>>({});
   const clearIncomingCall = useCallback((callId: string) => {
@@ -99,6 +104,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
   const disconnectRealtime = useCallback(() => {
     setLatestSignal(null);
     setLatestDmSignal(null);
+    setLatestDmTypingSignal(null);
     setIncomingCalls([]);
     setPresenceByUserId({});
 
@@ -246,6 +252,17 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       }
     }
 
+    function handleDmTyping(rawPayload: unknown) {
+      try {
+        setLatestDmTypingSignal(dmTypingSignalSchema.parse(rawPayload));
+      } catch (error) {
+        console.warn("[realtime/client] dm.typing parse failed", {
+          error,
+          rawPayload,
+        });
+      }
+    }
+
     function handlePresenceSnapshot(rawPayload: unknown) {
       const payload = presenceSnapshotSchema.parse(rawPayload);
       setPresenceByUserId(
@@ -274,6 +291,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
     socket.on("disconnect", handleDisconnect);
     socket.on("calls.signal", handleSignal);
     socket.on("dm.signal", handleDmSignal);
+    socket.on("dm.typing", handleDmTyping);
     socket.on("presence.snapshot", handlePresenceSnapshot);
     socket.on("presence.updated", handlePresenceUpdate);
     socket.io.engine.on("upgrade", handleEngineUpgrade);
@@ -296,6 +314,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
       socket.off("disconnect", handleDisconnect);
       socket.off("calls.signal", handleSignal);
       socket.off("dm.signal", handleDmSignal);
+      socket.off("dm.typing", handleDmTyping);
       socket.off("presence.snapshot", handlePresenceSnapshot);
       socket.off("presence.updated", handlePresenceUpdate);
       socket.io.engine.off("upgrade", handleEngineUpgrade);
@@ -318,6 +337,7 @@ export function RealtimeProvider({ viewer, children }: RealtimeProviderProps) {
         socket,
         latestSignal,
         latestDmSignal,
+        latestDmTypingSignal,
         incomingCalls,
         presenceByUserId,
         clearIncomingCall,

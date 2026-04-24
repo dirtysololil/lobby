@@ -80,8 +80,9 @@ type ContextMenuState =
   | { mode: "floating"; messageId: string; x: number; y: number }
   | { mode: "sheet"; messageId: string };
 
-const contextMenuWidth = 196;
+const contextMenuWidth = 184;
 const contextMenuMargin = 12;
+const contextMenuGap = 10;
 const pendingEmbedStaleAfterMs = 60_000;
 const mobileViewportQuery = "(max-width: 767px)";
 const mobileActionPressDelayMs = 420;
@@ -263,6 +264,37 @@ function clampContextMenuPosition(x: number, y: number) {
     ),
     y: Math.max(contextMenuMargin, Math.min(y, window.innerHeight - 60)),
   };
+}
+
+function getTriggerContextMenuPosition(
+  triggerRect: DOMRect,
+  isOwnMessage: boolean,
+) {
+  if (typeof window === "undefined") {
+    return {
+      x: triggerRect.right + contextMenuGap,
+      y: triggerRect.top,
+    };
+  }
+
+  const openLeft = triggerRect.left - contextMenuWidth - contextMenuGap;
+  const openRight = triggerRect.right + contextMenuGap;
+  const hasRoomLeft = openLeft >= contextMenuMargin;
+  const hasRoomRight =
+    openRight + contextMenuWidth <= window.innerWidth - contextMenuMargin;
+  const x =
+    isOwnMessage && hasRoomLeft
+      ? openLeft
+      : !isOwnMessage && hasRoomRight
+        ? openRight
+        : hasRoomRight
+          ? openRight
+          : openLeft;
+
+  return clampContextMenuPosition(
+    x,
+    triggerRect.top + triggerRect.height / 2 - 28,
+  );
 }
 
 function primeRoundVideoNotePreview(video: HTMLVideoElement) {
@@ -1024,12 +1056,16 @@ export function MessageThread({
           ) : (
             <div
               data-dm-context-menu="true"
-              className="fixed z-[90] hidden w-[196px] rounded-[14px] border border-white/8 bg-black p-1.5 shadow-[0_18px_40px_rgba(2,6,12,0.42)] md:block"
+              className="dm-context-menu fixed z-[90] hidden md:block"
               style={{
                 left: activeContextMenu.x,
                 top: activeContextMenu.y,
               }}
             >
+              <div className="dm-context-menu-header">
+                <span>Действия</span>
+                <span>{formatThreadTime(contextMenuMessage.createdAt)}</span>
+              </div>
               <button
                 type="button"
                 onClick={() =>
@@ -1328,10 +1364,12 @@ export function MessageThread({
                                   event.stopPropagation();
                                   const rect =
                                     event.currentTarget.getBoundingClientRect();
+                                  const position =
+                                    getTriggerContextMenuPosition(rect, isOwn);
                                   openDesktopContextMenu(
                                     message.id,
-                                    rect.right - contextMenuWidth,
-                                    rect.bottom + 6,
+                                    position.x,
+                                    position.y,
                                   );
                                 }}
                                 disabled={isDeleting === message.id}

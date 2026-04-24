@@ -400,7 +400,7 @@ export function ConversationView({
   viewerId,
   viewerRole,
 }: ConversationViewProps) {
-  const { latestDmSignal } = useRealtime();
+  const { latestDmSignal, latestDmTypingSignal, socket } = useRealtime();
   const realtimePresence = useOptionalRealtimePresence();
   const [conversation, setConversation] = useState<ConversationState | null>(null);
   const [messages, setMessages] = useState<ThreadMessageItem[]>([]);
@@ -415,6 +415,9 @@ export function ConversationView({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
   const [callHistory, setCallHistory] = useState<CallSummary[]>([]);
+  const [typingUserIds, setTypingUserIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [replyToMessage, setReplyToMessage] =
     useState<DirectMessageReplyPreview | null>(null);
   const [forceThreadScrollToken, setForceThreadScrollToken] = useState(0);
@@ -439,6 +442,7 @@ export function ConversationView({
     lastReadAt: null,
   });
   const hasPendingReadRef = useRef(false);
+  const typingTimeoutsRef = useRef<Map<string, number>>(new Map());
 
   const requestThreadScrollToBottom = useCallback(() => {
     setForceThreadScrollToken((current) => current + 1);
@@ -554,8 +558,21 @@ export function ConversationView({
     setConversation(null);
     setMessages([]);
     setCallHistory([]);
+    setTypingUserIds(new Set());
     setReplyToMessage(null);
     setErrorMessage(null);
+  }, [conversationId]);
+
+  useEffect(() => {
+    const typingTimeouts = typingTimeoutsRef.current;
+
+    return () => {
+      for (const timeoutId of typingTimeouts.values()) {
+        window.clearTimeout(timeoutId);
+      }
+
+      typingTimeouts.clear();
+    };
   }, [conversationId]);
 
   useEffect(() => {
@@ -697,6 +714,50 @@ export function ConversationView({
     }
   }, [conversationId, latestDmSignal, markConversationAsRead, viewerId]);
 
+  useEffect(() => {
+    if (
+      !latestDmTypingSignal ||
+      latestDmTypingSignal.conversationId !== conversationId ||
+      latestDmTypingSignal.userId === viewerId
+    ) {
+      return;
+    }
+
+    const typingTimeouts = typingTimeoutsRef.current;
+    const existingTimeout = typingTimeouts.get(latestDmTypingSignal.userId);
+
+    if (existingTimeout !== undefined) {
+      window.clearTimeout(existingTimeout);
+      typingTimeouts.delete(latestDmTypingSignal.userId);
+    }
+
+    if (!latestDmTypingSignal.isTyping) {
+      setTypingUserIds((current) => {
+        const next = new Set(current);
+        next.delete(latestDmTypingSignal.userId);
+        return next;
+      });
+      return;
+    }
+
+    setTypingUserIds((current) => {
+      const next = new Set(current);
+      next.add(latestDmTypingSignal.userId);
+      return next;
+    });
+    typingTimeouts.set(
+      latestDmTypingSignal.userId,
+      window.setTimeout(() => {
+        typingTimeouts.delete(latestDmTypingSignal.userId);
+        setTypingUserIds((current) => {
+          const next = new Set(current);
+          next.delete(latestDmTypingSignal.userId);
+          return next;
+        });
+      }, 3200),
+    );
+  }, [conversationId, latestDmTypingSignal, viewerId]);
+
   const counterpart = useMemo(
     () =>
       conversation?.participants.find((participant) => participant.user.id !== viewerId)
@@ -734,12 +795,26 @@ export function ConversationView({
   const isBlocked =
     conversation?.isBlockedByViewer || conversation?.hasBlockedViewer || false;
   const compactStatusLabel = counterpartAvailabilityLabel ?? "Не в сети";
+  const isCounterpartTyping = counterpart
+    ? typingUserIds.has(counterpart.id)
+    : false;
 
   const writeRestrictionMessage = getDirectMessageWriteRestriction(
     conversation?.friendshipState ?? "NONE",
     isBlocked,
   );
   const isComposerDisabled = Boolean(writeRestrictionMessage) || isUploadingFiles;
+
+  const emitTypingChange = useCallback((isTyping: boolean) => {
+    if (!socket || !socket.connected || isComposerDisabled) {
+      return;
+    }
+
+    socket.emit("dm.typing", {
+      conversationId,
+      isTyping,
+    });
+  }, [conversationId, isComposerDisabled, socket]);
 
   async function sendMessage(
     payload: ComposerSendPayload,
@@ -1296,6 +1371,16 @@ export function ConversationView({
       </div>
 
       <div className="dm-composer-region shrink-0 bg-black px-4 pt-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom,0px))] md:px-5 md:py-2.5">
+        {isCounterpartTyping ? (
+          <div className="dm-typing-indicator" aria-live="polite">
+            <span className="dm-typing-indicator-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            <span>{counterpart.profile.displayName} печатает</span>
+          </div>
+        ) : null}
         <MessageComposer
           disabled={isComposerDisabled}
           canManageLibrary={viewerRole === "OWNER" || viewerRole === "ADMIN"}
@@ -1316,6 +1401,7 @@ export function ConversationView({
           }
           onUploadFiles={(files, mode) => uploadFiles(files, mode)}
           onSend={sendMessage}
+          onTypingChange={emitTypingChange}
           replyToMessage={replyToMessage}
           onCancelReply={() => setReplyToMessage(null)}
         />

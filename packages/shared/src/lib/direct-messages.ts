@@ -383,3 +383,16 @@ export const dmSignalSchema = z.object({
 });
 
 export type DmSignal = z.infer<typeof dmSignalSchema>;
+
+export const dmTypingPayloadSchema = z.object({
+  conversationId: z.string().cuid(),
+  isTyping: z.boolean(),
+});
+
+export type DmTypingPayload = z.infer<typeof dmTypingPayloadSchema>;
+
+export const dmTypingSignalSchema = dmTypingPayloadSchema.extend({
+  userId: z.string().cuid(),
+});
+
+export type DmTypingSignal = z.infer<typeof dmTypingSignalSchema>;

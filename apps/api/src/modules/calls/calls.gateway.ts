@@ -11,6 +11,8 @@ import {
 import {
   subscribeDmCallsSchema,
   subscribeLobbyCallsSchema,
+  dmTypingPayloadSchema,
+  type DmTypingPayload,
   type PublicUser,
   type SubscribeDmCallsInput,
   type SubscribeLobbyCallsInput,
@@ -237,6 +239,34 @@ export class CallsGateway
     }
 
     this.realtimeService.emitPresenceSnapshot(client);
+    return { ok: true };
+  }
+
+  @SubscribeMessage('dm.typing')
+  public async handleDmTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: DmTypingPayload,
+  ) {
+    const parsed = dmTypingPayloadSchema.parse(body);
+    const currentUser = (client.data as { currentUser?: PublicUser })
+      .currentUser;
+
+    if (!currentUser) {
+      client.disconnect();
+      return;
+    }
+
+    await this.callsService.assertDmConversationAccess(
+      currentUser.id,
+      parsed.conversationId,
+    );
+    await client.join(this.realtimeService.getDmRoom(parsed.conversationId));
+    this.realtimeService.emitTypingToDm(parsed.conversationId, client.id, {
+      conversationId: parsed.conversationId,
+      userId: currentUser.id,
+      isTyping: parsed.isTyping,
+    });
+
     return { ok: true };
   }
 

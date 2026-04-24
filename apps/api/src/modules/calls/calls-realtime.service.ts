@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   CallSignal,
   DmSignal,
+  DmTypingSignal,
   PresenceSnapshot,
   PresenceUpdate,
 } from '@lobby/shared';
@@ -9,6 +10,7 @@ import type { Server, Socket } from 'socket.io';
 
 const CALL_SIGNAL_EVENT = 'calls.signal';
 const DM_SIGNAL_EVENT = 'dm.signal';
+const DM_TYPING_EVENT = 'dm.typing';
 const PRESENCE_SNAPSHOT_EVENT = 'presence.snapshot';
 const PRESENCE_UPDATE_EVENT = 'presence.updated';
 
@@ -103,6 +105,17 @@ export class CallsRealtimeService {
     this.server
       ?.to(this.getDmRoom(conversationId))
       .emit(CALL_SIGNAL_EVENT, payload);
+  }
+
+  public emitTypingToDm(
+    conversationId: string,
+    socketId: string,
+    payload: DmTypingSignal,
+  ): void {
+    this.server
+      ?.to(this.getDmRoom(conversationId))
+      .except(socketId)
+      .emit(DM_TYPING_EVENT, payload);
   }
 
   public emitToLobby(lobbyId: string, payload: CallSignal): void {
