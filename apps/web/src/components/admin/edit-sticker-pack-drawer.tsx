@@ -43,8 +43,8 @@ export function EditStickerPackDrawer({
   return (
     <DrawerShell
       open={open}
-      title={mode === "create" ? "Новый набор" : "Редактирование набора"}
-      subtitle="Слаг не показывается в интерфейсе и управляется системой."
+      title={mode === "create" ? "Новый набор" : "Набор"}
+      subtitle="Название, видимость и жизненный цикл набора."
       onClose={onClose}
       footer={
         <DrawerActions
@@ -56,7 +56,7 @@ export function EditStickerPackDrawer({
         />
       }
     >
-      <div className="grid gap-4">
+      <div className="grid gap-3">
         <label className="grid gap-2">
           <span className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">
             Название
@@ -65,7 +65,7 @@ export function EditStickerPackDrawer({
             value={draft.title}
             onChange={(event) => onChange({ title: event.target.value })}
             placeholder="Например, Мемы"
-            className="h-10 border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
+            className="h-11 rounded-[12px] border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
           />
         </label>
 
@@ -78,11 +78,11 @@ export function EditStickerPackDrawer({
             onChange={(event) => onChange({ description: event.target.value })}
             placeholder="Коротко, без лишнего шума."
             rows={4}
-            className="min-h-[104px] rounded-[16px] border border-[var(--border)] bg-black px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)]"
+            className="min-h-[96px] rounded-[12px] border border-[var(--border)] bg-black px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:ring-2 focus:ring-[var(--ring)]"
           />
         </label>
 
-        <div className="grid gap-2">
+        <div className="grid gap-2 pt-1">
           <ToggleField
             label="Опубликован"
             checked={draft.isPublished}
@@ -114,7 +114,7 @@ export function EditStickerPackDrawer({
               variant="destructive"
               onClick={onDelete}
               disabled={deleting}
-              className="w-full justify-center"
+              className="h-10 w-full justify-center rounded-[12px] border-rose-400/25 bg-black text-rose-100 hover:border-rose-400/40 hover:bg-rose-500/10"
             >
               {deleting ? "Удаляем..." : "Удалить набор"}
             </Button>
