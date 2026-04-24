@@ -30,36 +30,28 @@ export function StickerGridCard({
   const keywordLine = sticker.keywords.slice(0, 3).join(" · ");
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group flex min-w-0 flex-col rounded-[18px] border border-[var(--border-soft)] bg-black p-2.5 text-left transition-colors hover:border-[var(--border)] hover:bg-[var(--bg-hover)]"
-    >
-      <div className="relative overflow-hidden rounded-[14px] border border-[var(--border-soft)] bg-black">
-        <StickerAssetPreview
-          sticker={sticker}
-          className="aspect-square rounded-[14px]"
-          imageClassName="h-full w-full object-contain"
-        />
-      </div>
-
-      <div className="mt-2.5 flex items-start gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-white">{sticker.title}</div>
-          {keywordLine ? (
-            <div className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">
-              {keywordLine}
-            </div>
-          ) : null}
+    <div className="group flex min-w-0 flex-col rounded-[16px] border border-[var(--border-soft)] bg-black p-2 text-left transition-colors hover:border-[var(--border)] hover:bg-[var(--bg-hover)]">
+      <button type="button" onClick={onOpen} className="min-w-0 text-left">
+        <div className="relative overflow-hidden rounded-[12px] border border-[var(--border-soft)] bg-black">
+          <StickerAssetPreview
+            sticker={sticker}
+            className="aspect-square rounded-[12px]"
+            imageClassName="h-full w-full object-contain"
+          />
         </div>
+      </button>
 
-        <div
-          className="shrink-0"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-        >
+      <div className="mt-2 flex items-start gap-2">
+        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+          <span className="block truncate text-sm font-medium text-white">
+            {sticker.title}
+          </span>
+          <span className="mt-0.5 block min-h-[16px] truncate text-[11px] text-[var(--text-muted)]">
+            {keywordLine || sticker.originalName || "Без ключевых слов"}
+          </span>
+        </button>
+
+        <div className="shrink-0">
           <KebabMenu
             items={[
               {
@@ -91,7 +83,7 @@ export function StickerGridCard({
         </div>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <div className="mt-2 flex min-h-[22px] flex-wrap items-center gap-1">
         {sticker.isPublished && !sticker.isHidden && !sticker.isArchived ? (
           <StatusBadge label="Активен" tone="live" />
         ) : null}
@@ -101,6 +93,6 @@ export function StickerGridCard({
         {isCover ? <StatusBadge label="Обложка" tone="accent" /> : null}
         {sticker.isAnimated ? <StatusBadge label="GIF" tone="neutral" /> : null}
       </div>
-    </button>
+    </div>
   );
 }

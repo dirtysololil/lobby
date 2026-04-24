@@ -32,14 +32,14 @@ export function StickerPackListItem({
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-2 rounded-[16px] border bg-black px-3 py-3 transition-colors",
+        "group relative flex items-start gap-2 rounded-[14px] border bg-black px-3 py-2.5 transition-colors",
         selected
           ? "border-[var(--border-strong)] bg-[var(--bg-active)]"
           : "border-[var(--border-soft)] hover:border-[var(--border)] hover:bg-[var(--bg-hover)]",
       )}
     >
       {selected ? (
-        <span className="absolute inset-y-3 left-0 w-[2px] rounded-r-full bg-[#0070F3]" />
+        <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-white" />
       ) : null}
 
       <button type="button" onClick={onSelect} className="min-w-0 flex-1 pl-1 text-left">
@@ -53,12 +53,12 @@ export function StickerPackListItem({
         </div>
 
         {description ? (
-          <div className="mt-1 line-clamp-2 text-[12px] leading-5 text-[var(--text-dim)]">
+          <div className="mt-1 line-clamp-1 text-[12px] leading-5 text-[var(--text-dim)]">
             {description}
           </div>
         ) : null}
 
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <div className="mt-2 flex flex-wrap items-center gap-1">
           {pack.isPublished && !pack.isHidden && !pack.isArchived ? (
             <StatusBadge label="Активен" tone="live" />
           ) : null}

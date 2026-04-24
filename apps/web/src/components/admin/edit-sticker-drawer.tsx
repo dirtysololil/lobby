@@ -49,8 +49,8 @@ export function EditStickerDrawer({
   return (
     <DrawerShell
       open={open}
-      title={sticker ? "Редактирование стикера" : "Стикер"}
-      subtitle={sticker?.originalName ?? "Живое превью и быстрые действия"}
+      title={sticker ? "Стикер" : "Стикер"}
+      subtitle={sticker?.originalName ?? "Превью, поиск и быстрые действия."}
       onClose={onClose}
       footer={
         <DrawerActions
@@ -62,11 +62,11 @@ export function EditStickerDrawer({
       }
     >
       {sticker ? (
-        <div className="grid gap-4">
-          <div className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-black">
+        <div className="grid gap-3">
+          <div className="mx-auto w-full max-w-[260px] overflow-hidden rounded-[16px] border border-[var(--border)] bg-black">
             <StickerAssetPreview
               sticker={sticker}
-              className="aspect-square rounded-[20px]"
+              className="aspect-square rounded-[16px]"
             />
           </div>
 
@@ -82,7 +82,7 @@ export function EditStickerDrawer({
             <Input
               value={draft.title}
               onChange={(event) => onChange({ title: event.target.value })}
-              className="h-10 border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
+              className="h-11 rounded-[12px] border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
             />
           </label>
 
@@ -94,7 +94,7 @@ export function EditStickerDrawer({
               value={draft.keywords}
               onChange={(event) => onChange({ keywords: event.target.value })}
               placeholder="мем, вау, реакция"
-              className="h-10 border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
+              className="h-11 rounded-[12px] border-[var(--border)] bg-black text-white hover:border-[var(--border-strong)]"
             />
           </label>
 
@@ -122,7 +122,7 @@ export function EditStickerDrawer({
             variant="secondary"
             onClick={onMakeCover}
             disabled={isCover}
-            className="justify-center"
+            className="h-10 justify-center rounded-[12px] border-white/8 bg-black hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
           >
             {isCover ? "Это обложка набора" : "Сделать обложкой"}
           </Button>
@@ -133,7 +133,7 @@ export function EditStickerDrawer({
             variant="destructive"
             onClick={onDelete}
             disabled={deleting}
-            className="justify-center"
+            className="h-10 justify-center rounded-[12px] border-rose-400/25 bg-black text-rose-100 hover:border-rose-400/40 hover:bg-rose-500/10"
           >
             {deleting ? "Удаляем..." : "Удалить стикер"}
           </Button>
