@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  House,
   Layers3,
   MessageSquareMore,
   UserRound,
@@ -8,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type AppMobileTopNavKey = "messages" | "people" | "hubs" | "settings";
+type AppMobileTopNavKey = "home" | "messages" | "people" | "hubs" | "settings";
 
 interface AppMobileTopNavProps {
   active: AppMobileTopNavKey;
@@ -21,6 +22,12 @@ const navItems: Array<{
   key: AppMobileTopNavKey;
   label: string;
 }> = [
+  {
+    href: "/app/home",
+    icon: House,
+    key: "home",
+    label: "Главная",
+  },
   {
     href: "/app/messages",
     icon: MessageSquareMore,
@@ -52,7 +59,7 @@ export function AppMobileTopNav({
   className,
 }: AppMobileTopNavProps) {
   return (
-    <nav className={cn("grid grid-cols-4 gap-1", className)} aria-label="Основная навигация">
+    <nav className={cn("grid grid-cols-5 gap-1", className)} aria-label="Основная навигация">
       {navItems.map((item) => (
         <Link
           key={item.key}

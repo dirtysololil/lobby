@@ -1,4 +1,10 @@
-export type AppSection = "people" | "messages" | "hubs" | "settings" | "admin";
+export type AppSection =
+  | "home"
+  | "people"
+  | "messages"
+  | "hubs"
+  | "settings"
+  | "admin";
 
 export interface AppRouteState {
   section: AppSection;
@@ -14,7 +20,20 @@ export interface AppRouteState {
 export function parseAppPath(pathname: string | null | undefined): AppRouteState {
   const normalizedPathname = pathname ?? "";
   const segments = normalizedPathname.split("/").filter(Boolean);
-  const section = ((segments[1] ?? "messages") as AppSection) || "messages";
+  const section = ((segments[1] ?? "home") as AppSection) || "home";
+
+  if (section === "home") {
+    return {
+      section,
+      hubId: null,
+      lobbyId: null,
+      topicId: null,
+      conversationId: null,
+      peopleUsername: null,
+      settingsSection: null,
+      adminSection: null,
+    };
+  }
 
   if (section === "messages") {
     return {
@@ -88,7 +107,7 @@ export function parseAppPath(pathname: string | null | undefined): AppRouteState
   }
 
   return {
-    section: "messages",
+    section: "home",
     hubId: null,
     lobbyId: null,
     topicId: null,
@@ -101,6 +120,12 @@ export function parseAppPath(pathname: string | null | undefined): AppRouteState
 
 export function getSectionMeta(route: AppRouteState) {
   switch (route.section) {
+    case "home":
+      return {
+        label: "Главная",
+        title: "Главная",
+        description: "Живая сводка диалогов, контактов и пространств.",
+      };
     case "people":
       if (route.peopleUsername) {
         return {

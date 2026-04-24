@@ -26,21 +26,22 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
   const safePathname = pathname ?? "";
   const route = parseAppPath(safePathname);
   const activityAvailable = route.section === "hubs" && Boolean(route.hubId);
+  const isHomeWorkspaceRoute = route.section === "home";
   const isPeopleWorkspaceRoute =
     route.section === "people" && !route.peopleUsername;
   const [activityOpen, setActivityOpen] = useState(false);
   const [isWideScreen, setIsWideScreen] = useState(false);
   const effectiveActivityOpen = activityAvailable && activityOpen;
   const isMessagesRoute = route.section === "messages";
-  const showContextRail = !isPeopleWorkspaceRoute;
+  const showContextRail = !isHomeWorkspaceRoute && !isPeopleWorkspaceRoute;
   const desktopGridColumns = isMessagesRoute
     ? "md:grid-cols-[88px_306px_minmax(0,1fr)]"
-    : isPeopleWorkspaceRoute
+    : isHomeWorkspaceRoute || isPeopleWorkspaceRoute
       ? "md:grid-cols-[88px_minmax(0,1fr)]"
     : "md:grid-cols-[88px_15rem_minmax(0,1fr)]";
   const dockedGridColumns = isMessagesRoute
     ? "2xl:grid-cols-[88px_306px_minmax(0,1fr)_18rem]"
-    : isPeopleWorkspaceRoute
+    : isHomeWorkspaceRoute || isPeopleWorkspaceRoute
       ? "2xl:grid-cols-[88px_minmax(0,1fr)_18rem]"
     : "2xl:grid-cols-[88px_15rem_minmax(0,1fr)_18rem]";
 
@@ -118,7 +119,7 @@ export function AppShellFrame({ children, viewer }: AppShellFrameProps) {
               <div
                 className={cn(
                   "flex h-full min-h-0 flex-col overflow-hidden rounded-none border-0",
-                  isPeopleWorkspaceRoute
+                  isHomeWorkspaceRoute || isPeopleWorkspaceRoute
                     ? "bg-transparent"
                     : "shell-frame bg-black",
                 )}

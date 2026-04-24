@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  House,
   Layers3,
   MessageSquareMore,
   Settings2,
@@ -22,6 +23,7 @@ interface AppSidebarProps {
 }
 
 const coreLinks = [
+  { href: "/app/home", icon: House, label: "Главная" },
   { href: "/app/messages", icon: MessageSquareMore, label: "Сообщения" },
   { href: "/app/people", icon: Users2, label: "Люди" },
   { href: "/app/hubs", icon: Layers3, label: "Хабы" },
@@ -78,7 +80,7 @@ export function AppSidebar({ viewer }: AppSidebarProps) {
     <aside className="workspace-dock hidden bg-black md:static md:z-auto md:flex md:h-full md:w-[88px] md:flex-col md:border-r md:border-white/8 md:bg-black">
       <div className="hidden h-full items-center justify-between gap-2 px-2 py-2 md:flex md:flex-col md:items-center md:justify-start md:px-0 md:pb-4 md:pt-[28px]">
         <Link
-          href="/app/messages"
+          href="/app/home"
           className="hidden h-[46px] w-[46px] items-center justify-center rounded-[11px] border border-white/12 bg-black text-white md:flex"
           aria-label="Lobby"
           title="Lobby"
