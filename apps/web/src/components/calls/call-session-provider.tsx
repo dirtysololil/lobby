@@ -1766,6 +1766,8 @@ export function TrackSurface({
   return (
     <div
       className={cn(
+        "dm-track-surface",
+        isScreen && "dm-track-surface-screen",
         "relative w-full overflow-hidden border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
         isScreen ? "bg-[#050505]" : "bg-[#080808]",
         surfaceSizingClassName,
@@ -2871,11 +2873,12 @@ export function CallRoomCanvas({
 
       <div
         className={cn(
+          "dm-call-stage-layout",
           isConversation ? "mt-2.5 grid min-h-0 gap-2.5" : "mt-3 grid min-h-0 gap-3",
           stageLayoutClassName,
         )}
       >
-        <div className={cn("min-h-0", isConversation ? "space-y-2.5" : "space-y-3")}>
+        <div className={cn("dm-call-stage-main min-h-0", isConversation ? "space-y-2.5" : "space-y-3")}>
           {!isConversation && screenShareVisible ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/6 bg-white/[0.03] px-3 py-2.5">
               <span className="status-pill">
@@ -2926,6 +2929,7 @@ export function CallRoomCanvas({
           <div
             ref={stageHostRef}
             className={cn(
+              "dm-call-stage-host",
               "min-h-0",
               isStageFullscreen && hasVisualStage && "bg-[#05080d] p-3",
             )}

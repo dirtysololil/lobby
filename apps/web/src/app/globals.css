@@ -1948,9 +1948,38 @@ textarea {
 }
 
 .dm-screen-share-stage-shell:fullscreen .dm-call-canvas-conversation {
+  display: flex;
   height: 100%;
+  min-height: 0;
+  flex-direction: column;
   border: 0;
   border-radius: 0;
+  padding: 0;
+}
+
+.dm-screen-share-stage-shell:fullscreen .dm-call-stage-toolbar {
+  display: none;
+}
+
+.dm-screen-share-stage-shell:fullscreen .dm-call-stage-layout,
+.dm-screen-share-stage-shell:fullscreen .dm-call-stage-main,
+.dm-screen-share-stage-shell:fullscreen .dm-call-stage-host {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.dm-screen-share-stage-shell:fullscreen .dm-track-surface-screen {
+  min-height: 0 !important;
+  max-height: none !important;
+  height: 100%;
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+  aspect-ratio: auto;
 }
 
 .dm-call-canvas-conversation {
