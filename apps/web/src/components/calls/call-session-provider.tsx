@@ -74,8 +74,6 @@ type CallConnectionStatus =
   | "connected"
   | "reconnecting"
   | "error";
-type ScreenShareFitMode = "contain" | "cover";
-
 interface CallConnection {
   callId: string;
   url: string;
@@ -1663,12 +1661,10 @@ export function TrackSurface({
   item,
   emphasis = "tile",
   expanded = false,
-  screenFitMode = "contain",
 }: {
   item: TrackView;
   emphasis?: "stage" | "conversation" | "tile";
   expanded?: boolean;
-  screenFitMode?: ScreenShareFitMode;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isScreen = isScreenShareTrack(item);
@@ -1718,7 +1714,6 @@ export function TrackSurface({
       isLocal: item.isLocal,
       emphasis,
       expanded,
-      screenFitMode,
     });
 
     const element = document.createElement("video");
@@ -1730,9 +1725,7 @@ export function TrackSurface({
     element.playsInline = true;
     element.className =
       isScreen
-        ? screenFitMode === "cover"
-          ? "absolute inset-0 h-full w-full bg-[#04070b] object-cover object-center"
-          : "absolute inset-0 h-full w-full bg-[#04070b] object-contain object-center"
+        ? "absolute inset-0 h-full w-full bg-[#04070b] object-contain object-center"
         : emphasis === "stage"
           ? "absolute inset-0 h-full w-full object-cover"
           : "absolute inset-0 h-full w-full object-cover";
@@ -1768,7 +1761,7 @@ export function TrackSurface({
       item.track.detach(element);
       element.remove();
     };
-  }, [emphasis, isVideoTrack, item, isScreen, screenFitMode]);
+  }, [emphasis, isVideoTrack, item, isScreen]);
 
   return (
     <div
@@ -1783,7 +1776,7 @@ export function TrackSurface({
           ref={containerRef}
           className={cn(
             "absolute inset-0 overflow-hidden",
-            isScreen && screenFitMode === "contain" && "bg-[#05080d]",
+            isScreen && "bg-[#05080d]",
           )}
         />
       ) : null}
@@ -2584,7 +2577,6 @@ export function CallRoomCanvas({
   const [isScreenFocusMode, setIsScreenFocusMode] = useState(false);
   const [isStageFullscreen, setIsStageFullscreen] = useState(false);
   const [secondaryPanelsVisible, setSecondaryPanelsVisible] = useState(true);
-  const [screenFitMode, setScreenFitMode] = useState<ScreenShareFitMode>("contain");
   const activeSession = callId && session && session.call.id === callId ? session : null;
   const screenTracks = activeSession
     ? tracks.filter((item) => item.kind === "video" && isScreenShareTrack(item))
@@ -2612,7 +2604,6 @@ export function CallRoomCanvas({
     (screenShareEnabled || participants.some((participant) => participant.hasScreenShare));
   const hasVisualStage = Boolean(primaryTrack) || pendingScreenShareStage;
   const screenShareVisible = Boolean(screenTrackToRender) || pendingScreenShareStage;
-  const resolvedScreenFitMode = screenShareVisible ? screenFitMode : "contain";
   const resolvedScreenStageExpanded = screenShareVisible ? isScreenStageExpanded : false;
   const resolvedScreenFocusMode =
     screenShareVisible && !isConversation ? isScreenFocusMode : false;
@@ -2768,24 +2759,6 @@ export function CallRoomCanvas({
               Экран
             </Button>
             {screenShareVisible ? (
-              <div className="dm-call-fit-toggle">
-                <Button
-                  size="sm"
-                  variant={resolvedScreenFitMode === "cover" ? "secondary" : "ghost"}
-                  onClick={() => setScreenFitMode("cover")}
-                >
-                  Заполнить
-                </Button>
-                <Button
-                  size="sm"
-                  variant={resolvedScreenFitMode === "contain" ? "secondary" : "ghost"}
-                  onClick={() => setScreenFitMode("contain")}
-                >
-                  Вписать
-                </Button>
-              </div>
-            ) : null}
-            {screenShareVisible ? (
               <Button
                 size="sm"
                 variant={resolvedSecondaryPanelsVisible ? "secondary" : "ghost"}
@@ -2809,7 +2782,9 @@ export function CallRoomCanvas({
               ) : (
                 <Maximize2 size={15} strokeWidth={1.5} />
               )}
-              {isStageFullscreen ? "Свернуть" : "Во весь экран"}
+              <span className="sr-only">
+                {isStageFullscreen ? "Свернуть" : "Во весь экран"}
+              </span>
             </Button>
           </div>
         </div>
@@ -2908,22 +2883,6 @@ export function CallRoomCanvas({
                 Демонстрация экрана
               </span>
               <div className="flex flex-wrap gap-2">
-                <div className="inline-flex items-center gap-1 rounded-[14px] border border-white/6 bg-black/15 p-1">
-                  <Button
-                    size="sm"
-                    variant={resolvedScreenFitMode === "cover" ? "secondary" : "ghost"}
-                    onClick={() => setScreenFitMode("cover")}
-                  >
-                    Заполнить
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={resolvedScreenFitMode === "contain" ? "secondary" : "ghost"}
-                    onClick={() => setScreenFitMode("contain")}
-                  >
-                    Вписать
-                  </Button>
-                </div>
                 <Button
                   size="sm"
                   variant={resolvedScreenStageExpanded ? "secondary" : "ghost"}
@@ -2976,9 +2935,6 @@ export function CallRoomCanvas({
                 item={primaryTrack}
                 emphasis={isConversation ? "conversation" : "stage"}
                 expanded={stageExpanded}
-                screenFitMode={
-                  isScreenShareTrack(primaryTrack) ? resolvedScreenFitMode : "contain"
-                }
               />
             ) : pendingScreenShareStage ? (
               <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-[18px] border border-white/8 bg-[#050505] px-5 text-center">

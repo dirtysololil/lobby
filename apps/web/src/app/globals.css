@@ -1903,11 +1903,54 @@ textarea {
   padding: 0.5rem 0.75rem 0.75rem;
 }
 
+.dm-screen-share-stage-shell:fullscreen {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  flex-direction: column;
+  margin: 0;
+  border: 0;
+  background: #000;
+  padding: 0;
+}
+
+.dm-screen-share-fullscreen-bar {
+  display: none;
+}
+
+.dm-screen-share-stage-shell:fullscreen .dm-screen-share-fullscreen-bar {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #050505;
+  padding: 0.5rem 0.75rem;
+}
+
+.dm-screen-share-stage-shell:fullscreen .dm-screen-share-strip {
+  display: none;
+}
+
 .dm-screen-share-stage-frame {
   overflow: hidden;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: #050505;
+}
+
+.dm-screen-share-stage-shell:fullscreen .dm-screen-share-stage-frame {
+  min-height: 0;
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+}
+
+.dm-screen-share-stage-shell:fullscreen .dm-call-canvas-conversation {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
 }
 
 .dm-call-canvas-conversation {
@@ -1939,16 +1982,6 @@ textarea {
 
 .dm-call-stage-actions {
   justify-content: flex-end;
-}
-
-.dm-call-fit-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: #000;
-  padding: 0.18rem;
 }
 
 .dm-screen-share-chip {
@@ -1988,6 +2021,10 @@ textarea {
   border-color: rgba(255, 122, 136, 0.16);
   background: rgba(239, 68, 68, 0.1);
   color: #ffe5e8;
+}
+
+.dm-screen-share-chip-label {
+  display: inline;
 }
 
 .dm-viewer-toolbar {
@@ -2911,17 +2948,8 @@ textarea {
     width: 100%;
   }
 
-  .dm-call-stage-actions > button,
-  .dm-call-stage-actions .dm-call-fit-toggle {
+  .dm-call-stage-actions > button {
     width: 100%;
-  }
-
-  .dm-call-fit-toggle {
-    grid-column: 1 / -1;
-  }
-
-  .dm-call-fit-toggle > button {
-    flex: 1;
   }
 
   .dm-screen-share-strip {
@@ -2934,6 +2962,15 @@ textarea {
     justify-content: center;
     min-height: 40px;
     padding: 0 0.55rem;
+  }
+
+  .dm-screen-share-chip-label {
+    display: none;
+  }
+
+  .dm-screen-share-stage-shell:fullscreen .dm-screen-share-chip-label,
+  .dm-screen-share-stage-shell:fullscreen .dm-screen-share-chip {
+    display: inline-flex;
   }
 }
 

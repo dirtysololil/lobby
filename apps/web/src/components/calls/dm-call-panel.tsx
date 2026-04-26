@@ -10,6 +10,7 @@ import {
   Maximize2,
   Mic,
   MicOff,
+  Minimize2,
   Monitor,
   MonitorUp,
   MonitorX,
@@ -525,6 +526,12 @@ export function DmCallPanel({
     }
   }
 
+  async function closeStageFullscreen() {
+    if (document.fullscreenElement === stageShellRef.current) {
+      await document.exitFullscreen().catch(() => undefined);
+    }
+  }
+
   const readinessLabel = isBlocked
     ? "Звонки недоступны"
     : activeCall
@@ -579,6 +586,26 @@ export function DmCallPanel({
     mounted && stageHostRef?.current && expandedCallId
       ? createPortal(
           <div ref={stageShellRef} className="dm-screen-share-stage-shell">
+            <div className="dm-screen-share-fullscreen-bar">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">
+                  Демонстрация экрана
+                </p>
+                <p className="truncate text-xs text-[var(--text-muted)]">
+                  {counterpartName}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="dm-screen-share-chip"
+                onClick={() => void closeStageFullscreen()}
+                aria-label="Вернуться в диалог"
+                title="Вернуться в диалог"
+              >
+                <Minimize2 {...iconProps} />
+                Вернуться
+              </button>
+            </div>
             {screenShareVisible ? (
               <div className="dm-screen-share-strip">
                 <button type="button" className="dm-screen-share-chip dm-screen-share-chip-active" disabled>
@@ -589,9 +616,11 @@ export function DmCallPanel({
                   type="button"
                   className="dm-screen-share-chip"
                   onClick={() => void openStageFullscreen()}
+                  aria-label="Во весь экран"
+                  title="Во весь экран"
                 >
                   <Maximize2 {...iconProps} />
-                  Во весь экран
+                  <span className="dm-screen-share-chip-label">Во весь экран</span>
                 </button>
                 {canStopOwnScreenShare ? (
                   <button
