@@ -11,11 +11,13 @@ import type {
 import {
   FileText,
   ImagePlus,
-  Mic,
+  Loader2,
   Paperclip,
   Reply,
   SendHorizontal,
   Smile,
+  Square,
+  Video,
   X,
 } from "lucide-react";
 import {
@@ -24,12 +26,14 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type FormEvent,
   type ClipboardEvent as ReactClipboardEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { buildCustomEmojiToken } from "@/lib/stickers";
 import { Button } from "@/components/ui/button";
+import { buildVideoNoteFileName } from "@/lib/direct-message-video-notes";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker, type PickerTab } from "./emoji-sticker-picker";
 
@@ -65,6 +69,10 @@ const MAX_RECENT_STICKERS = 24;
 const MAX_RECENT_GIFS = 20;
 const iconProps = { size: 19, strokeWidth: 1.55 } as const;
 const MOBILE_VIEWPORT_QUERY = "(max-width: 767px)";
+const VIDEO_NOTE_MAX_DURATION_MS = 45_000;
+const VIDEO_NOTE_TIMESLICE_MS = 900;
+const VIDEO_NOTE_VIDEO_BITS_PER_SECOND = 1_450_000;
+const VIDEO_NOTE_AUDIO_BITS_PER_SECOND = 96_000;
 
 function readRecentStrings(storageKey: string) {
   if (typeof window === "undefined") {
@@ -86,6 +94,26 @@ function writeRecentStrings(storageKey: string, nextItems: string[]) {
   if (typeof window !== "undefined") {
     window.localStorage.setItem(storageKey, JSON.stringify(nextItems));
   }
+}
+
+function getSupportedVideoNoteMimeType() {
+  if (typeof MediaRecorder === "undefined") {
+    return "";
+  }
+
+  const candidates = [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4",
+  ];
+
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
+function stopMediaStream(stream: MediaStream | null) {
+  stream?.getTracks().forEach((track) => track.stop());
 }
 
 function moveStickerToRecent(
@@ -144,6 +172,14 @@ function buildComposerReplyPreview(message: DirectMessageReplyPreview) {
   return "Сообщение";
 }
 
+function formatVideoNoteDuration(durationMs: number) {
+  const totalSeconds = Math.max(0, Math.floor(durationMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
 export function MessageComposer({
   disabled,
   canManageLibrary,
@@ -165,6 +201,15 @@ export function MessageComposer({
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PickerTab>("emoji");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [videoNoteOpen, setVideoNoteOpen] = useState(false);
+  const [videoNoteStatus, setVideoNoteStatus] = useState<
+    "idle" | "requesting" | "recording" | "preview" | "sending" | "error"
+  >("idle");
+  const [videoNoteError, setVideoNoteError] = useState<string | null>(null);
+  const [videoNotePreviewUrl, setVideoNotePreviewUrl] = useState<string | null>(
+    null,
+  );
+  const [videoNoteDurationMs, setVideoNoteDurationMs] = useState(0);
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [recentGifIds, setRecentGifIds] = useState<string[]>([]);
   const [pendingStickerIds, setPendingStickerIds] = useState<string[]>([]);
@@ -175,6 +220,14 @@ export function MessageComposer({
   const contentRef = useRef("");
   const selectionRef = useRef({ start: 0, end: 0 });
   const typingStopTimerRef = useRef<number | null>(null);
+  const videoNoteStreamRef = useRef<MediaStream | null>(null);
+  const videoNoteRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoNoteChunksRef = useRef<BlobPart[]>([]);
+  const videoNoteBlobRef = useRef<Blob | null>(null);
+  const videoNoteStartedAtRef = useRef<number | null>(null);
+  const videoNoteDurationTimerRef = useRef<number | null>(null);
+  const videoNoteStopTimerRef = useRef<number | null>(null);
+  const videoNotePreviewVideoRef = useRef<HTMLVideoElement | null>(null);
   const isTypingRef = useRef(false);
 
   const updateContent = useCallback((nextContent: string) => {
@@ -195,6 +248,220 @@ export function MessageComposer({
     isTypingRef.current = false;
     onTypingChange?.(false);
   }, [onTypingChange]);
+
+  const clearVideoNoteTimers = useCallback(() => {
+    if (videoNoteDurationTimerRef.current !== null) {
+      window.clearInterval(videoNoteDurationTimerRef.current);
+      videoNoteDurationTimerRef.current = null;
+    }
+
+    if (videoNoteStopTimerRef.current !== null) {
+      window.clearTimeout(videoNoteStopTimerRef.current);
+      videoNoteStopTimerRef.current = null;
+    }
+  }, []);
+
+  const resetVideoNoteDraft = useCallback(() => {
+    clearVideoNoteTimers();
+    videoNoteRecorderRef.current = null;
+    videoNoteChunksRef.current = [];
+    videoNoteBlobRef.current = null;
+    videoNoteStartedAtRef.current = null;
+    stopMediaStream(videoNoteStreamRef.current);
+    videoNoteStreamRef.current = null;
+    setVideoNoteDurationMs(0);
+    setVideoNotePreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+
+      return null;
+    });
+  }, [clearVideoNoteTimers]);
+
+  const closeVideoNoteRecorder = useCallback(() => {
+    const recorder = videoNoteRecorderRef.current;
+
+    if (recorder && recorder.state !== "inactive") {
+      recorder.onstop = null;
+      recorder.stop();
+    }
+
+    resetVideoNoteDraft();
+    setVideoNoteOpen(false);
+    setVideoNoteStatus("idle");
+    setVideoNoteError(null);
+  }, [resetVideoNoteDraft]);
+
+  const finishVideoNoteRecording = useCallback(() => {
+    const recorder = videoNoteRecorderRef.current;
+
+    if (!recorder || recorder.state === "inactive") {
+      return;
+    }
+
+    recorder.stop();
+  }, []);
+
+  const startVideoNoteRecording = useCallback(async () => {
+    if (disabled || isUploadingFiles) {
+      return;
+    }
+
+    resetVideoNoteDraft();
+    setVideoNoteOpen(true);
+    setVideoNoteStatus("requesting");
+    setVideoNoteError(null);
+
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof MediaRecorder === "undefined"
+    ) {
+      setVideoNoteStatus("error");
+      setVideoNoteError("Р‘СЂР°СѓР·РµСЂ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ Р·Р°РїРёСЃСЊ РІРёРґРµРѕ.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: {
+          facingMode: "user",
+          width: { ideal: 720, max: 960 },
+          height: { ideal: 720, max: 960 },
+          frameRate: { ideal: 30, max: 30 },
+        },
+      });
+      const mimeType = getSupportedVideoNoteMimeType();
+      const recorder = new MediaRecorder(stream, {
+        ...(mimeType ? { mimeType } : {}),
+        videoBitsPerSecond: VIDEO_NOTE_VIDEO_BITS_PER_SECOND,
+        audioBitsPerSecond: VIDEO_NOTE_AUDIO_BITS_PER_SECOND,
+      });
+
+      videoNoteStreamRef.current = stream;
+      videoNoteRecorderRef.current = recorder;
+      videoNoteChunksRef.current = [];
+      videoNoteStartedAtRef.current = performance.now();
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          videoNoteChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = () => {
+        setVideoNoteStatus("error");
+        setVideoNoteError("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РїРёСЃР°С‚СЊ РєСЂСѓР¶РѕС‡РµРє.");
+      };
+
+      recorder.onstop = () => {
+        clearVideoNoteTimers();
+        stopMediaStream(stream);
+        videoNoteStreamRef.current = null;
+        const blob = new Blob(videoNoteChunksRef.current, {
+          type: recorder.mimeType || mimeType || "video/webm",
+        });
+
+        if (blob.size === 0) {
+          setVideoNoteStatus("error");
+          setVideoNoteError("Р’РёРґРµРѕ РїРѕР»СѓС‡РёР»РѕСЃСЊ РїСѓСЃС‚С‹Рј.");
+          return;
+        }
+
+        videoNoteBlobRef.current = blob;
+        const previewUrl = URL.createObjectURL(blob);
+        setVideoNotePreviewUrl((current) => {
+          if (current) {
+            URL.revokeObjectURL(current);
+          }
+
+          return previewUrl;
+        });
+        setVideoNoteStatus("preview");
+      };
+
+      recorder.start(VIDEO_NOTE_TIMESLICE_MS);
+      setVideoNoteStatus("recording");
+      setVideoNoteDurationMs(0);
+      videoNoteDurationTimerRef.current = window.setInterval(() => {
+        const startedAt = videoNoteStartedAtRef.current;
+        setVideoNoteDurationMs(
+          startedAt ? Math.min(performance.now() - startedAt, VIDEO_NOTE_MAX_DURATION_MS) : 0,
+        );
+      }, 180);
+      videoNoteStopTimerRef.current = window.setTimeout(
+        finishVideoNoteRecording,
+        VIDEO_NOTE_MAX_DURATION_MS,
+      );
+
+      const previewVideo = videoNotePreviewVideoRef.current;
+      if (previewVideo) {
+        previewVideo.srcObject = stream;
+        previewVideo.muted = true;
+        previewVideo.playsInline = true;
+        void previewVideo.play().catch(() => undefined);
+      }
+    } catch (error) {
+      resetVideoNoteDraft();
+      setVideoNoteStatus("error");
+      setVideoNoteError(
+        error instanceof DOMException && error.name === "NotAllowedError"
+          ? "РќСѓР¶РµРЅ РґРѕСЃС‚СѓРї Рє РєР°РјРµСЂРµ Рё РјРёРєСЂРѕС„РѕРЅСѓ."
+          : "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ РєР°РјРµСЂСѓ.",
+      );
+    }
+  }, [
+    clearVideoNoteTimers,
+    disabled,
+    finishVideoNoteRecording,
+    isUploadingFiles,
+    resetVideoNoteDraft,
+  ]);
+
+  const sendVideoNote = useCallback(async () => {
+    const blob = videoNoteBlobRef.current;
+
+    if (!blob || disabled || isUploadingFiles || videoNoteStatus === "sending") {
+      return;
+    }
+
+    setVideoNoteStatus("sending");
+    setVideoNoteError(null);
+
+    try {
+      const file = new File(
+        [blob],
+        buildVideoNoteFileName({
+          mimeType: blob.type,
+        }),
+        {
+          type: blob.type || "video/webm",
+          lastModified: Date.now(),
+        },
+      );
+
+      await onUploadFiles([file], "media");
+      closeVideoNoteRecorder();
+      textareaRef.current?.focus();
+    } catch (error) {
+      setVideoNoteStatus("preview");
+      setVideoNoteError(
+        error instanceof Error ? error.message : "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РєСЂСѓР¶РѕС‡РµРє.",
+      );
+    }
+  }, [
+    closeVideoNoteRecorder,
+    disabled,
+    isUploadingFiles,
+    onUploadFiles,
+    videoNoteStatus,
+  ]);
 
   const notifyTypingFromDraft = useCallback(
     (nextContent: string) => {
@@ -256,6 +523,25 @@ export function MessageComposer({
   }, []);
 
   useEffect(() => stopTyping, [stopTyping]);
+
+  useEffect(() => closeVideoNoteRecorder, [closeVideoNoteRecorder]);
+
+  useEffect(() => {
+    if (!videoNoteOpen || videoNoteStatus !== "recording") {
+      return;
+    }
+
+    const video = videoNotePreviewVideoRef.current;
+
+    if (!video || !videoNoteStreamRef.current) {
+      return;
+    }
+
+    video.srcObject = videoNoteStreamRef.current;
+    video.muted = true;
+    video.playsInline = true;
+    void video.play().catch(() => undefined);
+  }, [videoNoteOpen, videoNoteStatus]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -492,7 +778,7 @@ export function MessageComposer({
         type: "TEXT",
         content: trimmed,
       });
-    } catch (error) {
+    } catch {
       if (contentRef.current.length === 0) {
         updateContent(submittedContent);
       }
@@ -627,6 +913,99 @@ export function MessageComposer({
     />
   );
   const hasTextDraft = content.trim().length > 0;
+  const videoNoteProgress = Math.min(
+    1,
+    videoNoteDurationMs / VIDEO_NOTE_MAX_DURATION_MS,
+  );
+  const videoNoteDurationLabel = formatVideoNoteDuration(videoNoteDurationMs);
+  const videoNoteCanRecord = !disabled && !isUploadingFiles;
+  const videoNoteCircleLabel =
+    videoNoteStatus === "recording"
+      ? "РћСЃС‚Р°РЅРѕРІРёС‚СЊ Р·Р°РїРёСЃСЊ"
+      : videoNoteStatus === "preview"
+        ? "РћС‚РїСЂР°РІРёС‚СЊ РєСЂСѓР¶РѕС‡РµРє"
+        : "РќР°С‡Р°С‚СЊ Р·Р°РїРёСЃСЊ";
+  const videoNoteModalMarkup = videoNoteOpen ? (
+    <div className="dm-video-note-modal" role="dialog" aria-modal="true">
+      <button
+        type="button"
+        className="dm-video-note-close"
+        onClick={closeVideoNoteRecorder}
+        aria-label="Р—Р°РєСЂС‹С‚СЊ Р·Р°РїРёСЃСЊ РєСЂСѓР¶РѕС‡РєР°"
+      >
+        <X size={18} strokeWidth={1.7} />
+      </button>
+
+      <button
+        type="button"
+        className={cn(
+          "dm-video-note-record-surface",
+          videoNoteStatus === "recording" && "dm-video-note-recording",
+          videoNoteStatus === "preview" && "dm-video-note-ready",
+          videoNoteStatus === "sending" && "dm-video-note-sending",
+          videoNoteStatus === "error" && "dm-video-note-error",
+        )}
+        style={{
+          "--dm-video-note-progress": videoNoteProgress,
+        } as CSSProperties}
+        onClick={() => {
+          if (videoNoteStatus === "recording") {
+            finishVideoNoteRecording();
+            return;
+          }
+
+          if (videoNoteStatus === "preview") {
+            void sendVideoNote();
+            return;
+          }
+
+          if (videoNoteStatus === "error") {
+            void startVideoNoteRecording();
+          }
+        }}
+        disabled={videoNoteStatus === "requesting" || videoNoteStatus === "sending"}
+        aria-label={videoNoteCircleLabel}
+      >
+        {videoNoteStatus === "recording" ? (
+          <video
+            ref={videoNotePreviewVideoRef}
+            className="dm-video-note-record-media"
+            autoPlay
+            muted
+            playsInline
+          />
+        ) : videoNotePreviewUrl ? (
+          <video
+            className="dm-video-note-record-media"
+            src={videoNotePreviewUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : null}
+
+        <span className="dm-video-note-record-vignette" aria-hidden="true" />
+        <span className="dm-video-note-record-center">
+          {videoNoteStatus === "requesting" || videoNoteStatus === "sending" ? (
+            <Loader2 size={28} strokeWidth={1.7} className="animate-spin" />
+          ) : videoNoteStatus === "recording" ? (
+            <Square size={26} strokeWidth={1.8} fill="currentColor" />
+          ) : videoNoteStatus === "preview" ? (
+            <SendHorizontal size={30} strokeWidth={1.7} />
+          ) : (
+            <Video size={30} strokeWidth={1.7} />
+          )}
+        </span>
+
+        <span className="dm-video-note-record-meta">
+          {videoNoteStatus === "error"
+            ? (videoNoteError ?? "РћС€РёР±РєР°")
+            : videoNoteDurationLabel}
+        </span>
+      </button>
+    </div>
+  ) : null;
 
   return (
     <div className="dm-composer-stack">
@@ -800,16 +1179,16 @@ export function MessageComposer({
             type="button"
             size="sm"
             variant="ghost"
-            disabled={disabled || isUploadingFiles}
+            disabled={!videoNoteCanRecord}
             onClick={() => {
               setAttachMenuOpen(false);
               setPickerOpen(false);
-              textareaRef.current?.focus();
+              void startVideoNoteRecording();
             }}
-            className="dm-composer-button dm-composer-mic"
-            aria-label="Голосовые сообщения"
+            className="dm-composer-button dm-composer-video-note"
+            aria-label="Записать кружочек"
           >
-            <Mic {...iconProps} />
+            <Video {...iconProps} />
           </Button>
 
           <Button
@@ -838,6 +1217,8 @@ export function MessageComposer({
           {pickerMarkup}
         </div>
       ) : null}
+
+      {videoNoteModalMarkup}
     </div>
   );
 }

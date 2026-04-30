@@ -1423,8 +1423,140 @@ textarea {
   transform: none;
 }
 
-.dm-composer-mic {
+.dm-composer-video-note {
   background: #0a0a0a;
+}
+
+.dm-video-note-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.dm-video-note-close {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  z-index: 2;
+  display: inline-flex;
+  height: 44px;
+  width: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+  color: #fff;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.dm-video-note-close:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #0a0a0a;
+  transform: translateY(-1px);
+}
+
+.dm-video-note-record-surface {
+  --dm-video-note-progress: 0;
+  position: relative;
+  display: grid;
+  aspect-ratio: 1;
+  width: min(420px, 78vw, 72vh);
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 6px solid rgba(255, 255, 255, 0.14);
+  background:
+    conic-gradient(
+      from -90deg,
+      #fff calc(var(--dm-video-note-progress) * 1turn),
+      rgba(255, 255, 255, 0.12) 0
+    ),
+    #050505;
+  padding: 6px;
+  color: #fff;
+  box-shadow: 0 18px 64px rgba(0, 0, 0, 0.42);
+}
+
+.dm-video-note-record-surface::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  z-index: 1;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.dm-video-note-record-media {
+  position: absolute;
+  inset: 6px;
+  height: calc(100% - 12px);
+  width: calc(100% - 12px);
+  border-radius: inherit;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.dm-video-note-ready .dm-video-note-record-media {
+  transform: none;
+}
+
+.dm-video-note-record-vignette {
+  position: absolute;
+  inset: 6px;
+  z-index: 2;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at center, transparent 46%, rgba(0, 0, 0, 0.34) 100%),
+    linear-gradient(180deg, transparent 58%, rgba(0, 0, 0, 0.56));
+  pointer-events: none;
+}
+
+.dm-video-note-record-center {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  height: 72px;
+  width: 72px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+}
+
+.dm-video-note-record-meta {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  z-index: 3;
+  max-width: min(260px, 66vw);
+  transform: translateX(-50%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  padding: 0.32rem 0.72rem;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dm-video-note-recording {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.dm-video-note-error {
+  border-color: rgba(239, 68, 68, 0.42);
 }
 
 .dm-composer-send {
@@ -1834,6 +1966,32 @@ textarea {
     height: 42px;
     width: 42px;
     border-radius: 999px;
+  }
+
+  .dm-video-note-record-surface {
+    width: min(320px, 86vw, 66vh);
+    border-width: 4px;
+    padding: 4px;
+  }
+
+  .dm-video-note-record-surface::before,
+  .dm-video-note-record-media,
+  .dm-video-note-record-vignette {
+    inset: 4px;
+  }
+
+  .dm-video-note-record-media {
+    height: calc(100% - 8px);
+    width: calc(100% - 8px);
+  }
+
+  .dm-video-note-record-center {
+    height: 62px;
+    width: 62px;
+  }
+
+  .dm-video-note-record-meta {
+    bottom: 20px;
   }
 
   .dm-composer-input-icon {
