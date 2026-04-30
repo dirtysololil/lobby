@@ -1159,10 +1159,35 @@ textarea {
   background: #0070f3;
 }
 
+@keyframes dm-message-focus-flash {
+  0%,
+  100% {
+    background-color: transparent;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0),
+      0 0 0 0 rgba(255, 255, 255, 0);
+  }
+
+  28% {
+    background-color: rgba(255, 255, 255, 0.055);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 0 0 5px rgba(255, 255, 255, 0.035);
+  }
+
+  58% {
+    background-color: rgba(255, 255, 255, 0.025);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.12),
+      0 0 0 3px rgba(255, 255, 255, 0.02);
+  }
+}
+
 .dm-bubble-highlight {
   box-shadow:
-    0 0 0 1px rgba(106, 168, 248, 0.24),
-    0 16px 34px rgba(4, 8, 16, 0.18);
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 0 4px rgba(255, 255, 255, 0.03);
+  animation: dm-message-focus-flash 1150ms ease-out 1;
 }
 
 .dm-message-text {

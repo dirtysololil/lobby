@@ -236,6 +236,21 @@ export function MessageComposer({
   }, []);
 
   useEffect(() => {
+    if (!replyToMessage || disabled || isUploadingFiles) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+      syncTextareaHeight();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [disabled, isUploadingFiles, replyToMessage, syncTextareaHeight]);
+
+  useEffect(() => {
     setRecentEmojis(readRecentStrings(RECENT_EMOJIS_KEY));
     setRecentGifIds(readRecentStrings(RECENT_GIFS_KEY));
   }, []);

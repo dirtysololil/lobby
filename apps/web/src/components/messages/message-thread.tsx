@@ -1285,8 +1285,8 @@ export function MessageThread({
                     isRoundVideoNote
                       ? "w-[min(244px,74vw)] max-w-full"
                       : isMediaLikeMessage
-                        ? "w-fit max-w-[min(388px,74%)]"
-                        : "max-w-[min(360px,72%)]",
+                        ? "w-fit max-w-[min(388px,86vw)] md:max-w-[min(388px,74%)]"
+                        : "max-w-[min(360px,86vw)] md:max-w-[min(360px,72%)]",
                     isOwn && "ml-auto",
                   );
                   const bubbleClassName = cn(
@@ -1459,7 +1459,7 @@ export function MessageThread({
                                   onClick={() =>
                                     focusOriginalMessage(message.replyTo!.id)
                                   }
-                                  className="mb-2.5 grid w-full min-w-0 gap-0.5 rounded-[14px] border border-white/5 bg-black/18 px-3 py-2 text-left transition-colors hover:bg-black/24"
+                                  className="mb-2.5 grid min-h-11 w-full min-w-0 gap-0.5 rounded-[12px] border border-white/7 bg-black/20 px-3 py-2 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)]"
                                 >
                                   <span className="truncate text-[11px] font-medium text-[var(--text-soft)]">
                                     {message.replyTo.author.profile.displayName}
