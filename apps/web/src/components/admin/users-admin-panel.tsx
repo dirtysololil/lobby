@@ -333,8 +333,8 @@ export function UsersAdminPanel({
                     </div>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:justify-items-end">
-                    <div className="grid gap-2 sm:col-span-full sm:grid-cols-[minmax(0,1fr)_auto] xl:w-full">
+                  <div className="flex w-full min-w-0 flex-wrap items-center gap-2 xl:max-w-[520px] xl:justify-end">
+                    <div className="flex min-w-[220px] flex-1 items-center gap-2">
                       <SelectField
                         value={draftRole}
                         disabled={!canManageUser || actionKey === `role:${item.user.id}`}
@@ -344,7 +344,7 @@ export function UsersAdminPanel({
                             [item.user.id]: event.target.value as UserRole,
                           }))
                         }
-                        className="min-h-10"
+                        className="min-h-10 flex-1 rounded-[12px]"
                       >
                         {assignableRoles.map((roleOption) => (
                           <option key={roleOption} value={roleOption}>
@@ -363,8 +363,8 @@ export function UsersAdminPanel({
                         }
                         className={
                           roleChanged
-                            ? "h-10 rounded-[14px] border-white bg-white px-4 text-black hover:border-white hover:bg-neutral-100"
-                            : "h-10 rounded-[14px] border-white/8 bg-black px-4 text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+                            ? "h-10 rounded-[12px] border-white bg-white px-3.5 text-black hover:border-white hover:bg-neutral-100"
+                            : "h-10 rounded-[12px] border-white/8 bg-black px-3.5 text-white hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
                         }
                         variant={roleChanged ? "default" : "secondary"}
                       >
@@ -372,11 +372,11 @@ export function UsersAdminPanel({
                       </Button>
                     </div>
 
-                    <Link href={buildUserProfileHref(item.user.username)} className="w-full sm:w-auto">
+                    <Link href={buildUserProfileHref(item.user.username)} className="min-w-[112px] flex-1 sm:flex-none">
                       <Button
                         size="sm"
                         variant="secondary"
-                        className="h-10 w-full rounded-[14px] border-white/8 bg-black px-4 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+                        className="h-10 w-full rounded-[12px] border-white/8 bg-black px-3.5 hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
                       >
                         Профиль
                       </Button>
@@ -389,7 +389,7 @@ export function UsersAdminPanel({
                         void handleModeration(item.user.id, Boolean(item.platformBlock))
                       }
                       disabled={!canManageUser || actionKey === `moderation:${item.user.id}`}
-                      className="h-10 rounded-[14px] px-4"
+                      className="h-10 min-w-[128px] flex-1 rounded-[12px] px-3.5 sm:flex-none"
                     >
                       {actionKey === `moderation:${item.user.id}`
                         ? "Обновляем..."

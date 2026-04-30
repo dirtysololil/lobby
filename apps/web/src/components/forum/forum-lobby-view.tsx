@@ -244,7 +244,7 @@ export function ForumLobbyView({
           </section>
 
           <aside className="grid content-start gap-3">
-            <section className="premium-panel rounded-[24px] p-4">
+            <section className="premium-panel rounded-[20px] p-3.5">
               <p className="section-kicker">Новая тема</p>
               {canCreateTopic ? (
                 <form className="mt-3 grid gap-2.5" onSubmit={handleCreateTopic}>
@@ -257,14 +257,14 @@ export function ForumLobbyView({
                     value={content}
                     onChange={(event) => setContent(event.target.value)}
                     placeholder="Коротко опишите контекст, вопрос или решение"
-                    className="field-textarea min-h-[120px]"
+                    className="min-h-[96px] resize-none rounded-[14px] border border-white/8 bg-black px-3 py-2.5 text-sm leading-6 text-white outline-none placeholder:text-[var(--text-muted)] focus:border-[#0070F3]/60"
                   />
                   <Input
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
                     placeholder="Теги через запятую"
                   />
-                  <Button type="submit" disabled={isSubmitting} className="h-10 w-full">
+                  <Button type="submit" disabled={isSubmitting} className="h-10 w-full rounded-[14px] border-[#0070F3] bg-[#0070F3] text-white hover:border-[#1A7FFF] hover:bg-[#1A7FFF] disabled:border-white/10 disabled:bg-white/12 disabled:text-[var(--text-muted)]">
                     {isSubmitting ? "Публикуем..." : "Опубликовать тему"}
                   </Button>
                 </form>

@@ -467,9 +467,9 @@ export function HubTextLobbyChat({
 
       <form
         onSubmit={handleSubmit}
-        className="border-t border-white/5 bg-black px-4 py-4"
+        className="border-t border-white/5 bg-black px-3 py-3 sm:px-4"
       >
-        <div className="grid gap-3">
+        <div className="rounded-[18px] border border-white/8 bg-[#050505] p-2.5 transition-colors focus-within:border-[#0070F3]/70 focus-within:ring-2 focus-within:ring-[#0070F3]/20">
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -481,36 +481,31 @@ export function HubTextLobbyChat({
                   : "Вступите в хаб, чтобы писать в этот канал"
             }
             disabled={!canSendMessages || isSubmitting}
-            className="field-textarea min-h-[112px] resize-none"
+            className="min-h-[76px] w-full resize-none border-0 bg-transparent px-1 py-1 text-sm leading-6 text-white outline-none placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[84px]"
           />
 
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { label: "Фото по ссылке", icon: Image },
-              { label: "Видео по ссылке", icon: Video },
-              { label: "GIF по ссылке", icon: Smile },
-            ].map((item) => {
-              const Icon = item.icon;
+          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+              {[
+                { label: "Фото", icon: Image },
+                { label: "Видео", icon: Video },
+                { label: "GIF", icon: Smile },
+              ].map((item) => {
+                const Icon = item.icon;
 
-              return (
-                <span
-                  key={item.label}
-                  className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/8 bg-black px-2 text-[11px] text-[var(--text-dim)]"
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {item.label}
-                </span>
-              );
-            })}
-          </div>
-
-          <div
-            className={`flex flex-wrap items-center gap-3 ${
-              canSendMessages ? "justify-end" : "justify-between"
-            }`}
-          >
+                return (
+                  <span
+                    key={item.label}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/8 bg-black px-2.5 text-[11px] text-[var(--text-dim)]"
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {item.label}
+                  </span>
+                );
+              })}
+            </div>
             {!canSendMessages ? (
-              <p className="text-xs text-[var(--text-dim)]">
+              <p className="min-w-[180px] flex-1 text-xs text-[var(--text-dim)]">
                 Читать можно, отправка сейчас недоступна.
               </p>
             ) : null}
@@ -518,7 +513,7 @@ export function HubTextLobbyChat({
             <Button
               type="submit"
               disabled={!canSendMessages || isSubmitting || draft.trim().length === 0}
-              className="h-10 px-4"
+              className="h-10 min-w-[132px] rounded-[14px] border-[#0070F3] bg-[#0070F3] px-4 text-white hover:border-[#1A7FFF] hover:bg-[#1A7FFF] disabled:border-white/10 disabled:bg-white/12 disabled:text-[var(--text-muted)]"
             >
               {isSubmitting ? (
                 <LoaderCircle className="h-4 w-4 animate-spin" />
