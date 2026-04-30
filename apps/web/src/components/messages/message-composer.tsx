@@ -12,6 +12,7 @@ import {
   FileText,
   ImagePlus,
   Loader2,
+  Mic,
   Paperclip,
   Reply,
   SendHorizontal,
@@ -33,7 +34,10 @@ import {
 } from "react";
 import { buildCustomEmojiToken } from "@/lib/stickers";
 import { Button } from "@/components/ui/button";
-import { buildVideoNoteFileName } from "@/lib/direct-message-video-notes";
+import {
+  buildVideoNoteFileName,
+  buildVoiceNoteFileName,
+} from "@/lib/direct-message-video-notes";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker, type PickerTab } from "./emoji-sticker-picker";
 
@@ -73,6 +77,10 @@ const VIDEO_NOTE_MAX_DURATION_MS = 45_000;
 const VIDEO_NOTE_TIMESLICE_MS = 900;
 const VIDEO_NOTE_VIDEO_BITS_PER_SECOND = 1_450_000;
 const VIDEO_NOTE_AUDIO_BITS_PER_SECOND = 96_000;
+const VOICE_NOTE_MAX_DURATION_MS = 120_000;
+const VOICE_NOTE_AUDIO_BITS_PER_SECOND = 96_000;
+
+type RecorderMode = "voice" | "video";
 
 function readRecentStrings(storageKey: string) {
   if (typeof window === "undefined") {
@@ -107,6 +115,22 @@ function getSupportedVideoNoteMimeType() {
     "video/webm",
     "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
     "video/mp4",
+  ];
+
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
+function getSupportedVoiceNoteMimeType() {
+  if (typeof MediaRecorder === "undefined") {
+    return "";
+  }
+
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
   ];
 
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
@@ -201,6 +225,7 @@ export function MessageComposer({
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PickerTab>("emoji");
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [recorderMode, setRecorderMode] = useState<RecorderMode>("voice");
   const [videoNoteOpen, setVideoNoteOpen] = useState(false);
   const [videoNoteStatus, setVideoNoteStatus] = useState<
     "idle" | "requesting" | "recording" | "preview" | "sending" | "error"
@@ -324,24 +349,33 @@ export function MessageComposer({
     }
 
     try {
+      const isVideoMode = recorderMode === "video";
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
-        video: {
-          facingMode: "user",
-          width: { ideal: 720, max: 960 },
-          height: { ideal: 720, max: 960 },
-          frameRate: { ideal: 30, max: 30 },
-        },
+        video: isVideoMode
+          ? {
+              facingMode: "user",
+              width: { ideal: 720, max: 960 },
+              height: { ideal: 720, max: 960 },
+              frameRate: { ideal: 30, max: 30 },
+            }
+          : false,
       });
-      const mimeType = getSupportedVideoNoteMimeType();
+      const mimeType = isVideoMode
+        ? getSupportedVideoNoteMimeType()
+        : getSupportedVoiceNoteMimeType();
       const recorder = new MediaRecorder(stream, {
         ...(mimeType ? { mimeType } : {}),
-        videoBitsPerSecond: VIDEO_NOTE_VIDEO_BITS_PER_SECOND,
-        audioBitsPerSecond: VIDEO_NOTE_AUDIO_BITS_PER_SECOND,
+        ...(isVideoMode
+          ? { videoBitsPerSecond: VIDEO_NOTE_VIDEO_BITS_PER_SECOND }
+          : {}),
+        audioBitsPerSecond: isVideoMode
+          ? VIDEO_NOTE_AUDIO_BITS_PER_SECOND
+          : VOICE_NOTE_AUDIO_BITS_PER_SECOND,
       });
 
       videoNoteStreamRef.current = stream;
@@ -365,7 +399,10 @@ export function MessageComposer({
         stopMediaStream(stream);
         videoNoteStreamRef.current = null;
         const blob = new Blob(videoNoteChunksRef.current, {
-          type: recorder.mimeType || mimeType || "video/webm",
+          type:
+            recorder.mimeType ||
+            mimeType ||
+            (isVideoMode ? "video/webm" : "audio/webm"),
         });
 
         if (blob.size === 0) {
@@ -391,17 +428,20 @@ export function MessageComposer({
       setVideoNoteDurationMs(0);
       videoNoteDurationTimerRef.current = window.setInterval(() => {
         const startedAt = videoNoteStartedAtRef.current;
+        const maxDuration = isVideoMode
+          ? VIDEO_NOTE_MAX_DURATION_MS
+          : VOICE_NOTE_MAX_DURATION_MS;
         setVideoNoteDurationMs(
-          startedAt ? Math.min(performance.now() - startedAt, VIDEO_NOTE_MAX_DURATION_MS) : 0,
+          startedAt ? Math.min(performance.now() - startedAt, maxDuration) : 0,
         );
       }, 180);
       videoNoteStopTimerRef.current = window.setTimeout(
         finishVideoNoteRecording,
-        VIDEO_NOTE_MAX_DURATION_MS,
+        isVideoMode ? VIDEO_NOTE_MAX_DURATION_MS : VOICE_NOTE_MAX_DURATION_MS,
       );
 
       const previewVideo = videoNotePreviewVideoRef.current;
-      if (previewVideo) {
+      if (previewVideo && isVideoMode) {
         previewVideo.srcObject = stream;
         previewVideo.muted = true;
         previewVideo.playsInline = true;
@@ -422,6 +462,7 @@ export function MessageComposer({
     finishVideoNoteRecording,
     isUploadingFiles,
     resetVideoNoteDraft,
+    recorderMode,
   ]);
 
   const sendVideoNote = useCallback(async () => {
@@ -437,16 +478,20 @@ export function MessageComposer({
     try {
       const file = new File(
         [blob],
-        buildVideoNoteFileName({
-          mimeType: blob.type,
-        }),
+        recorderMode === "video"
+          ? buildVideoNoteFileName({
+              mimeType: blob.type,
+            })
+          : buildVoiceNoteFileName({
+              mimeType: blob.type,
+            }),
         {
-          type: blob.type || "video/webm",
+          type: blob.type || (recorderMode === "video" ? "video/webm" : "audio/webm"),
           lastModified: Date.now(),
         },
       );
 
-      await onUploadFiles([file], "media");
+      await onUploadFiles([file], recorderMode === "video" ? "media" : "document");
       closeVideoNoteRecorder();
       textareaRef.current?.focus();
     } catch (error) {
@@ -460,6 +505,7 @@ export function MessageComposer({
     disabled,
     isUploadingFiles,
     onUploadFiles,
+    recorderMode,
     videoNoteStatus,
   ]);
 
@@ -922,9 +968,11 @@ export function MessageComposer({
   const videoNoteCircleLabel =
     videoNoteStatus === "recording"
       ? "РћСЃС‚Р°РЅРѕРІРёС‚СЊ Р·Р°РїРёСЃСЊ"
-      : videoNoteStatus === "preview"
-        ? "РћС‚РїСЂР°РІРёС‚СЊ РєСЂСѓР¶РѕС‡РµРє"
-        : "РќР°С‡Р°С‚СЊ Р·Р°РїРёСЃСЊ";
+    : videoNoteStatus === "preview"
+        ? recorderMode === "video"
+          ? "РћС‚РїСЂР°РІРёС‚СЊ РєСЂСѓР¶РѕС‡РµРє"
+          : "РћС‚РїСЂР°РІРёС‚СЊ РіРѕР»РѕСЃРѕРІРѕРµ"
+      : "РќР°С‡Р°С‚СЊ Р·Р°РїРёСЃСЊ";
   const videoNoteModalMarkup = videoNoteOpen ? (
     <div className="dm-video-note-modal" role="dialog" aria-modal="true">
       <button
@@ -944,6 +992,7 @@ export function MessageComposer({
           videoNoteStatus === "preview" && "dm-video-note-ready",
           videoNoteStatus === "sending" && "dm-video-note-sending",
           videoNoteStatus === "error" && "dm-video-note-error",
+          recorderMode === "voice" && "dm-voice-note-record-surface",
         )}
         style={{
           "--dm-video-note-progress": videoNoteProgress,
@@ -966,7 +1015,7 @@ export function MessageComposer({
         disabled={videoNoteStatus === "requesting" || videoNoteStatus === "sending"}
         aria-label={videoNoteCircleLabel}
       >
-        {videoNoteStatus === "recording" ? (
+        {recorderMode === "video" && videoNoteStatus === "recording" ? (
           <video
             ref={videoNotePreviewVideoRef}
             className="dm-video-note-record-media"
@@ -974,7 +1023,7 @@ export function MessageComposer({
             muted
             playsInline
           />
-        ) : videoNotePreviewUrl ? (
+        ) : recorderMode === "video" && videoNotePreviewUrl ? (
           <video
             className="dm-video-note-record-media"
             src={videoNotePreviewUrl}
@@ -993,10 +1042,21 @@ export function MessageComposer({
             <Square size={26} strokeWidth={1.8} fill="currentColor" />
           ) : videoNoteStatus === "preview" ? (
             <SendHorizontal size={30} strokeWidth={1.7} />
+          ) : recorderMode === "voice" ? (
+            <Mic size={30} strokeWidth={1.7} />
           ) : (
             <Video size={30} strokeWidth={1.7} />
           )}
         </span>
+
+        {recorderMode === "voice" && videoNotePreviewUrl ? (
+          <audio
+            src={videoNotePreviewUrl}
+            controls
+            preload="metadata"
+            className="dm-voice-note-preview"
+          />
+        ) : null}
 
         <span className="dm-video-note-record-meta">
           {videoNoteStatus === "error"
@@ -1060,6 +1120,29 @@ export function MessageComposer({
             </button>
           </div>
         ) : null}
+
+        <div className="dm-recorder-mode-toggle" aria-label="Р РµР¶РёРј Р·Р°РїРёСЃРё">
+          {[
+            { value: "voice" as const, label: "Голос", icon: Mic },
+            { value: "video" as const, label: "Кружок", icon: Video },
+          ].map((item) => {
+            const Icon = item.icon;
+            const active = recorderMode === item.value;
+
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setRecorderMode(item.value)}
+                className={cn("dm-recorder-mode-button", active && "dm-recorder-mode-button-active")}
+                aria-pressed={active}
+              >
+                <Icon size={14} strokeWidth={1.6} />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
 
         <div className="dm-composer-main">
           <div
@@ -1186,9 +1269,9 @@ export function MessageComposer({
               void startVideoNoteRecording();
             }}
             className="dm-composer-button dm-composer-video-note"
-            aria-label="Записать кружочек"
+            aria-label={recorderMode === "video" ? "Записать кружочек" : "Записать голосовое"}
           >
-            <Video {...iconProps} />
+            {recorderMode === "video" ? <Video {...iconProps} /> : <Mic {...iconProps} />}
           </Button>
 
           <Button

@@ -1288,6 +1288,103 @@ textarea {
   backdrop-filter: none;
 }
 
+.dm-video-note-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.86);
+}
+
+.dm-video-note-viewer-close {
+  position: fixed;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  display: inline-flex;
+  height: 44px;
+  width: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #000;
+  color: #fff;
+}
+
+.dm-video-note-viewer-circle {
+  position: relative;
+  display: grid;
+  aspect-ratio: 1;
+  width: min(430px, 82vw, 72vh);
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 5px solid #0070f3;
+  background: #000;
+}
+
+.dm-video-note-viewer-media {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.dm-video-note-viewer-play {
+  position: absolute;
+  display: inline-flex;
+  height: 72px;
+  width: 72px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.54);
+  color: #fff;
+}
+
+.dm-video-note-viewer-time {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.64);
+  padding: 0.3rem 0.7rem;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dm-voice-note-bubble {
+  display: flex;
+  width: min(340px, 76vw);
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #050505;
+  padding: 0.72rem;
+}
+
+.dm-voice-note-icon {
+  display: inline-flex;
+  height: 42px;
+  width: 42px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #0070f3;
+}
+
+.dm-voice-note-icon span {
+  height: 16px;
+  width: 12px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  border-top-width: 5px;
+}
+
 .dm-composer-shell {
   position: relative;
   display: flex;
@@ -1331,6 +1428,36 @@ textarea {
   flex-shrink: 0;
   border-radius: 999px;
   background: #6aa8f8;
+}
+
+.dm-recorder-mode-toggle {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #050505;
+  padding: 0.2rem;
+}
+
+.dm-recorder-mode-button {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0 0.72rem;
+  font-size: 12px;
+  color: var(--text-dim);
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.dm-recorder-mode-button-active {
+  background: #0070f3;
+  color: #fff;
 }
 
 .dm-composer-main {
@@ -1557,6 +1684,31 @@ textarea {
 
 .dm-video-note-error {
   border-color: rgba(239, 68, 68, 0.42);
+}
+
+.dm-voice-note-record-surface {
+  background:
+    conic-gradient(
+      from -90deg,
+      #0070f3 calc(var(--dm-video-note-progress) * 1turn),
+      rgba(255, 255, 255, 0.12) 0
+    ),
+    #050505;
+}
+
+.dm-voice-note-record-surface .dm-video-note-record-vignette {
+  background:
+    radial-gradient(circle at center, rgba(0, 112, 243, 0.18), transparent 62%),
+    linear-gradient(180deg, transparent 58%, rgba(0, 0, 0, 0.56));
+}
+
+.dm-voice-note-preview {
+  position: absolute;
+  right: 50%;
+  bottom: 58px;
+  z-index: 4;
+  width: min(230px, 58vw);
+  transform: translateX(50%);
 }
 
 .dm-composer-send {
@@ -1912,6 +2064,20 @@ textarea {
     font-size: 10px;
   }
 
+  .dm-video-note-viewer-circle {
+    width: min(330px, 86vw, 66vh);
+    border-width: 4px;
+  }
+
+  .dm-video-note-viewer-play {
+    height: 62px;
+    width: 62px;
+  }
+
+  .dm-voice-note-bubble {
+    width: min(320px, 82vw);
+  }
+
   .dm-composer-stack {
     gap: 0.36rem;
   }
@@ -1929,6 +2095,15 @@ textarea {
     gap: 0.62rem;
     border-radius: 18px;
     padding: 0.24rem 0.74rem 0.24rem 0.64rem;
+  }
+
+  .dm-recorder-mode-toggle {
+    width: 100%;
+  }
+
+  .dm-recorder-mode-button {
+    flex: 1;
+    justify-content: center;
   }
 
   .dm-composer-main {

@@ -38,6 +38,7 @@ interface EmbeddedMediaBubbleProps {
   mediaFit?: "cover" | "contain";
   previewPlayback?: "visible" | "always";
   previewPreload?: "metadata" | "auto";
+  circularViewer?: boolean;
 }
 
 type ViewerAudioState = {
@@ -65,6 +66,7 @@ export function EmbeddedMediaBubble({
   mediaFit = "cover",
   previewPlayback = "visible",
   previewPreload = "metadata",
+  circularViewer = false,
 }: EmbeddedMediaBubbleProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [previewVideoFailed, setPreviewVideoFailed] = useState(false);
@@ -415,6 +417,55 @@ export function EmbeddedMediaBubble({
   const viewerMarkup =
     typeof document !== "undefined" && isViewerOpen
       ? createPortal(
+        circularViewer && isVideoViewer && effectiveViewerPlayableUrl ? (
+          <div className="dm-video-note-viewer-overlay" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              className="dm-video-note-viewer-close"
+              onClick={closeViewer}
+              aria-label="Р—Р°РєСЂС‹С‚СЊ РєСЂСѓР¶РѕС‡РµРє"
+              title="Р—Р°РєСЂС‹С‚СЊ"
+            >
+              <X size={18} strokeWidth={1.7} />
+            </button>
+            <button
+              type="button"
+              className="dm-video-note-viewer-circle"
+              onClick={toggleViewerPlayback}
+              aria-label={
+                isViewerPlaying
+                  ? "РџРѕСЃС‚Р°РІРёС‚СЊ РєСЂСѓР¶РѕС‡РµРє РЅР° РїР°СѓР·Сѓ"
+                  : "Р’РѕСЃРїСЂРѕРёР·РІРµСЃС‚Рё РєСЂСѓР¶РѕС‡РµРє"
+              }
+            >
+              <video
+                ref={viewerVideoRef}
+                src={effectiveViewerPlayableUrl}
+                autoPlay
+                crossOrigin="use-credentials"
+                playsInline
+                preload="auto"
+                poster={posterUrl ?? effectivePreviewUrl ?? undefined}
+                onError={() => setViewerVideoFailed(true)}
+                onLoadedMetadata={handleViewerLoadedMetadata}
+                onDurationChange={handleViewerDurationChange}
+                onTimeUpdate={handleViewerTimeUpdate}
+                onPlay={() => setIsViewerPlaying(true)}
+                onPause={() => setIsViewerPlaying(false)}
+                onVolumeChange={handleViewerVolumeChange}
+                className="dm-video-note-viewer-media"
+              />
+              {!isViewerPlaying ? (
+                <span className="dm-video-note-viewer-play" aria-hidden="true">
+                  <Play size={28} strokeWidth={1.7} />
+                </span>
+              ) : null}
+              <span className="dm-video-note-viewer-time">
+                {formatMediaTime(viewerCurrentTime)} / {formatMediaTime(viewerDuration)}
+              </span>
+            </button>
+          </div>
+        ) : (
         <div
             className="dm-viewer-overlay fixed inset-0 z-[120] bg-black/92"
             onClick={closeViewer}
@@ -636,7 +687,8 @@ export function EmbeddedMediaBubble({
                 </div>
               </div>
             </div>
-          </div>,
+          </div>
+        ),
           document.body,
         )
       : null;

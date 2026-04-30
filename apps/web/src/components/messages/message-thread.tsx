@@ -28,7 +28,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { isDirectMessageVideoNote } from "@/lib/direct-message-video-notes";
+import {
+  isDirectMessageVideoNote,
+  isDirectMessageVoiceNote,
+} from "@/lib/direct-message-video-notes";
 import {
   getDirectMessageAttachmentAssetUrl,
   getDirectMessageAttachmentDownloadUrl,
@@ -1204,6 +1207,9 @@ export function MessageThread({
                     message.type === "MEDIA" && message.attachment !== null;
                   const isFileAttachment =
                     message.type === "FILE" && message.attachment !== null;
+                  const isVoiceNote =
+                    isFileAttachment &&
+                    isDirectMessageVoiceNote(message.attachment);
                   const isRoundVideoNote =
                     isMediaAttachment &&
                     isDirectMessageVideoNote(message.attachment);
@@ -1584,6 +1590,7 @@ export function MessageThread({
                                     previewPreload={
                                       isRoundVideoNote ? "auto" : "metadata"
                                     }
+                                    circularViewer={isRoundVideoNote}
                                   />
                                   {isRoundVideoNote &&
                                   message.attachment.durationMs ? (
@@ -1604,6 +1611,35 @@ export function MessageThread({
                                     </div>
                                   ) : null}
                                   {isBareFramedMediaMessage ? messageFooter : null}
+                                </div>
+                              ) : isVoiceNote && message.attachment ? (
+                                <div className="dm-voice-note-bubble">
+                                  <div className="dm-voice-note-icon" aria-hidden="true">
+                                    <span />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-xs font-medium text-white">
+                                      Голосовое сообщение
+                                    </p>
+                                    {message.attachment.durationMs ? (
+                                      <p className="mt-0.5 text-[11px] text-[var(--text-dim)]">
+                                        {formatAttachmentDuration(
+                                          message.attachment.durationMs,
+                                        )}
+                                      </p>
+                                    ) : null}
+                                    <audio
+                                      controls
+                                      preload="metadata"
+                                      src={
+                                        message.localAttachmentAssetUrl ??
+                                        getDirectMessageAttachmentAssetUrl(
+                                          message.attachment,
+                                        )
+                                      }
+                                      className="mt-2 w-full"
+                                    />
+                                  </div>
                                 </div>
                               ) : isFileAttachment && message.attachment ? (
                                 <div className="grid gap-2">
