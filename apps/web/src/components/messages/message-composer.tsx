@@ -79,6 +79,11 @@ const VIDEO_NOTE_VIDEO_BITS_PER_SECOND = 1_450_000;
 const VIDEO_NOTE_AUDIO_BITS_PER_SECOND = 96_000;
 const VOICE_NOTE_MAX_DURATION_MS = 120_000;
 const VOICE_NOTE_AUDIO_BITS_PER_SECOND = 96_000;
+const VOICE_WAVEFORM_BAR_COUNT = 30;
+const INITIAL_VOICE_WAVEFORM_LEVELS = Array.from(
+  { length: VOICE_WAVEFORM_BAR_COUNT },
+  () => 0.18,
+);
 
 type RecorderMode = "voice" | "video";
 
@@ -235,6 +240,9 @@ export function MessageComposer({
     null,
   );
   const [videoNoteDurationMs, setVideoNoteDurationMs] = useState(0);
+  const [voiceWaveformLevels, setVoiceWaveformLevels] = useState<number[]>(
+    INITIAL_VOICE_WAVEFORM_LEVELS,
+  );
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [recentGifIds, setRecentGifIds] = useState<string[]>([]);
   const [pendingStickerIds, setPendingStickerIds] = useState<string[]>([]);
@@ -253,6 +261,11 @@ export function MessageComposer({
   const videoNoteDurationTimerRef = useRef<number | null>(null);
   const videoNoteStopTimerRef = useRef<number | null>(null);
   const videoNotePreviewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const voiceAudioContextRef = useRef<AudioContext | null>(null);
+  const voiceAnalyserRef = useRef<AnalyserNode | null>(null);
+  const voiceAnalyserFrameRef = useRef<number | null>(null);
+  const voiceAnalyserSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const videoNoteSendAfterStopRef = useRef(false);
   const isTypingRef = useRef(false);
 
   const updateContent = useCallback((nextContent: string) => {
@@ -286,8 +299,93 @@ export function MessageComposer({
     }
   }, []);
 
+  const stopVoiceAnalyser = useCallback(() => {
+    if (voiceAnalyserFrameRef.current !== null) {
+      window.cancelAnimationFrame(voiceAnalyserFrameRef.current);
+      voiceAnalyserFrameRef.current = null;
+    }
+
+    voiceAnalyserSourceRef.current?.disconnect();
+    voiceAnalyserSourceRef.current = null;
+    voiceAnalyserRef.current?.disconnect();
+    voiceAnalyserRef.current = null;
+    void voiceAudioContextRef.current?.close();
+    voiceAudioContextRef.current = null;
+    setVoiceWaveformLevels(INITIAL_VOICE_WAVEFORM_LEVELS);
+  }, []);
+
+  const startVoiceAnalyser = useCallback(
+    async (stream: MediaStream) => {
+      stopVoiceAnalyser();
+
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+
+      if (!AudioContextCtor) {
+        return;
+      }
+
+      const audioContext = new AudioContextCtor();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.72;
+      const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+      source.connect(analyser);
+      voiceAudioContextRef.current = audioContext;
+      voiceAnalyserRef.current = analyser;
+      voiceAnalyserSourceRef.current = source;
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume().catch(() => undefined);
+      }
+
+      const tick = () => {
+        analyser.getByteFrequencyData(frequencyData);
+
+        const bucketSize = Math.max(
+          1,
+          Math.floor(frequencyData.length / VOICE_WAVEFORM_BAR_COUNT),
+        );
+        const nextLevels = Array.from(
+          { length: VOICE_WAVEFORM_BAR_COUNT },
+          (_, index) => {
+            const bucketStart = index * bucketSize;
+            const bucketEnd = Math.min(
+              frequencyData.length,
+              bucketStart + bucketSize,
+            );
+            let sum = 0;
+
+            for (let cursor = bucketStart; cursor < bucketEnd; cursor += 1) {
+              sum += frequencyData[cursor] ?? 0;
+            }
+
+            const average = sum / Math.max(1, bucketEnd - bucketStart);
+            return Math.max(0.12, Math.min(1, average / 118));
+          },
+        );
+
+        setVoiceWaveformLevels(nextLevels);
+        voiceAnalyserFrameRef.current = window.requestAnimationFrame(tick);
+      };
+
+      tick();
+    },
+    [stopVoiceAnalyser],
+  );
+
   const resetVideoNoteDraft = useCallback(() => {
     clearVideoNoteTimers();
+    stopVoiceAnalyser();
+    videoNoteSendAfterStopRef.current = false;
     videoNoteRecorderRef.current = null;
     videoNoteChunksRef.current = [];
     videoNoteBlobRef.current = null;
@@ -302,7 +400,7 @@ export function MessageComposer({
 
       return null;
     });
-  }, [clearVideoNoteTimers]);
+  }, [clearVideoNoteTimers, stopVoiceAnalyser]);
 
   const closeVideoNoteRecorder = useCallback(() => {
     const recorder = videoNoteRecorderRef.current;
@@ -396,6 +494,7 @@ export function MessageComposer({
 
       recorder.onstop = () => {
         clearVideoNoteTimers();
+        stopVoiceAnalyser();
         stopMediaStream(stream);
         videoNoteStreamRef.current = null;
         const blob = new Blob(videoNoteChunksRef.current, {
@@ -426,6 +525,9 @@ export function MessageComposer({
       recorder.start(VIDEO_NOTE_TIMESLICE_MS);
       setVideoNoteStatus("recording");
       setVideoNoteDurationMs(0);
+      if (!isVideoMode) {
+        void startVoiceAnalyser(stream);
+      }
       videoNoteDurationTimerRef.current = window.setInterval(() => {
         const startedAt = videoNoteStartedAtRef.current;
         const maxDuration = isVideoMode
@@ -463,6 +565,8 @@ export function MessageComposer({
     isUploadingFiles,
     resetVideoNoteDraft,
     recorderMode,
+    startVoiceAnalyser,
+    stopVoiceAnalyser,
   ]);
 
   const sendVideoNote = useCallback(async () => {
@@ -508,6 +612,19 @@ export function MessageComposer({
     recorderMode,
     videoNoteStatus,
   ]);
+
+  useEffect(() => {
+    if (
+      recorderMode !== "voice" ||
+      videoNoteStatus !== "preview" ||
+      !videoNoteSendAfterStopRef.current
+    ) {
+      return;
+    }
+
+    videoNoteSendAfterStopRef.current = false;
+    void sendVideoNote();
+  }, [recorderMode, sendVideoNote, videoNoteStatus]);
 
   const notifyTypingFromDraft = useCallback(
     (nextContent: string) => {
@@ -1024,12 +1141,11 @@ export function MessageComposer({
                 "--dm-video-note-progress": videoNoteProgress,
               } as CSSProperties}
             >
-              {Array.from({ length: 30 }).map((_, index) => (
+              {voiceWaveformLevels.map((level, index) => (
                 <span
                   key={index}
                   style={{
-                    animationDelay: `${index * -38}ms`,
-                    height: `${7 + ((index * 17) % 15)}px`,
+                    height: `${6 + level * 24}px`,
                   }}
                 />
               ))}
@@ -1056,11 +1172,14 @@ export function MessageComposer({
             <button
               type="button"
               className="dm-voice-recorder-action dm-voice-recorder-action-primary"
-              onClick={finishVideoNoteRecording}
-              aria-label="Остановить запись"
-              title="Остановить"
+              onClick={() => {
+                videoNoteSendAfterStopRef.current = true;
+                finishVideoNoteRecording();
+              }}
+              aria-label="Отправить голосовое"
+              title="Отправить"
             >
-              <Square size={15} strokeWidth={1.8} fill="currentColor" />
+              <SendHorizontal size={17} strokeWidth={1.7} />
             </button>
           ) : videoNoteStatus === "preview" ? (
             <button
