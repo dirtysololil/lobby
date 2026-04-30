@@ -959,12 +959,15 @@ export function MessageComposer({
     />
   );
   const hasTextDraft = content.trim().length > 0;
+  const recorderMaxDurationMs =
+    recorderMode === "video" ? VIDEO_NOTE_MAX_DURATION_MS : VOICE_NOTE_MAX_DURATION_MS;
   const videoNoteProgress = Math.min(
     1,
-    videoNoteDurationMs / VIDEO_NOTE_MAX_DURATION_MS,
+    videoNoteDurationMs / recorderMaxDurationMs,
   );
   const videoNoteDurationLabel = formatVideoNoteDuration(videoNoteDurationMs);
   const videoNoteCanRecord = !disabled && !isUploadingFiles;
+  const isRecorderActive = videoNoteOpen && videoNoteStatus !== "idle";
   const videoNoteCircleLabel =
     videoNoteStatus === "recording"
       ? "РћСЃС‚Р°РЅРѕРІРёС‚СЊ Р·Р°РїРёСЃСЊ"
@@ -973,7 +976,117 @@ export function MessageComposer({
           ? "РћС‚РїСЂР°РІРёС‚СЊ РєСЂСѓР¶РѕС‡РµРє"
           : "РћС‚РїСЂР°РІРёС‚СЊ РіРѕР»РѕСЃРѕРІРѕРµ"
       : "РќР°С‡Р°С‚СЊ Р·Р°РїРёСЃСЊ";
-  const videoNoteModalMarkup = videoNoteOpen ? (
+  const voiceNoteRecorderMarkup =
+    recorderMode === "voice" && videoNoteOpen ? (
+      <div
+        className={cn(
+          "dm-voice-recorder-strip",
+          videoNoteStatus === "recording" && "dm-voice-recorder-strip-recording",
+          videoNoteStatus === "preview" && "dm-voice-recorder-strip-ready",
+          videoNoteStatus === "error" && "dm-voice-recorder-strip-error",
+        )}
+      >
+        <div className="dm-voice-recorder-status" aria-hidden="true">
+          {videoNoteStatus === "requesting" || videoNoteStatus === "sending" ? (
+            <Loader2 size={16} strokeWidth={1.7} className="animate-spin" />
+          ) : (
+            <Mic size={16} strokeWidth={1.7} />
+          )}
+        </div>
+
+        <div className="dm-voice-recorder-body">
+          <div className="dm-voice-recorder-meta">
+            <span>
+              {videoNoteStatus === "recording"
+                ? "Запись"
+                : videoNoteStatus === "preview"
+                  ? "Голосовое готово"
+                  : videoNoteStatus === "sending"
+                    ? "Отправляем"
+                    : videoNoteStatus === "error"
+                      ? "Ошибка записи"
+                      : "Голосовое"}
+            </span>
+            <span>{videoNoteDurationLabel}</span>
+          </div>
+
+          {videoNoteStatus === "preview" && videoNotePreviewUrl ? (
+            <audio
+              src={videoNotePreviewUrl}
+              controls
+              preload="metadata"
+              className="dm-voice-recorder-audio"
+            />
+          ) : (
+            <div
+              className="dm-voice-recorder-wave"
+              style={{
+                "--dm-video-note-progress": videoNoteProgress,
+              } as CSSProperties}
+            >
+              {Array.from({ length: 30 }).map((_, index) => (
+                <span
+                  key={index}
+                  style={{
+                    animationDelay: `${index * -38}ms`,
+                    height: `${7 + ((index * 17) % 15)}px`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {videoNoteError ? (
+            <p className="dm-voice-recorder-error">{videoNoteError}</p>
+          ) : null}
+        </div>
+
+        <div className="dm-voice-recorder-actions">
+          <button
+            type="button"
+            className="dm-voice-recorder-action"
+            onClick={closeVideoNoteRecorder}
+            aria-label="Отменить голосовое"
+            title="Отменить"
+          >
+            <X size={16} strokeWidth={1.7} />
+          </button>
+
+          {videoNoteStatus === "recording" ? (
+            <button
+              type="button"
+              className="dm-voice-recorder-action dm-voice-recorder-action-primary"
+              onClick={finishVideoNoteRecording}
+              aria-label="Остановить запись"
+              title="Остановить"
+            >
+              <Square size={15} strokeWidth={1.8} fill="currentColor" />
+            </button>
+          ) : videoNoteStatus === "preview" ? (
+            <button
+              type="button"
+              className="dm-voice-recorder-action dm-voice-recorder-action-primary"
+              onClick={() => void sendVideoNote()}
+              aria-label="Отправить голосовое"
+              title="Отправить"
+            >
+              <SendHorizontal size={17} strokeWidth={1.7} />
+            </button>
+          ) : videoNoteStatus === "error" ? (
+            <button
+              type="button"
+              className="dm-voice-recorder-action dm-voice-recorder-action-primary"
+              onClick={() => void startVideoNoteRecording()}
+              aria-label="Записать заново"
+              title="Записать заново"
+            >
+              <Mic size={16} strokeWidth={1.7} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    ) : null;
+  const videoNoteModalMarkup = videoNoteOpen && recorderMode === "video" ? (
     <div className="dm-video-note-modal" role="dialog" aria-modal="true">
       <button
         type="button"
@@ -992,7 +1105,6 @@ export function MessageComposer({
           videoNoteStatus === "preview" && "dm-video-note-ready",
           videoNoteStatus === "sending" && "dm-video-note-sending",
           videoNoteStatus === "error" && "dm-video-note-error",
-          recorderMode === "voice" && "dm-voice-note-record-surface",
         )}
         style={{
           "--dm-video-note-progress": videoNoteProgress,
@@ -1015,7 +1127,7 @@ export function MessageComposer({
         disabled={videoNoteStatus === "requesting" || videoNoteStatus === "sending"}
         aria-label={videoNoteCircleLabel}
       >
-        {recorderMode === "video" && videoNoteStatus === "recording" ? (
+        {videoNoteStatus === "recording" ? (
           <video
             ref={videoNotePreviewVideoRef}
             className="dm-video-note-record-media"
@@ -1023,7 +1135,7 @@ export function MessageComposer({
             muted
             playsInline
           />
-        ) : recorderMode === "video" && videoNotePreviewUrl ? (
+        ) : videoNotePreviewUrl ? (
           <video
             className="dm-video-note-record-media"
             src={videoNotePreviewUrl}
@@ -1042,21 +1154,10 @@ export function MessageComposer({
             <Square size={26} strokeWidth={1.8} fill="currentColor" />
           ) : videoNoteStatus === "preview" ? (
             <SendHorizontal size={30} strokeWidth={1.7} />
-          ) : recorderMode === "voice" ? (
-            <Mic size={30} strokeWidth={1.7} />
           ) : (
             <Video size={30} strokeWidth={1.7} />
           )}
         </span>
-
-        {recorderMode === "voice" && videoNotePreviewUrl ? (
-          <audio
-            src={videoNotePreviewUrl}
-            controls
-            preload="metadata"
-            className="dm-voice-note-preview"
-          />
-        ) : null}
 
         <span className="dm-video-note-record-meta">
           {videoNoteStatus === "error"
@@ -1133,16 +1234,20 @@ export function MessageComposer({
               <button
                 key={item.value}
                 type="button"
+                disabled={isRecorderActive}
                 onClick={() => setRecorderMode(item.value)}
                 className={cn("dm-recorder-mode-button", active && "dm-recorder-mode-button-active")}
                 aria-pressed={active}
+                title={item.label}
               >
                 <Icon size={14} strokeWidth={1.6} />
-                {item.label}
+                <span>{item.label}</span>
               </button>
             );
           })}
         </div>
+
+        {voiceNoteRecorderMarkup}
 
         <div className="dm-composer-main">
           <div

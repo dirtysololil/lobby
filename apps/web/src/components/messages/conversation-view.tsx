@@ -334,6 +334,13 @@ function inferAttachmentKind(file: File): "IMAGE" | "VIDEO" | "DOCUMENT" {
   return "DOCUMENT";
 }
 
+function isVoiceAttachmentFile(file: File): boolean {
+  return (
+    file.type.startsWith("audio/") ||
+    file.name.trim().toLowerCase().startsWith("lobby-voice-note-")
+  );
+}
+
 function applyParticipantRead(
   conversation: ConversationState | null,
   participantUserId: string,
@@ -953,8 +960,11 @@ export function ConversationView({
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const inferredKind = inferAttachmentKind(file);
+    const isLocalVoiceAsset = isVoiceAttachmentFile(file);
     const localAssetUrl =
-      inferredKind !== "DOCUMENT" ? URL.createObjectURL(file) : null;
+      inferredKind !== "DOCUMENT" || isLocalVoiceAsset
+        ? URL.createObjectURL(file)
+        : null;
     const localPreviewUrl =
       inferredKind === "IMAGE" || inferredKind === "VIDEO" ? localAssetUrl : null;
 

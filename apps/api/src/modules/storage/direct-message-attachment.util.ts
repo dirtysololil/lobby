@@ -35,6 +35,7 @@ export interface ProcessedDirectMessageAttachment {
 
 const supportedImageFormats = new Set(['png', 'jpeg', 'jpg', 'webp', 'gif']);
 const videoNoteFilePrefix = 'lobby-video-note-';
+const voiceNoteFilePrefix = 'lobby-voice-note-';
 type VideoNoteTranscodeProfile = {
   maxDimension: number;
   targetFps: number;
@@ -71,6 +72,13 @@ const inlineVideoNoteTranscodeProfile: VideoNoteTranscodeProfile = {
   level: '3.1',
 };
 const documentMimeTypes = new Set([
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/mp4',
+  'audio/ogg',
+  'audio/webm',
+  'audio/wav',
+  'audio/x-wav',
   'application/pdf',
   'text/plain',
   'text/markdown',
@@ -88,6 +96,11 @@ const documentMimeTypes = new Set([
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ]);
 const documentExtensions = new Set([
+  'mp3',
+  'm4a',
+  'ogg',
+  'wav',
+  'webm',
   'pdf',
   'txt',
   'md',
@@ -210,6 +223,13 @@ async function tryProcessVideoAttachment(args: {
   mimeType: string | null | undefined;
   limits: DirectMessageAttachmentPipelineLimits;
 }): Promise<ProcessedDirectMessageAttachment | null> {
+  if (
+    isDirectMessageAudioName(args.originalName) ||
+    isAudioMimeType(args.mimeType)
+  ) {
+    return null;
+  }
+
   const extension = resolveVideoExtension(args.originalName, args.mimeType);
 
   if (!extension) {
@@ -439,6 +459,18 @@ function resolveFallbackExtensionFromMimeType(
       return 'mp4';
     case 'video/webm':
       return 'webm';
+    case 'audio/mpeg':
+    case 'audio/mp3':
+      return 'mp3';
+    case 'audio/mp4':
+      return 'm4a';
+    case 'audio/ogg':
+      return 'ogg';
+    case 'audio/webm':
+      return 'webm';
+    case 'audio/wav':
+    case 'audio/x-wav':
+      return 'wav';
     case 'application/pdf':
       return 'pdf';
     default:
@@ -511,6 +543,14 @@ function isDirectMessageVideoNoteName(originalName: string): boolean {
   return originalName.trim().toLowerCase().startsWith(videoNoteFilePrefix);
 }
 
+function isDirectMessageAudioName(originalName: string): boolean {
+  return originalName.trim().toLowerCase().startsWith(voiceNoteFilePrefix);
+}
+
+function isAudioMimeType(mimeType: string | null | undefined): boolean {
+  return (mimeType?.trim().toLowerCase() ?? '').startsWith('audio/');
+}
+
 function replaceFileExtension(
   originalName: string,
   nextExtension: string,
@@ -526,10 +566,7 @@ function resolveVideoNoteOutputDimensions(
   height: number,
   maxDimension: number,
 ) {
-  const scale = Math.min(
-    1,
-    maxDimension / Math.max(width, height),
-  );
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
 
   return {
     width: toEvenDimension(width * scale),
