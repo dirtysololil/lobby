@@ -123,7 +123,7 @@ export function LoginForm() {
   }
 
   return (
-    <form className="space-y-4" onSubmit={onSubmit}>
+    <form className="space-y-3.5" onSubmit={onSubmit}>
       <div className="space-y-2">
         <Label htmlFor="login">Логин или почта</Label>
         <Input
@@ -155,18 +155,13 @@ export function LoginForm() {
           {form.formState.errors.password?.message}
         </p>
       </div>
-
-      <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-        Войдите по логину или адресу электронной почты.
-      </div>
-
       {errorMessage ? (
-        <div className="rounded-[22px] border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+        <div className="rounded-[14px] border border-rose-400/25 bg-rose-400/10 px-3 py-2.5 text-sm text-rose-100">
           {errorMessage}
         </div>
       ) : null}
 
-      <Button className="w-full" type="submit" disabled={isSubmitting}>
+      <Button className="h-11 w-full rounded-[14px]" type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Входим..." : "Войти"}
       </Button>
     </form>

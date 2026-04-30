@@ -195,8 +195,8 @@ export function RegisterForm({ inviteFromUrl = null }: RegisterFormProps) {
     isSubmitting || (isInviteLinkMode && (!isInviteReady || isResolvingInvite));
 
   return (
-    <form className="space-y-4" onSubmit={onSubmit}>
-      <div className="grid gap-4 sm:grid-cols-2">
+    <form className="space-y-3.5" onSubmit={onSubmit}>
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="username">Имя пользователя</Label>
           <Input
@@ -208,9 +208,6 @@ export function RegisterForm({ inviteFromUrl = null }: RegisterFormProps) {
             spellCheck={false}
             {...form.register("username")}
           />
-          <p className="text-xs text-[var(--text-muted)]">
-            Допустимы строчные латинские буквы, цифры, символы `_` и `-`.
-          </p>
           <p className="text-xs text-rose-300">
             {form.formState.errors.username?.message}
           </p>
@@ -263,12 +260,8 @@ export function RegisterForm({ inviteFromUrl = null }: RegisterFormProps) {
         </p>
       </div>
 
-      <div className="surface-subtle rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-        Доступ к регистрации открыт только по валидному инвайту.
-      </div>
-
       {isInviteLinkMode ? (
-        <div className="space-y-2 rounded-[18px] border border-[var(--border)] bg-white/[0.03] p-4">
+        <div className="space-y-2 rounded-[16px] border border-[var(--border)] bg-black p-3">
           <input type="hidden" {...form.register("accessKey")} />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Label htmlFor="invite-link-access-key">Ссылка-приглашение</Label>
@@ -343,12 +336,12 @@ export function RegisterForm({ inviteFromUrl = null }: RegisterFormProps) {
       )}
 
       {errorMessage ? (
-        <div className="rounded-[22px] border border-rose-400/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+        <div className="rounded-[14px] border border-rose-400/25 bg-rose-400/10 px-3 py-2.5 text-sm text-rose-100">
           {errorMessage}
         </div>
       ) : null}
 
-      <Button className="w-full" type="submit" disabled={isSubmitBlocked}>
+      <Button className="h-11 w-full rounded-[14px]" type="submit" disabled={isSubmitBlocked}>
         {isSubmitting ? "Регистрируем..." : "Создать аккаунт"}
       </Button>
     </form>

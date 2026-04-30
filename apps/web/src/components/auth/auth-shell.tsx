@@ -1,18 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { KeyRound, MessageSquareMore, ShieldCheck, Waves } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ShieldCheck } from "lucide-react";
 
 interface AuthShellProps {
   eyebrow: string;
   title: string;
-  description: string;
   footer: ReactNode;
   children: ReactNode;
 }
@@ -20,88 +12,37 @@ interface AuthShellProps {
 export function AuthShell({
   eyebrow,
   title,
-  description,
   footer,
   children,
 }: AuthShellProps) {
   return (
-    <main className="mx-auto grid min-h-screen w-full max-w-[1380px] gap-3 px-3 py-3 lg:grid-cols-[0.95fr_0.9fr] lg:px-4">
-      <section className="shell-frame flex flex-col justify-between rounded-[24px] p-4 lg:p-5">
-        <div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Link href="/" className="eyebrow-pill">
-              Lobby
-            </Link>
-            <span className="status-pill">
-              <ShieldCheck className="h-3.5 w-3.5 text-[var(--success)]" />
-              Закрытая сеть
-            </span>
-          </div>
-
-          <div className="mt-6 max-w-2xl">
-            <p className="section-kicker">{eyebrow}</p>
-            <h1 className="mt-2.5 font-[var(--font-heading)] text-3xl font-semibold tracking-[-0.05em] text-white sm:text-[2.6rem]">
-              Приватные коммуникации в точной, малошумной оболочке.
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-dim)]">
-              Диалоги, люди и хабы без лишнего декоративного шума.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-2.5 md:grid-cols-3">
-            {[
-              {
-                icon: MessageSquareMore,
-                label: "Диалоги в центре",
-                text: "Личные сообщения как основной рабочий поток.",
-              },
-              {
-                icon: Waves,
-                label: "Структура хабов",
-                text: "Хабы и каналы в плотной и понятной навигации.",
-              },
-              {
-                icon: KeyRound,
-                label: "Управляемый доступ",
-                text: "Инвайты, роли и закрытый контур без открытой регистрации.",
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="surface-subtle rounded-[16px] p-3.5"
-              >
-                <item.icon className="h-4 w-4 text-white" />
-                <p className="mt-2.5 text-sm font-semibold text-white">
-                  {item.label}
-                </p>
-                <p className="mt-1.5 text-sm leading-5 text-[var(--text-dim)]">
-                  {item.text}
-                </p>
-              </div>
-            ))}
-          </div>
+    <main className="grid min-h-screen place-items-center bg-black px-4 py-6 sm:px-6">
+      <section className="w-full max-w-[440px]">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <Link href="/" className="eyebrow-pill">
+            Lobby
+          </Link>
+          <span className="status-pill">
+            <ShieldCheck className="h-3.5 w-3.5 text-[var(--success)]" />
+            Закрытая сеть
+          </span>
         </div>
 
-        <div className="surface-subtle mt-4 rounded-[16px] px-3 py-2.5 text-sm text-[var(--text-dim)]">
-          Сначала identity, потом доступ.
+        <div className="rounded-[22px] border border-[var(--border)] bg-[#050505] p-4 shadow-none sm:p-5">
+          <div className="mb-4">
+            <p className="section-kicker">{eyebrow}</p>
+            <h1 className="mt-2 text-xl font-semibold tracking-tight text-white">
+              {title}
+            </h1>
+          </div>
+
+          {children}
+
+          <div className="mt-4 rounded-[14px] border border-[var(--border-soft)] bg-black px-3 py-3 text-sm text-[var(--text-dim)]">
+            {footer}
+          </div>
         </div>
       </section>
-
-      <div className="flex items-center justify-center">
-        <Card className="w-full max-w-lg rounded-[24px]">
-          <CardHeader>
-            <p className="section-kicker">{eyebrow}</p>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {children}
-            <div className="rounded-[14px] border border-[var(--border)] bg-black px-3 py-3 text-sm text-[var(--text-dim)]">
-              {footer}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </main>
   );
 }

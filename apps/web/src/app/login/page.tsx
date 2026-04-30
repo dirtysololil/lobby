@@ -14,8 +14,7 @@ export default async function LoginPage() {
   return (
     <AuthShell
       eyebrow="Вход"
-      title="Вход в закрытый контур"
-      description="Введите логин или почту, чтобы вернуться в личные диалоги, хабы и приватные рабочие пространства Lobby."
+      title="Вход"
       footer={
         <>
           Нет аккаунта?{" "}

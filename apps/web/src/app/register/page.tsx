@@ -25,8 +25,7 @@ export default async function RegisterPage({
   return (
     <AuthShell
       eyebrow="Регистрация"
-      title="Регистрация по приглашению"
-      description="Создайте аккаунт по валидному инвайту и войдите в приватную сеть Lobby без открытой публичной регистрации."
+      title="Регистрация"
       footer={
         <>
           Уже есть аккаунт?{" "}
