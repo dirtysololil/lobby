@@ -7,6 +7,7 @@ import {
   type CreateFeedPostInput,
   type FeedPost,
   type PublicUser,
+  type ReactionMutationInput,
 } from '@lobby/shared';
 import { FeedPostKind, Prisma } from '@prisma/client';
 import type { RequestMetadata } from '../../common/interfaces/request-metadata.interface';
@@ -22,6 +23,12 @@ const feedPostInclude = {
   author: {
     select: publicUserSelect,
   },
+  reactions: {
+    select: {
+      emoji: true,
+      userId: true,
+    },
+  },
 } satisfies Prisma.FeedPostInclude;
 
 @Injectable()
@@ -33,7 +40,7 @@ export class FeedService {
     private readonly storageService: StorageService,
   ) {}
 
-  public async listPosts(): Promise<FeedPost[]> {
+  public async listPosts(viewerId: string): Promise<FeedPost[]> {
     const posts = await this.prisma.feedPost.findMany({
       where: {
         deletedAt: null,
@@ -48,7 +55,7 @@ export class FeedService {
       take: 80,
     });
 
-    return posts.map((post) => toFeedPost(post));
+    return posts.map((post) => toFeedPost(post, viewerId));
   }
 
   public async createPost(
@@ -82,7 +89,80 @@ export class FeedService {
       },
     });
 
-    return toFeedPost(post);
+    return toFeedPost(post, actor.id);
+  }
+
+  public async toggleReaction(
+    actor: PublicUser,
+    postId: string,
+    input: ReactionMutationInput,
+    requestMetadata: RequestMetadata,
+  ): Promise<FeedPost> {
+    const post = await this.prisma.feedPost.findFirst({
+      where: {
+        id: postId,
+        deletedAt: null,
+        author: {
+          platformBlock: null,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Feed post not found');
+    }
+
+    const existingReaction = await this.prisma.feedPostReaction.findUnique({
+      where: {
+        postId_userId_emoji: {
+          postId,
+          userId: actor.id,
+          emoji: input.emoji,
+        },
+      },
+    });
+
+    if (existingReaction) {
+      await this.prisma.feedPostReaction.delete({
+        where: {
+          id: existingReaction.id,
+        },
+      });
+    } else {
+      await this.prisma.feedPostReaction.create({
+        data: {
+          postId,
+          userId: actor.id,
+          emoji: input.emoji,
+        },
+      });
+    }
+
+    await this.auditService.write({
+      action: existingReaction
+        ? 'feed.post.reaction.remove'
+        : 'feed.post.reaction.add',
+      entityType: 'FeedPost',
+      entityId: postId,
+      actorUserId: actor.id,
+      ipAddress: requestMetadata.ipAddress,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        emoji: input.emoji,
+      },
+    });
+
+    const updatedPost = await this.prisma.feedPost.findUniqueOrThrow({
+      where: {
+        id: postId,
+      },
+      include: feedPostInclude,
+    });
+
+    return toFeedPost(updatedPost, actor.id);
   }
 
   public async uploadPostMedia(

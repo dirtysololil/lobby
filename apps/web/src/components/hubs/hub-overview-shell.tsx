@@ -1,4 +1,4 @@
-import type { HubShell } from "@lobby/shared";
+import type { ForumTopic, HubShell } from "@lobby/shared";
 import { LockKeyhole, UsersRound, Waves } from "lucide-react";
 import {
   CompactList,
@@ -13,6 +13,7 @@ import { buildUserProfileHref } from "@/lib/profile-routes";
 import { HubMemberRoleBadge } from "./hub-member-role-badge";
 import { HubOverviewLauncher } from "./hub-overview-launcher";
 import { HubShellBootstrap } from "./hub-shell-bootstrap";
+import { HubTextLobbyChat } from "./hub-text-lobby-chat";
 
 const lobbyTypeLabels: Record<string, string> = {
   TEXT: "Текст",
@@ -22,11 +23,13 @@ const lobbyTypeLabels: Record<string, string> = {
 
 interface HubOverviewShellProps {
   hub: HubShell["hub"];
+  feedTopics: ForumTopic[];
 }
 
-export function HubOverviewShell({ hub }: HubOverviewShellProps) {
+export function HubOverviewShell({ feedTopics, hub }: HubOverviewShellProps) {
   const memberPreview = hub.members.slice(0, 6);
   const canOpenHubTools = hub.permissions.canManageHub;
+  const feedLobby = hub.lobbies.find((item) => item.type === "TEXT") ?? null;
   const summaryMetrics = canOpenHubTools
     ? [
         { label: "Каналы", value: hub.lobbies.length },
@@ -54,8 +57,8 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="grid min-w-0 gap-3">
           <section className="premium-panel rounded-[22px] px-4 py-3">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--border-soft)] bg-black text-white">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border border-[var(--border-soft)] bg-black text-white">
                 <Waves className="h-4.5 w-4.5" />
               </div>
 
@@ -89,6 +92,14 @@ export function HubOverviewShell({ hub }: HubOverviewShellProps) {
               </div>
             </div>
           </section>
+
+          {feedLobby ? (
+            <HubTextLobbyChat
+              hub={hub}
+              lobby={feedLobby}
+              initialTopics={feedTopics}
+            />
+          ) : null}
 
           <section className="premium-panel overflow-hidden rounded-[22px]">
             <div className="px-4 py-3.5">

@@ -12,6 +12,7 @@ import type {
   DirectConversationSummary,
   DmSignal,
   PublicUser,
+  ReactionMutationInput,
   UploadDirectMessageAttachmentInput,
   UpdateDmSettingsInput,
   UserRelationshipSummary,
@@ -66,6 +67,12 @@ const directMessageWithAuthorInclude = {
   gif: true,
   attachment: true,
   linkEmbed: true,
+  reactions: {
+    select: {
+      emoji: true,
+      userId: true,
+    },
+  },
 } satisfies Prisma.DirectMessageInclude;
 
 const participantWithUserInclude = {
@@ -1116,6 +1123,90 @@ export class DirectMessagesService implements OnModuleInit {
       conversationId,
       actorUserId: actor.id,
       messageId: updatedMessage.id,
+    });
+
+    return toDirectMessage(updatedMessage, {
+      viewerId: actor.id,
+    });
+  }
+
+  public async toggleMessageReaction(
+    actor: PublicUser,
+    conversationId: string,
+    messageId: string,
+    input: ReactionMutationInput,
+    requestMetadata: RequestMetadata,
+  ) {
+    const conversation = await this.getConversationOrThrow(
+      conversationId,
+      actor.id,
+    );
+    const message = conversation.messages.find((item) => item.id === messageId);
+
+    if (!message) {
+      throw new NotFoundException('Direct message not found');
+    }
+
+    const counterpart = this.getCounterpart(
+      conversation.participants,
+      actor.id,
+    );
+
+    await this.relationshipsService.assertDirectMessagingAllowed(
+      actor.id,
+      counterpart.userId,
+    );
+
+    const existingReaction = await this.prisma.directMessageReaction.findUnique(
+      {
+        where: {
+          messageId_userId_emoji: {
+            messageId,
+            userId: actor.id,
+            emoji: input.emoji,
+          },
+        },
+      },
+    );
+
+    if (existingReaction) {
+      await this.prisma.directMessageReaction.delete({
+        where: {
+          id: existingReaction.id,
+        },
+      });
+    } else {
+      await this.prisma.directMessageReaction.create({
+        data: {
+          messageId,
+          userId: actor.id,
+          emoji: input.emoji,
+        },
+      });
+    }
+
+    await this.auditService.write({
+      action: existingReaction
+        ? 'dm.message.reaction.remove'
+        : 'dm.message.reaction.add',
+      entityType: 'DirectMessage',
+      entityId: messageId,
+      actorUserId: actor.id,
+      ipAddress: requestMetadata.ipAddress,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        conversationId,
+        emoji: input.emoji,
+      },
+    });
+
+    const updatedMessage = await this.loadMessageOrThrow(messageId);
+
+    await this.emitConversationSignal({
+      event: 'MESSAGE_UPDATED',
+      conversationId,
+      actorUserId: actor.id,
+      message: updatedMessage,
     });
 
     return toDirectMessage(updatedMessage, {

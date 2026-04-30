@@ -21,6 +21,7 @@ import {
   type DirectMessageReplyPreview,
   type FriendshipState,
   type MediaPickerCatalog,
+  type ReactionEmoji,
   type UserRole,
 } from "@lobby/shared";
 import type { ReactNode } from "react";
@@ -118,6 +119,7 @@ function buildOptimisticMessage(args: {
     canDelete: true,
     deleteExpiresAt: null,
     clientNonce: args.clientNonce,
+    reactions: [],
     createdAt,
     updatedAt: createdAt,
     localState: "sending",
@@ -163,6 +165,7 @@ function buildOptimisticAttachmentMessage(args: {
     canDelete: true,
     deleteExpiresAt: null,
     clientNonce: args.clientNonce,
+    reactions: [],
     createdAt,
     updatedAt: createdAt,
     localState: "uploading",
@@ -1158,6 +1161,32 @@ export function ConversationView({
     }
   }
 
+  async function reactToMessage(messageId: string, reaction: ReactionEmoji) {
+    const targetMessage = messages.find((message) => message.id === messageId);
+
+    if (!targetMessage || targetMessage.localState || targetMessage.isDeleted) {
+      return;
+    }
+
+    try {
+      const payload = await apiClientFetch(
+        `/v1/direct-messages/${conversationId}/messages/${messageId}/reactions`,
+        {
+          method: "POST",
+          body: JSON.stringify({ emoji: reaction }),
+        },
+      );
+      const parsed = directMessageResponseSchema.parse(payload);
+
+      setMessages((current) => mergeThreadMessage(current, parsed.message));
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось сохранить реакцию.",
+      );
+    }
+  }
+
   async function saveSettings(payload: {
     notificationSetting: "ALL" | "MENTIONS_ONLY" | "MUTED" | "OFF";
     retentionMode: "OFF" | "H24" | "D7" | "D30" | "CUSTOM";
@@ -1388,6 +1417,7 @@ export function ConversationView({
           searchQuery={messageSearchQuery}
           onReply={replyToThreadMessage}
           onDelete={deleteMessage}
+          onReact={reactToMessage}
           onRetry={retryMessage}
         />
         {isDraggingFiles ? (

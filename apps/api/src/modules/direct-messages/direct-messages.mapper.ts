@@ -14,9 +14,11 @@ import type {
   DirectConversationParticipant,
   DirectMessage as PrismaDirectMessage,
   DirectMessageLinkEmbed as PrismaDirectMessageLinkEmbed,
+  DirectMessageReaction as PrismaDirectMessageReaction,
   GifAsset as PrismaGifAsset,
   Sticker as PrismaSticker,
 } from '@prisma/client';
+import { toContentReactions } from '../../common/utils/content-reactions.util';
 import { toPublicUser, type PublicUserRecord } from '../auth/auth.mapper';
 import { toGifAsset } from '../media-library/media-library.mapper';
 import { toStickerAsset } from '../stickers/stickers.mapper';
@@ -27,6 +29,7 @@ export type MessageWithAuthor = PrismaDirectMessage & {
   gif: PrismaGifAsset | null;
   attachment: PrismaDirectMessageAttachment | null;
   linkEmbed: PrismaDirectMessageLinkEmbed | null;
+  reactions: Array<Pick<PrismaDirectMessageReaction, 'emoji' | 'userId'>>;
   replyTo?: ReplyPreviewWithAuthor | null;
 };
 
@@ -99,6 +102,7 @@ export function toDirectMessage(
     canDelete,
     deleteExpiresAt: null,
     clientNonce: options?.clientNonce ?? null,
+    reactions: toContentReactions(message.reactions, options?.viewerId),
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),
   });

@@ -32,6 +32,7 @@ import {
   type HubInvite,
   type HubSummary,
   type PublicUser,
+  type ReactionEmoji,
 } from "@lobby/shared";
 import {
   useCallback,
@@ -60,7 +61,7 @@ interface HomeWorkspaceProps {
 
 const emptyLabel = "Сейчас тут пусто";
 const navIconProps = { size: 17, strokeWidth: 1.75 } as const;
-const reactionOptions = ["❤️", "🔥", "✨", "👀"];
+const reactionOptions: ReactionEmoji[] = ["❤️", "🔥", "✨", "👀"];
 
 const quickLinks: Array<{
   href: string;
@@ -304,7 +305,15 @@ function StatTile({ label, value }: { label: string; value: number }) {
   );
 }
 
-function FeedPostCard({ post }: { post: FeedPost }) {
+function FeedPostCard({
+  onReact,
+  pendingReaction,
+  post,
+}: {
+  onReact: (postId: string, reaction: ReactionEmoji) => Promise<void>;
+  pendingReaction: ReactionEmoji | null;
+  post: FeedPost;
+}) {
   const mediaKind = resolveMediaKind(post.mediaUrl, post.kind);
   const mediaSrc = resolveFeedMediaSrc(post.mediaUrl);
   const youtubeEmbedUrl = post.mediaUrl ? getYouTubeEmbedUrl(post.mediaUrl) : null;
@@ -384,16 +393,35 @@ function FeedPostCard({ post }: { post: FeedPost }) {
         </a>
       ) : null}
       <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/8 pt-3">
-        {reactionOptions.map((reaction) => (
-          <button
-            key={reaction}
-            type="button"
-            className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-white/8 bg-black px-2 text-sm transition-colors hover:border-white/16 hover:bg-[var(--bg-hover)]"
-            aria-label={`Реакция ${reaction}`}
-          >
-            {reaction}
-          </button>
-        ))}
+        {reactionOptions.map((reaction) => {
+          const reactionStats = post.reactions.find(
+            (item) => item.emoji === reaction,
+          );
+          const isActive = Boolean(reactionStats?.reactedByViewer);
+
+          return (
+            <button
+              key={reaction}
+              type="button"
+              onClick={() => void onReact(post.id, reaction)}
+              disabled={pendingReaction === reaction}
+              className={cn(
+                "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-full border px-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-70",
+                isActive
+                  ? "border-[#0070F3]/70 bg-[#0070F3]/15 text-white hover:border-[#0070F3]"
+                  : "border-white/8 bg-black hover:border-white/16 hover:bg-[var(--bg-hover)]",
+              )}
+              aria-label={`Реакция ${reaction}`}
+            >
+              <span>{reaction}</span>
+              {reactionStats?.count ? (
+                <span className="text-[11px] font-medium text-[var(--text-dim)]">
+                  {reactionStats.count}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
     </article>
   );
@@ -497,6 +525,10 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
   const [isUploadingPostMedia, setIsUploadingPostMedia] = useState(false);
   const [postErrorMessage, setPostErrorMessage] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+  const [reactingPostKey, setReactingPostKey] = useState<{
+    postId: string;
+    reaction: ReactionEmoji;
+  } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const postFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -823,6 +855,33 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
     }
   }
 
+  async function handlePostReaction(postId: string, reaction: ReactionEmoji) {
+    if (reactingPostKey) {
+      return;
+    }
+
+    setReactingPostKey({ postId, reaction });
+
+    try {
+      const payload = await apiClientFetch(`/v1/feed/${postId}/reactions`, {
+        method: "POST",
+        body: JSON.stringify({ emoji: reaction }),
+      });
+      const updatedPost = feedPostResponseSchema.parse(payload).post;
+
+      setFeedPosts((current) =>
+        current.map((post) => (post.id === updatedPost.id ? updatedPost : post)),
+      );
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось сохранить реакцию.",
+      );
+    } finally {
+      setReactingPostKey(null);
+    }
+  }
+
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
       <div className="border-b border-white/5 px-4 pb-3 pt-5 md:hidden">
@@ -1070,7 +1129,7 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
                       <button
                         type="submit"
                         disabled={isPosting}
-                        className="inline-flex min-h-10 items-center justify-center rounded-[12px] border border-white bg-white px-4 text-sm font-semibold text-black transition-colors hover:bg-[var(--text-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-10 items-center justify-center rounded-[12px] border border-[#0070F3] bg-[#0070F3] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0068df] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isPosting ? "Публикуем..." : "Опубликовать"}
                       </button>
@@ -1098,7 +1157,18 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
                   <EmptyNow className="min-h-[220px]" />
                 </Panel>
               ) : (
-                feedPosts.map((post) => <FeedPostCard key={post.id} post={post} />)
+                feedPosts.map((post) => (
+                  <FeedPostCard
+                    key={post.id}
+                    post={post}
+                    onReact={handlePostReaction}
+                    pendingReaction={
+                      reactingPostKey?.postId === post.id
+                        ? reactingPostKey.reaction
+                        : null
+                    }
+                  />
+                ))
               )}
             </div>
           </main>

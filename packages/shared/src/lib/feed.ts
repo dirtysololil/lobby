@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { isoDateSchema, publicUserSchema } from "./common";
+import {
+  contentReactionSchema,
+  isoDateSchema,
+  publicUserSchema,
+} from "./common";
 
 export const feedPostKindSchema = z.enum(["ARTICLE", "VIDEO"]);
 export type FeedPostKind = z.infer<typeof feedPostKindSchema>;
@@ -11,6 +15,7 @@ export const feedPostSchema = z.object({
   body: z.string(),
   mediaUrl: z.string().url().nullable(),
   author: publicUserSchema,
+  reactions: z.array(contentReactionSchema),
   createdAt: isoDateSchema,
   updatedAt: isoDateSchema,
 });

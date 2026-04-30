@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { isoDateSchema, publicUserSchema } from "./common";
+import {
+  contentReactionSchema,
+  isoDateSchema,
+  publicUserSchema,
+} from "./common";
 
 export const forumTagSchema = z.object({
   id: z.string().cuid(),
@@ -24,6 +28,7 @@ export const forumTopicSchema = z.object({
   author: publicUserSchema,
   tags: z.array(forumTagSchema),
   repliesCount: z.number().int().nonnegative(),
+  reactions: z.array(contentReactionSchema),
 });
 
 export type ForumTopic = z.infer<typeof forumTopicSchema>;

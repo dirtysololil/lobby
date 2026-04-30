@@ -195,3 +195,32 @@ export const actionMessageSchema = z.object({
 });
 
 export type ActionMessage = z.infer<typeof actionMessageSchema>;
+
+export const reactionEmojiValues = [
+  "😀",
+  "😎",
+  "🙂",
+  "😉",
+  "🤝",
+  "🔥",
+  "✨",
+  "❤️",
+  "👀",
+] as const;
+
+export const reactionEmojiSchema = z.enum(reactionEmojiValues);
+export type ReactionEmoji = z.infer<typeof reactionEmojiSchema>;
+
+export const contentReactionSchema = z.object({
+  emoji: reactionEmojiSchema,
+  count: z.number().int().nonnegative(),
+  reactedByViewer: z.boolean(),
+});
+
+export type ContentReaction = z.infer<typeof contentReactionSchema>;
+
+export const reactionMutationSchema = z.object({
+  emoji: reactionEmojiSchema,
+});
+
+export type ReactionMutationInput = z.infer<typeof reactionMutationSchema>;

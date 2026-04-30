@@ -5,6 +5,7 @@ import type {
   CustomEmojiAsset,
   DirectConversationDetail,
   DirectMessageReplyPreview,
+  ReactionEmoji,
 } from "@lobby/shared";
 import {
   AlertCircle,
@@ -69,6 +70,7 @@ interface MessageThreadProps {
   searchQuery?: string;
   onReply: (messageId: string) => void;
   onDelete: (messageId: string) => Promise<void>;
+  onReact: (messageId: string, reaction: ReactionEmoji) => Promise<void>;
   onRetry: (messageId: string) => Promise<void>;
 }
 
@@ -87,7 +89,7 @@ const pendingEmbedStaleAfterMs = 60_000;
 const mobileViewportQuery = "(max-width: 767px)";
 const mobileActionPressDelayMs = 420;
 const mobileActionMoveThresholdPx = 14;
-const messageReactionOptions = [
+const messageReactionOptions: ReactionEmoji[] = [
   "😀",
   "😎",
   "🙂",
@@ -410,6 +412,7 @@ export function MessageThread({
   searchQuery = "",
   onReply,
   onDelete,
+  onReact,
   onRetry,
 }: MessageThreadProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -417,9 +420,6 @@ export function MessageThread({
   const [highlightedMessageId, setHighlightedMessageId] = useState<
     string | null
   >(null);
-  const [messageReactions, setMessageReactions] = useState<
-    Record<string, string[]>
-  >({});
   const [, setPendingEmbedTick] = useState(0);
   const messageElementRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const longPressTimerRef = useRef<number | null>(null);
@@ -974,19 +974,12 @@ export function MessageThread({
     onReply(messageId);
   }
 
-  function handleReactionFromMenu(messageId: string, reaction: string) {
-    setMessageReactions((current) => {
-      const existing = current[messageId] ?? [];
-      const next = existing.includes(reaction)
-        ? existing.filter((item) => item !== reaction)
-        : [...existing, reaction];
-
-      return {
-        ...current,
-        [messageId]: next,
-      };
-    });
+  async function handleReactionFromMenu(
+    messageId: string,
+    reaction: ReactionEmoji,
+  ) {
     setContextMenu(null);
+    await onReact(messageId, reaction);
   }
 
   function focusOriginalMessage(messageId: string) {
@@ -1053,7 +1046,7 @@ export function MessageThread({
                         key={reaction}
                         type="button"
                         onClick={() =>
-                          handleReactionFromMenu(
+                          void handleReactionFromMenu(
                             activeContextMenu.messageId,
                             reaction,
                           )
@@ -1119,7 +1112,10 @@ export function MessageThread({
                     key={reaction}
                     type="button"
                     onClick={() =>
-                      handleReactionFromMenu(activeContextMenu.messageId, reaction)
+                      void handleReactionFromMenu(
+                        activeContextMenu.messageId,
+                        reaction,
+                      )
                     }
                     className="flex h-8 items-center justify-center rounded-[10px] text-base transition-colors hover:bg-[var(--bg-hover)]"
                     aria-label={`Реакция ${reaction}`}
@@ -1263,7 +1259,7 @@ export function MessageThread({
                     activeContextMenu?.messageId === message.id;
                   const isDelivered =
                     isOwn && !message.localState && !message.isDeleted;
-                  const reactions = messageReactions[message.id] ?? [];
+                  const reactions = message.reactions ?? [];
                   const isReadByCounterpart =
                     isDelivered &&
                     counterpartLastReadTimestamp !== null &&
@@ -1698,15 +1694,26 @@ export function MessageThread({
                             >
                               {reactions.map((reaction) => (
                                 <button
-                                  key={reaction}
+                                  key={reaction.emoji}
                                   type="button"
                                   onClick={() =>
-                                    handleReactionFromMenu(message.id, reaction)
+                                    void handleReactionFromMenu(
+                                      message.id,
+                                      reaction.emoji,
+                                    )
                                   }
-                                  className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-white/8 bg-black px-2 text-sm transition-colors hover:border-white/16 hover:bg-[var(--bg-hover)]"
-                                  aria-label={`Убрать реакцию ${reaction}`}
+                                  className={cn(
+                                    "inline-flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border px-2 text-sm transition-colors",
+                                    reaction.reactedByViewer
+                                      ? "border-[#0070F3]/70 bg-[#0070F3]/15 text-white hover:border-[#0070F3]"
+                                      : "border-white/8 bg-black hover:border-white/16 hover:bg-[var(--bg-hover)]",
+                                  )}
+                                  aria-label={`Реакция ${reaction.emoji}`}
                                 >
-                                  {reaction}
+                                  <span>{reaction.emoji}</span>
+                                  <span className="text-[11px] font-medium text-[var(--text-dim)]">
+                                    {reaction.count}
+                                  </span>
                                 </button>
                               ))}
                             </div>

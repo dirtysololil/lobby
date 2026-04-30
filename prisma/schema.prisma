@@ -173,6 +173,7 @@ model User {
   conversationParticipants DirectConversationParticipant[]
   createdConversations     DirectConversation[]          @relation("ConversationCreator")
   sentMessages             DirectMessage[]               @relation("MessageAuthor")
+  directMessageReactions    DirectMessageReaction[]
   deletedMessages          DirectMessage[]               @relation("MessageDeleter")
   stickerPacks             StickerPack[]
   installedStickerPacks    UserStickerPack[]
@@ -191,8 +192,10 @@ model User {
   grantedLobbyAccess       LobbyAccess[]                 @relation("LobbyAccessGrantor")
   accessiblePrivateLobbies LobbyAccess[]                 @relation("LobbyAccessUser")
   forumTopics              ForumTopic[]                  @relation("ForumTopicAuthor")
+  forumTopicReactions      ForumTopicReaction[]
   forumReplies             ForumReply[]                  @relation("ForumReplyAuthor")
   feedPosts                FeedPost[]                    @relation("FeedPostAuthor")
+  feedPostReactions        FeedPostReaction[]
   initiatedCalls           CallSession[]                 @relation("CallInitiator")
   endedCalls               CallSession[]                 @relation("CallEndedBy")
   callParticipations       CallParticipant[]
@@ -358,6 +361,7 @@ model DirectMessage {
   gif                    GifAsset?                      @relation(fields: [gifId], references: [id], onDelete: SetNull)
   replyTo                DirectMessage?                 @relation("DirectMessageReply", fields: [replyToMessageId], references: [id], onDelete: SetNull)
   replies                DirectMessage[]                @relation("DirectMessageReply")
+  reactions              DirectMessageReaction[]
   lastReadByParticipants DirectConversationParticipant[] @relation("ParticipantLastReadMessage")
 
   @@index([conversationId, createdAt])
@@ -366,6 +370,20 @@ model DirectMessage {
   @@index([gifId])
   @@index([replyToMessageId])
   @@index([type])
+}
+
+model DirectMessageReaction {
+  id        String        @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String        @db.VarChar(32)
+  createdAt DateTime      @default(now())
+  message   DirectMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId, emoji])
+  @@index([userId])
 }
 
 model DirectMessageLinkEmbed {
@@ -422,9 +440,24 @@ model FeedPost {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   author    User         @relation("FeedPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  reactions FeedPostReaction[]
 
   @@index([deletedAt, createdAt])
   @@index([authorId, createdAt])
+}
+
+model FeedPostReaction {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  emoji     String   @db.VarChar(32)
+  createdAt DateTime @default(now())
+  post      FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, emoji])
+  @@index([postId, emoji])
+  @@index([userId])
 }
 
 model StickerPack {
@@ -724,10 +757,25 @@ model ForumTopic {
   lobby          Lobby          @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
   author         User           @relation("ForumTopicAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   replies        ForumReply[]
+  reactions      ForumTopicReaction[]
   tags           ForumTopicTag[]
 
   @@index([lobbyId, pinned, lastActivityAt])
   @@index([hubId, lastActivityAt])
+}
+
+model ForumTopicReaction {
+  id        String     @id @default(cuid())
+  topicId   String
+  userId    String
+  emoji     String     @db.VarChar(32)
+  createdAt DateTime   @default(now())
+  topic     ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, userId, emoji])
+  @@index([topicId, emoji])
+  @@index([userId])
 }
 
 model ForumReply {

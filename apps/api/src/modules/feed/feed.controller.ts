@@ -14,8 +14,10 @@ import {
   createFeedPostSchema,
   feedPostListResponseSchema,
   feedPostResponseSchema,
+  reactionMutationSchema,
   type CreateFeedPostInput,
   type PublicUser,
+  type ReactionMutationInput,
 } from '@lobby/shared';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -38,9 +40,9 @@ export class FeedController {
 
   @RequireAuth()
   @Get()
-  public async listPosts() {
+  public async listPosts(@CurrentUser() currentUser: PublicUser) {
     return feedPostListResponseSchema.parse({
-      items: await this.feedService.listPosts(),
+      items: await this.feedService.listPosts(currentUser.id),
     });
   }
 
@@ -78,6 +80,25 @@ export class FeedController {
     return feedPostResponseSchema.parse({
       post: await this.feedService.createPost(
         currentUser,
+        body,
+        getRequestMetadata(request),
+      ),
+    });
+  }
+
+  @RequireAuth()
+  @Post(':postId/reactions')
+  public async toggleReaction(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('postId') postId: string,
+    @Body(new ZodValidationPipe(reactionMutationSchema))
+    body: ReactionMutationInput,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return feedPostResponseSchema.parse({
+      post: await this.feedService.toggleReaction(
+        currentUser,
+        postId,
         body,
         getRequestMetadata(request),
       ),

@@ -1623,7 +1623,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                   </div>
                   <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[var(--bg-panel-soft)]">
                     <div
-                      className="h-full rounded-full bg-white transition-[width] duration-300"
+                      className="h-full rounded-full bg-[#0070F3] transition-[width] duration-300"
                       style={{ width: `${friendGoalProgress}%` }}
                     />
                   </div>

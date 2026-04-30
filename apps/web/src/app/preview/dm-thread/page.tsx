@@ -34,6 +34,7 @@ const messages: ThreadMessageItem[] = [
     canDelete: false,
     deleteExpiresAt: null,
     clientNonce: null,
+    reactions: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 32).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 32).toISOString(),
   },
@@ -52,6 +53,7 @@ const messages: ThreadMessageItem[] = [
     canDelete: false,
     deleteExpiresAt: null,
     clientNonce: null,
+    reactions: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 31).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 31).toISOString(),
   },
@@ -71,6 +73,7 @@ const messages: ThreadMessageItem[] = [
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 24).toISOString(),
     clientNonce: null,
+    reactions: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
   },
@@ -89,6 +92,7 @@ const messages: ThreadMessageItem[] = [
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 18).toISOString(),
     clientNonce: null,
+    reactions: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 27).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 27).toISOString(),
   },
@@ -108,6 +112,7 @@ const messages: ThreadMessageItem[] = [
     canDelete: false,
     deleteExpiresAt: null,
     clientNonce: null,
+    reactions: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 7).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 7).toISOString(),
   },
@@ -127,6 +132,7 @@ const messages: ThreadMessageItem[] = [
     canDelete: true,
     deleteExpiresAt: new Date(Date.now() + 1000 * 60 * 45).toISOString(),
     clientNonce: "nonce-6",
+    reactions: [],
     createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
     localState: "sending",
@@ -235,6 +241,7 @@ export default function PreviewDmThreadPage() {
             counterpartLastReadAt={counterpartLastReadAt}
             onReply={() => undefined}
             onDelete={async () => undefined}
+            onReact={async () => undefined}
             onRetry={async () => undefined}
           />
         </div>

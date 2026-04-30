@@ -8,7 +8,9 @@ import type {
   ForumReply as PrismaForumReply,
   ForumTag as PrismaForumTag,
   ForumTopic as PrismaForumTopic,
+  ForumTopicReaction as PrismaForumTopicReaction,
 } from '@prisma/client';
+import { toContentReactions } from '../../common/utils/content-reactions.util';
 import { toPublicUser, type PublicUserRecord } from '../auth/auth.mapper';
 
 type TagRecord = Pick<PrismaForumTag, 'id' | 'name' | 'slug'>;
@@ -18,6 +20,7 @@ type TopicRecord = PrismaForumTopic & {
   tags: Array<{
     tag: TagRecord;
   }>;
+  reactions: Array<Pick<PrismaForumTopicReaction, 'emoji' | 'userId'>>;
   _count: {
     replies: number;
   };
@@ -27,7 +30,10 @@ type ReplyRecord = PrismaForumReply & {
   author: PublicUserRecord;
 };
 
-export function toForumTopic(topic: TopicRecord): ForumTopic {
+export function toForumTopic(
+  topic: TopicRecord,
+  viewerId?: string | null,
+): ForumTopic {
   return forumTopicSchema.parse({
     id: topic.id,
     hubId: topic.hubId,
@@ -47,6 +53,7 @@ export function toForumTopic(topic: TopicRecord): ForumTopic {
       slug: tag.slug,
     })),
     repliesCount: topic._count.replies,
+    reactions: toContentReactions(topic.reactions, viewerId),
   });
 }
 

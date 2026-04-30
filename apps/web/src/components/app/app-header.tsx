@@ -2,25 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelRightClose, PanelRightOpen, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import type { PublicUser } from "@lobby/shared";
 import { getSectionMeta, matchesPath, parseAppPath } from "@/lib/app-shell";
-import { cn } from "@/lib/utils";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { LogoutButton } from "./logout-button";
 import { QuickLauncher } from "./quick-launcher";
 
 interface AppHeaderProps {
-  activityAvailable: boolean;
-  activityOpen: boolean;
-  onToggleActivity: () => void;
   viewer: PublicUser;
 }
 
 export function AppHeader({
-  activityAvailable,
-  activityOpen,
-  onToggleActivity,
   viewer,
 }: AppHeaderProps) {
   const pathname = usePathname();
@@ -53,28 +46,6 @@ export function AppHeader({
       </div>
 
       <div className="flex items-center gap-2">
-        {activityAvailable ? (
-          <button
-            type="button"
-            onClick={onToggleActivity}
-            className={cn(
-              "inline-flex min-h-[34px] items-center gap-2 rounded-[10px] border px-2.5 text-sm font-medium transition-colors",
-              activityOpen
-                ? "border-[var(--border-strong)] bg-[var(--bg-active)] text-white"
-                : "border-[var(--border)] bg-black text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-white",
-            )}
-          >
-            {activityOpen ? (
-              <PanelRightClose className="h-4 w-4" />
-            ) : (
-              <PanelRightOpen className="h-4 w-4" />
-            )}
-            <span className="hidden sm:inline">
-              {activityOpen ? "Скрыть детали" : "Детали"}
-            </span>
-          </button>
-        ) : null}
-
         {viewer.role !== "MEMBER" ? (
           <Link href="/app/admin" className="hidden md:inline-flex status-pill">
             <ShieldCheck className="h-3 w-3 text-[var(--accent)]" />

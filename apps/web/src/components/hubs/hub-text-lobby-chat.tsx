@@ -6,6 +6,7 @@ import {
   forumTopicResponseSchema,
   type ForumTopic,
   type HubShell,
+  type ReactionEmoji,
 } from "@lobby/shared";
 import {
   Image,
@@ -33,6 +34,8 @@ interface HubTextLobbyChatProps {
   lobby: HubShell["hub"]["lobbies"][number];
   initialTopics: ForumTopic[];
 }
+
+const textReactionOptions: ReactionEmoji[] = ["❤️", "🔥", "✨", "👀"];
 
 function formatMessageDate(value: string) {
   return new Date(value).toLocaleString("ru-RU", {
@@ -109,6 +112,10 @@ export function HubTextLobbyChat({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reactingTopicKey, setReactingTopicKey] = useState<{
+    topicId: string;
+    reaction: ReactionEmoji;
+  } | null>(null);
   const canSendMessages = Boolean(hub.membershipRole) && !hub.isViewerMuted;
   const memberRolesByUserId = useMemo(
     () => new Map(hub.members.map((member) => [member.user.id, member.role])),
@@ -127,6 +134,7 @@ export function HubTextLobbyChat({
     setTopics(initialTopics);
     setDraft("");
     setErrorMessage(null);
+    setReactingTopicKey(null);
     shouldStickToBottomRef.current = true;
     knownTopicIdsRef.current = new Set(initialTopics.map((topic) => topic.id));
   }, [initialTopics, lobby.id]);
@@ -260,6 +268,38 @@ export function HubTextLobbyChat({
     }
   }
 
+  async function handleTopicReaction(topicId: string, reaction: ReactionEmoji) {
+    if (reactingTopicKey) {
+      return;
+    }
+
+    setReactingTopicKey({ topicId, reaction });
+
+    try {
+      const payload = await apiClientFetch(
+        `/v1/forum/hubs/${hub.id}/lobbies/${lobby.id}/topics/${topicId}/reactions`,
+        {
+          method: "POST",
+          body: JSON.stringify({ emoji: reaction }),
+        },
+      );
+      const updatedTopic = forumTopicResponseSchema.parse(payload).topic;
+
+      setTopics((current) =>
+        current.map((topic) =>
+          topic.id === updatedTopic.id ? updatedTopic : topic,
+        ),
+      );
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось сохранить реакцию.",
+      );
+    } finally {
+      setReactingTopicKey(null);
+    }
+  }
+
   return (
     <section className="premium-panel flex min-h-[420px] flex-col overflow-hidden rounded-[24px]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-4 py-3.5">
@@ -382,16 +422,39 @@ export function HubTextLobbyChat({
                         </div>
                       ) : null}
                       <div className="mt-3 flex flex-wrap gap-1.5">
-                        {["❤️", "🔥", "✨", "👀"].map((reaction) => (
-                          <button
-                            key={reaction}
-                            type="button"
-                            className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-white/8 bg-black px-2 text-sm transition-colors hover:border-white/16 hover:bg-[var(--bg-hover)]"
-                            aria-label={`Реакция ${reaction}`}
-                          >
-                            {reaction}
-                          </button>
-                        ))}
+                        {textReactionOptions.map((reaction) => {
+                          const reactionStats = topic.reactions.find(
+                            (item) => item.emoji === reaction,
+                          );
+                          const isActive = Boolean(reactionStats?.reactedByViewer);
+
+                          return (
+                            <button
+                              key={reaction}
+                              type="button"
+                              onClick={() =>
+                                void handleTopicReaction(topic.id, reaction)
+                              }
+                              disabled={
+                                reactingTopicKey?.topicId === topic.id &&
+                                reactingTopicKey.reaction === reaction
+                              }
+                              className={`inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-full border px-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+                                isActive
+                                  ? "border-[#0070F3]/70 bg-[#0070F3]/15 text-white hover:border-[#0070F3]"
+                                  : "border-white/8 bg-black hover:border-white/16 hover:bg-[var(--bg-hover)]"
+                              }`}
+                              aria-label={`Реакция ${reaction}`}
+                            >
+                              <span>{reaction}</span>
+                              {reactionStats?.count ? (
+                                <span className="text-[11px] font-medium text-[var(--text-dim)]">
+                                  {reactionStats.count}
+                                </span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

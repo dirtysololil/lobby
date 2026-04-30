@@ -21,11 +21,13 @@ import {
   directConversationSummaryResponseSchema,
   directMessageResponseSchema,
   openDirectConversationSchema,
+  reactionMutationSchema,
   uploadDirectMessageAttachmentSchema,
   updateDmSettingsSchema,
   type CreateDirectMessageInput,
   type OpenDirectConversationInput,
   type PublicUser,
+  type ReactionMutationInput,
   type UpdateDmSettingsInput,
 } from '@lobby/shared';
 import type { Response } from 'express';
@@ -116,13 +118,37 @@ export class DirectMessagesController {
   }
 
   @RequireAuth()
+  @Post(':conversationId/messages/:messageId/reactions')
+  public async toggleMessageReaction(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('conversationId') conversationId: string,
+    @Param('messageId') messageId: string,
+    @Body(new ZodValidationPipe(reactionMutationSchema))
+    body: ReactionMutationInput,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const message = await this.directMessagesService.toggleMessageReaction(
+      currentUser,
+      conversationId,
+      messageId,
+      body,
+      getRequestMetadata(request),
+    );
+
+    return directMessageResponseSchema.parse({
+      message,
+    });
+  }
+
+  @RequireAuth()
   @Post(':conversationId/attachments')
   @UseInterceptors(FileInterceptor('file'))
   public async uploadAttachment(
     @CurrentUser() currentUser: PublicUser,
     @Param('conversationId') conversationId: string,
     @UploadedFile() file: UploadedBinaryFile | undefined,
-    @Body() body:
+    @Body()
+    body:
       | { clientNonce?: string; replyToMessageId?: string | null }
       | undefined,
     @Req() request: AuthenticatedRequest,

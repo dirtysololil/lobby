@@ -2,6 +2,7 @@ import { z } from "zod";
 import { usernameSchema } from "./auth";
 import {
   actionMessageSchema,
+  contentReactionSchema,
   dmNotificationSettingSchema,
   dmRetentionModeSchema,
   friendshipStateSchema,
@@ -256,6 +257,7 @@ export const directMessageSchema = z.object({
   canDelete: z.boolean(),
   deleteExpiresAt: isoDateSchema.nullable(),
   clientNonce: z.string().nullable().optional(),
+  reactions: z.array(contentReactionSchema),
   createdAt: isoDateSchema,
   updatedAt: isoDateSchema,
 });

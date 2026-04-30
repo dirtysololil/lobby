@@ -9,6 +9,7 @@ import type {
   CreateForumTopicInput,
   ForumTopicDetail,
   ForumTopicResponse,
+  ReactionMutationInput,
   UpdateForumTopicStateInput,
   PublicUser,
 } from '@lobby/shared';
@@ -32,6 +33,12 @@ const forumTopicInclude = {
   _count: {
     select: {
       replies: true,
+    },
+  },
+  reactions: {
+    select: {
+      emoji: true,
+      userId: true,
     },
   },
 } satisfies Prisma.ForumTopicInclude;
@@ -84,7 +91,7 @@ export class ForumService {
             ],
     });
 
-    return topics.map((topic) => toForumTopic(topic));
+    return topics.map((topic) => toForumTopic(topic, viewerId));
   }
 
   public async createTopic(
@@ -172,7 +179,7 @@ export class ForumService {
       },
     });
 
-    return toForumTopic(topic);
+    return toForumTopic(topic, actor.id);
   }
 
   public async getTopicDetail(
@@ -214,10 +221,100 @@ export class ForumService {
 
     return {
       topic: {
-        ...toForumTopic(topic),
+        ...toForumTopic(topic, viewerId),
         replies: topic.replies.map((reply) => toForumReply(reply)),
       },
     };
+  }
+
+  public async toggleTopicReaction(
+    actor: PublicUser,
+    hubId: string,
+    lobbyId: string,
+    topicId: string,
+    input: ReactionMutationInput,
+    requestMetadata: RequestMetadata,
+  ): Promise<ForumTopicResponse['topic']> {
+    const lobby = await this.hubsService.getAccessibleLobbyOrThrow(
+      actor.id,
+      hubId,
+      lobbyId,
+    );
+    await this.hubsService.assertCanCreateForumContent(
+      actor.id,
+      hubId,
+      lobbyId,
+    );
+
+    if (lobby.type !== LobbyType.FORUM && lobby.type !== LobbyType.TEXT) {
+      throw new ConflictException('Lobby does not support reactions');
+    }
+
+    const topic = await this.prisma.forumTopic.findFirst({
+      where: {
+        id: topicId,
+        hubId,
+        lobbyId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!topic) {
+      throw new NotFoundException('Forum topic not found');
+    }
+
+    const existingReaction = await this.prisma.forumTopicReaction.findUnique({
+      where: {
+        topicId_userId_emoji: {
+          topicId,
+          userId: actor.id,
+          emoji: input.emoji,
+        },
+      },
+    });
+
+    if (existingReaction) {
+      await this.prisma.forumTopicReaction.delete({
+        where: {
+          id: existingReaction.id,
+        },
+      });
+    } else {
+      await this.prisma.forumTopicReaction.create({
+        data: {
+          topicId,
+          userId: actor.id,
+          emoji: input.emoji,
+        },
+      });
+    }
+
+    await this.auditService.write({
+      action: existingReaction
+        ? 'forum.topic.reaction.remove'
+        : 'forum.topic.reaction.add',
+      entityType: 'ForumTopic',
+      entityId: topicId,
+      actorUserId: actor.id,
+      ipAddress: requestMetadata.ipAddress,
+      userAgent: requestMetadata.userAgent,
+      metadata: {
+        hubId,
+        lobbyId,
+        emoji: input.emoji,
+      },
+    });
+
+    const updatedTopic = await this.prisma.forumTopic.findUniqueOrThrow({
+      where: {
+        id: topicId,
+      },
+      include: forumTopicInclude,
+    });
+
+    return toForumTopic(updatedTopic, actor.id);
   }
 
   public async createReply(
@@ -375,7 +472,7 @@ export class ForumService {
       },
     });
 
-    return toForumTopic(updatedTopic);
+    return toForumTopic(updatedTopic, actor.id);
   }
 
   private normalizeTag(tag: string): string {

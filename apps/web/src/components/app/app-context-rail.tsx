@@ -711,7 +711,7 @@ export function AppContextRail({ viewer }: AppContextRailProps) {
                 href={`/app/hubs/${route.hubId}`}
                 active={safePathname === `/app/hubs/${route.hubId}`}
                 leading={<House {...railIconProps} className="text-current" />}
-                label="Обзор"
+                label="Лента"
               />
             </CompactList>
 

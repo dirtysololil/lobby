@@ -129,9 +129,9 @@ export function getSectionMeta(route: AppRouteState) {
     case "people":
       if (route.peopleUsername) {
         return {
-          label: "Profile",
+          label: "Профиль",
           title: `@${route.peopleUsername}`,
-          description: "Public profile, quick social actions and direct-message entry point.",
+          description: "Публичный профиль, быстрые действия и вход в личный диалог.",
         };
       }
 

@@ -6,10 +6,12 @@ import {
   forumTopicDetailSchema,
   forumTopicListResponseSchema,
   forumTopicResponseSchema,
+  reactionMutationSchema,
   updateForumTopicStateSchema,
   type CreateForumReplyInput,
   type CreateForumTopicInput,
   type PublicUser,
+  type ReactionMutationInput,
   type UpdateForumTopicStateInput,
 } from '@lobby/shared';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -55,6 +57,31 @@ export class ForumController {
       currentUser,
       hubId,
       lobbyId,
+      body,
+      getRequestMetadata(request),
+    );
+
+    return forumTopicResponseSchema.parse({
+      topic,
+    });
+  }
+
+  @RequireAuth()
+  @Post('hubs/:hubId/lobbies/:lobbyId/topics/:topicId/reactions')
+  public async toggleTopicReaction(
+    @CurrentUser() currentUser: PublicUser,
+    @Param('hubId') hubId: string,
+    @Param('lobbyId') lobbyId: string,
+    @Param('topicId') topicId: string,
+    @Body(new ZodValidationPipe(reactionMutationSchema))
+    body: ReactionMutationInput,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const topic = await this.forumService.toggleTopicReaction(
+      currentUser,
+      hubId,
+      lobbyId,
+      topicId,
       body,
       getRequestMetadata(request),
     );
