@@ -1464,7 +1464,7 @@ export function MessageThread({
                                   <span className="truncate text-[11px] font-medium text-[var(--text-soft)]">
                                     {message.replyTo.author.profile.displayName}
                                   </span>
-                                  <span className="truncate text-xs text-[var(--text-dim)]">
+                                  <span className="truncate text-xs text-white">
                                     {buildReplyPreviewText(message.replyTo)}
                                   </span>
                                 </button>
