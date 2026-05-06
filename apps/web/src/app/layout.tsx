@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lobby - private communication ecosystem",
+  title: "Lobby - закрытая коммуникационная платформа",
   description:
-    "Compact real-time communication platform for private conversations, hubs, live rooms, moderation and community control.",
+    "Закрытая коммуникационная платформа для личных диалогов, пространств, звонков и командной работы.",
   applicationName: "Lobby",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
