@@ -2,6 +2,15 @@ import { apiErrorSchema } from "@lobby/shared";
 import { cookies } from "next/headers";
 import { resolveApiBaseUrlForServerRequest } from "./runtime-config";
 
+function serializeCookieHeader(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+): string {
+  return cookieStore
+    .getAll()
+    .map(({ name, value }) => `${name}=${encodeURIComponent(value)}`)
+    .join("; ");
+}
+
 export async function fetchServerApi<TResponse>(
   path: string,
 ): Promise<TResponse> {
@@ -12,7 +21,7 @@ export async function fetchServerApi<TResponse>(
   }
 
   const cookieStore = await cookies();
-  const cookieHeader = cookieStore.toString();
+  const cookieHeader = serializeCookieHeader(cookieStore);
   const response = await fetch(`${apiBaseUrl}${path}`, {
     headers: cookieHeader ? { cookie: cookieHeader } : undefined,
     cache: "no-store",

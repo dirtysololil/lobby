@@ -3,6 +3,15 @@ import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { resolveApiBaseUrlForServerRequest } from "./runtime-config";
 
+function serializeCookieHeader(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+): string {
+  return cookieStore
+    .getAll()
+    .map(({ name, value }) => `${name}=${encodeURIComponent(value)}`)
+    .join("; ");
+}
+
 export async function fetchViewer(): Promise<PublicUser | null> {
   const apiBaseUrl = await resolveApiBaseUrlForServerRequest();
 
@@ -13,7 +22,7 @@ export async function fetchViewer(): Promise<PublicUser | null> {
 
   try {
     const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
+    const cookieHeader = serializeCookieHeader(cookieStore);
 
     const response = await fetch(`${apiBaseUrl}/v1/auth/me`, {
       headers: cookieHeader ? { cookie: cookieHeader } : undefined,

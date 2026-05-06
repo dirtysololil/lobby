@@ -3,14 +3,21 @@
 import Link from "next/link";
 import {
   directConversationSummaryResponseSchema,
+  feedPostListResponseSchema,
+  feedPostResponseSchema,
   userResponseSchema,
   userSearchResponseSchema,
+  type FeedPost,
+  type FeedPostKind,
   type PublicUser,
+  type ReactionEmoji,
   type UserRelationshipSummary,
 } from "@lobby/shared";
 import {
+  ArrowUpRight,
   ArrowLeft,
   CalendarDays,
+  Clock3,
   House,
   Layers3,
   MessageSquareMore,
@@ -23,7 +30,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AppMobileTopNav } from "@/components/app/app-mobile-top-nav";
 import { AvatarPreviewModal } from "@/components/ui/avatar-preview-modal";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -32,6 +39,7 @@ import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { apiClientFetch } from "@/lib/api-client";
 import { getAvailabilityLabel } from "@/lib/last-seen";
+import { resolveApiBaseUrlForBrowser } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 
 interface UserProfileViewProps {
@@ -41,6 +49,7 @@ interface UserProfileViewProps {
 }
 
 const navIconProps = { size: 17, strokeWidth: 1.75 } as const;
+const reactionOptions: ReactionEmoji[] = ["❤️", "🔥", "✨", "👀"];
 
 const quickLinks: Array<{
   href: string;
@@ -60,6 +69,119 @@ function formatJoinedDate(value: string) {
     month: "long",
     year: "numeric",
   });
+}
+
+function formatShortTime(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60_000);
+
+  if (diffMinutes < 1) {
+    return "только что";
+  }
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} мин`;
+  }
+
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function isYouTubeUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return (
+      url.hostname === "youtu.be" ||
+      url.hostname === "www.youtube.com" ||
+      url.hostname === "youtube.com"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function getYouTubeEmbedUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const videoId =
+      url.hostname === "youtu.be"
+        ? url.pathname.slice(1)
+        : url.searchParams.get("v") ??
+          url.pathname.match(/\/(?:shorts|embed)\/([^/?]+)/)?.[1] ??
+          null;
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveMediaKind(mediaUrl: string | null, postKind?: FeedPostKind) {
+  if (!mediaUrl) {
+    return "none" as const;
+  }
+
+  const normalized = mediaUrl.split("?")[0]?.toLowerCase() ?? "";
+
+  if (isYouTubeUrl(mediaUrl)) {
+    return "youtube" as const;
+  }
+
+  if (postKind === "VIDEO" || /\.(mp4|webm|mov|m4v)$/i.test(normalized)) {
+    return "video" as const;
+  }
+
+  if (/\.(png|jpe?g|webp|gif|avif)$/i.test(normalized)) {
+    return "image" as const;
+  }
+
+  return "link" as const;
+}
+
+function getMediaLabel(mediaUrl: string | null, postKind?: FeedPostKind) {
+  switch (resolveMediaKind(mediaUrl, postKind)) {
+    case "video":
+      return "Видео";
+    case "youtube":
+      return "YouTube";
+    case "image":
+      return mediaUrl?.split("?")[0]?.toLowerCase().endsWith(".gif")
+        ? "GIF"
+        : "Фото";
+    case "link":
+      return "Ссылка";
+    default:
+      return "Пост";
+  }
+}
+
+function resolveFeedMediaSrc(mediaUrl: string | null) {
+  if (!mediaUrl) {
+    return null;
+  }
+
+  if (/^(https?:|blob:|data:)/i.test(mediaUrl)) {
+    return mediaUrl;
+  }
+
+  const apiBaseUrl = resolveApiBaseUrlForBrowser();
+
+  return apiBaseUrl ? new URL(mediaUrl, apiBaseUrl).toString() : mediaUrl;
 }
 
 function getRelationshipLabel(
@@ -226,6 +348,129 @@ function SidebarLink({
   );
 }
 
+function FeedPostCard({
+  onReact,
+  pendingReaction,
+  post,
+}: {
+  onReact: (postId: string, reaction: ReactionEmoji) => Promise<void>;
+  pendingReaction: ReactionEmoji | null;
+  post: FeedPost;
+}) {
+  const mediaKind = resolveMediaKind(post.mediaUrl, post.kind);
+  const mediaSrc = resolveFeedMediaSrc(post.mediaUrl);
+  const youtubeEmbedUrl = post.mediaUrl ? getYouTubeEmbedUrl(post.mediaUrl) : null;
+
+  return (
+    <article className="rounded-[22px] border border-white/8 bg-black p-4 transition-colors hover:border-white/14">
+      <div className="flex items-start gap-3">
+        <UserAvatar user={post.author} size="sm" className="h-11 w-11 text-[12px]" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="min-w-0 truncate text-sm font-semibold tracking-[-0.02em] text-white">
+              {post.author.profile.displayName}
+            </p>
+            <CompactListCount>{getMediaLabel(post.mediaUrl, post.kind)}</CompactListCount>
+            <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+              <Clock3 className="h-3 w-3" />
+              {formatShortTime(post.createdAt)}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            @{post.author.username}
+          </p>
+        </div>
+      </div>
+
+      {post.title ? (
+        <h2 className="mt-4 text-[18px] font-semibold tracking-[-0.03em] text-white">
+          {post.title}
+        </h2>
+      ) : null}
+
+      {post.body ? (
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--text-soft)]">
+          {post.body}
+        </p>
+      ) : null}
+
+      {mediaKind === "video" && mediaSrc ? (
+        <div className="mt-4 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+          <video
+            src={mediaSrc}
+            className="aspect-video h-full w-full bg-black object-contain"
+            controls
+            loop
+            playsInline
+            preload="metadata"
+          />
+        </div>
+      ) : mediaKind === "youtube" && youtubeEmbedUrl ? (
+        <div className="mt-4 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+          <iframe
+            src={youtubeEmbedUrl}
+            title={post.title ?? "YouTube"}
+            className="aspect-video h-full w-full bg-black"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      ) : mediaKind === "image" && mediaSrc ? (
+        <div className="mt-4 overflow-hidden rounded-[18px] border border-white/8 bg-black">
+          <img
+            src={mediaSrc}
+            alt={post.title ?? "Медиа поста"}
+            className="max-h-[620px] w-full object-contain"
+            loading="lazy"
+          />
+        </div>
+      ) : post.mediaUrl ? (
+        <a
+          href={post.mediaUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-[12px] border border-white/8 bg-black px-3 text-sm font-medium text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-hover)] hover:text-white"
+        >
+          <ArrowUpRight size={15} strokeWidth={1.75} />
+          Открыть ссылку
+        </a>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-white/8 pt-3">
+        {reactionOptions.map((reaction) => {
+          const reactionStats = post.reactions.find(
+            (item) => item.emoji === reaction,
+          );
+          const isActive = Boolean(reactionStats?.reactedByViewer);
+
+          return (
+            <button
+              key={reaction}
+              type="button"
+              onClick={() => void onReact(post.id, reaction)}
+              disabled={pendingReaction === reaction}
+              className={cn(
+                "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-full border px-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-70",
+                isActive
+                  ? "border-white/30 bg-white/12 text-white"
+                  : "border-white/8 bg-black hover:border-white/16 hover:bg-[var(--bg-hover)]",
+              )}
+              aria-label={`Реакция ${reaction}`}
+            >
+              <span>{reaction}</span>
+              {reactionStats?.count ? (
+                <span className="text-[11px] font-medium text-[var(--text-dim)]">
+                  {reactionStats.count}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
 export function UserProfileView({
   viewer,
   initialUser,
@@ -237,6 +482,13 @@ export function UserProfileView({
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
+  const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
+  const [isFeedLoading, setIsFeedLoading] = useState(true);
+  const [feedErrorMessage, setFeedErrorMessage] = useState<string | null>(null);
+  const [reactingPostKey, setReactingPostKey] = useState<{
+    postId: string;
+    reaction: ReactionEmoji;
+  } | null>(null);
   const isSelf = viewer.id === user.id;
   const availabilityLabel = useMemo(
     () => getAvailabilityLabel(user) ?? "Не в сети",
@@ -263,6 +515,43 @@ export function UserProfileView({
   const bioText =
     user.profile.bio?.trim() ||
     "Короткого описания пока нет, но профиль уже готов для быстрого перехода к общению.";
+
+  useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      setIsFeedLoading(true);
+      setFeedErrorMessage(null);
+
+      try {
+        const payload = await apiClientFetch("/v1/feed");
+        const posts = feedPostListResponseSchema.parse(payload).items;
+
+        if (!active) {
+          return;
+        }
+
+        setFeedPosts(posts.filter((post) => post.author.id === user.id));
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+
+        setFeedPosts([]);
+        setFeedErrorMessage(
+          error instanceof Error ? error.message : "Не удалось загрузить ленту.",
+        );
+      } finally {
+        if (active) {
+          setIsFeedLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [user.id]);
 
   async function refreshProfile() {
     if (isSelf) {
@@ -319,6 +608,33 @@ export function UserProfileView({
         error instanceof Error ? error.message : "Не удалось открыть диалог.",
       );
       setActionKey(null);
+    }
+  }
+
+  async function handlePostReaction(postId: string, reaction: ReactionEmoji) {
+    if (reactingPostKey) {
+      return;
+    }
+
+    setReactingPostKey({ postId, reaction });
+
+    try {
+      const payload = await apiClientFetch(`/v1/feed/${postId}/reactions`, {
+        method: "POST",
+        body: JSON.stringify({ emoji: reaction }),
+      });
+      const updatedPost = feedPostResponseSchema.parse(payload).post;
+
+      setFeedPosts((current) =>
+        current.map((post) => (post.id === updatedPost.id ? updatedPost : post)),
+      );
+      setFeedErrorMessage(null);
+    } catch (error) {
+      setFeedErrorMessage(
+        error instanceof Error ? error.message : "Не удалось сохранить реакцию.",
+      );
+    } finally {
+      setReactingPostKey(null);
     }
   }
 
@@ -570,59 +886,94 @@ export function UserProfileView({
                 </div>
               </Panel>
 
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-                <Panel>
-                  <PanelHeader
-                    title="Контекст"
-                    action={<CompactListCount>Общение</CompactListCount>}
-                  />
-                  <div className="p-4">
-                    <p className="text-sm leading-6 text-[var(--text-soft)]">
-                      {getRelationshipNote(relationship, isSelf)}
-                    </p>
+              <Panel>
+                <PanelHeader
+                  title="Контекст"
+                  action={<CompactListCount>Общение</CompactListCount>}
+                />
+                <div className="p-4">
+                  <p className="text-sm leading-6 text-[var(--text-soft)]">
+                    {getRelationshipNote(relationship, isSelf)}
+                  </p>
 
-                    {hasContactLimit && !isSelf ? (
-                      <div className="mt-4 rounded-[16px] border border-amber-300/20 bg-amber-300/10 px-3.5 py-3 text-sm text-amber-50">
-                        <div className="flex items-start gap-2">
-                          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                          <span>
-                            {relationship.isBlockedByViewer
-                              ? "Пока блокировка активна, писать и получать новые социальные действия здесь нельзя."
-                              : "Пользователь ограничил прямой контакт, поэтому часть действий сейчас недоступна."}
-                          </span>
-                        </div>
+                  {hasContactLimit && !isSelf ? (
+                    <div className="mt-4 rounded-[16px] border border-amber-300/20 bg-amber-300/10 px-3.5 py-3 text-sm text-amber-50">
+                      <div className="flex items-start gap-2">
+                        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>
+                          {relationship.isBlockedByViewer
+                            ? "Пока блокировка активна, писать и получать новые социальные действия здесь нельзя."
+                            : "Пользователь ограничил прямой контакт, поэтому часть действий сейчас недоступна."}
+                        </span>
                       </div>
-                    ) : null}
-                  </div>
-                </Panel>
+                    </div>
+                  ) : null}
+                </div>
+              </Panel>
 
-                <Panel>
-                  <PanelHeader
-                    title="Сводка"
-                    action={<CompactListCount>Профиль</CompactListCount>}
-                  />
-                  <div className="grid gap-2.5 p-4">
-                    <SummaryRow label="Ник" value={`@${user.username}`} />
-                    <SummaryRow
-                      label="Статус"
-                      value={
-                        <div className="inline-flex items-center gap-2">
-                          <PresenceIndicator user={user} compact />
-                          <span>{availabilityLabel}</span>
-                        </div>
+              {feedErrorMessage ? (
+                <div className="rounded-[18px] border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+                  {feedErrorMessage}
+                </div>
+              ) : null}
+
+              <div className="grid gap-3">
+                {isFeedLoading ? (
+                  <Panel>
+                    <div className="flex min-h-[220px] items-center justify-center px-6 text-center text-sm text-[var(--text-muted)]">
+                      Загружаем ленту...
+                    </div>
+                  </Panel>
+                ) : feedPosts.length === 0 ? (
+                  <Panel>
+                    <div className="empty-state-minimal min-h-[220px]">
+                      <p className="text-sm font-medium text-white">
+                        Публикаций пока нет
+                      </p>
+                    </div>
+                  </Panel>
+                ) : (
+                  feedPosts.map((post) => (
+                    <FeedPostCard
+                      key={post.id}
+                      post={post}
+                      onReact={handlePostReaction}
+                      pendingReaction={
+                        reactingPostKey?.postId === post.id
+                          ? reactingPostKey.reaction
+                          : null
                       }
                     />
-                    <SummaryRow
-                      label="На платформе"
-                      value={formatJoinedDate(user.createdAt)}
-                    />
-                    <SummaryRow label="Контакт" value={relationshipLabel} />
-                  </div>
-                </Panel>
+                  ))
+                )}
               </div>
             </main>
 
             <aside className="grid content-start gap-3">
+              <Panel>
+                <PanelHeader
+                  title="Сводка"
+                  action={<CompactListCount>Профиль</CompactListCount>}
+                />
+                <div className="grid gap-2.5 p-4">
+                  <SummaryRow label="Ник" value={`@${user.username}`} />
+                  <SummaryRow
+                    label="Статус"
+                    value={
+                      <div className="inline-flex items-center gap-2">
+                        <PresenceIndicator user={user} compact />
+                        <span>{availabilityLabel}</span>
+                      </div>
+                    }
+                  />
+                  <SummaryRow
+                    label="На платформе"
+                    value={formatJoinedDate(user.createdAt)}
+                  />
+                  <SummaryRow label="Контакт" value={relationshipLabel} />
+                </div>
+              </Panel>
+
               <Panel>
                 <PanelHeader
                   title="Действия"

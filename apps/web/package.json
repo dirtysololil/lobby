@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.3.0",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
