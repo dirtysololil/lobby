@@ -2,10 +2,12 @@
 
 Приватный проект. README - рабочая шпаргалка по запуску, обновлению после `git pull`, переносу на другой хостинг и поиску нужных файлов.
 
+Данные ниже сверены с реальным состоянием репозитория и сервера: `package.json`, `apps/*/package.json`, `scripts/build.mjs`, `ecosystem.config.cjs`, текущими PM2-процессами и ключами `.env` без значений секретов.
+
 ## Стек
 
 - Monorepo: `pnpm` workspaces, Node.js, TypeScript.
-- Frontend: `apps/web` - Next.js 16, React 19, App Router, CSS в `apps/web/src/app/globals.css`.
+- Frontend: `apps/web` - Next.js 16.2.2, React 19.2.4, App Router, CSS в `apps/web/src/app/globals.css`, Capacitor для iOS/Android.
 - Backend: `apps/api` - NestJS 11, REST API, Socket.IO gateway, worker для очередей.
 - Shared: `packages/shared` - общие DTO, типы и схемы.
 - Config: `packages/config` - чтение и валидация `.env`.
@@ -13,6 +15,60 @@
 - Queue/cache: Redis + BullMQ.
 - Calls/realtime media: LiveKit.
 - Process manager: PM2, конфиг в `ecosystem.config.cjs`.
+
+## Фактическое окружение сервера
+
+- Проект лежит в `/home/Dirtysolo/web/lobby.webmason.ru/public_html`.
+- Git: локальная ветка `master`, upstream `origin/main`.
+- `pnpm` установлен как `/usr/local/bin/pnpm`, версия `10.33.0`.
+- `corepack` на сервере отсутствует, поэтому команды запускаются напрямую через `pnpm`.
+- Для сборки нужен Node.js `>=20.9.0`. Системный `/usr/bin/node` сейчас `v18.19.1` и не подходит для Next.js 16.
+- Рабочий Node.js для сборки и PM2 web: `v20.20.2` из `/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin/node`.
+
+Перед install/build на текущем сервере выставить Node 20 в `PATH`:
+
+```bash
+export PATH=/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin:$PATH
+node -v
+pnpm -v
+```
+
+Ожидаемые версии после `export PATH`: `node v20.20.2`, `pnpm 10.33.0`.
+
+## Фактическая сборка
+
+Корневой `pnpm build` запускает `scripts/build.mjs`. Реальный порядок:
+
+1. `prisma generate --schema prisma/schema.prisma`.
+2. TypeScript build для `packages/shared`.
+3. TypeScript build для `packages/config`.
+4. Очистка `apps/api/dist`.
+5. NestJS build для `apps/api`.
+6. Очистка `apps/web/.next`.
+7. Next.js build для `apps/web`.
+8. `apps/web/scripts/prepare-standalone-assets.mjs`.
+
+На текущем сервере перед сборкой нужен Node 20 в `PATH`:
+
+```bash
+export PATH=/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin:$PATH
+pnpm build
+```
+
+## Фактический PM2-запуск
+
+- `lobby-api`: `online`, cwd `/home/Dirtysolo/web/lobby.webmason.ru/public_html`, script `/usr/local/bin/pnpm`, args `--filter @lobby/api start:prod`.
+- `lobby-web`: `online`, cwd `/home/Dirtysolo/web/lobby.webmason.ru/public_html`, standalone server `apps/web/.next/standalone/apps/web/server.js`, interpreter Node `20.20.2`, `HOSTNAME=127.0.0.1`, `PORT=3000`.
+- `lobby-worker`: `online`, cwd `/home/Dirtysolo/web/lobby.webmason.ru/public_html`, script `/usr/local/bin/pnpm`, args `--filter @lobby/api start:worker`.
+
+Проверка:
+
+```bash
+pm2 status
+pm2 describe lobby-api
+pm2 describe lobby-web
+pm2 describe lobby-worker
+```
 
 ## Что где менять
 
@@ -42,35 +98,34 @@
 
 ## Быстрый старт на новом месте
 
-1. Поставить системные зависимости: Node.js совместимый с проектом, `corepack`, MySQL, Redis, PM2, nginx или другой reverse proxy.
+1. Поставить системные зависимости: Node.js `>=20.9.0`, `pnpm` `10.33.0`, MySQL, Redis, PM2, nginx или другой reverse proxy.
 2. Склонировать репозиторий и перейти в папку проекта.
 3. Создать `.env` на основе текущего сервера или `.env.example`, если он появится.
 4. Установить зависимости и сгенерировать Prisma client:
 
 ```bash
-corepack enable
-corepack pnpm install
-corepack pnpm prisma:generate
+pnpm install --frozen-lockfile
+pnpm prisma:generate
 ```
 
 5. Поднять базу:
 
 ```bash
-corepack pnpm prisma:migrate:deploy
-corepack pnpm db:seed
+pnpm prisma:migrate:deploy
+pnpm db:seed
 ```
 
 Если база уже была создана вручную или через `prisma db push`, один раз отметить baseline:
 
 ```bash
-corepack pnpm prisma:migrate:resolve:baseline
-corepack pnpm db:seed
+pnpm prisma:migrate:resolve:baseline
+pnpm db:seed
 ```
 
 6. Собрать проект:
 
 ```bash
-corepack pnpm build
+pnpm build
 ```
 
 7. Запустить через PM2:
@@ -84,8 +139,8 @@ pm2 status
 ## Разработка
 
 ```bash
-corepack pnpm dev
-corepack pnpm dev:worker
+pnpm dev
+pnpm dev:worker
 ```
 
 - web: `http://127.0.0.1:3000`
@@ -94,22 +149,26 @@ corepack pnpm dev:worker
 Отдельные полезные команды:
 
 ```bash
-corepack pnpm lint
-corepack pnpm typecheck
-corepack pnpm --filter @lobby/api test
-corepack pnpm prisma:studio
+pnpm lint
+pnpm typecheck
+pnpm --filter @lobby/api test
+pnpm --filter @lobby/api test:e2e
+pnpm prisma:validate
+pnpm prisma:studio
 ```
 
 ## Прод-сборка и ручной запуск
 
 ```bash
-corepack pnpm build
-corepack pnpm start:api
-corepack pnpm start:web
-corepack pnpm start:worker
+pnpm build
+pnpm start:api
+pnpm start:web
+pnpm start:worker
 ```
 
 Обычно в проде вручную так не держать процессы, а запускать через PM2.
+
+`pnpm start:web` использует `apps/web/scripts/run-next.mjs start`. В PM2 web запускается напрямую из standalone-сборки: `apps/web/.next/standalone/apps/web/server.js`.
 
 ## Обновление после `git pull`
 
@@ -118,22 +177,23 @@ corepack pnpm start:worker
 ```bash
 PROJECT_DIR=/home/Dirtysolo/web/lobby.webmason.ru/public_html
 cd "$PROJECT_DIR"
+export PATH=/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin:$PATH
 git pull
-corepack pnpm install --frozen-lockfile
-corepack pnpm prisma:migrate:deploy
-corepack pnpm build
+pnpm install --frozen-lockfile
+pnpm prisma:migrate:deploy
+pnpm build
 pm2 restart ecosystem.config.cjs --update-env
 pm2 save
 ```
 
-Если точно не менялись `package.json` и `pnpm-lock.yaml`, можно пропустить `corepack pnpm install --frozen-lockfile`.
+Если точно не менялись `package.json` и `pnpm-lock.yaml`, можно пропустить `pnpm install --frozen-lockfile`.
 
 Если менялись Prisma schema или зависимости Prisma:
 
 ```bash
-corepack pnpm prisma:generate
-corepack pnpm prisma:migrate:deploy
-corepack pnpm build
+pnpm prisma:generate
+pnpm prisma:migrate:deploy
+pnpm build
 pm2 restart ecosystem.config.cjs --update-env
 ```
 
@@ -175,23 +235,70 @@ mysql -u USER -p NEW_DATABASE_NAME < lobby.sql
 rsync -avz /old/upload/path/ user@new-host:/new/upload/path/
 ```
 
-На новом сервере обязательно проверить `.env`:
+На новом сервере обязательно проверить `.env`. Фактические ключи текущего `.env`; значения секретов в git не хранить:
 
-- `WEB_PUBLIC_URL` - публичный URL фронта.
-- `API_PUBLIC_URL` - публичный URL API.
-- `MEDIA_PUBLIC_URL` - URL медиа/realtime, если используется отдельно.
-- `REALTIME_PUBLIC_URL`, `REALTIME_PATH`, `REALTIME_CORS_ORIGIN` - realtime настройки.
-- `DATABASE_URL` - MySQL подключение.
-- `REDIS_URL`, `BULLMQ_PREFIX` - Redis и очереди.
-- `SESSION_SECRET`, `SESSION_COOKIE_NAME`, `SESSION_COOKIE_DOMAIN` - сессии и cookie.
-- `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` - звонки.
-- `UPLOAD_DRIVER`, `UPLOAD_LOCAL_ROOT` - хранение файлов.
-- `SEED_*` - начальные пользователи и invite keys, нужны для seed.
+```text
+APP_NAME
+NODE_ENV
+WEB_PUBLIC_URL
+API_PUBLIC_URL
+MEDIA_PUBLIC_URL
+REALTIME_PUBLIC_URL
+REALTIME_PATH
+WEB_HOST
+WEB_PORT
+API_HOST
+API_PORT
+DATABASE_URL
+REDIS_URL
+BULLMQ_PREFIX
+SESSION_SECRET
+SESSION_COOKIE_NAME
+SESSION_COOKIE_DOMAIN
+SESSION_TTL_DAYS
+ARGON2_MEMORY_COST
+ARGON2_TIME_COST
+ARGON2_PARALLELISM
+LIVEKIT_URL
+LIVEKIT_API_KEY
+LIVEKIT_API_SECRET
+LIVEKIT_TOKEN_TTL_MINUTES
+CALL_RING_TIMEOUT_SECONDS
+UPLOAD_DRIVER
+UPLOAD_LOCAL_ROOT
+MAX_AVATAR_MB
+MAX_FILE_MB
+MAX_AVATAR_FRAMES
+MAX_AVATAR_ANIMATION_MS
+MAX_CUSTOM_EMOJI_MB
+MAX_CUSTOM_EMOJI_DIMENSION
+MAX_STICKER_MB
+MAX_STICKER_DIMENSION
+MAX_STICKER_FRAMES
+MAX_STICKER_ANIMATION_MS
+MAX_GIF_MB
+MAX_GIF_DIMENSION
+MAX_GIF_FRAMES
+MAX_GIF_ANIMATION_MS
+REALTIME_CORS_ORIGIN
+SEED_OWNER_EMAIL
+SEED_OWNER_USERNAME
+SEED_OWNER_DISPLAY_NAME
+SEED_OWNER_PASSWORD
+SEED_ADMIN_EMAIL
+SEED_ADMIN_USERNAME
+SEED_ADMIN_DISPLAY_NAME
+SEED_ADMIN_PASSWORD
+SEED_OWNER_INVITE_KEY
+SEED_ADMIN_INVITE_KEY
+SEED_MEMBER_INVITE_KEY
+```
 
 В `ecosystem.config.cjs` проверить:
 
 - `cwd` у процессов: на этом сервере путь проекта `/home/Dirtysolo/web/lobby.webmason.ru/public_html`; при переносе подставить новый путь.
-- путь к `pnpm`, если на сервере он не `/usr/local/bin/pnpm`.
+- путь к `pnpm`: на этом сервере `/usr/local/bin/pnpm`.
+- Node.js для сборки должен быть `>=20.9.0`; на этом сервере для ручной сборки используется `export PATH=/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin:$PATH`.
 - `HOSTNAME`, `PORT` для `lobby-web`.
 - имена процессов `lobby-api`, `lobby-web`, `lobby-worker`.
 
@@ -219,32 +326,34 @@ rsync -avz /old/upload/path/ user@new-host:/new/upload/path/
 Создать ручной инвайт владельца:
 
 ```bash
-corepack pnpm --filter @lobby/api owner:invite
+pnpm --filter @lobby/api owner:invite
 ```
 
 Перегенерировать Prisma client:
 
 ```bash
-corepack pnpm prisma:generate
+pnpm prisma:generate
 ```
 
 Проверить Prisma schema:
 
 ```bash
-corepack pnpm prisma:validate
+pnpm prisma:validate
 ```
 
 Пересобрать только frontend:
 
 ```bash
-corepack pnpm --filter @lobby/web build
+export PATH=/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin:$PATH
+pnpm --filter @lobby/web build
 pm2 restart lobby-web --update-env
 ```
 
 Пересобрать только API:
 
 ```bash
-corepack pnpm --filter @lobby/api build
+export PATH=/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin:$PATH
+pnpm --filter @lobby/api build
 pm2 restart lobby-api --update-env
 pm2 restart lobby-worker --update-env
 ```
@@ -255,9 +364,9 @@ pm2 restart lobby-worker --update-env
 - `pm2 logs lobby-api --lines 200` - API, Prisma, Redis, LiveKit, auth.
 - `pm2 logs lobby-web --lines 200` - Next.js frontend.
 - `pm2 logs lobby-worker --lines 200` - очереди и фоновые задачи.
-- `corepack pnpm prisma:migrate:deploy` - проверить, что миграции применены.
-- `corepack pnpm prisma:generate` - обновить Prisma client после изменения схемы.
-- `corepack pnpm build` - поймать ошибки TypeScript/Next/Nest до рестарта.
+- `pnpm prisma:migrate:deploy` - проверить, что миграции применены.
+- `pnpm prisma:generate` - обновить Prisma client после изменения схемы.
+- `pnpm build` - поймать ошибки TypeScript/Next/Nest до рестарта.
 - Проверить, что `.env` реально подхватился: после изменения env всегда использовать `pm2 restart ... --update-env`.
 
 ## Git-памятка
@@ -273,8 +382,8 @@ git pull
 
 ```bash
 git status
-git add README.md
-git commit -m "docs: expand operations readme"
+git add README.md package.json ecosystem.config.cjs
+git commit -m "docs: document actual production setup"
 git push
 ```
 

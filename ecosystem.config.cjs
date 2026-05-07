@@ -2,9 +2,9 @@ module.exports = {
   apps: [
     {
       name: "lobby-api",
-      cwd: ".",
-      script: "corepack",
-      args: "pnpm start:api",
+      cwd: "/home/Dirtysolo/web/lobby.webmason.ru/public_html",
+      script: "/usr/local/bin/pnpm",
+      args: "--filter @lobby/api start:prod",
       interpreter: "none",
       autorestart: true,
       watch: false,
@@ -15,7 +15,7 @@ module.exports = {
     },
     {
       name: "lobby-web",
-      cwd: "/var/www/www-root/data/www/lobby",
+      cwd: "/home/Dirtysolo/web/lobby.webmason.ru/public_html",
       script: "node",
       args: "apps/web/.next/standalone/apps/web/server.js",
       env: {
@@ -30,9 +30,9 @@ module.exports = {
     },
     {
       name: "lobby-worker",
-      cwd: ".",
-      script: "corepack",
-      args: "pnpm start:worker",
+      cwd: "/home/Dirtysolo/web/lobby.webmason.ru/public_html",
+      script: "/usr/local/bin/pnpm",
+      args: "--filter @lobby/api start:worker",
       interpreter: "none",
       autorestart: true,
       watch: false,
