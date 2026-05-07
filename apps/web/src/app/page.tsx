@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { CookieConsentBanner } from "@/components/privacy/cookie-consent-banner";
 import { fetchViewer } from "@/lib/server-session";
 
@@ -38,14 +38,6 @@ export default async function Home() {
             Приватное общение для команд с доступом по приглашению.
           </h1>
 
-          <div className="mt-5 flex items-start gap-3 rounded-[16px] border border-[var(--border-soft)] bg-black px-3.5 py-3 text-sm leading-5 text-[var(--text-dim)]">
-            <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-soft)]" />
-            <p>
-              Доступ ограничен. Используйте сервис только при наличии ключа
-              активации и не размещайте данные, которые не предназначены для
-              участников вашего закрытого пространства.
-            </p>
-          </div>
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2.5">
