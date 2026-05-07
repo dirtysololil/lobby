@@ -113,10 +113,11 @@ corepack pnpm start:worker
 
 ## Обновление после `git pull`
 
-Стандартный порядок на сервере:
+Стандартный порядок на этом сервере:
 
 ```bash
-cd /var/www/www-root/data/www/lobby
+PROJECT_DIR=/home/Dirtysolo/web/lobby.webmason.ru/public_html
+cd "$PROJECT_DIR"
 git pull
 corepack pnpm install --frozen-lockfile
 corepack pnpm prisma:migrate:deploy
@@ -189,7 +190,7 @@ rsync -avz /old/upload/path/ user@new-host:/new/upload/path/
 
 В `ecosystem.config.cjs` проверить:
 
-- `cwd` у процессов.
+- `cwd` у процессов: на этом сервере путь проекта `/home/Dirtysolo/web/lobby.webmason.ru/public_html`; при переносе подставить новый путь.
 - путь к `pnpm`, если на сервере он не `/usr/local/bin/pnpm`.
 - `HOSTNAME`, `PORT` для `lobby-web`.
 - имена процессов `lobby-api`, `lobby-web`, `lobby-worker`.
