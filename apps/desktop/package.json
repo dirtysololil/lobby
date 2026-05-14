@@ -1,0 +1,57 @@
+{
+  "name": "@lobby/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "productName": "Lobby",
+  "description": "Windows desktop shell for Lobby.",
+  "author": "Lobby",
+  "main": "src/main.cjs",
+  "scripts": {
+    "dev": "node scripts/prepare-config.cjs && electron .",
+    "check": "node scripts/prepare-config.cjs && node --check src/main.cjs && node --check src/preload.cjs && node --check src/shell-preload.cjs && node --check scripts/prepare-config.cjs && node --check scripts/prepare-icon.cjs && node --check scripts/run-builder.cjs",
+    "pack": "node scripts/run-builder.cjs --dir",
+    "dist": "node scripts/run-builder.cjs --win portable",
+    "dist:installer": "node scripts/run-builder.cjs --win nsis"
+  },
+  "build": {
+    "appId": "ru.holty.lobby.desktop",
+    "productName": "Lobby",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "scripts/prepare-config.cjs",
+      "desktop.config.example.json",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../../icons/512x512.png",
+        "to": "icons/512x512.png"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "42.0.1",
+    "electron-builder": "26.8.1"
+  }
+}

@@ -1,0 +1,8 @@
+module.exports = {
+  "appUrl": "https://lobby.webmason.ru",
+  "allowedOrigins": [
+    "https://api.lobby.webmason.ru",
+    "wss://media.lobby.webmason.ru",
+    "https://media.lobby.webmason.ru"
+  ]
+};

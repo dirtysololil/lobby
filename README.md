@@ -157,6 +157,56 @@ pnpm prisma:validate
 pnpm prisma:studio
 ```
 
+## Windows-приложение
+
+Desktop-оболочка находится в `apps/desktop`. Она не встраивает web/API внутрь
+приложения, а открывает продовый Lobby-сайт как отдельную Windows-программу.
+Перед запуском или сборкой публичные адреса берутся из корневого `.env`
+(`WEB_PUBLIC_URL`, `API_PUBLIC_URL`, `MEDIA_PUBLIC_URL`,
+`REALTIME_PUBLIC_URL`). Так основной функционал сайта остается общим для
+браузера, Android/iOS и Windows.
+
+Проверить Electron-оболочку в dev-режиме:
+
+```bash
+corepack pnpm desktop:dev
+```
+
+Собрать portable `.exe` для Windows:
+
+```bash
+corepack pnpm desktop:dist
+```
+
+Готовый файл появится в `apps/desktop/dist`. Для сборки установщика вместо
+portable-версии:
+
+```bash
+corepack pnpm desktop:dist:installer
+```
+
+Если сервер изменится, пересобирать приложение не обязательно. Положить рядом с
+`.exe` файл `desktop.config.json` по образцу `apps/desktop/desktop.config.example.json`:
+
+```json
+{
+  "appUrl": "https://lobby.webmason.ru",
+  "allowedOrigins": [
+    "https://api.lobby.webmason.ru",
+    "https://media.lobby.webmason.ru",
+    "wss://media.lobby.webmason.ru"
+  ]
+}
+```
+
+Для разового запуска можно переопределить адрес через переменные окружения:
+
+```powershell
+$env:LOBBY_DESKTOP_URL = "https://lobby.webmason.ru"
+$env:LOBBY_DESKTOP_ALLOWED_ORIGINS = "https://api.lobby.webmason.ru,https://media.lobby.webmason.ru,wss://media.lobby.webmason.ru"
+corepack pnpm desktop:dev
+```
+
 ## Прод-сборка и ручной запуск
 
 ```bash

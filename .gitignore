@@ -9,6 +9,7 @@ coverage
 .env.production.local
 .env.development.local
 apps/api/dist
+apps/desktop/build
 .tools
 .codex-artifacts/*.log
 .codex-artifacts/*.html

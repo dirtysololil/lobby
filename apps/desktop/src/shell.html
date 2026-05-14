@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Lobby</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg-app: #000000;
+        --bg-sidebar: #050505;
+        --bg-panel: #0a0a0a;
+        --bg-hover: rgba(255, 255, 255, 0.05);
+        --bg-active: rgba(255, 255, 255, 0.075);
+        --border: rgba(255, 255, 255, 0.1);
+        --border-soft: rgba(255, 255, 255, 0.07);
+        --text: #f5f5f5;
+        --text-dim: #a3a3a3;
+        --text-muted: #737373;
+        --danger: #ef4444;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg-app);
+        color: var(--text);
+        font:
+          12px/1.4 "Segoe UI",
+          system-ui,
+          sans-serif;
+      }
+
+      body {
+        user-select: none;
+      }
+
+      .titlebar {
+        display: flex;
+        height: 38px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-soft);
+        background: var(--bg-sidebar);
+        -webkit-app-region: drag;
+      }
+
+      .brand {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+      }
+
+      .brand-mark {
+        width: 11px;
+        height: 11px;
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        background: #f5f5f5;
+        box-shadow: inset 0 0 0 3px #050505;
+      }
+
+      .brand-title {
+        overflow: hidden;
+        color: var(--text-dim);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .window-controls {
+        display: flex;
+        height: 100%;
+        -webkit-app-region: no-drag;
+      }
+
+      .window-control {
+        position: relative;
+        width: 46px;
+        height: 38px;
+        border: 0;
+        border-left: 1px solid transparent;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+      }
+
+      .window-control:hover {
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+
+      .window-control:active {
+        background: var(--bg-active);
+      }
+
+      .window-control:focus-visible {
+        outline: 1px solid rgba(255, 255, 255, 0.2);
+        outline-offset: -3px;
+      }
+
+      .window-control-close:hover {
+        background: rgba(239, 68, 68, 0.16);
+        color: #ffffff;
+      }
+
+      .icon-minimize,
+      .icon-maximize,
+      .icon-close,
+      .icon-restore {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 12px;
+        height: 12px;
+        transform: translate(-50%, -50%);
+      }
+
+      .icon-minimize::before {
+        position: absolute;
+        top: 7px;
+        left: 1px;
+        width: 10px;
+        height: 1px;
+        background: currentColor;
+        content: "";
+      }
+
+      .icon-maximize::before {
+        position: absolute;
+        top: 1px;
+        left: 1px;
+        width: 10px;
+        height: 10px;
+        border: 1px solid currentColor;
+        content: "";
+      }
+
+      .icon-restore {
+        display: none;
+      }
+
+      .icon-restore::before,
+      .icon-restore::after {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border: 1px solid currentColor;
+        content: "";
+      }
+
+      .icon-restore::before {
+        top: 1px;
+        left: 3px;
+      }
+
+      .icon-restore::after {
+        top: 4px;
+        left: 0;
+        background: var(--bg-sidebar);
+      }
+
+      .window-control.is-restore .icon-maximize {
+        display: none;
+      }
+
+      .window-control.is-restore .icon-restore {
+        display: block;
+      }
+
+      .icon-close::before,
+      .icon-close::after {
+        position: absolute;
+        top: 6px;
+        left: 0;
+        width: 12px;
+        height: 1px;
+        background: currentColor;
+        content: "";
+      }
+
+      .icon-close::before {
+        transform: rotate(45deg);
+      }
+
+      .icon-close::after {
+        transform: rotate(-45deg);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="titlebar" id="titlebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-title">Lobby</span>
+      </div>
+      <nav class="window-controls" aria-label="Управление окном">
+        <button
+          class="window-control"
+          id="minimize"
+          type="button"
+          title="Свернуть"
+          aria-label="Свернуть"
+        >
+          <span class="icon-minimize" aria-hidden="true"></span>
+        </button>
+        <button
+          class="window-control"
+          id="maximize"
+          type="button"
+          title="Развернуть"
+          aria-label="Развернуть"
+        >
+          <span class="icon-maximize" aria-hidden="true"></span>
+          <span class="icon-restore" aria-hidden="true"></span>
+        </button>
+        <button
+          class="window-control window-control-close"
+          id="close"
+          type="button"
+          title="Закрыть"
+          aria-label="Закрыть"
+        >
+          <span class="icon-close" aria-hidden="true"></span>
+        </button>
+      </nav>
+    </header>
+
+    <script>
+      const maximizeButton = document.querySelector("#maximize");
+      const titlebar = document.querySelector("#titlebar");
+
+      function updateWindowState(state) {
+        const isMaximized = Boolean(state?.isMaximized);
+        const label = isMaximized ? "Восстановить" : "Развернуть";
+
+        maximizeButton.classList.toggle("is-restore", isMaximized);
+        maximizeButton.setAttribute("aria-label", label);
+        maximizeButton.title = label;
+      }
+
+      document
+        .querySelector("#minimize")
+        .addEventListener("click", () => window.LobbyWindow.minimize());
+      maximizeButton.addEventListener("click", () =>
+        window.LobbyWindow.toggleMaximize(),
+      );
+      document
+        .querySelector("#close")
+        .addEventListener("click", () => window.LobbyWindow.close());
+      titlebar.addEventListener("dblclick", (event) => {
+        if (event.target.closest("button")) {
+          return;
+        }
+
+        window.LobbyWindow.toggleMaximize();
+      });
+
+      window.LobbyWindow.getState().then(updateWindowState);
+      window.LobbyWindow.onStateChange(updateWindowState);
+    </script>
+  </body>
+</html>
