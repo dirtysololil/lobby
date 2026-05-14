@@ -58,7 +58,7 @@ pnpm build
 ## Фактический PM2-запуск
 
 - `lobby-api`: `online`, cwd `/home/Dirtysolo/web/lobby.webmason.ru/public_html`, script `/usr/local/bin/pnpm`, args `--filter @lobby/api start:prod`.
-- `lobby-web`: `online`, cwd `/home/Dirtysolo/web/lobby.webmason.ru/public_html`, standalone server `apps/web/.next/standalone/apps/web/server.js`, interpreter Node `20.20.2`, `HOSTNAME=127.0.0.1`, `PORT=3000`.
+- `lobby-web`: `online`, cwd `/home/Dirtysolo/web/lobby.webmason.ru/public_html`, standalone server `apps/web/.next/standalone/apps/web/server.js`, interpreter Node `20.20.2`, `HOSTNAME=127.0.0.1`, `PORT=3000`. В `ecosystem.config.cjs` web запускается напрямую из standalone-файла, а не через системный Node 18.
 - `lobby-worker`: `online`, cwd `/home/Dirtysolo/web/lobby.webmason.ru/public_html`, script `/usr/local/bin/pnpm`, args `--filter @lobby/api start:worker`.
 
 Проверка:
@@ -207,6 +207,50 @@ pm2 logs lobby-web --lines 100
 ```
 
 Если сайт открывается, но API/realtime не работает, сначала проверять `.env`, nginx proxy, Redis, LiveKit и логи `lobby-api`.
+
+## Восстановление сломанного сайта
+
+Самая частая поломка frontend на этом сервере: `lobby-web` в PM2 имеет статус `errored`, а в логах есть ошибка:
+
+```text
+Cannot find module '/home/Dirtysolo/web/lobby.webmason.ru/public_html/apps/web/.next/standalone/apps/web/server.js'
+```
+
+Это значит, что Next standalone-сборка отсутствует или была удалена. Исправление:
+
+```bash
+PROJECT_DIR=/home/Dirtysolo/web/lobby.webmason.ru/public_html
+cd "$PROJECT_DIR"
+export PATH=/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin:$PATH
+pnpm build
+test -f apps/web/.next/standalone/apps/web/server.js
+pm2 restart lobby-web --update-env
+pm2 status
+curl -I http://127.0.0.1:3000
+curl -I https://lobby.webmason.ru
+```
+
+Ожидаемый результат: `lobby-web` в `online`, оба `curl` возвращают `200 OK`.
+
+Если `pnpm build` падает:
+
+```bash
+export PATH=/root/.npm/_npx/ebaba8b9e55fd0a9/node_modules/node/bin:$PATH
+node -v
+pnpm install --frozen-lockfile
+pnpm prisma:generate
+pnpm prisma:migrate:deploy
+pnpm build
+```
+
+Если PM2-конфиг менялся или процесс нужно пересоздать из `ecosystem.config.cjs`:
+
+```bash
+pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 save
+```
+
+Не запускать сборку системным `/usr/bin/node v18.19.1`: для текущего Next.js нужен Node `>=20.9.0`.
 
 ## Перенос на другой хостинг
 
