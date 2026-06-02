@@ -5,18 +5,11 @@ import {
   Bell,
   Clock3,
   Link2,
-  House,
   Layers3,
   LockKeyhole,
   MessageSquareMore,
   Paperclip,
-  Plus,
-  Search,
-  Send,
-  Settings2,
-  ShieldCheck,
   X,
-  Users2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -46,7 +39,6 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { AppMobileTopNav } from "@/components/app/app-mobile-top-nav";
 import { useOptionalRealtimePresence, useRealtime } from "@/components/realtime/realtime-provider";
 import { CompactListCount } from "@/components/ui/compact-list";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -61,20 +53,7 @@ interface HomeWorkspaceProps {
 }
 
 const emptyLabel = "Сейчас тут пусто";
-const navIconProps = { size: 17, strokeWidth: 1.75 } as const;
 const reactionOptions: ReactionEmoji[] = ["❤️", "🔥", "✨", "👀"];
-
-const quickLinks: Array<{
-  href: string;
-  icon: LucideIcon;
-  label: string;
-}> = [
-  { href: "/app/home", icon: House, label: "Главная" },
-  { href: "/app/messages", icon: MessageSquareMore, label: "Сообщения" },
-  { href: "/app/people", icon: Users2, label: "Люди" },
-  { href: "/app/hubs", icon: Layers3, label: "Хабы" },
-  { href: "/app/settings/profile", icon: Settings2, label: "Настройки" },
-];
 
 function formatShortTime(value: string | null) {
   if (!value) {
@@ -204,25 +183,6 @@ function resolveFeedMediaSrc(mediaUrl: string | null) {
   const apiBaseUrl = resolveApiBaseUrlForBrowser();
 
   return apiBaseUrl ? new URL(mediaUrl, apiBaseUrl).toString() : mediaUrl;
-}
-
-function getConversationPreview(conversation: DirectConversationSummary) {
-  if (conversation.lastMessagePreview?.trim()) {
-    return conversation.lastMessagePreview.trim();
-  }
-
-  switch (conversation.lastMessage?.type) {
-    case "STICKER":
-      return "Стикер";
-    case "GIF":
-      return "GIF";
-    case "MEDIA":
-      return "Медиа";
-    case "FILE":
-      return "Файл";
-    default:
-      return "Сообщений пока нет";
-  }
 }
 
 function EmptyNow({ className }: { className?: string }) {
@@ -453,60 +413,6 @@ function ContactRow({
   );
 }
 
-function MessageRow({ conversation }: { conversation: DirectConversationSummary }) {
-  return (
-    <Link
-      href={`/app/messages/${conversation.id}`}
-      className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 rounded-[16px] px-2.5 py-2.5 transition-colors hover:bg-[var(--bg-hover)]"
-    >
-      <UserAvatar
-        user={conversation.counterpart}
-        size="sm"
-        className="h-10 w-10 text-[11px]"
-      />
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-white">
-          {conversation.counterpart.profile.displayName}
-        </p>
-        <p
-          className={cn(
-            "mt-0.5 truncate text-xs",
-            conversation.unreadCount > 0
-              ? "text-[var(--text-soft)]"
-              : "text-[var(--text-muted)]",
-          )}
-        >
-          {getConversationPreview(conversation)}
-        </p>
-      </div>
-      <div className="flex flex-col items-end gap-1 text-[11px] text-[var(--text-muted)]">
-        <span>{formatShortTime(conversation.lastMessageAt)}</span>
-        {conversation.unreadCount > 0 ? (
-          <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full border border-white/12 bg-white px-1 text-[10px] font-semibold text-black">
-            {conversation.unreadCount}
-          </span>
-        ) : null}
-      </div>
-    </Link>
-  );
-}
-
-function StoryTile({ user }: { user: PublicUser }) {
-  return (
-    <Link
-      href={buildUserProfileHref(user.username)}
-      className="group grid w-[72px] shrink-0 justify-items-center gap-2 text-center"
-    >
-      <span className="rounded-full border border-white/12 p-1 transition-colors group-hover:border-white/24">
-        <UserAvatar user={user} size="lg" className="h-12 w-12 text-[12px]" />
-      </span>
-      <span className="max-w-full truncate text-[11px] font-medium text-[var(--text-dim)] group-hover:text-white">
-        {user.profile.displayName}
-      </span>
-    </Link>
-  );
-}
-
 export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
   const { latestDmSignal } = useRealtime();
   const realtimePresence = useOptionalRealtimePresence();
@@ -515,7 +421,6 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
   const [friendships, setFriendships] = useState<FriendshipRecord[]>([]);
   const [hubs, setHubs] = useState<HubSummary[]>([]);
   const [invites, setInvites] = useState<HubInvite[]>([]);
-  const [messageSearchQuery, setMessageSearchQuery] = useState("");
   const [postKind, setPostKind] = useState<FeedPostKind>("ARTICLE");
   const [postTitle, setPostTitle] = useState("");
   const [postBody, setPostBody] = useState("");
@@ -701,46 +606,10 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
     [acceptedFriends, toLiveUser],
   );
 
-  const orderedConversations = useMemo(
-    () =>
-      conversations
-        .map((conversation) => ({
-          ...conversation,
-          counterpart: toLiveUser(conversation.counterpart),
-        }))
-        .sort(
-          (left, right) =>
-            new Date(right.lastMessageAt ?? 0).getTime() -
-            new Date(left.lastMessageAt ?? 0).getTime(),
-        ),
-    [conversations, toLiveUser],
-  );
-
   const totalUnread = conversations.reduce(
     (sum, conversation) => sum + conversation.unreadCount,
     0,
   );
-  const canOpenAdminPanel = viewer.role === "OWNER" || viewer.role === "ADMIN";
-
-  const filteredConversations = useMemo(() => {
-    const query = messageSearchQuery.trim().toLowerCase();
-
-    if (!query) {
-      return orderedConversations;
-    }
-
-    return orderedConversations.filter((conversation) =>
-      [
-        conversation.counterpart.profile.displayName,
-        conversation.counterpart.username,
-        conversation.lastMessagePreview,
-      ]
-        .filter((value): value is string => Boolean(value))
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [messageSearchQuery, orderedConversations]);
 
   function resetPostMedia() {
     if (postMediaPreviewUrl?.startsWith("blob:")) {
@@ -886,10 +755,6 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
 
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden bg-black">
-      <div className="border-b border-white/5 px-4 pb-3 pt-5 md:hidden">
-        <AppMobileTopNav active="home" />
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="grid min-h-full w-full gap-3 px-3 py-3 md:px-5 md:py-5 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
           <aside className="grid content-start gap-3">
@@ -912,44 +777,10 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
                   {viewer.profile.bio.trim()}
                 </p>
               ) : null}
-              {canOpenAdminPanel ? (
-                <Link
-                  href="/app/admin"
-                  className="mx-auto mt-4 inline-flex min-h-10 w-full max-w-[220px] items-center justify-center gap-2 rounded-[12px] border border-[#0070F3] bg-[#0070F3] px-4 text-sm font-semibold text-white transition-colors hover:border-[#1A7FFF] hover:bg-[#1A7FFF]"
-                >
-                  <ShieldCheck size={16} strokeWidth={1.9} />
-                  <span>Панель управления</span>
-                </Link>
-              ) : null}
-
               <div className="mt-5 grid grid-cols-3 gap-2">
                 <StatTile label="Друзья" value={acceptedFriends.length} />
                 <StatTile label="Непроч." value={totalUnread} />
                 <StatTile label="Хабы" value={hubs.length} />
-              </div>
-            </Panel>
-
-            <Panel>
-              <div className="grid gap-1 p-2">
-                {quickLinks.map((item) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "flex min-h-10 items-center gap-3 rounded-[14px] px-3 text-sm font-medium transition-colors",
-                        item.href === "/app/home"
-                          ? "border border-white/10 bg-[var(--bg-active)] text-white"
-                          : "text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-white",
-                      )}
-                    >
-                      <Icon {...navIconProps} />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
               </div>
             </Panel>
 
@@ -984,39 +815,6 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
           </aside>
 
           <main className="grid min-w-0 content-start gap-3">
-            <Panel>
-              <div className="flex items-center gap-3 overflow-x-auto px-4 py-4">
-                <Link
-                  href="/app/settings/profile"
-                  className="group grid w-[72px] shrink-0 justify-items-center gap-2 text-center"
-                >
-                  <span className="relative rounded-full border border-white/12 p-1 transition-colors group-hover:border-white/24">
-                    <UserAvatar
-                      user={liveViewer}
-                      size="lg"
-                      className="h-12 w-12 text-[12px]"
-                    />
-                    <span className="absolute bottom-0 right-0 inline-flex h-5 w-5 items-center justify-center rounded-full border border-black bg-white text-black">
-                      <Plus size={13} strokeWidth={2} />
-                    </span>
-                  </span>
-                  <span className="max-w-full truncate text-[11px] font-medium text-[var(--text-dim)] group-hover:text-white">
-                    Вы
-                  </span>
-                </Link>
-
-                {liveFriends.length === 0 ? (
-                  <div className="flex min-h-[78px] flex-1 items-center justify-center rounded-[18px] border border-white/8 bg-white/[0.02] px-4 text-center text-sm font-medium text-white">
-                    {emptyLabel}
-                  </div>
-                ) : (
-                  liveFriends.slice(0, 8).map((item) => (
-                    <StoryTile key={item.id} user={item.otherUser} />
-                  ))
-                )}
-              </div>
-            </Panel>
-
             <Panel className="p-4">
               <form onSubmit={(event) => void handleCreatePost(event)}>
                 <div className="flex items-start gap-3">
@@ -1185,43 +983,6 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
           </main>
 
           <aside className="grid content-start gap-3">
-            <Panel>
-              <PanelHeader
-                title="Сообщения"
-                count={conversations.length}
-                action={
-                  <IconButtonLink
-                    href="/app/messages"
-                    icon={Send}
-                    label="Открыть сообщения"
-                  />
-                }
-              />
-              <div className="border-b border-white/8 px-3 py-3">
-                <label className="flex h-10 items-center gap-2 rounded-[14px] border border-white/8 bg-black px-3 text-[var(--text-dim)] focus-within:border-white/14">
-                  <Search size={16} strokeWidth={1.75} />
-                  <input
-                    value={messageSearchQuery}
-                    onChange={(event) => setMessageSearchQuery(event.target.value)}
-                    placeholder="Поиск"
-                    aria-label="Поиск по сообщениям"
-                    className="w-full border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
-                  />
-                </label>
-              </div>
-              <div className="p-2">
-                {filteredConversations.length === 0 ? (
-                  <EmptyNow />
-                ) : (
-                  filteredConversations
-                    .slice(0, 5)
-                    .map((conversation) => (
-                      <MessageRow key={conversation.id} conversation={conversation} />
-                    ))
-                )}
-              </div>
-            </Panel>
-
             <Panel>
               <PanelHeader
                 title="Входящие"
