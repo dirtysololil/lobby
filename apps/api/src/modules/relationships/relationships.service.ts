@@ -399,6 +399,7 @@ export class RelationshipsService {
   public async assertDirectMessagingAllowed(
     actorUserId: string,
     targetUserId: string,
+    actorRole?: string | null,
   ): Promise<UserRelationshipSummary> {
     const relationship = await this.getRelationshipSummary(
       actorUserId,
@@ -409,6 +410,10 @@ export class RelationshipsService {
       throw new ForbiddenException(
         'Личные сообщения недоступны, потому что один из пользователей ограничил контакт.',
       );
+    }
+
+    if (actorRole === 'OWNER') {
+      return relationship;
     }
 
     if (relationship.friendshipState !== 'ACCEPTED') {

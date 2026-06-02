@@ -609,6 +609,7 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
   const activeView = peopleViews.some((item) => item.id === rawView)
     ? (rawView as PeopleView)
     : "friends";
+  const canBypassFriendshipForDm = viewer.role === "OWNER";
 
   useEffect(() => {
     void refreshPanels();
@@ -1338,7 +1339,8 @@ export function PeopleWorkspace({ viewer }: PeopleWorkspaceProps) {
                                       disabled={
                                         actionKey === busyKey ||
                                         item.relationship.hasBlockedViewer ||
-                                        (!item.relationship.dmConversationId &&
+                                        (!canBypassFriendshipForDm &&
+                                          !item.relationship.dmConversationId &&
                                           item.relationship.friendshipState !== "ACCEPTED")
                                       }
                                       className="h-8 px-2.5"

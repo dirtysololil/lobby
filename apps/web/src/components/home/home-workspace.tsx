@@ -14,6 +14,7 @@ import {
   Search,
   Send,
   Settings2,
+  ShieldCheck,
   X,
   Users2,
   type LucideIcon,
@@ -719,6 +720,7 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
     (sum, conversation) => sum + conversation.unreadCount,
     0,
   );
+  const canOpenAdminPanel = viewer.role === "OWNER" || viewer.role === "ADMIN";
 
   const filteredConversations = useMemo(() => {
     const query = messageSearchQuery.trim().toLowerCase();
@@ -909,6 +911,15 @@ export function HomeWorkspace({ viewer }: HomeWorkspaceProps) {
                 <p className="mx-auto mt-3 line-clamp-3 max-w-[220px] text-xs leading-5 text-[var(--text-dim)]">
                   {viewer.profile.bio.trim()}
                 </p>
+              ) : null}
+              {canOpenAdminPanel ? (
+                <Link
+                  href="/app/admin"
+                  className="mx-auto mt-4 inline-flex min-h-10 w-full max-w-[220px] items-center justify-center gap-2 rounded-[12px] border border-[#0070F3] bg-[#0070F3] px-4 text-sm font-semibold text-white transition-colors hover:border-[#1A7FFF] hover:bg-[#1A7FFF]"
+                >
+                  <ShieldCheck size={16} strokeWidth={1.9} />
+                  <span>Панель управления</span>
+                </Link>
               ) : null}
 
               <div className="mt-5 grid grid-cols-3 gap-2">

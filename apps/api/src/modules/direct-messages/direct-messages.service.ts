@@ -359,6 +359,7 @@ export class DirectMessagesService implements OnModuleInit {
     await this.relationshipsService.assertDirectMessagingAllowed(
       actor.id,
       counterpart.userId,
+      actor.role,
     );
 
     const replyToMessageId = this.resolveReplyToMessageId(
@@ -528,6 +529,7 @@ export class DirectMessagesService implements OnModuleInit {
     await this.relationshipsService.assertDirectMessagingAllowed(
       actor.id,
       counterpart.userId,
+      actor.role,
     );
 
     const replyToMessageId = this.resolveReplyToMessageId(
@@ -1155,6 +1157,7 @@ export class DirectMessagesService implements OnModuleInit {
     await this.relationshipsService.assertDirectMessagingAllowed(
       actor.id,
       counterpart.userId,
+      actor.role,
     );
 
     const existingReaction = await this.prisma.directMessageReaction.findUnique(

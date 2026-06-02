@@ -385,9 +385,14 @@ function buildReplyPreviewFromThreadMessage(
 function getDirectMessageWriteRestriction(
   friendshipState: FriendshipState,
   isBlocked: boolean,
+  canBypassFriendship: boolean,
 ) {
   if (isBlocked) {
     return "В этом диалоге нельзя отправлять сообщения из-за ограничения контакта.";
+  }
+
+  if (canBypassFriendship) {
+    return null;
   }
 
   switch (friendshipState) {
@@ -841,6 +846,7 @@ export function ConversationView({
   const writeRestrictionMessage = getDirectMessageWriteRestriction(
     conversation?.friendshipState ?? "NONE",
     isBlocked,
+    viewerRole === "OWNER",
   );
   const isComposerDisabled = Boolean(writeRestrictionMessage) || isUploadingFiles;
 
